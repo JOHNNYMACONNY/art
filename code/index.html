@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Echoes in the Scrapheap</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header><h1>ECHOES IN THE SCRAPHEAP</h1><span>FB-13 / HS-7 CHRONICLES</span></header>
+    <div id="cabinet" class="cabinet">
+      <canvas id="game" width="960" height="540"></canvas>
+      <div id="start" class="overlay">
+        <div class="panel">
+          <span class="kicker">ECHOTEL ARCHIVE // SIGNAL RECOVERED</span>
+          <h2>ECHOES IN THE SCRAPHEAP</h2>
+          <p>Gears District. One bad night. Three memories nobody wants found.</p>
+          <button id="newGame">NEW GAME</button>
+          <button id="continueGame">CONTINUE</button>
+          <div class="controls">WASD move/drive · MOUSE aim · CLICK fire · E interact/enter · Q FB-13 thrum · R HS-7 echo · ESC pause</div>
+        </div>
+      </div>
+    </div>
+    <footer><span>JMAC // MEMORY COURIER</span><span>BUILD 13.7 // WEB</span></footer>
+  </main>
+  <script src="save-state.js"></script>
+  <script src="camera.js"></script>
+  <script src="audio-engine.js"></script>
+  <script src="simulation.js"></script>
+  <script src="renderer.js"></script>
+  <script src="nostr-gateway.js"></script>
+  <script src="world-event-gateway.js"></script>
+  <script src="game.js?v=20.0"></script>
+</body>
+</html>

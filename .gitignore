@@ -1,0 +1,7 @@
+# Environment and credentials
+.env
+.env.local
+.env.buzz
+*.env
+.DS_Store
+node_modules/

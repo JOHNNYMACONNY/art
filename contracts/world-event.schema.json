@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WorldEventDirective",
+  "type": "object",
+  "required": ["kind", "pubkey", "id", "sig", "tags", "content"],
+  "properties": {
+    "kind": { "type": "integer", "enum": [78, 30078] },
+    "pubkey": { "type": "string" },
+    "id": { "type": "string" },
+    "sig": { "type": "string" },
+    "created_at": { "type": "integer" },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "content": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "required": ["v", "directive", "zone", "severity", "ttl"],
+          "properties": {
+            "v": { "type": "integer", "default": 1 },
+            "directive": {
+              "type": "string",
+              "enum": ["dispatch_hunters", "thrum_spike", "police_sweep", "lockdown_sector", "memory_beacon"]
+            },
+            "zone": { "type": "string" },
+            "severity": { "type": "number", "minimum": 0, "maximum": 1 },
+            "ttl": { "type": "integer" },
+            "actor": { "type": "string", "default": "CCF-001" }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SaveState",
+  "type": "object",
+  "required": [
+    "version",
+    "timestamp",
+    "player",
+    "vehicles",
+    "missionState",
+    "worldFlags",
+    "policeState",
+    "thrumState",
+    "wavicleState"
+  ],
+  "properties": {
+    "version": { "type": "string", "default": "1.0.0" },
+    "timestamp": { "type": "number" },
+    "player": {
+      "type": "object",
+      "required": ["x", "y", "health", "maxHealth", "ammo", "inVehicle"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "health": { "type": "number" },
+        "maxHealth": { "type": "number" },
+        "ammo": { "type": "number" },
+        "inVehicle": { "type": ["string", "number", "null"] }
+      }
+    },
+    "vehicles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "x", "y", "health"],
+        "properties": {
+          "id": { "type": ["string", "number"] },
+          "type": { "type": "string" },
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "health": { "type": "number" }
+        }
+      }
+    },
+    "missionState": {
+      "type": "object",
+      "required": ["currentMissionId", "stepIndex", "completedMissions"],
+      "properties": {
+        "currentMissionId": { "type": ["string", "number", "null"] },
+        "stepIndex": { "type": "number" },
+        "completedMissions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "worldFlags": { "type": "object" },
+    "policeState": {
+      "type": "object",
+      "required": ["heat", "wantedLevel", "cooldownTimer"],
+      "properties": {
+        "heat": { "type": "number" },
+        "wantedLevel": { "type": "number" },
+        "cooldownTimer": { "type": "number" }
+      }
+    },
+    "thrumState": {
+      "type": "object",
+      "required": ["intensity", "active"],
+      "properties": {
+        "intensity": { "type": "number" },
+        "active": { "type": "boolean" }
+      }
+    },
+    "wavicleState": {
+      "type": "object",
+      "required": ["destabilization", "active"],
+      "properties": {
+        "destabilization": { "type": "number" },
+        "active": { "type": "boolean" }
+      }
+    }
+  }
+}

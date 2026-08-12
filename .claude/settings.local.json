@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(command -v godot)",
+      "Bash(command -v godot4)",
+      "Bash(node *)",
+      "Bash(python3 *)",
+      "Bash(curl -sS -I http://localhost:4173/)",
+      "Bash(curl -sS http://localhost:4173/)",
+      "Bash(open *)",
+      "Skill(claude-api)",
+      "Skill(update-config)",
+      "WebSearch",
+      "Bash(agent-reach doctor *)"
+    ]
+  }
+}

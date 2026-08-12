@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MemoryEcho",
+  "type": "object",
+  "required": ["kind", "tags", "content"],
+  "properties": {
+    "kind": { "type": "integer", "const": 78 },
+    "pubkey": { "type": "string" },
+    "created_at": { "type": "integer" },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "content": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "required": ["v", "type", "session", "seq", "action", "zone", "intensity"],
+          "properties": {
+            "v": { "type": "integer", "default": 1 },
+            "type": { "type": "string", "const": "player.echo" },
+            "session": { "type": "string" },
+            "seq": { "type": "integer" },
+            "action": { "type": "string" },
+            "zone": { "type": "string" },
+            "mission": { "type": ["string", "number", "null"] },
+            "intensity": { "type": "number" },
+            "world_time": { "type": "number" }
+          }
+        }
+      ]
+    }
+  }
+}
