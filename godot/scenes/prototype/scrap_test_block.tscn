@@ -1,0 +1,189 @@
+[gd_scene load_steps=12 format=3 uid="uid://c_scrap_test_block_001"]
+
+[ext_resource type="Script" path="res://scripts/prototype/scrap_test_block.gd" id="1_root"]
+
+[ext_resource type="Script" path="res://scripts/camera/camera_3d.gd" id="2_camera"]
+
+[ext_resource type="PackedScene" uid="uid://c_player_runner_001" path="res://scenes/player/runner.tscn" id="3_runner"]
+
+[ext_resource type="PackedScene" uid="uid://c_corroded_panel_001" path="res://scenes/interactions/corroded_panel.tscn" id="4_panel"]
+
+[ext_resource type="Script" path="res://scripts/input/touch_controls.gd" id="5_ui"]
+
+[ext_resource type="Script" path="res://scripts/audio/audio_manager.gd" id="6_audio"]
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 1
+background_color = Color(0.06, 0.07, 0.09, 1)
+ambient_light_color = Color(0.3, 0.25, 0.2, 1)
+tonemap_mode = 2
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+size = Vector3(40, 1, 40)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.18, 0.16, 0.14, 1)
+roughness = 0.85
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(40, 1, 40)
+
+[sub_resource type="BoxMesh" id="BoxMesh_junk"]
+size = Vector3(2, 3, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_junk"]
+albedo_color = Color(0.3, 0.2, 0.15, 1)
+
+[node name="ScrapTestBlock" type="Node3D"]
+script = ExtResource("1_root")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 15, 0)
+light_color = Color(1, 0.85, 0.6, 1)
+light_energy = 1.2
+shadow_enabled = true
+
+[node name="Floor" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+
+[node name="FloorMesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("BoxMesh_floor")
+surface_material_override/0 = SubResource("StandardMaterial3D_floor")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="ScrapClutter1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1.5, -4)
+mesh = SubResource("BoxMesh_junk")
+surface_material_override/0 = SubResource("StandardMaterial3D_junk")
+
+[node name="ScrapClutter2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.5, 3)
+mesh = SubResource("BoxMesh_junk")
+surface_material_override/0 = SubResource("StandardMaterial3D_junk")
+
+[node name="Runner" parent="." instance=ExtResource("3_runner")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="ChinatownCamera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.707107, -0.598, 0.377, 0, 0.533, 0.846, -0.707107, -0.598, 0.377, 12, 18, 12)
+current = true
+fov = 32.0
+script = ExtResource("2_camera")
+target_node = NodePath("../Runner")
+
+[node name="CorrodedPanel" parent="." instance=ExtResource("4_panel")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6)
+
+[node name="AudioManager" type="Node" parent="."]
+script = ExtResource("6_audio")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="StatusLabel" type="Label" parent="CanvasLayer"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 400.0
+offset_bottom = 70.0
+text = "GOLDEN SLICE v0 // SCRAP-YARD TEST BLOCK"
+
+[node name="TouchControlsUI" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("5_ui")
+
+[node name="LeftTouchArea" type="Control" parent="CanvasLayer/TouchControlsUI"]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 480.0
+grow_vertical = 2
+
+[node name="JoystickBase" type="ColorRect" parent="CanvasLayer/TouchControlsUI/LeftTouchArea"]
+visible = false
+layout_mode = 0
+offset_right = 120.0
+offset_bottom = 120.0
+color = Color(0.2, 0.2, 0.25, 0.5)
+
+[node name="JoystickKnob" type="ColorRect" parent="CanvasLayer/TouchControlsUI/LeftTouchArea/JoystickBase"]
+layout_mode = 0
+offset_left = 35.0
+offset_top = 35.0
+offset_right = 85.0
+offset_bottom = 85.0
+color = Color(0.3, 0.8, 1, 0.8)
+
+[node name="RightTouchArea" type="Control" parent="CanvasLayer/TouchControlsUI"]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -480.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="ActionButton" type="Button" parent="CanvasLayer/TouchControlsUI/RightTouchArea"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -160.0
+offset_top = -140.0
+offset_left = -30.0
+offset_top = -30.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "ACTION"
+
+[node name="GestureOverlayPanel" type="Panel" parent="CanvasLayer/TouchControlsUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -100.0
+offset_right = 240.0
+offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GestureLabel" type="Label" parent="CanvasLayer/TouchControlsUI/GestureOverlayPanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 20.0
+offset_bottom = 50.0
+grow_horizontal = 2
+text = "DRAG DOWN TO PEEL CORRODED COVER"
+horizontal_alignment = 1
+
+[node name="CorePullButton" type="Button" parent="CanvasLayer/TouchControlsUI/GestureOverlayPanel"]
+visible = false
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -100.0
+offset_top = -70.0
+offset_right = 100.0
+offset_left = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "[ EXTRACT CORE ]"
