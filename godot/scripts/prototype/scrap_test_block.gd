@@ -80,7 +80,7 @@ func _ready() -> void:
 	if pursuer_scene:
 		pursuer = pursuer_scene.instantiate() as PursuerPrototype
 		pursuer.name = "PursuerPrototype"
-		pursuer.position = Vector3(0, 0.6, -15.0)
+		pursuer.position = Vector3(0, 0.6, -10.0)
 		add_child(pursuer)
 		pursuer.intercepted_target.connect(_on_pursuer_intercepted)
 		
