@@ -18,6 +18,7 @@ enum Step {
 }
 
 @export var magnetism_radius: float = 3.5
+@export var is_powered: bool = false
 
 @onready var panel_mesh: MeshInstance3D = $PanelMesh
 @onready var core_mesh: MeshInstance3D = $CoreMesh
@@ -36,16 +37,25 @@ func _ready() -> void:
 	if core_mesh:
 		core_mesh.scale = Vector3(0.1, 0.1, 0.1)
 
+func power_on() -> void:
+	is_powered = true
+	audio_event_triggered.emit("PANEL_POWERED")
+	if is_player_in_range and current_step == Step.IDLE:
+		current_step = Step.APPROACHED
+		if highlight_ring:
+			highlight_ring.visible = true
+		magnetism_changed.emit(true, self)
+
 func _on_body_entered(body: Node3D) -> void:
 	if body is CharacterBody3D:
 		is_player_in_range = true
 		_player_ref = body
-		if current_step == Step.IDLE:
+		if current_step == Step.IDLE and is_powered:
 			current_step = Step.APPROACHED
 			if highlight_ring:
 				highlight_ring.visible = true
-			emit_signal("magnetism_changed", true, self)
-			emit_signal("audio_event_triggered", "PROXIMITY_HUM")
+			magnetism_changed.emit(true, self)
+			audio_event_triggered.emit("PROXIMITY_HUM")
 
 func _on_body_exited(body: Node3D) -> void:
 	if body == _player_ref:
@@ -55,14 +65,14 @@ func _on_body_exited(body: Node3D) -> void:
 			current_step = Step.IDLE
 			if highlight_ring:
 				highlight_ring.visible = false
-			emit_signal("magnetism_changed", false, self)
+			magnetism_changed.emit(false, self)
 
-# Starts extraction gesture loop (1-2 sec) - strictly requires APPROACHED state in range
+# Starts extraction gesture loop - strictly requires is_powered and APPROACHED state
 func trigger_action() -> bool:
-	if is_player_in_range and current_step == Step.APPROACHED:
+	if is_player_in_range and current_step == Step.APPROACHED and is_powered:
 		current_step = Step.PEELING
-		emit_signal("extraction_step_changed", "PEEL_PANEL")
-		emit_signal("audio_event_triggered", "PANEL_PEEL")
+		extraction_step_changed.emit("PEEL_PANEL")
+		audio_event_triggered.emit("PANEL_PEEL")
 		if spark_particles:
 			spark_particles.emitting = true
 		return true
@@ -78,8 +88,8 @@ func progress_peel(amount: float) -> void:
 			current_step = Step.EXPOSED
 			if core_mesh:
 				core_mesh.scale = Vector3(1.0, 1.0, 1.0)
-			emit_signal("extraction_step_changed", "EXPOSE_CORE")
-			emit_signal("audio_event_triggered", "CORE_PULL")
+			extraction_step_changed.emit("EXPOSE_CORE")
+			audio_event_triggered.emit("CORE_PULL")
 
 # Finalize core extraction gesture (tap/pull glowing core)
 func complete_extraction() -> void:
@@ -89,9 +99,9 @@ func complete_extraction() -> void:
 			core_mesh.visible = false
 		if highlight_ring:
 			highlight_ring.visible = false
-		emit_signal("extraction_step_changed", "EXTRACTED")
-		emit_signal("extraction_completed")
-		emit_signal("audio_event_triggered", "COMPLETION")
-		emit_signal("audio_event_triggered", "SPARK")
+		extraction_step_changed.emit("EXTRACTED")
+		extraction_completed.emit()
+		audio_event_triggered.emit("COMPLETION")
+		audio_event_triggered.emit("SPARK")
 		if spark_particles:
 			spark_particles.emitting = true

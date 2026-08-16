@@ -1,0 +1,51 @@
+[gd_scene load_steps=8 format=3 uid="uid://c_signal_tuner_001"]
+
+[ext_resource type="Script" path="res://scripts/interactions/signal_tuner.gd" id="1_tuner"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_base"]
+top_radius = 0.5
+bottom_radius = 0.6
+height = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_metal"]
+albedo_color = Color(0.2, 0.22, 0.25, 1)
+roughness = 0.4
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_dial"]
+top_radius = 0.35
+bottom_radius = 0.4
+height = 0.3
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_accent"]
+albedo_color = Color(0.9, 0.5, 0.1, 1)
+emission_enabled = true
+emission = Color(0.9, 0.4, 0.05, 1)
+emission_energy_multiplier = 0.6
+
+[sub_resource type="TorusMesh" id="TorusMesh_ring"]
+inner_radius = 0.7
+outer_radius = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ring"]
+shading_mode = 0
+albedo_color = Color(1, 0.8, 0.2, 0.6)
+
+[node name="SignalTuner" type="Area3D"]
+script = ExtResource("1_tuner")
+
+[node name="MeshPivot" type="Node3D" parent="."]
+
+[node name="BaseMesh" type="MeshInstance3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+mesh = SubResource("CylinderMesh_base")
+surface_material_override/0 = SubResource("StandardMaterial3D_metal")
+
+[node name="DialMesh" type="MeshInstance3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+mesh = SubResource("CylinderMesh_dial")
+surface_material_override/0 = SubResource("StandardMaterial3D_accent")
+
+[node name="AuraMesh" type="MeshInstance3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("TorusMesh_ring")
+surface_material_override/0 = SubResource("StandardMaterial3D_ring")

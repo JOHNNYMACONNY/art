@@ -7,6 +7,7 @@ extends Control
 signal joystick_vector_updated(vec: Vector2)
 signal action_button_pressed
 signal peel_gesture_dragged(progress: float)
+signal tuner_dragged(delta_freq: float)
 signal core_tap_pressed
 
 @onready var joystick_base: Control = $LeftTouchArea/JoystickBase
@@ -24,8 +25,10 @@ var _joystick_origin := Vector2.ZERO
 var _max_radius: float = 75.0
 
 var _is_peeling: bool = false
+var _is_tuning: bool = false
 var _peel_start_y: float = 0.0
 var _peel_progress: float = 0.0
+var _last_drag_x: float = 0.0
 
 func _ready() -> void:
 	if joystick_base:
@@ -54,14 +57,21 @@ func show_gesture_overlay(step_name: String) -> void:
 			core_pull_button.visible = false
 			_is_peeling = true
 			_peel_progress = 0.0
+		elif step_name == "TUNE_SIGNAL":
+			gesture_label.text = "SWIPE HORIZONTALLY TO TUNE FREQUENCY"
+			core_pull_button.visible = false
+			_is_peeling = false
+			_is_tuning = true
 		elif step_name == "EXPOSE_CORE":
 			gesture_label.text = "TAP GLOWING CORE TO EXTRACT!"
 			core_pull_button.visible = true
 			_is_peeling = false
+			_is_tuning = false
 		elif step_name == "EXTRACTED":
 			gesture_label.text = "CORE EXTRACTED! [ SUCCESS ]"
 			core_pull_button.visible = false
 			_is_peeling = false
+			_is_tuning = false
 			await get_tree().create_timer(1.2).timeout
 			gesture_panel.visible = false
 
@@ -74,19 +84,17 @@ func _input(event: InputEvent) -> void:
 		var pos: Vector2 = event.position
 		
 		if is_down:
-			# Left screen touch down claims locomotion joystick pointer
 			if pos.x < (viewport_w * 0.5) and left_pointer_id == -1:
 				left_pointer_id = touch_idx
 				_joystick_origin = pos
 				if joystick_base:
 					joystick_base.visible = true
 					joystick_base.global_position = pos - (joystick_base.size * 0.5)
-			# Gesture drag touch down claims interaction pointer
-			elif _is_peeling and interaction_pointer_id == -1:
+			elif (_is_peeling or _is_tuning) and interaction_pointer_id == -1:
 				interaction_pointer_id = touch_idx
 				_peel_start_y = pos.y
+				_last_drag_x = pos.x
 		else:
-			# Touch release checks pointer ID ownership
 			if touch_idx == left_pointer_id:
 				_reset_joystick()
 			elif touch_idx == interaction_pointer_id:
@@ -104,11 +112,17 @@ func _input(event: InputEvent) -> void:
 			var norm_vec := clamped_offset / _max_radius
 			emit_signal("joystick_vector_updated", norm_vec)
 			
-		elif drag_idx == interaction_pointer_id and _is_peeling:
-			var dy: float = pos.y - _peel_start_y
-			if dy > 5.0:
-				_peel_progress = clamp(dy / 120.0, 0.0, 1.0)
-				emit_signal("peel_gesture_dragged", _peel_progress)
+		elif drag_idx == interaction_pointer_id:
+			if _is_peeling:
+				var dy: float = pos.y - _peel_start_y
+				if dy > 5.0:
+					_peel_progress = clamp(dy / 120.0, 0.0, 1.0)
+					emit_signal("peel_gesture_dragged", _peel_progress)
+			elif _is_tuning:
+				var dx: float = pos.x - _last_drag_x
+				_last_drag_x = pos.x
+				var delta_freq: float = dx / 250.0
+				emit_signal("tuner_dragged", delta_freq)
 
 	# Desktop mouse fallback
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
