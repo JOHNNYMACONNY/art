@@ -1,6 +1,6 @@
 ---
 name: echos-in-the-scrap
-description: Project instruction layer for ECHOES IN THE SCRAPHEAP (Godot 4.x / GDScript 3D golden slice).
+description: Project instruction layer for Echos in the Scrap (Godot 4.x / GDScript 3D golden slice).
 ---
 
 # ECHOS IN THE SCRAP — AGENT SPECIFICATION

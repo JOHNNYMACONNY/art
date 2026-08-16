@@ -1,8 +1,8 @@
 class_name TouchControlsUI
 extends Control
 
-# Touch Controls & Minigame Overlay Layer
-# Left floating virtual joystick + Right contextual action button + Gesture extraction overlay.
+# Touch Controls & Multitouch Pointer Ownership Layer
+# Tracks left_pointer_id for floating joystick and interaction_pointer_id for gesture drag.
 
 signal joystick_vector_updated(vec: Vector2)
 signal action_button_pressed
@@ -16,7 +16,10 @@ signal core_tap_pressed
 @onready var gesture_label: Label = $GestureOverlayPanel/GestureLabel
 @onready var core_pull_button: Button = $GestureOverlayPanel/CorePullButton
 
-var _joystick_touch_id: int = -1
+# Pointer ownership IDs (-1 = unassigned)
+var left_pointer_id: int = -1
+var interaction_pointer_id: int = -1
+
 var _joystick_origin := Vector2.ZERO
 var _max_radius: float = 75.0
 
@@ -63,42 +66,71 @@ func show_gesture_overlay(step_name: String) -> void:
 			gesture_panel.visible = false
 
 func _input(event: InputEvent) -> void:
-	# Floating Joystick Input Logic on Left Screen (X < Viewport Width / 2)
 	var viewport_w := get_viewport_rect().size.x
 	
-	if event is InputEventScreenTouch or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT):
-		var is_down := event.is_pressed()
+	if event is InputEventScreenTouch:
+		var touch_idx: int = event.index
+		var is_down: bool = event.pressed
 		var pos: Vector2 = event.position
 		
-		if is_down and pos.x < (viewport_w * 0.5) and _joystick_touch_id == -1:
-			_joystick_touch_id = 1
-			_joystick_origin = pos
-			if joystick_base:
-				joystick_base.visible = true
-				joystick_base.global_position = pos - (joystick_base.size * 0.5)
-			if _is_peeling:
+		if is_down:
+			# Left screen touch down claims locomotion joystick pointer
+			if pos.x < (viewport_w * 0.5) and left_pointer_id == -1:
+				left_pointer_id = touch_idx
+				_joystick_origin = pos
+				if joystick_base:
+					joystick_base.visible = true
+					joystick_base.global_position = pos - (joystick_base.size * 0.5)
+			# Gesture drag touch down claims interaction pointer
+			elif _is_peeling and interaction_pointer_id == -1:
+				interaction_pointer_id = touch_idx
 				_peel_start_y = pos.y
-		elif not is_down and _joystick_touch_id != -1:
-			_reset_joystick()
-			
-	elif (event is InputEventScreenDrag or (event is InputEventMouseMotion and _joystick_touch_id != -1)):
+		else:
+			# Touch release checks pointer ID ownership
+			if touch_idx == left_pointer_id:
+				_reset_joystick()
+			elif touch_idx == interaction_pointer_id:
+				interaction_pointer_id = -1
+				
+	elif event is InputEventScreenDrag:
+		var drag_idx: int = event.index
 		var pos: Vector2 = event.position
-		if _joystick_touch_id != -1:
+		
+		if drag_idx == left_pointer_id:
 			var offset: Vector2 = pos - _joystick_origin
 			var clamped_offset := offset.limit_length(_max_radius)
 			if joystick_knob:
 				joystick_knob.position = (joystick_base.size * 0.5) + clamped_offset - (joystick_knob.size * 0.5)
-				
 			var norm_vec := clamped_offset / _max_radius
 			emit_signal("joystick_vector_updated", norm_vec)
 			
-			# Peel gesture tracking if peeling overlay is active
-			if _is_peeling and offset.y > 10.0:
-				_peel_progress = clamp(offset.y / 120.0, 0.0, 1.0)
+		elif drag_idx == interaction_pointer_id and _is_peeling:
+			var dy: float = pos.y - _peel_start_y
+			if dy > 5.0:
+				_peel_progress = clamp(dy / 120.0, 0.0, 1.0)
 				emit_signal("peel_gesture_dragged", _peel_progress)
 
+	# Desktop mouse fallback
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.is_pressed() and event.position.x < (viewport_w * 0.5) and left_pointer_id == -1:
+			left_pointer_id = 99
+			_joystick_origin = event.position
+			if joystick_base:
+				joystick_base.visible = true
+				joystick_base.global_position = event.position - (joystick_base.size * 0.5)
+		elif not event.is_pressed() and left_pointer_id == 99:
+			_reset_joystick()
+			
+	elif event is InputEventMouseMotion and left_pointer_id == 99:
+		var offset: Vector2 = event.position - _joystick_origin
+		var clamped_offset := offset.limit_length(_max_radius)
+		if joystick_knob:
+			joystick_knob.position = (joystick_base.size * 0.5) + clamped_offset - (joystick_knob.size * 0.5)
+		var norm_vec := clamped_offset / _max_radius
+		emit_signal("joystick_vector_updated", norm_vec)
+
 func _reset_joystick() -> void:
-	_joystick_touch_id = -1
+	left_pointer_id = -1
 	if joystick_base:
 		joystick_base.visible = false
 	if joystick_knob:

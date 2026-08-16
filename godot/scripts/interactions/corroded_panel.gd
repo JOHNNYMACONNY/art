@@ -57,14 +57,16 @@ func _on_body_exited(body: Node3D) -> void:
 				highlight_ring.visible = false
 			emit_signal("magnetism_changed", false, self)
 
-# Starts extraction gesture loop (1-2 sec)
-func trigger_action() -> void:
-	if current_step == Step.APPROACHED or current_step == Step.IDLE:
+# Starts extraction gesture loop (1-2 sec) - strictly requires APPROACHED state in range
+func trigger_action() -> bool:
+	if is_player_in_range and current_step == Step.APPROACHED:
 		current_step = Step.PEELING
 		emit_signal("extraction_step_changed", "PEEL_PANEL")
 		emit_signal("audio_event_triggered", "PANEL_PEEL")
 		if spark_particles:
 			spark_particles.emitting = true
+		return true
+	return false
 
 # Progress peel gesture (drag panel off)
 func progress_peel(amount: float) -> void:

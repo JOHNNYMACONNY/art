@@ -40,6 +40,93 @@ func _ready() -> void:
 		
 	if OS.get_cmdline_user_args().has("--run-autotest"):
 		_run_automated_gameplay_test()
+	elif OS.get_cmdline_user_args().has("--run-v1-assertions"):
+		_run_v1_assertions()
+	elif OS.get_cmdline_user_args().has("--export-v1-visuals"):
+		_export_v1_visuals()
+
+func _export_v1_visuals() -> void:
+	print("[V1_VISUALS] Exporting 5 required V1 visual screenshots...")
+	await get_tree().create_timer(0.2).timeout
+	
+	# 1. v1_traversal.png
+	player.set_joystick_input(Vector2(0.5, -0.5))
+	await get_tree().create_timer(0.3).timeout
+	get_viewport().get_texture().get_image().save_png("res://v1_traversal.png")
+	print("[V1_VISUALS] Saved v1_traversal.png")
+	
+	# 2. v1_panel_targeted.png
+	player.set_joystick_input(Vector2.ZERO)
+	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.8)
+	await get_tree().create_timer(0.3).timeout
+	get_viewport().get_texture().get_image().save_png("res://v1_panel_targeted.png")
+	print("[V1_VISUALS] Saved v1_panel_targeted.png")
+	
+	# 3. v1_peeling.png
+	_on_action_pressed()
+	await get_tree().create_timer(0.3).timeout
+	get_viewport().get_texture().get_image().save_png("res://v1_peeling.png")
+	print("[V1_VISUALS] Saved v1_peeling.png")
+	
+	# 4. v1_core_exposed.png
+	_on_peel_gesture_dragged(1.0)
+	await get_tree().create_timer(0.3).timeout
+	get_viewport().get_texture().get_image().save_png("res://v1_core_exposed.png")
+	print("[V1_VISUALS] Saved v1_core_exposed.png")
+	
+	# 5. v1_extracted.png
+	_on_core_tap_pressed()
+	await get_tree().create_timer(0.4).timeout
+	get_viewport().get_texture().get_image().save_png("res://v1_extracted.png")
+	print("[V1_VISUALS] Saved v1_extracted.png")
+	
+	print("[V1_VISUALS] ALL 5 V1 SCREENSHOTS EXPORTED SUCCESSFULLY!")
+	get_tree().quit()
+
+func _run_v1_assertions() -> void:
+	print("[V1_ASSERTIONS] Starting strict V1 test suite...")
+	await get_tree().create_timer(0.1).timeout
+	
+	# 1. Assert initial state outside range
+	assert(not corroded_panel.is_player_in_range, "FAIL: Player must start outside interaction range")
+	assert(corroded_panel.current_step == CorrodedPanel.Step.IDLE, "FAIL: Panel must start IDLE")
+	
+	# 2. Assert out-of-range action rejection
+	var rejections := corroded_panel.trigger_action()
+	assert(not rejections, "FAIL: Out-of-range action must return false")
+	assert(corroded_panel.current_step == CorrodedPanel.Step.IDLE, "FAIL: Panel must remain IDLE")
+	
+	# 3. Move player into range
+	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.8)
+	await get_tree().create_timer(0.3).timeout
+	assert(corroded_panel.is_player_in_range, "FAIL: Player must be in range")
+	assert(corroded_panel.current_step == CorrodedPanel.Step.APPROACHED, "FAIL: Panel must be APPROACHED")
+	
+	# 4. Trigger action in range
+	_on_action_pressed()
+	await get_tree().create_timer(0.2).timeout
+	assert(corroded_panel.current_step == CorrodedPanel.Step.PEELING, "FAIL: Panel must enter PEELING")
+	assert(player.is_input_locked, "FAIL: Player input must lock")
+	assert(camera.current_mode == ChinatownCamera3D.CameraMode.INTERACTION, "FAIL: Camera must enter INTERACTION mode")
+	
+	# 5. Progress peel
+	_on_peel_gesture_dragged(1.0)
+	await get_tree().create_timer(0.2).timeout
+	assert(corroded_panel.current_step == CorrodedPanel.Step.EXPOSED, "FAIL: Panel must enter EXPOSED")
+	
+	# 6. Extract core
+	_on_core_tap_pressed()
+	await get_tree().create_timer(0.3).timeout
+	assert(corroded_panel.current_step == CorrodedPanel.Step.EXTRACTED, "FAIL: Panel must enter EXTRACTED")
+	assert(not player.is_input_locked, "FAIL: Player input must unlock")
+	assert(camera.current_mode == ChinatownCamera3D.CameraMode.TRAVERSAL, "FAIL: Camera must return to TRAVERSAL mode")
+	
+	# 7. Re-trigger rejection
+	var duplicate_trigger := corroded_panel.trigger_action()
+	assert(not duplicate_trigger, "FAIL: Duplicate extraction must be rejected")
+	
+	print("[V1_ASSERTIONS] PASSED! ALL 7 V1 STRICT ASSERTIONS SUCCEEDED CLEANLY.")
+	get_tree().quit()
 
 func _run_automated_gameplay_test() -> void:
 	_is_testing = true
@@ -84,9 +171,12 @@ func _on_joystick_vector_updated(vec: Vector2) -> void:
 
 func _on_action_pressed() -> void:
 	if corroded_panel:
-		corroded_panel.trigger_action()
-		if player:
-			player.is_input_locked = true
+		var action_success := corroded_panel.trigger_action()
+		if action_success:
+			if player:
+				player.is_input_locked = true
+			if camera:
+				camera.set_interaction_mode(true, corroded_panel)
 
 func _on_peel_gesture_dragged(progress: float) -> void:
 	if corroded_panel:
@@ -108,6 +198,8 @@ func _on_extraction_completed() -> void:
 	_extracted_count += 1
 	if player:
 		player.is_input_locked = false
+	if camera:
+		camera.set_interaction_mode(false)
 
 func _on_audio_event_triggered(event_name: String) -> void:
 	if audio_mgr:
