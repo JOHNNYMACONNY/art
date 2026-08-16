@@ -468,6 +468,7 @@ func _on_tuner_signal_locked(tuner_ref: SignalTuner) -> void:
 			
 	if audio_mgr:
 		audio_mgr.set_tuning_audio(0.0)
+		audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.SIGNAL_LOCK, tuner_ref.global_position)
 		if corroded_panel:
 			audio_mgr.play_event(AudioManagerScript.SoundEvent.PANEL_POWERED, corroded_panel.global_position)
