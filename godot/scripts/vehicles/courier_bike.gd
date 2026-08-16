@@ -4,10 +4,16 @@ extends CharacterBody3D
 # Courier Bike Vehicle Controller for Echos in the Scrap
 # Features rider binding, volume-cleared dismount query, arcade reverse mechanics, and brake screech SFX
 
+enum DismountRejectReason {
+	TOO_FAST,
+	NO_SAFE_POSITION
+}
+
 signal state_changed(new_state: String)
 signal mounted(player: PlayerRunner)
 signal dismounted
 signal brake_screech_triggered(pos: Vector3)
+signal dismount_rejected(reason: DismountRejectReason, current_speed: float, speed_limit: float)
 
 enum BikeState {
 	PARKED,
@@ -88,12 +94,17 @@ func request_mount(player: PlayerRunner) -> bool:
 	return true
 
 func request_dismount() -> bool:
-	if current_state != BikeState.DRIVING or abs(current_speed) > dismount_speed_limit:
+	if current_state != BikeState.DRIVING:
+		return false
+
+	if abs(current_speed) > dismount_speed_limit:
+		dismount_rejected.emit(DismountRejectReason.TOO_FAST, current_speed, dismount_speed_limit)
 		return false
 		
 	var safe_pos := _find_safe_dismount_position()
 	if safe_pos == Vector3.INF:
 		print("[BIKE] Dismount rejected: No volume-cleared dismount offset found!")
+		dismount_rejected.emit(DismountRejectReason.NO_SAFE_POSITION, current_speed, dismount_speed_limit)
 		return false
 		
 	current_state = BikeState.DISMOUNTING

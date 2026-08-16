@@ -69,6 +69,7 @@ func _ready() -> void:
 		add_child(courier_bike)
 		courier_bike.mounted.connect(_on_bike_mounted)
 		courier_bike.dismounted.connect(_on_bike_dismounted)
+		courier_bike.dismount_rejected.connect(_on_bike_dismount_rejected)
 		courier_bike.brake_screech_triggered.connect(func(pos: Vector3):
 			if audio_mgr: audio_mgr.play_event(AudioManagerScript.SoundEvent.BRAKE_SCREECH, pos)
 		)
@@ -131,6 +132,10 @@ func _ready() -> void:
 		_run_v5_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v6-assertions"):
 		_run_v6_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v7-ticket01-assertions"):
+		_run_v7_ticket01_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v7-ticket02-assertions"):
+		_run_v7_ticket02_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v3-visuals"):
@@ -346,6 +351,14 @@ func _on_bike_dismounted() -> void:
 func _on_dismount_pressed() -> void:
 	if courier_bike:
 		courier_bike.request_dismount()
+
+func _on_bike_dismount_rejected(reason: CourierBike.DismountRejectReason, current_speed: float, speed_limit: float) -> void:
+	print("[CONTROLLER] Dismount rejected! Reason: %s | Speed: %.1f m/s" % [CourierBike.DismountRejectReason.keys()[reason], current_speed])
+	if audio_mgr and courier_bike:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, courier_bike.global_position)
+	if touch_ui:
+		var toast := "[ SLOW DOWN TO DISMOUNT ]" if reason == CourierBike.DismountRejectReason.TOO_FAST else "[ CLEAR SPACE TO DISMOUNT ]"
+		touch_ui.show_dismount_rejection_warning(toast)
 
 func reset_slice() -> void:
 	if courier_bike and courier_bike.occupant != null:
@@ -1088,3 +1101,238 @@ func _export_v6_visuals() -> void:
 	
 	print("[V6_VISUALS] ALL 6 V6 SCREENSHOTS EXPORTED SUCCESSFULLY!")
 	get_tree().quit()
+
+func _run_v7_ticket01_assertions() -> void:
+	print("[V7_TICKET01_ASSERTIONS] Starting V7 Ticket 01 Retest Assertions (BUG-01 & BUG-02)...")
+	await get_tree().create_timer(0.2).timeout
+	signal_gate.set_pursuit_active(true)
+	pursuer.activate_pursuit(courier_bike)
+	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 5.0)
+	player.global_position = courier_bike.global_position
+	pursuer.global_position = signal_gate.global_position + Vector3(0, 0, 0.5)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	signal_gate.begin_interaction(courier_bike.global_position)
+	await get_tree().create_timer(0.75).timeout
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL: Gate must be TRIGGERED")
+	assert(not signal_gate.barrier_collision.disabled, "FAIL: barrier_collision.disabled MUST become false!")
+	print("[TEST BUG-01 PASSED] barrier_collision.disabled became false immediately!")
+	_deactivate_pursuit()
+	await get_tree().create_timer(0.2).timeout
+	corroded_panel.power_on()
+	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.0)
+	corroded_panel._on_body_entered(player)
+	corroded_panel.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.1).timeout
+	_on_peel_gesture_dragged(0.4)
+	touch_ui.peel_gesture_released.emit()
+	await get_tree().create_timer(0.1).timeout
+	assert(corroded_panel.current_step == CorrodedPanel.Step.APPROACHED or corroded_panel.current_step == CorrodedPanel.Step.IDLE, "FAIL: Panel step must reset!")
+	assert(not player.is_input_locked, "FAIL: Player input must unlock!")
+	print("[TEST BUG-02 PASSED] Peel gesture touch release cancelled interaction cleanly!")
+	print("[V7_TICKET01_ASSERTIONS] ALL V7 TICKET 01 ASSERTIONS PASSED GREEN!")
+	get_tree().quit(0)
+
+func _run_v7_ticket02_assertions() -> void:
+	print("[V7_TICKET02_ASSERTIONS] Starting Expanded V7 Ticket 02 Stress Tests...")
+	await get_tree().create_timer(0.2).timeout
+
+	# =========================================================================
+	# TASK 1: MULTI-TOUCH DRIVING CONTROLS & STATE ARBITRATION
+	# =========================================================================
+	print("\n--- [TASK 1] Testing Multi-Touch Driving Controls & State Arbitration ---")
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	assert(touch_ui._is_gas_pressed == false and touch_ui._is_brake_pressed == false, "FAIL: Driving inputs must initialize to false")
+	assert(_throttle_input == 0.0, "FAIL: Initial throttle must be 0.0")
+
+	# 1A. Gas alone pressed -> throttle +1.0
+	touch_ui._is_gas_pressed = true
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == 1.0, "FAIL: GAS held alone must set throttle to +1.0")
+
+	# 1B. Dual-touch hold: Brake pressed while Gas held -> throttle -1.0 (Brake priority!)
+	touch_ui._is_brake_pressed = true
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == -1.0, "FAIL: BRAKE held while GAS held MUST prioritize Brake (-1.0)!")
+
+	# 1C. Releasing combination A: Gas released while Brake held -> throttle -1.0
+	touch_ui._is_gas_pressed = false
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == -1.0, "FAIL: Releasing GAS while BRAKE held must maintain throttle at -1.0!")
+
+	# Release Brake -> throttle 0.0
+	touch_ui._is_brake_pressed = false
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == 0.0, "FAIL: Releasing both must set throttle to 0.0!")
+
+	# 1D. Releasing combination B: Both held -> Brake released while Gas held -> throttle +1.0
+	touch_ui._is_gas_pressed = true
+	touch_ui._is_brake_pressed = true
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == -1.0, "FAIL: Both held must prioritize Brake")
+	touch_ui._is_brake_pressed = false
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == 1.0, "FAIL: Releasing BRAKE while GAS held must return throttle to +1.0!")
+	touch_ui._is_gas_pressed = false
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == 0.0, "FAIL: All released must set throttle to 0.0")
+
+	# 1E. Rapid alternation (10 fast toggles between Gas & Brake)
+	print("[TASK 1] Running rapid 10-step alternation stress test between Gas and Brake...")
+	for i in range(10):
+		if i % 2 == 0:
+			touch_ui._is_gas_pressed = true
+			touch_ui._is_brake_pressed = false
+			touch_ui._emit_net_throttle()
+			assert(_throttle_input == 1.0, "FAIL: Rapid toggle step %d failed for GAS" % i)
+		else:
+			touch_ui._is_gas_pressed = true
+			touch_ui._is_brake_pressed = true
+			touch_ui._emit_net_throttle()
+			assert(_throttle_input == -1.0, "FAIL: Rapid toggle step %d failed for BRAKE priority" % i)
+	touch_ui.reset_driving_inputs()
+	assert(_throttle_input == 0.0, "FAIL: Reset after rapid alternation failed!")
+	print("[TASK 1 PASSED] Rapid input alternation verified cleanly!")
+
+	# 1F. Mode switch reset check (reset_driving_inputs on mode switch & reset_slice)
+	print("[TASK 1] Testing reset_driving_inputs() on UI mode switches & slice reset...")
+	touch_ui._is_gas_pressed = true
+	touch_ui._is_brake_pressed = true
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == -1.0, "FAIL: Inputs set for mode switch test")
+
+	touch_ui.set_mode(TouchControlsUI.UIMode.FOOT_TRAVERSAL)
+	assert(touch_ui._is_gas_pressed == false and touch_ui._is_brake_pressed == false, "FAIL: set_mode(FOOT_TRAVERSAL) must clear driving input flags!")
+	assert(_throttle_input == 0.0, "FAIL: set_mode(FOOT_TRAVERSAL) must emit net throttle 0.0!")
+
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	assert(touch_ui._is_gas_pressed == false and touch_ui._is_brake_pressed == false, "FAIL: set_mode(VEHICLE_DRIVING) must clear driving input flags!")
+	assert(_throttle_input == 0.0, "FAIL: set_mode(VEHICLE_DRIVING) must emit net throttle 0.0!")
+
+	# Test reset_slice()
+	touch_ui._is_gas_pressed = true
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == 1.0, "FAIL: Pre-reset_slice throttle set")
+	reset_slice()
+	assert(_throttle_input == 0.0, "FAIL: reset_slice() must set _throttle_input to 0.0!")
+	print("[TASK 1 PASSED] reset_driving_inputs() verified on mode switches & slice reset!")
+
+	# =========================================================================
+	# TASK 2: DISMOUNT BUTTON INTERACTION, SPEED SWEEP (0-14m/s) & RED FLASH
+	# =========================================================================
+	print("\n--- [TASK 2] Testing Dismount Button Rapid Tapping (0.0 m/s to 14.0 m/s) ---")
+	
+	# Mount bike for test
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.0)
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.35).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must be in DRIVING state")
+	assert(touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING, "FAIL: UI mode must be VEHICLE_DRIVING")
+
+	# Track rejection signal count and reasons
+	var reject_count := [0]
+	var last_reason := [CourierBike.DismountRejectReason.TOO_FAST]
+	var last_speed := [0.0]
+	var reject_cb := func(reason: CourierBike.DismountRejectReason, spd: float, limit: float):
+		reject_count[0] += 1
+		last_reason[0] = reason
+		last_speed[0] = spd
+
+	courier_bike.dismount_rejected.connect(reject_cb)
+
+	# 2A. Speed acceleration sweep from 0.0 m/s to 14.0 m/s with rapid dismount button taps
+	var speed_test_points := [0.0, 1.0, 1.5, 1.6, 2.0, 5.0, 8.0, 10.0, 14.0]
+	for spd in speed_test_points:
+		courier_bike.current_speed = spd
+		print("[TASK 2 SWEEP] Testing speed %.1f m/s..." % spd)
+
+		if spd > courier_bike.dismount_speed_limit: # > 1.5 m/s
+			var initial_rejects: int = reject_count[0]
+			# Rapid tap 5 times at this speed
+			for tap in range(5):
+				assert(not touch_ui.dismount_button.disabled, "FAIL: Dismount button disabled at speed %.1f m/s!" % spd)
+				var success := courier_bike.request_dismount()
+				assert(not success, "FAIL: request_dismount() must return false at speed %.1f m/s" % spd)
+			assert(reject_count[0] == initial_rejects + 5, "FAIL: Expected 5 dismount rejection signals at speed %.1f m/s" % spd)
+			assert(last_reason[0] == CourierBike.DismountRejectReason.TOO_FAST, "FAIL: Reason must be TOO_FAST")
+			assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike state must remain DRIVING at speed %.1f m/s" % spd)
+		else: # <= 1.5 m/s -> Dismount should succeed!
+			assert(not touch_ui.dismount_button.disabled, "FAIL: Dismount button disabled at speed %.1f m/s!" % spd)
+			var success := courier_bike.request_dismount()
+			assert(success, "FAIL: request_dismount() MUST succeed at speed %.1f m/s (<= 1.5 m/s)" % spd)
+			await get_tree().create_timer(0.25).timeout
+			assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Bike must transition to PARKED state")
+			assert(touch_ui.current_mode == TouchControlsUI.UIMode.FOOT_TRAVERSAL, "FAIL: UI mode must revert to FOOT_TRAVERSAL")
+			
+			# Re-mount bike for remaining speed points if any
+			if spd < 14.0:
+				player.global_position = courier_bike.global_position + Vector3(0, 0, 1.0)
+				courier_bike.mount_interactable.update_player_distance(player.global_position)
+				_evaluate_target_selection()
+				_on_action_pressed()
+				await get_tree().create_timer(0.35).timeout
+				assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Re-mount failed!")
+
+	print("[TASK 2 PASSED] Dismount button speed sweep (0.0 to 14.0 m/s) verified! Button never disabled!")
+
+	# 2B. Red Flash Animation Frame Tracking & Rapid Tapping Overlap Test
+	print("\n--- [TASK 2B] Stress Testing Red Flash Animation & Multi-frame Modulation ---")
+	# Re-mount bike and set speed to 10.0 m/s
+	if courier_bike.current_state != CourierBike.BikeState.DRIVING:
+		player.global_position = courier_bike.global_position + Vector3(0, 0, 1.0)
+		courier_bike.mount_interactable.update_player_distance(player.global_position)
+		_evaluate_target_selection()
+		_on_action_pressed()
+		await get_tree().create_timer(0.35).timeout
+
+	courier_bike.current_speed = 10.0
+	
+	# Tap dismount while driving at 10.0 m/s and inspect dismount_button.modulate across frames
+	_on_dismount_pressed()
+	var mod_t0 := touch_ui.dismount_button.modulate
+	print("[RED FLASH TELEMETRY] Frame 0 (Tap): modulate = %s" % mod_t0)
+	
+	await get_tree().process_frame
+	var mod_t1 := touch_ui.dismount_button.modulate
+	print("[RED FLASH TELEMETRY] Frame 1 (16ms post-process): modulate = %s" % mod_t1)
+	
+	await get_tree().process_frame
+	var mod_t2 := touch_ui.dismount_button.modulate
+	print("[RED FLASH TELEMETRY] Frame 2 (33ms post-process): modulate = %s" % mod_t2)
+
+	await get_tree().create_timer(0.25).timeout
+	var mod_t_end := touch_ui.dismount_button.modulate
+	print("[RED FLASH TELEMETRY] Frame final (250ms post-timer): modulate = %s" % mod_t_end)
+
+	# Test Rapid 5x Burst Tapping for Red Flash Overlap
+	print("[RED FLASH TELEMETRY] Triggering rapid 5x burst taps on DismountButton...")
+	for tap in range(5):
+		_on_dismount_pressed()
+		await get_tree().create_timer(0.04).timeout # 40ms interval (25 Hz rapid tap)
+	
+	print("[RED FLASH TELEMETRY] 5x Burst finished. Checking modulate state...")
+	var mod_burst_mid := touch_ui.dismount_button.modulate
+	print("[RED FLASH TELEMETRY] Burst Mid-State: modulate = %s" % mod_burst_mid)
+
+	await get_tree().create_timer(0.3).timeout
+	var mod_burst_final := touch_ui.dismount_button.modulate
+	print("[RED FLASH TELEMETRY] Burst Final State (300ms post-burst): modulate = %s" % mod_burst_final)
+
+	# 2C. Slow down vehicle below 1.5 m/s and verify immediate dismount
+	print("\n--- [TASK 2C] Testing Immediate Dismount When slowing below 1.5 m/s ---")
+	courier_bike.current_speed = 1.4
+	_on_dismount_pressed()
+	await get_tree().create_timer(0.3).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Bike must reach PARKED state when dismounted at 1.4 m/s!")
+	assert(touch_ui.current_mode == TouchControlsUI.UIMode.FOOT_TRAVERSAL, "FAIL: UI mode must revert to FOOT_TRAVERSAL!")
+	print("[TASK 2C PASSED] Dismount at 1.4 m/s (< 1.5 m/s) succeeded immediately!")
+
+	print("\n=========================================================================")
+	print("[ALL V7 TICKET 02 STRESS TESTS COMPLETED SUCCESSFULLY]")
+	print("=========================================================================")
+	get_tree().quit(0)
+

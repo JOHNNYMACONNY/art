@@ -54,9 +54,24 @@ var _current_joystick_vec: Vector2 = Vector2.ZERO
 var _is_peeling: bool = false
 var _is_tuning: bool = false
 var _current_gesture_type: String = ""
+var _is_gas_pressed: bool = false
+var _is_brake_pressed: bool = false
+
+func _emit_net_throttle() -> void:
+	var throttle := 0.0
+	if _is_brake_pressed:
+		throttle = -1.0
+	elif _is_gas_pressed:
+		throttle = 1.0
+	driving_throttle_updated.emit(throttle)
+
+func reset_driving_inputs() -> void:
+	_is_gas_pressed = false
+	_is_brake_pressed = false
+	_emit_net_throttle()
 
 func _ready() -> void:
-	if OS.get_cmdline_user_args().has("--debug-ui") or OS.has_feature("debug_ui"):
+	if OS.has_feature("debug_ui") or OS.get_cmdline_user_args().has("--debug-ui"):
 		debug_hud_enabled = true
 		
 	if action_button:
@@ -77,11 +92,23 @@ func _ready() -> void:
 	set_route_switch_button_visible(false)
 
 	if gas_button:
-		gas_button.button_down.connect(func(): driving_throttle_updated.emit(1.0))
-		gas_button.button_up.connect(func(): driving_throttle_updated.emit(0.0))
+		gas_button.button_down.connect(func():
+			_is_gas_pressed = true
+			_emit_net_throttle()
+		)
+		gas_button.button_up.connect(func():
+			_is_gas_pressed = false
+			_emit_net_throttle()
+		)
 	if brake_button:
-		brake_button.button_down.connect(func(): driving_throttle_updated.emit(-1.0))
-		brake_button.button_up.connect(func(): driving_throttle_updated.emit(0.0))
+		brake_button.button_down.connect(func():
+			_is_brake_pressed = true
+			_emit_net_throttle()
+		)
+		brake_button.button_up.connect(func():
+			_is_brake_pressed = false
+			_emit_net_throttle()
+		)
 
 func _apply_golden_slice_design_tokens() -> void:
 	if alert_label:
@@ -95,6 +122,7 @@ func _apply_golden_slice_design_tokens() -> void:
 
 func set_mode(mode: UIMode) -> void:
 	current_mode = mode
+	reset_driving_inputs()
 	if mode == UIMode.FOOT_TRAVERSAL:
 		if action_button: action_button.visible = true
 		if driving_panel: driving_panel.visible = false
@@ -103,10 +131,25 @@ func set_mode(mode: UIMode) -> void:
 		if driving_panel: driving_panel.visible = true
 		close_interaction_overlay()
 
-func set_dismount_button_enabled(enabled: bool) -> void:
+func set_dismount_button_enabled(available: bool) -> void:
 	if dismount_button:
-		dismount_button.disabled = not enabled
-		dismount_button.modulate = Color(1, 1, 1, 1.0) if enabled else Color(1, 1, 1, 0.4)
+		dismount_button.disabled = false # Keep button clickable so rejection events reach controller!
+		dismount_button.modulate = Color(1.0, 1.0, 1.0, 1.0) if available else Color(1.0, 1.0, 1.0, 0.6)
+
+func show_dismount_rejection_warning(toast_text: String) -> void:
+	if dismount_button:
+		var orig_mod := dismount_button.modulate
+		dismount_button.modulate = Color(1.5, 0.3, 0.3, 1.0)
+		get_tree().create_timer(0.2).timeout.connect(func():
+			if dismount_button:
+				dismount_button.modulate = orig_mod
+		)
+	if alert_label:
+		show_tension_hud(toast_text)
+		get_tree().create_timer(1.2).timeout.connect(func():
+			if current_mode == UIMode.VEHICLE_DRIVING and alert_label and alert_label.text == toast_text:
+				hide_tension_hud()
+		)
 
 func set_route_switch_button_visible(visible_flag: bool) -> void:
 	if route_switch_button:
