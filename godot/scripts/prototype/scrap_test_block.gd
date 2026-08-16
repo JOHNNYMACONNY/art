@@ -417,7 +417,7 @@ func reset_slice() -> void:
 		signal_gate._update_visual_state()
 		
 	if pursuer:
-		pursuer.global_position = Vector3(0, 0.6, -15.0)
+		pursuer.global_position = Vector3(0, 0.6, -10.0)
 		pursuer.is_active = false
 		pursuer.current_speed = 0.0
 		pursuer.detour_waypoints.clear()
