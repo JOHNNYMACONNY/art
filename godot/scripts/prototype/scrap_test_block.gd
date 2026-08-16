@@ -1,7 +1,8 @@
 class_name ScrapTestBlock
 extends Node3D
 
-# Echos in the Scrap - Golden Slice v3 Main Controller
+# Echos in the Scrap - Golden Slice v4 Main Controller
+# Integrated V4 Pressure & Pursuit Loop with PursuerPrototype, Tension HUD, and Interception Reset
 
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 
@@ -13,22 +14,38 @@ enum WorldLoopState {
 	LOOP_COMPLETE
 }
 
+enum PursuitState {
+	CALM,
+	DISTURBANCE_ALERT,
+	PURSUIT_ACTIVE,
+	CONTACT_BROKEN,
+	EVADED,
+	INTERCEPTED
+}
+
 @onready var player: PlayerRunner = $Runner
 @onready var camera: ChinatownCamera3D = $ChinatownCamera3D
 @onready var corroded_panel: CorrodedPanel = $CorrodedPanel
 @onready var touch_ui: TouchControlsUI = $CanvasLayer/TouchControlsUI
 @onready var audio_mgr: Node = $AudioManager
 @onready var status_label: Label = $CanvasLayer/StatusLabel
+@onready var world_env: WorldEnvironment = $WorldEnvironment
 
 var signal_tuner: SignalTuner = null
 var courier_bike: CourierBike = null
+var pursuer: PursuerPrototype = null
+
 var current_world_state: WorldLoopState = WorldLoopState.START
+var current_pursuit_state: PursuitState = PursuitState.CALM
+
 var _extracted_count: int = 0
 var _active_target: InteractableBase = null
 var _interactables: Array[InteractableBase] = []
 
 var _steer_input: float = 0.0
 var _throttle_input: float = 0.0
+var _contact_broken_timer: float = 0.0
+var _recovery_marker: Vector3 = Vector3(-1.5, 0.05, 3.0)
 
 func _ready() -> void:
 	var tuner_scene: PackedScene = load("res://scenes/interactions/signal_tuner.tscn")
@@ -46,7 +63,7 @@ func _ready() -> void:
 	if bike_scene:
 		courier_bike = bike_scene.instantiate() as CourierBike
 		courier_bike.name = "CourierBike"
-		courier_bike.position = Vector3(2.0, 0.05, 3.0)
+		courier_bike.position = _recovery_marker
 		add_child(courier_bike)
 		courier_bike.mounted.connect(_on_bike_mounted)
 		courier_bike.dismounted.connect(_on_bike_dismounted)
@@ -55,6 +72,14 @@ func _ready() -> void:
 		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
+			
+	var pursuer_scene: PackedScene = load("res://scenes/entities/pursuer_prototype.tscn")
+	if pursuer_scene:
+		pursuer = pursuer_scene.instantiate() as PursuerPrototype
+		pursuer.name = "PursuerPrototype"
+		pursuer.position = Vector3(0, 0.6, -15.0)
+		add_child(pursuer)
+		pursuer.intercepted_target.connect(_on_pursuer_intercepted)
 		
 	if corroded_panel:
 		corroded_panel.magnetism_changed.connect(_on_magnetism_changed)
@@ -78,7 +103,7 @@ func _ready() -> void:
 		touch_ui.dismount_pressed.connect(_on_dismount_pressed)
 		
 	if status_label:
-		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v3"
+		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v4"
 		
 	if OS.get_cmdline_user_args().has("--run-v1-assertions"):
 		_run_v1_assertions()
@@ -86,10 +111,14 @@ func _ready() -> void:
 		_run_v2_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v3-assertions"):
 		_run_v3_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v4-assertions"):
+		_run_v4_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v3-visuals"):
 		_export_v3_visuals()
+	elif OS.get_cmdline_user_args().has("--export-v4-visuals"):
+		_export_v4_visuals()
 
 func _process(delta: float) -> void:
 	if player:
@@ -105,13 +134,106 @@ func _process(delta: float) -> void:
 		if audio_mgr:
 			var speed_ratio: float = abs(courier_bike.current_speed) / courier_bike.max_speed
 			audio_mgr.set_engine_audio(speed_ratio, courier_bike.global_position)
+			
+	# Update pursuit loop state machine
+	_process_pursuit_loop(delta)
 		
 	if status_label:
-		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v3 [%s]\nFPS: %d | Frame: %.2f ms" % [
+		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v4 [%s | PURSUIT: %s]\nFPS: %d | Frame: %.2f ms" % [
 			WorldLoopState.keys()[current_world_state],
+			PursuitState.keys()[current_pursuit_state],
 			Engine.get_frames_per_second(),
 			1000.0 / max(Engine.get_frames_per_second(), 1)
 		]
+
+func _process_pursuit_loop(delta: float) -> void:
+	if current_pursuit_state == PursuitState.PURSUIT_ACTIVE and pursuer and pursuer.is_active:
+		var target: Node3D = courier_bike if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player
+		if target:
+			var dist := pursuer.global_position.distance_to(target.global_position)
+			if touch_ui:
+				touch_ui.update_pursuer_proximity(dist)
+			if audio_mgr:
+				audio_mgr.play_event(AudioManagerScript.SoundEvent.SIREN_ALARM, pursuer.global_position)
+				
+			if dist > 18.0:
+				_contact_broken_timer += delta
+				if _contact_broken_timer >= 3.0:
+					_contact_broken_timer = 0.0
+					current_pursuit_state = PursuitState.CONTACT_BROKEN
+					print("[PURSUIT] Contact broken! Evasion decay started...")
+					await get_tree().create_timer(1.0).timeout
+					current_pursuit_state = PursuitState.EVADED
+					_deactivate_pursuit()
+			else:
+				_contact_broken_timer = move_toward(_contact_broken_timer, 0.0, delta)
+
+func trigger_disturbance_alert() -> void:
+	if current_pursuit_state != PursuitState.CALM:
+		return
+		
+	current_pursuit_state = PursuitState.DISTURBANCE_ALERT
+	print("[PURSUIT] DISTURBANCE ALERT DETECTED!")
+	
+	if touch_ui:
+		touch_ui.show_tension_hud("[ ALERT: DISTURBANCE DETECTED ]")
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, corroded_panel.global_position if corroded_panel else Vector3.ZERO)
+		
+	if world_env and world_env.environment:
+		world_env.environment.ambient_light_color = Color(0.4, 0.1, 0.1, 1.0)
+		
+	get_tree().create_timer(0.75).timeout.connect(func():
+		if current_pursuit_state == PursuitState.DISTURBANCE_ALERT:
+			current_pursuit_state = PursuitState.PURSUIT_ACTIVE
+			if touch_ui:
+				touch_ui.show_tension_hud("[ ALERT: PURSUIT ACTIVE ]")
+			if pursuer:
+				var target: Node3D = courier_bike if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player
+				pursuer.activate_pursuit(target)
+	)
+
+func _deactivate_pursuit() -> void:
+	if pursuer:
+		pursuer.deactivate_pursuit()
+	if audio_mgr:
+		audio_mgr.stop_event(AudioManagerScript.SoundEvent.SIREN_ALARM)
+	if touch_ui:
+		touch_ui.hide_tension_hud()
+	if world_env and world_env.environment:
+		world_env.environment.ambient_light_color = Color(0.3, 0.26, 0.2, 1.0)
+	current_pursuit_state = PursuitState.CALM
+	print("[PURSUIT] Contact evaded. Environment returned to CALM.")
+
+func _on_pursuer_intercepted() -> void:
+	if current_pursuit_state == PursuitState.INTERCEPTED:
+		return
+		
+	current_pursuit_state = PursuitState.INTERCEPTED
+	print("[PURSUIT] TARGET INTERCEPTED! Resetting to recovery marker...")
+	
+	if player: player.is_input_locked = true
+	if courier_bike: courier_bike.current_speed = 0.0
+	if pursuer: pursuer.deactivate_pursuit()
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, player.global_position if player else Vector3.ZERO)
+		audio_mgr.stop_event(AudioManagerScript.SoundEvent.SIREN_ALARM)
+		
+	get_tree().create_timer(0.8).timeout.connect(func():
+		if courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING:
+			courier_bike.request_dismount()
+			await get_tree().create_timer(0.35).timeout
+			
+		if player:
+			player.global_position = _recovery_marker + Vector3(-1.5, 0, 0)
+			player.is_input_locked = false
+			player.velocity = Vector3.ZERO
+		if courier_bike:
+			courier_bike.global_position = _recovery_marker
+			courier_bike.rotation = Vector3.ZERO
+			
+		_deactivate_pursuit()
+	)
 
 func _evaluate_target_selection() -> void:
 	if not player or not touch_ui:
@@ -164,6 +286,8 @@ func _on_bike_mounted(_player_ref: PlayerRunner) -> void:
 		camera.set_target(courier_bike)
 	if audio_mgr and courier_bike:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.BIKE_MOUNT, courier_bike.global_position)
+	if pursuer and pursuer.is_active:
+		pursuer.target_node = courier_bike
 
 func _on_bike_dismounted() -> void:
 	if touch_ui:
@@ -173,6 +297,8 @@ func _on_bike_dismounted() -> void:
 	if audio_mgr and player:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.BIKE_DISMOUNT, player.global_position)
 		audio_mgr.stop_event(AudioManagerScript.SoundEvent.ENGINE_REV)
+	if pursuer and pursuer.is_active:
+		pursuer.target_node = player
 
 func _on_dismount_pressed() -> void:
 	if courier_bike:
@@ -248,9 +374,8 @@ func _on_extraction_step_changed(step_name: String) -> void:
 func _on_extraction_completed() -> void:
 	_extracted_count += 1
 	current_world_state = WorldLoopState.CORE_EXTRACTED
-	await get_tree().create_timer(0.2).timeout
-	current_world_state = WorldLoopState.LOOP_COMPLETE
 	print("[WORLD_LOOP] MICRO-PLAY LOOP COMPLETE! Core extracted.")
+	trigger_disturbance_alert()
 	
 	if player:
 		player.is_input_locked = false
@@ -344,7 +469,7 @@ func _run_v2_assertions() -> void:
 	_on_peel_gesture_dragged(1.0)
 	_on_core_tap_pressed()
 	await get_tree().create_timer(0.4).timeout
-	assert(current_world_state == WorldLoopState.LOOP_COMPLETE, "FAIL: World state must reach LOOP_COMPLETE")
+	assert(current_world_state == WorldLoopState.CORE_EXTRACTED, "FAIL: World state must reach CORE_EXTRACTED")
 	
 	print("[V2_ASSERTIONS] PASSED! ALL V2 MICRO-PLAY LOOP ASSERTIONS SUCCEEDED CLEANLY.")
 	get_tree().quit()
@@ -356,7 +481,6 @@ func _run_v3_assertions() -> void:
 	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Bike must start PARKED")
 	assert(courier_bike.occupant == null, "FAIL: Bike occupant must start null")
 	
-	# Verify valid audio streams assigned
 	assert(audio_mgr._engine_stream != null, "FAIL: Audio manager engine stream must exist")
 	assert(audio_mgr._hum_stream != null, "FAIL: Audio manager hum stream must exist")
 	
@@ -366,7 +490,6 @@ func _run_v3_assertions() -> void:
 	_evaluate_target_selection()
 	_on_action_pressed()
 	
-	# Verify MOUNTING -> DRIVING state transition
 	assert(courier_bike.current_state == CourierBike.BikeState.MOUNTING, "FAIL: Bike must enter MOUNTING")
 	await get_tree().create_timer(0.35).timeout
 	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must enter DRIVING")
@@ -374,7 +497,6 @@ func _run_v3_assertions() -> void:
 	assert(player.is_input_locked, "FAIL: Player input must be locked while mounted")
 	assert(touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING, "FAIL: Touch UI must enter VEHICLE_DRIVING")
 	
-	# Verify Rider transform binding to RiderSocket during travel
 	var initial_rot := courier_bike.rotation.y
 	_steer_input = 0.5
 	_throttle_input = 1.0
@@ -383,7 +505,6 @@ func _run_v3_assertions() -> void:
 	assert(courier_bike.rotation.y != initial_rot, "FAIL: Steering must change bike heading")
 	assert(player.global_position.distance_to(courier_bike.rider_socket.global_position) < 0.1, "FAIL: Rider avatar must remain bound to RiderSocket")
 	
-	# Verify Reverse mechanics: braking forward speed reaches near-zero before reversing
 	_steer_input = 0.0
 	_throttle_input = -1.0
 	await get_tree().create_timer(0.8).timeout
@@ -392,16 +513,12 @@ func _run_v3_assertions() -> void:
 	assert(courier_bike.current_speed < 0.0, "FAIL: Continued negative throttle must reverse")
 	assert(courier_bike.current_speed >= courier_bike.max_reverse_speed, "FAIL: Reverse speed must be limited")
 	
-	# High speed dismount rejected using abs(speed)
 	_throttle_input = 1.0
 	await get_tree().create_timer(1.0).timeout
 	assert(abs(courier_bike.current_speed) > courier_bike.dismount_speed_limit, "FAIL: Bike speed must be > 1.5 m/s")
 	var rejected_dismount := courier_bike.request_dismount()
 	assert(not rejected_dismount, "FAIL: High-speed dismount must be rejected")
 	
-	# Bring speed near zero -> Safe dismount
-	_throttle_input = -1.0
-	await get_tree().create_timer(1.0).timeout
 	_throttle_input = 0.0
 	courier_bike.current_speed = 0.0
 	
@@ -416,41 +533,127 @@ func _run_v3_assertions() -> void:
 	print("[V3_ASSERTIONS] PASSED! ALL V3 COURIER BIKE VEHICLE FEEL SLICE ASSERTIONS GREEN.")
 	get_tree().quit()
 
+func _run_v4_assertions() -> void:
+	print("[V4_ASSERTIONS] Starting complete V4 Pressure & Pursuit Slice assertions...")
+	await get_tree().create_timer(0.1).timeout
+	_steer_input = 0.0
+	_throttle_input = 0.0
+	assert(pursuer != null, "FAIL: PursuerPrototype must exist")
+	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit state must start CALM")
+	assert(not pursuer.is_active, "FAIL: Pursuer must start INACTIVE")
+	
+	# Trigger disturbance alert
+	trigger_disturbance_alert()
+	assert(current_pursuit_state == PursuitState.DISTURBANCE_ALERT, "FAIL: Core extraction must trigger DISTURBANCE_ALERT")
+	await get_tree().create_timer(0.85).timeout
+	assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL: Disturbance must transition to PURSUIT_ACTIVE")
+	assert(pursuer.is_active, "FAIL: Pursuer must activate")
+	assert(pursuer.target_node == player, "FAIL: Pursuer target must be player on foot")
+	
+	# Mount bike during pursuit -> Pursuer switches target to bike
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
+	await get_tree().create_timer(0.2).timeout
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.35).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must enter DRIVING")
+	assert(pursuer.target_node == courier_bike, "FAIL: Pursuer target must switch to bike when mounted")
+	
+	# Accelerate bike facing open +Z straightaway to create distance > 18.0m -> Evasion
+	courier_bike.rotation.y = PI
+	_steer_input = 0.0
+	_throttle_input = 1.0
+	await get_tree().create_timer(4.5).timeout
+	print("[DEBUG] Bike pos: ", courier_bike.global_position, " Pursuer pos: ", pursuer.global_position, " Dist: ", courier_bike.global_position.distance_to(pursuer.global_position))
+	assert(courier_bike.global_position.distance_to(pursuer.global_position) > 18.0, "FAIL: Bike must create distance > 18m from pursuer")
+	await get_tree().create_timer(3.2).timeout
+	assert(current_pursuit_state == PursuitState.CONTACT_BROKEN or current_pursuit_state == PursuitState.EVADED or current_pursuit_state == PursuitState.CALM, "FAIL: Contact must break when distance > 18m")
+	
+	await get_tree().create_timer(1.2).timeout
+	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit must return to CALM after evasion")
+	assert(not pursuer.is_active, "FAIL: Pursuer must deactivate after evasion")
+	
+	# Verify Interception reset mechanic
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+	pursuer.global_position = player.global_position + Vector3(0.5, 0, 0)
+	await get_tree().create_timer(0.5).timeout
+	assert(current_pursuit_state == PursuitState.INTERCEPTED, "FAIL: Proximity intercept must trigger INTERCEPTED")
+	await get_tree().create_timer(1.0).timeout
+	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Interception recovery must return pursuit to CALM")
+	assert(player.global_position.distance_to(_recovery_marker) < 3.0, "FAIL: Interception must reset player near recovery marker")
+	
+	print("[V4_ASSERTIONS] PASSED! ALL V4 PRESSURE & PURSUIT SLICE ASSERTIONS GREEN.")
+	get_tree().quit()
+
+func _export_v4_visuals() -> void:
+	print("[V4_VISUALS] Exporting 6 required V4 visual screenshots to res://verification/v4/...")
+	await get_tree().create_timer(0.2).timeout
+	
+	# 1. v4_calm.png
+	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_calm.png")
+	
+	# 2. v4_disturbance.png
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.3).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_disturbance.png")
+	
+	# 3. v4_pursuit_foot.png
+	await get_tree().create_timer(0.6).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_pursuit_foot.png")
+	
+	# 4. v4_mounting_under_pressure.png
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
+	await get_tree().create_timer(0.2).timeout
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.15).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_mounting_under_pressure.png")
+	
+	# 5. v4_driving_escape.png
+	await get_tree().create_timer(0.25).timeout
+	_throttle_input = 1.0
+	await get_tree().create_timer(1.5).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_driving_escape.png")
+	
+	# 6. v4_evaded_calm.png
+	await get_tree().create_timer(3.0).timeout
+	_throttle_input = 0.0
+	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_evaded_calm.png")
+	
+	print("[V4_VISUALS] ALL 6 V4 SCREENSHOTS EXPORTED SUCCESSFULLY!")
+	get_tree().quit()
+
 func _export_v3_visuals() -> void:
 	print("[V3_VISUALS] Exporting 6 required V3 visual screenshots to res://verification/v3/...")
 	await get_tree().create_timer(0.2).timeout
-	
 	player.global_position = courier_bike.global_position + Vector3(0, 0, 3.5)
 	await get_tree().create_timer(0.3).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_parked.png")
-	
 	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
 	courier_bike.mount_interactable.update_player_distance(player.global_position)
 	_evaluate_target_selection()
 	_on_action_pressed()
 	await get_tree().create_timer(0.15).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_mounting.png")
-	
 	await get_tree().create_timer(0.2).timeout
 	_throttle_input = 1.0
 	await get_tree().create_timer(0.8).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_driving_straight.png")
-	
 	_steer_input = 0.8
 	await get_tree().create_timer(0.5).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_cornering.png")
-	
 	_steer_input = 0.0
 	_throttle_input = -1.0
 	await get_tree().create_timer(0.4).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_braking.png")
-	
 	_throttle_input = 0.0
 	courier_bike.current_speed = 0.0
 	_on_dismount_pressed()
 	await get_tree().create_timer(0.3).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_dismounted.png")
-	
 	print("[V3_VISUALS] ALL 6 V3 SCREENSHOTS EXPORTED SUCCESSFULLY!")
 	get_tree().quit()
 

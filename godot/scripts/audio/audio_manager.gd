@@ -16,22 +16,27 @@ enum SoundEvent {
 	ENGINE_REV,
 	BRAKE_SCREECH,
 	BIKE_MOUNT,
-	BIKE_DISMOUNT
+	BIKE_DISMOUNT,
+	SIREN_ALARM
 }
 
 var _engine_player: AudioStreamPlayer3D = null
 var _hum_player: AudioStreamPlayer3D = null
 var _static_player: AudioStreamPlayer = null
+var _siren_player: AudioStreamPlayer3D = null
 
 var _engine_stream: AudioStreamWAV = null
 var _hum_stream: AudioStreamWAV = null
 var _static_stream: AudioStreamWAV = null
+var _siren_stream: AudioStreamWAV = null
 
 func _ready() -> void:
 	_engine_stream = _create_noise_wav(0.5, 0.4)
 	_hum_stream = _create_tone_wav(120.0, 0.5, 0.3)
 	_hum_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_static_stream = _create_noise_wav(0.5, 0.25)
+	_siren_stream = _create_tone_wav(440.0, 0.6, 0.4)
+	_siren_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	
 	_hum_player = AudioStreamPlayer3D.new()
 	_hum_player.name = "ProximityHumPlayer"
@@ -48,6 +53,14 @@ func _ready() -> void:
 	_engine_player.max_distance = 30.0
 	_engine_player.stream = _engine_stream
 	add_child(_engine_player)
+	
+	_siren_player = AudioStreamPlayer3D.new()
+	_siren_player.name = "SirenAlarmPlayer"
+	_siren_player.bus = &"Master"
+	_siren_player.unit_size = 15.0
+	_siren_player.max_distance = 35.0
+	_siren_player.stream = _siren_stream
+	add_child(_siren_player)
 	
 	_static_player = AudioStreamPlayer.new()
 	_static_player.name = "StaticNoisePlayer"
@@ -85,12 +98,18 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			_play_synth_click(pos, 520.0, 0.1)
 		SoundEvent.BIKE_DISMOUNT:
 			_play_synth_click(pos, 380.0, 0.1)
+		SoundEvent.SIREN_ALARM:
+			if _siren_player and not _siren_player.playing:
+				_siren_player.global_position = pos
+				_siren_player.play()
 
 func stop_event(event: SoundEvent) -> void:
 	if event == SoundEvent.PROXIMITY_HUM and _hum_player:
 		_hum_player.stop()
 	elif event == SoundEvent.ENGINE_REV and _engine_player:
 		_engine_player.stop()
+	elif event == SoundEvent.SIREN_ALARM and _siren_player:
+		_siren_player.stop()
 
 func set_hum_pitch(pitch: float) -> void:
 	if _hum_player:

@@ -159,7 +159,7 @@ offset_left = 16.0
 offset_top = 16.0
 offset_right = 400.0
 offset_bottom = 70.0
-text = "ECHOS IN THE SCRAP // GOLDEN SLICE v3"
+text = "ECHOS IN THE SCRAP // GOLDEN SLICE v4"
 
 [node name="TouchControlsUI" type="Control" parent="CanvasLayer"]
 layout_mode = 3
@@ -169,6 +169,42 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_ui")
+
+[node name="TensionHUDPanel" type="Control" parent="CanvasLayer/TouchControlsUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 20.0
+offset_bottom = 80.0
+grow_horizontal = 2
+
+[node name="AlertLabel" type="Label" parent="CanvasLayer/TouchControlsUI/TensionHUDPanel"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 0.0
+offset_right = 200.0
+offset_bottom = 35.0
+grow_horizontal = 2
+text = "[ ALERT: PURSUIT ACTIVE ]"
+horizontal_alignment = 1
+
+[node name="ProximityLabel" type="Label" parent="CanvasLayer/TouchControlsUI/TensionHUDPanel"]
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150.0
+offset_top = 35.0
+offset_right = 150.0
+offset_bottom = 60.0
+grow_horizontal = 2
+text = "PURSUER: 12.4m"
+horizontal_alignment = 1
 
 [node name="LeftTouchArea" type="Control" parent="CanvasLayer/TouchControlsUI"]
 layout_mode = 1

@@ -1,0 +1,48 @@
+[gd_scene load_steps=8 format=3 uid="uid://c_pursuer_prototype_001"]
+
+[ext_resource type="Script" path="res://scripts/entities/pursuer_prototype.gd" id="1_pursuer"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_pursuer"]
+size = Vector3(1.2, 1.4, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(1.1, 1.2, 2.2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_body"]
+albedo_color = Color(0.12, 0.12, 0.15, 1)
+roughness = 0.5
+
+[sub_resource type="SphereMesh" id="SphereMesh_siren"]
+radius = 0.25
+height = 0.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_siren"]
+albedo_color = Color(1, 0.1, 0.1, 1)
+emission_enabled = true
+emission = Color(1, 0.1, 0.1, 1)
+emission_energy_multiplier = 4.0
+
+[node name="PursuerPrototype" type="CharacterBody3D"]
+script = ExtResource("1_pursuer")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+shape = SubResource("BoxShape3D_pursuer")
+
+[node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="BodyMesh" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+mesh = SubResource("BoxMesh_body")
+surface_material_override/0 = SubResource("StandardMaterial3D_body")
+
+[node name="SirenMesh" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+mesh = SubResource("SphereMesh_siren")
+surface_material_override/0 = SubResource("StandardMaterial3D_siren")
+
+[node name="SirenLight" type="OmniLight3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+light_color = Color(1, 0.1, 0.1, 1)
+light_energy = 5.0
+omni_range = 10.0
