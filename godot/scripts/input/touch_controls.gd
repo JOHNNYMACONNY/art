@@ -63,20 +63,23 @@ func _ready() -> void:
 	if dismount_button:
 		dismount_button.pressed.connect(func(): dismount_pressed.emit())
 	if throttle_button:
-		throttle_button.button_down.connect(func(): _is_throttling = true)
-		throttle_button.button_up.connect(func(): _is_throttling = false)
+		throttle_button.button_down.connect(func(): 
+			_is_throttling = true
+			driving_throttle_updated.emit(1.0)
+		)
+		throttle_button.button_up.connect(func(): 
+			_is_throttling = false
+			driving_throttle_updated.emit(0.0)
+		)
 	if brake_button:
-		brake_button.button_down.connect(func(): _is_braking = true)
-		brake_button.button_up.connect(func(): _is_braking = false)
-
-func _process(delta: float) -> void:
-	if current_mode == UIMode.VEHICLE_DRIVING:
-		var net_throttle: float = 0.0
-		if _is_throttling:
-			net_throttle += 1.0
-		if _is_braking:
-			net_throttle -= 1.0
-		driving_throttle_updated.emit(net_throttle)
+		brake_button.button_down.connect(func(): 
+			_is_braking = true
+			driving_throttle_updated.emit(-1.0)
+		)
+		brake_button.button_up.connect(func(): 
+			_is_braking = false
+			driving_throttle_updated.emit(0.0)
+		)
 
 func set_mode(new_mode: UIMode) -> void:
 	current_mode = new_mode

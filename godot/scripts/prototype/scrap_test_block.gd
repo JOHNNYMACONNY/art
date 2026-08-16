@@ -46,7 +46,7 @@ func _ready() -> void:
 	if bike_scene:
 		courier_bike = bike_scene.instantiate() as CourierBike
 		courier_bike.name = "CourierBike"
-		courier_bike.position = Vector3(4.0, 0.0, 2.0)
+		courier_bike.position = Vector3(2.0, 0.05, 3.0)
 		add_child(courier_bike)
 		courier_bike.mounted.connect(_on_bike_mounted)
 		courier_bike.dismounted.connect(_on_bike_dismounted)
@@ -85,6 +85,8 @@ func _ready() -> void:
 		_run_v3_ticket01_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v3-ticket02-assertions"):
 		_run_v3_ticket02_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v3-ticket03-assertions"):
+		_run_v3_ticket03_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 
@@ -392,7 +394,6 @@ func _run_v3_ticket02_assertions() -> void:
 	assert(touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING, "FAIL: Touch UI must enter VEHICLE_DRIVING mode")
 	assert(touch_ui.driving_panel.visible, "FAIL: Driving overlay panel must be visible")
 	
-	# Simulate high speed (> 1.5 m/s) -> Dismount disabled
 	courier_bike.current_speed = 8.0
 	await get_tree().create_timer(0.1).timeout
 	assert(courier_bike.current_speed > courier_bike.dismount_speed_limit, "FAIL: Bike speed must be > 1.5 m/s")
@@ -400,7 +401,6 @@ func _run_v3_ticket02_assertions() -> void:
 	assert(not rejected_dismount, "FAIL: High-speed dismount must be rejected")
 	assert(touch_ui.dismount_button.disabled, "FAIL: Dismount button must be disabled at high speed")
 	
-	# Bring speed below 1.5 m/s -> Dismount enabled
 	courier_bike.current_speed = 0.5
 	await get_tree().create_timer(0.1).timeout
 	assert(not touch_ui.dismount_button.disabled, "FAIL: Dismount button must be enabled at low speed")
@@ -410,6 +410,42 @@ func _run_v3_ticket02_assertions() -> void:
 	assert(touch_ui.current_mode == TouchControlsUI.UIMode.FOOT_TRAVERSAL, "FAIL: Touch UI must return to FOOT_TRAVERSAL mode")
 	
 	print("[V3_TICKET02_ASSERTIONS] PASSED! ALL TICKET 02 DRIVING UI ASSERTIONS GREEN.")
+	get_tree().quit()
+
+func _run_v3_ticket03_assertions() -> void:
+	print("[V3_TICKET03_ASSERTIONS] Starting strict Vehicle Physics & Camera Speed Tracking assertions...")
+	await get_tree().create_timer(0.1).timeout
+	
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
+	await get_tree().create_timer(0.2).timeout
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	
+	# Wait for MOUNTING -> DRIVING state transition (0.35s)
+	await get_tree().create_timer(0.35).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must be DRIVING")
+	
+	var initial_fov := camera.fov
+	assert(abs(initial_fov - 32.0) < 1.0, "FAIL: Camera initial FOV must be ~32 deg")
+	
+	# Apply full throttle for 1.2s
+	_throttle_input = 1.0
+	await get_tree().create_timer(1.2).timeout
+	assert(courier_bike.current_speed > 6.0, "FAIL: Bike speed must accelerate under throttle")
+	assert(camera.fov > initial_fov + 1.5, "FAIL: Camera FOV must expand at high speed")
+	
+	# Apply braking for 0.8s
+	_throttle_input = -1.0
+	await get_tree().create_timer(0.8).timeout
+	assert(courier_bike.current_speed < 4.0, "FAIL: Bike speed must decelerate under braking")
+	
+	_throttle_input = 0.0
+	courier_bike.current_speed = 0.0
+	_on_dismount_pressed()
+	await get_tree().create_timer(0.2).timeout
+	
+	print("[V3_TICKET03_ASSERTIONS] PASSED! ALL TICKET 03 PHYSICS & CAMERA ASSERTIONS GREEN.")
 	get_tree().quit()
 
 func _export_v2_visuals() -> void:
