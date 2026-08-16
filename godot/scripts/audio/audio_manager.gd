@@ -258,7 +258,7 @@ func on_collision_contact(head_on_ratio: float, impact_speed: float, pos: Vector
 		return
 	if head_on_ratio < 0.35:
 		play_event(SoundEvent.COLLISION_GLANCE, pos)
-	else:
+	elif head_on_ratio >= 0.35 and impact_speed >= 3.0:
 		play_event(SoundEvent.COLLISION_HEAD_ON, pos)
 
 ## Authoritative instant reset: halts all streams and clears all transient nodes
