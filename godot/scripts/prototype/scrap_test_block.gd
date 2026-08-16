@@ -1,8 +1,7 @@
 class_name ScrapTestBlock
 extends Node3D
 
-# Echos in the Scrap - Golden Slice v2 Main Controller
-# Coordinates player, camera, signal tuner, corroded panel, UI overlay, 3D spatial audio, and world loop state.
+# Echos in the Scrap - Golden Slice v3 Main Controller
 
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 
@@ -22,6 +21,7 @@ enum WorldLoopState {
 @onready var status_label: Label = $CanvasLayer/StatusLabel
 
 var signal_tuner: SignalTuner = null
+var courier_bike: CourierBike = null
 var current_world_state: WorldLoopState = WorldLoopState.START
 var _extracted_count: int = 0
 var _active_target: InteractableBase = null
@@ -38,6 +38,15 @@ func _ready() -> void:
 		signal_tuner.audio_event_triggered.connect(_on_audio_event_triggered)
 		signal_tuner.frequency_changed.connect(_on_tuner_frequency_changed)
 		_interactables.append(signal_tuner)
+		
+	var bike_scene: PackedScene = load("res://scenes/vehicles/courier_bike.tscn")
+	if bike_scene:
+		courier_bike = bike_scene.instantiate() as CourierBike
+		courier_bike.name = "CourierBike"
+		courier_bike.position = Vector3(4.0, 0.0, 2.0)
+		add_child(courier_bike)
+		if courier_bike.mount_interactable:
+			_interactables.append(courier_bike.mount_interactable)
 		
 	if corroded_panel:
 		corroded_panel.magnetism_changed.connect(_on_magnetism_changed)
@@ -58,16 +67,14 @@ func _ready() -> void:
 		touch_ui.core_tap_pressed.connect(_on_core_tap_pressed)
 		
 	if status_label:
-		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v2"
+		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v3"
 		
-	if OS.get_cmdline_user_args().has("--run-autotest"):
-		_run_automated_gameplay_test()
-	elif OS.get_cmdline_user_args().has("--run-v1-assertions"):
+	if OS.get_cmdline_user_args().has("--run-v1-assertions"):
 		_run_v1_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v2-assertions"):
 		_run_v2_assertions()
-	elif OS.get_cmdline_user_args().has("--export-v1-visuals"):
-		_export_v1_visuals()
+	elif OS.get_cmdline_user_args().has("--run-v3-ticket01-assertions"):
+		_run_v3_ticket01_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 
@@ -79,7 +86,7 @@ func _process(_delta: float) -> void:
 		_evaluate_target_selection()
 		
 	if status_label:
-		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v2 [%s]\nFPS: %d | Frame: %.2f ms" % [
+		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v3 [%s]\nFPS: %d | Frame: %.2f ms" % [
 			WorldLoopState.keys()[current_world_state],
 			Engine.get_frames_per_second(),
 			1000.0 / max(Engine.get_frames_per_second(), 1)
@@ -111,7 +118,10 @@ func _on_action_pressed() -> void:
 	if not _active_target or not player:
 		return
 		
-	if _active_target == signal_tuner and signal_tuner:
+	if _active_target is MountInteractable:
+		(_active_target as MountInteractable).set_player_reference(player)
+		_active_target.begin_interaction(player.global_position)
+	elif _active_target == signal_tuner and signal_tuner:
 		if signal_tuner.begin_interaction(player.global_position):
 			player.is_input_locked = true
 			if camera:
@@ -225,29 +235,6 @@ func _on_player_footstep() -> void:
 	if audio_mgr and player:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.FOOTSTEP, player.global_position)
 
-func _export_v1_visuals() -> void:
-	print("[V1_VISUALS] Exporting 5 required V1 visual screenshots to res://verification/...")
-	await get_tree().create_timer(0.2).timeout
-	player.set_joystick_input(Vector2(0.5, -0.5))
-	await get_tree().create_timer(0.3).timeout
-	get_viewport().get_texture().get_image().save_png("res://verification/v1_traversal.png")
-	player.set_joystick_input(Vector2.ZERO)
-	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.8)
-	await get_tree().create_timer(0.3).timeout
-	get_viewport().get_texture().get_image().save_png("res://verification/v1_panel_targeted.png")
-	corroded_panel.is_powered = true
-	_active_target = corroded_panel
-	_on_action_pressed()
-	await get_tree().create_timer(0.3).timeout
-	get_viewport().get_texture().get_image().save_png("res://verification/v1_peeling.png")
-	_on_peel_gesture_dragged(1.0)
-	await get_tree().create_timer(0.3).timeout
-	get_viewport().get_texture().get_image().save_png("res://verification/v1_core_exposed.png")
-	_on_core_tap_pressed()
-	await get_tree().create_timer(0.4).timeout
-	get_viewport().get_texture().get_image().save_png("res://verification/v1_extracted.png")
-	get_tree().quit()
-
 func _run_v1_assertions() -> void:
 	print("[V1_ASSERTIONS] Starting strict V1 test suite...")
 	await get_tree().create_timer(0.1).timeout
@@ -308,7 +295,6 @@ func _run_v2_assertions() -> void:
 	assert(current_world_state == WorldLoopState.PANEL_POWERED, "FAIL: World state must advance to PANEL_POWERED")
 	assert(not player.is_input_locked, "FAIL: Player locomotion must unlock after lock")
 	
-	# Transition to Panel & perform extraction
 	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.8)
 	await get_tree().create_timer(0.3).timeout
 	_active_target = corroded_panel
@@ -321,19 +307,62 @@ func _run_v2_assertions() -> void:
 	print("[V2_ASSERTIONS] PASSED! ALL V2 MICRO-PLAY LOOP ASSERTIONS SUCCEEDED CLEANLY.")
 	get_tree().quit()
 
+func _run_v3_ticket01_assertions() -> void:
+	print("[V3_TICKET01_ASSERTIONS] Starting strict CourierBike & MountInteractable assertions...")
+	await get_tree().create_timer(0.1).timeout
+	
+	assert(courier_bike != null, "FAIL: CourierBike must exist")
+	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Bike must start PARKED")
+	assert(courier_bike.occupant == null, "FAIL: Bike occupant must start null")
+	
+	# Out-of-range mount request rejected
+	player.global_position = Vector3(20.0, 0.0, 20.0)
+	await get_tree().create_timer(0.1).timeout
+	var rejected := courier_bike.request_mount(player)
+	assert(not rejected, "FAIL: Out-of-range mount request must be rejected")
+	
+	# Move player into range
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
+	await get_tree().create_timer(0.2).timeout
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	assert(_active_target == courier_bike.mount_interactable, "FAIL: Target arbitration must select MountInteractable")
+	
+	# Trigger mount action
+	_on_action_pressed()
+	assert(courier_bike.current_state == CourierBike.BikeState.MOUNTING, "FAIL: Bike must enter MOUNTING")
+	assert(player.is_input_locked, "FAIL: Player input must lock during mounting")
+	
+	# Duplicate mount rejected
+	var dup_mount := courier_bike.request_mount(player)
+	assert(not dup_mount, "FAIL: Duplicate mount request must be rejected")
+	
+	# Wait for mounting transition (~0.25s)
+	await get_tree().create_timer(0.3).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must enter DRIVING after transition")
+	assert(courier_bike.occupant == player, "FAIL: Bike occupant must be player")
+	assert(not courier_bike.mount_interactable.can_interact(player.global_position), "FAIL: MountInteractable must not be eligible while occupied")
+	
+	# Perform safe dismount
+	var dismounted := courier_bike.request_dismount()
+	assert(dismounted, "FAIL: Safe dismount request must succeed")
+	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Bike must return to PARKED after dismount")
+	assert(courier_bike.occupant == null, "FAIL: Occupant must clear after dismount")
+	assert(not player.is_input_locked, "FAIL: Player input must unlock after dismount")
+	
+	print("[V3_TICKET01_ASSERTIONS] PASSED! ALL TICKET 01 MOUNT/DISMOUNT ASSERTIONS GREEN.")
+	get_tree().quit()
+
 func _export_v2_visuals() -> void:
 	print("[V2_VISUALS] Exporting 8 required V2 visual screenshots to res://verification/v2/...")
 	await get_tree().create_timer(0.2).timeout
-	
 	player.global_position = Vector3(0, 0, 8.0)
 	await get_tree().create_timer(0.3).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v2/v2_explore.png")
-	
 	player.global_position = signal_tuner.global_position + Vector3(0, 0, 4.5)
 	signal_tuner.update_player_distance(player.global_position)
 	await get_tree().create_timer(0.3).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v2/v2_tuner_attract.png")
-	
 	player.global_position = signal_tuner.global_position + Vector3(0, 0, 1.8)
 	signal_tuner.update_player_distance(player.global_position)
 	_evaluate_target_selection()
@@ -341,33 +370,23 @@ func _export_v2_visuals() -> void:
 	signal_tuner.tune_dial(0.1)
 	await get_tree().create_timer(0.3).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v2/v2_tuning_far.png")
-	
 	signal_tuner.tune_dial(0.45)
 	await get_tree().create_timer(0.3).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v2/v2_tuning_near.png")
-	
 	signal_tuner.tune_dial(0.02)
 	await get_tree().create_timer(0.5).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v2/v2_signal_locked.png")
-	
 	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.8)
 	await get_tree().create_timer(0.3).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v2/v2_panel_powered.png")
-	
 	_active_target = corroded_panel
 	_on_action_pressed()
 	_on_peel_gesture_dragged(0.5)
 	await get_tree().create_timer(0.3).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v2/v2_panel_extraction.png")
-	
 	_on_peel_gesture_dragged(1.0)
 	_on_core_tap_pressed()
 	await get_tree().create_timer(0.4).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v2/v2_loop_complete.png")
-	
 	print("[V2_VISUALS] ALL 8 V2 SCREENSHOTS EXPORTED SUCCESSFULLY!")
-	get_tree().quit()
-
-func _run_automated_gameplay_test() -> void:
-	await get_tree().create_timer(0.2).timeout
 	get_tree().quit()
