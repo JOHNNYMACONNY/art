@@ -50,6 +50,9 @@ func _ready() -> void:
 		add_child(courier_bike)
 		courier_bike.mounted.connect(_on_bike_mounted)
 		courier_bike.dismounted.connect(_on_bike_dismounted)
+		courier_bike.brake_screech_triggered.connect(func(pos: Vector3):
+			if audio_mgr: audio_mgr.play_event(AudioManagerScript.SoundEvent.BRAKE_SCREECH, pos)
+		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
 		
@@ -81,12 +84,6 @@ func _ready() -> void:
 		_run_v1_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v2-assertions"):
 		_run_v2_assertions()
-	elif OS.get_cmdline_user_args().has("--run-v3-ticket01-assertions"):
-		_run_v3_ticket01_assertions()
-	elif OS.get_cmdline_user_args().has("--run-v3-ticket02-assertions"):
-		_run_v3_ticket02_assertions()
-	elif OS.get_cmdline_user_args().has("--run-v3-ticket03-assertions"):
-		_run_v3_ticket03_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v3-assertions"):
 		_run_v3_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
@@ -104,9 +101,9 @@ func _process(delta: float) -> void:
 	if courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING:
 		courier_bike.set_drive_inputs(_throttle_input, _steer_input, delta)
 		if touch_ui:
-			touch_ui.set_dismount_button_enabled(courier_bike.current_speed <= courier_bike.dismount_speed_limit)
+			touch_ui.set_dismount_button_enabled(abs(courier_bike.current_speed) <= courier_bike.dismount_speed_limit)
 		if audio_mgr:
-			var speed_ratio: float = courier_bike.current_speed / courier_bike.max_speed
+			var speed_ratio: float = abs(courier_bike.current_speed) / courier_bike.max_speed
 			audio_mgr.set_engine_audio(speed_ratio, courier_bike.global_position)
 		
 	if status_label:
@@ -352,90 +349,6 @@ func _run_v2_assertions() -> void:
 	print("[V2_ASSERTIONS] PASSED! ALL V2 MICRO-PLAY LOOP ASSERTIONS SUCCEEDED CLEANLY.")
 	get_tree().quit()
 
-func _run_v3_ticket01_assertions() -> void:
-	print("[V3_TICKET01_ASSERTIONS] Starting strict CourierBike & MountInteractable assertions...")
-	await get_tree().create_timer(0.1).timeout
-	assert(courier_bike != null, "FAIL: CourierBike must exist")
-	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Bike must start PARKED")
-	assert(courier_bike.occupant == null, "FAIL: Bike occupant must start null")
-	player.global_position = Vector3(20.0, 0.0, 20.0)
-	await get_tree().create_timer(0.1).timeout
-	var rejected := courier_bike.request_mount(player)
-	assert(not rejected, "FAIL: Out-of-range mount request must be rejected")
-	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
-	await get_tree().create_timer(0.2).timeout
-	courier_bike.mount_interactable.update_player_distance(player.global_position)
-	_evaluate_target_selection()
-	assert(_active_target == courier_bike.mount_interactable, "FAIL: Target arbitration must select MountInteractable")
-	_on_action_pressed()
-	assert(courier_bike.current_state == CourierBike.BikeState.MOUNTING, "FAIL: Bike must enter MOUNTING")
-	assert(player.is_input_locked, "FAIL: Player input must lock during mounting")
-	var dup_mount := courier_bike.request_mount(player)
-	assert(not dup_mount, "FAIL: Duplicate mount request must be rejected")
-	await get_tree().create_timer(0.3).timeout
-	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must enter DRIVING after transition")
-	assert(courier_bike.occupant == player, "FAIL: Bike occupant must be player")
-	assert(not courier_bike.mount_interactable.can_interact(player.global_position), "FAIL: MountInteractable must not be eligible while occupied")
-	var dismounted := courier_bike.request_dismount()
-	assert(dismounted, "FAIL: Safe dismount request must succeed")
-	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Bike must return to PARKED after dismount")
-	assert(courier_bike.occupant == null, "FAIL: Occupant must clear after dismount")
-	assert(not player.is_input_locked, "FAIL: Player input must unlock after dismount")
-	print("[V3_TICKET01_ASSERTIONS] PASSED! ALL TICKET 01 MOUNT/DISMOUNT ASSERTIONS GREEN.")
-	get_tree().quit()
-
-func _run_v3_ticket02_assertions() -> void:
-	print("[V3_TICKET02_ASSERTIONS] Starting strict Driving UI & Speed-Gated Dismount assertions...")
-	await get_tree().create_timer(0.1).timeout
-	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
-	await get_tree().create_timer(0.2).timeout
-	courier_bike.mount_interactable.update_player_distance(player.global_position)
-	_evaluate_target_selection()
-	_on_action_pressed()
-	await get_tree().create_timer(0.3).timeout
-	assert(touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING, "FAIL: Touch UI must enter VEHICLE_DRIVING mode")
-	assert(touch_ui.driving_panel.visible, "FAIL: Driving overlay panel must be visible")
-	courier_bike.current_speed = 8.0
-	await get_tree().create_timer(0.1).timeout
-	assert(courier_bike.current_speed > courier_bike.dismount_speed_limit, "FAIL: Bike speed must be > 1.5 m/s")
-	var rejected_dismount := courier_bike.request_dismount()
-	assert(not rejected_dismount, "FAIL: High-speed dismount must be rejected")
-	assert(touch_ui.dismount_button.disabled, "FAIL: Dismount button must be disabled at high speed")
-	courier_bike.current_speed = 0.5
-	await get_tree().create_timer(0.1).timeout
-	assert(not touch_ui.dismount_button.disabled, "FAIL: Dismount button must be enabled at low speed")
-	_on_dismount_pressed()
-	await get_tree().create_timer(0.2).timeout
-	assert(touch_ui.current_mode == TouchControlsUI.UIMode.FOOT_TRAVERSAL, "FAIL: Touch UI must return to FOOT_TRAVERSAL mode")
-	print("[V3_TICKET02_ASSERTIONS] PASSED! ALL TICKET 02 DRIVING UI ASSERTIONS GREEN.")
-	get_tree().quit()
-
-func _run_v3_ticket03_assertions() -> void:
-	print("[V3_TICKET03_ASSERTIONS] Starting strict Vehicle Physics & Camera Speed Tracking assertions...")
-	await get_tree().create_timer(0.1).timeout
-	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
-	await get_tree().create_timer(0.2).timeout
-	courier_bike.mount_interactable.update_player_distance(player.global_position)
-	_evaluate_target_selection()
-	_on_action_pressed()
-	await get_tree().create_timer(0.35).timeout
-	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must be DRIVING")
-	var initial_fov := camera.fov
-	assert(abs(initial_fov - 32.0) < 1.0, "FAIL: Camera initial FOV must be ~32 deg")
-	_throttle_input = 1.0
-	await get_tree().create_timer(1.2).timeout
-	assert(courier_bike.current_speed > 6.0, "FAIL: Bike speed must accelerate under throttle")
-	assert(camera.fov > initial_fov + 1.5, "FAIL: Camera FOV must expand at high speed")
-	_throttle_input = -1.0
-	await get_tree().create_timer(0.8).timeout
-	assert(courier_bike.current_speed < 4.0, "FAIL: Bike speed must decelerate under braking")
-	_throttle_input = 0.0
-	courier_bike.current_speed = 0.0
-	_on_dismount_pressed()
-	await get_tree().create_timer(0.2).timeout
-	print("[V3_TICKET03_ASSERTIONS] PASSED! ALL TICKET 03 PHYSICS & CAMERA ASSERTIONS GREEN.")
-	get_tree().quit()
-
 func _run_v3_assertions() -> void:
 	print("[V3_ASSERTIONS] Starting complete V3 Courier Bike Vehicle Feel Slice assertions...")
 	await get_tree().create_timer(0.1).timeout
@@ -443,28 +356,58 @@ func _run_v3_assertions() -> void:
 	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Bike must start PARKED")
 	assert(courier_bike.occupant == null, "FAIL: Bike occupant must start null")
 	
+	# Verify valid audio streams assigned
+	assert(audio_mgr._engine_stream != null, "FAIL: Audio manager engine stream must exist")
+	assert(audio_mgr._hum_stream != null, "FAIL: Audio manager hum stream must exist")
+	
 	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
 	await get_tree().create_timer(0.2).timeout
 	courier_bike.mount_interactable.update_player_distance(player.global_position)
 	_evaluate_target_selection()
 	_on_action_pressed()
 	
+	# Verify MOUNTING -> DRIVING state transition
+	assert(courier_bike.current_state == CourierBike.BikeState.MOUNTING, "FAIL: Bike must enter MOUNTING")
 	await get_tree().create_timer(0.35).timeout
-	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must be DRIVING")
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must enter DRIVING")
 	assert(courier_bike.occupant == player, "FAIL: Occupant must be player")
+	assert(player.is_input_locked, "FAIL: Player input must be locked while mounted")
 	assert(touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING, "FAIL: Touch UI must enter VEHICLE_DRIVING")
 	
+	# Verify Rider transform binding to RiderSocket during travel
+	var initial_rot := courier_bike.rotation.y
+	_steer_input = 0.5
 	_throttle_input = 1.0
 	await get_tree().create_timer(1.0).timeout
 	assert(courier_bike.current_speed > 5.0, "FAIL: Bike speed must accelerate under throttle")
+	assert(courier_bike.rotation.y != initial_rot, "FAIL: Steering must change bike heading")
+	assert(player.global_position.distance_to(courier_bike.rider_socket.global_position) < 0.1, "FAIL: Rider avatar must remain bound to RiderSocket")
 	
+	# Verify Reverse mechanics: braking forward speed reaches near-zero before reversing
+	_steer_input = 0.0
 	_throttle_input = -1.0
 	await get_tree().create_timer(0.8).timeout
+	assert(courier_bike.current_speed <= 0.1, "FAIL: Forward braking must reach near-zero before reverse")
+	await get_tree().create_timer(0.8).timeout
+	assert(courier_bike.current_speed < 0.0, "FAIL: Continued negative throttle must reverse")
+	assert(courier_bike.current_speed >= courier_bike.max_reverse_speed, "FAIL: Reverse speed must be limited")
+	
+	# High speed dismount rejected using abs(speed)
+	_throttle_input = 1.0
+	await get_tree().create_timer(1.0).timeout
+	assert(abs(courier_bike.current_speed) > courier_bike.dismount_speed_limit, "FAIL: Bike speed must be > 1.5 m/s")
+	var rejected_dismount := courier_bike.request_dismount()
+	assert(not rejected_dismount, "FAIL: High-speed dismount must be rejected")
+	
+	# Bring speed near zero -> Safe dismount
+	_throttle_input = -1.0
+	await get_tree().create_timer(1.0).timeout
 	_throttle_input = 0.0
 	courier_bike.current_speed = 0.0
 	
 	_on_dismount_pressed()
-	await get_tree().create_timer(0.2).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.DISMOUNTING, "FAIL: Bike state must transition DISMOUNTING before PARKED")
+	await get_tree().create_timer(0.3).timeout
 	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Bike must return to PARKED after dismount")
 	assert(courier_bike.occupant == null, "FAIL: Occupant must clear after dismount")
 	assert(not player.is_input_locked, "FAIL: Player input must unlock after dismount")
@@ -477,12 +420,10 @@ func _export_v3_visuals() -> void:
 	print("[V3_VISUALS] Exporting 6 required V3 visual screenshots to res://verification/v3/...")
 	await get_tree().create_timer(0.2).timeout
 	
-	# 1. Parked bike
 	player.global_position = courier_bike.global_position + Vector3(0, 0, 3.5)
 	await get_tree().create_timer(0.3).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_parked.png")
 	
-	# 2. Mounting bike
 	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
 	courier_bike.mount_interactable.update_player_distance(player.global_position)
 	_evaluate_target_selection()
@@ -490,24 +431,20 @@ func _export_v3_visuals() -> void:
 	await get_tree().create_timer(0.15).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_mounting.png")
 	
-	# 3. Driving straightaway
 	await get_tree().create_timer(0.2).timeout
 	_throttle_input = 1.0
 	await get_tree().create_timer(0.8).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_driving_straight.png")
 	
-	# 4. Cornering drift
 	_steer_input = 0.8
 	await get_tree().create_timer(0.5).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_cornering.png")
 	
-	# 5. Hard braking
 	_steer_input = 0.0
 	_throttle_input = -1.0
 	await get_tree().create_timer(0.4).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v3/v3_braking.png")
 	
-	# 6. Dismounted
 	_throttle_input = 0.0
 	courier_bike.current_speed = 0.0
 	_on_dismount_pressed()

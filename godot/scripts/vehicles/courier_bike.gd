@@ -2,11 +2,12 @@ class_name CourierBike
 extends CharacterBody3D
 
 # Courier Bike Vehicle Controller for Echos in the Scrap
-# State machine: PARKED -> MOUNTING -> DRIVING -> DISMOUNTING
+# Features rider binding, physics-safe dismount query, arcade reverse mechanics, and brake screech SFX
 
 signal state_changed(new_state: String)
 signal mounted(player: PlayerRunner)
 signal dismounted
+signal brake_screech_triggered(pos: Vector3)
 
 enum BikeState {
 	PARKED,
@@ -16,6 +17,7 @@ enum BikeState {
 }
 
 @export var max_speed: float = 14.0
+@export var max_reverse_speed: float = -4.0
 @export var acceleration: float = 12.0
 @export var braking_friction: float = 18.0
 @export var steering_speed: float = 2.5
@@ -30,21 +32,33 @@ var current_state: BikeState = BikeState.PARKED
 var occupant: PlayerRunner = null
 var current_speed: float = 0.0
 var steering_angle: float = 0.0
+var _brake_screech_cooldown: float = 0.0
 
 func _ready() -> void:
 	if mount_interactable:
-		mount_interactable.interaction_priority = 2.0 # High interaction priority
+		mount_interactable.interaction_priority = 2.0
 		mount_interactable.is_powered = true
 
 func _physics_process(delta: float) -> void:
-	if current_state == BikeState.DRIVING:
-		# Arcade bike motion
-		if abs(steering_angle) > 0.01:
-			rotate_y(-steering_angle * steering_speed * delta)
+	if _brake_screech_cooldown > 0.0:
+		_brake_screech_cooldown -= delta
+		
+	if current_state == BikeState.DRIVING or current_state == BikeState.MOUNTING:
+		# Bind occupant position to RiderSocket every frame
+		if occupant:
+			occupant.global_position = rider_socket.global_position
+			occupant.global_transform = rider_socket.global_transform
+			occupant.velocity = Vector3.ZERO
+			occupant.is_input_locked = true
 			
-		var forward_dir := -global_transform.basis.z
-		velocity = forward_dir * current_speed
-		move_and_slide()
+		if current_state == BikeState.DRIVING:
+			# Arcade bike motion
+			if abs(steering_angle) > 0.01:
+				rotate_y(-steering_angle * steering_speed * delta)
+				
+			var forward_dir := -global_transform.basis.z
+			velocity = forward_dir * current_speed
+			move_and_slide()
 
 func can_mount(player: PlayerRunner) -> bool:
 	return current_state == BikeState.PARKED and occupant == null and mount_interactable.is_player_in_range
@@ -58,52 +72,99 @@ func request_mount(player: PlayerRunner) -> bool:
 	state_changed.emit("MOUNTING")
 	
 	player.is_input_locked = true
+	player.velocity = Vector3.ZERO
 	player.global_position = rider_socket.global_position
-	player.rotation = rotation
+	player.global_transform = rider_socket.global_transform
 	
 	if mount_interactable:
-		mount_interactable.is_powered = false # Disable mount prompt while occupied
+		mount_interactable.is_powered = false
 		
 	get_tree().create_timer(0.25).timeout.connect(func():
-		current_state = BikeState.DRIVING
-		state_changed.emit("DRIVING")
-		mounted.emit(player)
+		if current_state == BikeState.MOUNTING:
+			current_state = BikeState.DRIVING
+			state_changed.emit("DRIVING")
+			mounted.emit(player)
 	)
 	return true
 
 func request_dismount() -> bool:
-	if current_state != BikeState.DRIVING or current_speed > dismount_speed_limit:
+	if current_state != BikeState.DRIVING or abs(current_speed) > dismount_speed_limit:
+		return false
+		
+	var safe_pos := _find_safe_dismount_position()
+	if safe_pos == Vector3.INF:
+		print("[BIKE] Dismount rejected: No collision-safe dismount offset found!")
 		return false
 		
 	current_state = BikeState.DISMOUNTING
 	state_changed.emit("DISMOUNTING")
 	
-	if occupant:
-		var safe_offset := global_position + (global_transform.basis.x * 1.4)
-		occupant.global_position = safe_offset
-		occupant.is_input_locked = false
-		var prev_player := occupant
-		occupant = null
-		
 	if mount_interactable:
-		mount_interactable.is_powered = true
+		mount_interactable.is_powered = false
 		
-	current_speed = 0.0
-	velocity = Vector3.ZERO
-	current_state = BikeState.PARKED
-	state_changed.emit("PARKED")
-	dismounted.emit()
+	get_tree().create_timer(0.2).timeout.connect(func():
+		if occupant:
+			occupant.global_position = safe_pos
+			occupant.is_input_locked = false
+			occupant.velocity = Vector3.ZERO
+			occupant = null
+			
+		if mount_interactable:
+			mount_interactable.is_powered = true
+			
+		current_speed = 0.0
+		velocity = Vector3.ZERO
+		current_state = BikeState.PARKED
+		state_changed.emit("PARKED")
+		dismounted.emit()
+	)
 	return true
+
+func _find_safe_dismount_position() -> Vector3:
+	var space_state := get_world_3d().direct_space_state
+	if not space_state:
+		return global_position + (global_transform.basis.x * 1.4)
+		
+	# Candidates: Right, Left, Rear
+	var candidates: Array[Vector3] = [
+		global_position + (global_transform.basis.x * 1.4),
+		global_position - (global_transform.basis.x * 1.4),
+		global_position + (global_transform.basis.z * 1.4)
+	]
+	
+	for cand in candidates:
+		var ray_query := PhysicsRayQueryParameters3D.create(global_position + Vector3(0, 0.5, 0), cand + Vector3(0, 0.5, 0))
+		ray_query.exclude = [get_rid()]
+		if occupant:
+			ray_query.exclude.append(occupant.get_rid())
+		var result := space_state.intersect_ray(ray_query)
+		if result.is_empty():
+			return cand
+			
+	return Vector3.INF
 
 func set_drive_inputs(throttle: float, steering: float, delta: float) -> void:
 	if current_state != BikeState.DRIVING:
 		return
 		
-	steering_angle = clamp(steering, -1.0, 1.0)
+	steering_angle = clampf(steering, -1.0, 1.0)
 	
 	if throttle > 0.0:
-		current_speed = clamp(current_speed + acceleration * throttle * delta, 0.0, max_speed)
+		if current_speed < 0.0:
+			# Braking from reverse
+			current_speed = move_toward(current_speed, 0.0, braking_friction * delta)
+		else:
+			# Forward acceleration
+			current_speed = clampf(current_speed + acceleration * throttle * delta, 0.0, max_speed)
 	elif throttle < 0.0:
-		current_speed = clamp(current_speed + braking_friction * throttle * delta, 0.0, max_speed)
+		if current_speed > 0.1:
+			# Braking from forward
+			if current_speed > 6.0 and _brake_screech_cooldown <= 0.0:
+				_brake_screech_cooldown = 1.0
+				brake_screech_triggered.emit(global_position)
+			current_speed = move_toward(current_speed, 0.0, braking_friction * delta)
+		else:
+			# Reverse acceleration
+			current_speed = clampf(current_speed - acceleration * 0.5 * delta, max_reverse_speed, 0.0)
 	else:
 		current_speed = move_toward(current_speed, 0.0, braking_friction * 0.5 * delta)

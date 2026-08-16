@@ -2,7 +2,7 @@ class_name AudioManager
 extends Node
 
 # Echos in the Scrap - Audio Engine & Sound Synthesis Manager
-# Handles footstep, spatial interaction hums, frequency tuning noise, and vehicle engine audio
+# Features valid procedural AudioStreamWAV buffers for spatial 3D audio and UI events
 
 enum SoundEvent {
 	FOOTSTEP,
@@ -23,28 +23,37 @@ var _engine_player: AudioStreamPlayer3D = null
 var _hum_player: AudioStreamPlayer3D = null
 var _static_player: AudioStreamPlayer = null
 
+var _engine_stream: AudioStreamWAV = null
+var _hum_stream: AudioStreamWAV = null
+var _static_stream: AudioStreamWAV = null
+
 func _ready() -> void:
+	_engine_stream = _create_noise_wav(0.5, 0.4)
+	_hum_stream = _create_tone_wav(120.0, 0.5, 0.3)
+	_hum_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_static_stream = _create_noise_wav(0.5, 0.25)
+	
 	_hum_player = AudioStreamPlayer3D.new()
 	_hum_player.name = "ProximityHumPlayer"
 	_hum_player.bus = &"Master"
 	_hum_player.unit_size = 10.0
 	_hum_player.max_distance = 25.0
+	_hum_player.stream = _hum_stream
 	add_child(_hum_player)
-	_hum_player.stream = _generate_hum_stream()
 	
 	_engine_player = AudioStreamPlayer3D.new()
 	_engine_player.name = "EngineRevPlayer"
 	_engine_player.bus = &"Master"
 	_engine_player.unit_size = 12.0
 	_engine_player.max_distance = 30.0
+	_engine_player.stream = _engine_stream
 	add_child(_engine_player)
-	_engine_player.stream = _generate_engine_stream()
 	
 	_static_player = AudioStreamPlayer.new()
 	_static_player.name = "StaticNoisePlayer"
 	_static_player.bus = &"Master"
+	_static_player.stream = _static_stream
 	add_child(_static_player)
-	_static_player.stream = _generate_static_stream()
 
 func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 	match event:
@@ -85,7 +94,7 @@ func stop_event(event: SoundEvent) -> void:
 
 func set_hum_pitch(pitch: float) -> void:
 	if _hum_player:
-		_hum_player.pitch_scale = clamp(pitch, 0.5, 2.5)
+		_hum_player.pitch_scale = clampf(pitch, 0.5, 2.5)
 
 func set_engine_audio(speed_ratio: float, pos: Vector3) -> void:
 	if _engine_player:
@@ -108,44 +117,57 @@ func set_tuning_audio(accuracy: float) -> void:
 			if _static_player.playing:
 				_static_player.stop()
 
-func _generate_hum_stream() -> AudioStreamGenerator:
-	var gen := AudioStreamGenerator.new()
-	gen.mix_rate = 22050
-	gen.buffer_length = 0.1
-	return gen
-
-func _generate_engine_stream() -> AudioStreamGenerator:
-	var gen := AudioStreamGenerator.new()
-	gen.mix_rate = 22050
-	gen.buffer_length = 0.1
-	return gen
-
-func _generate_static_stream() -> AudioStreamGenerator:
-	var gen := AudioStreamGenerator.new()
-	gen.mix_rate = 22050
-	gen.buffer_length = 0.1
-	return gen
-
-func _play_synth_click(pos: Vector3, _freq: float, duration: float) -> void:
+func _play_synth_click(pos: Vector3, freq: float, duration: float) -> void:
 	var player_3d := AudioStreamPlayer3D.new()
 	player_3d.unit_size = 8.0
+	player_3d.stream = _create_tone_wav(freq, duration, 0.4)
 	add_child(player_3d)
 	player_3d.global_position = pos
 	player_3d.play()
-	get_tree().create_timer(duration).timeout.connect(player_3d.queue_free)
+	get_tree().create_timer(duration + 0.05).timeout.connect(player_3d.queue_free)
 
-func _play_synth_sweep(pos: Vector3, _start_f: float, _end_f: float, duration: float) -> void:
+func _play_synth_sweep(pos: Vector3, start_f: float, _end_f: float, duration: float) -> void:
 	var player_3d := AudioStreamPlayer3D.new()
 	player_3d.unit_size = 10.0
+	player_3d.stream = _create_tone_wav(start_f, duration, 0.4)
 	add_child(player_3d)
 	player_3d.global_position = pos
 	player_3d.play()
-	get_tree().create_timer(duration).timeout.connect(player_3d.queue_free)
+	get_tree().create_timer(duration + 0.05).timeout.connect(player_3d.queue_free)
 
 func _play_synth_chime(pos: Vector3) -> void:
 	var player_3d := AudioStreamPlayer3D.new()
 	player_3d.unit_size = 12.0
+	player_3d.stream = _create_tone_wav(880.0, 0.4, 0.5)
 	add_child(player_3d)
 	player_3d.global_position = pos
 	player_3d.play()
-	get_tree().create_timer(0.5).timeout.connect(player_3d.queue_free)
+	get_tree().create_timer(0.45).timeout.connect(player_3d.queue_free)
+
+func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var sample := sin(2.0 * PI * freq * t) * volume
+		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
+func _create_noise_wav(duration: float, volume: float = 0.3) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var sample := (randf() * 2.0 - 1.0) * volume
+		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
