@@ -2,8 +2,17 @@ class_name ScrapTestBlock
 extends Node3D
 
 # Echos in the Scrap - Golden Slice v2 Main Controller
+# Coordinates player, camera, signal tuner, corroded panel, UI overlay, 3D spatial audio, and world loop state.
 
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
+
+enum WorldLoopState {
+	START,
+	SIGNAL_LOCKED,
+	PANEL_POWERED,
+	CORE_EXTRACTED,
+	LOOP_COMPLETE
+}
 
 @onready var player: PlayerRunner = $Runner
 @onready var camera: ChinatownCamera3D = $ChinatownCamera3D
@@ -13,6 +22,7 @@ const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 @onready var status_label: Label = $CanvasLayer/StatusLabel
 
 var signal_tuner: SignalTuner = null
+var current_world_state: WorldLoopState = WorldLoopState.START
 var _extracted_count: int = 0
 var _active_target: InteractableBase = null
 var _interactables: Array[InteractableBase] = []
@@ -69,7 +79,8 @@ func _process(_delta: float) -> void:
 		_evaluate_target_selection()
 		
 	if status_label:
-		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v2\nFPS: %d | Frame: %.2f ms" % [
+		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v2 [%s]\nFPS: %d | Frame: %.2f ms" % [
+			WorldLoopState.keys()[current_world_state],
 			Engine.get_frames_per_second(),
 			1000.0 / max(Engine.get_frames_per_second(), 1)
 		]
@@ -87,7 +98,7 @@ func _evaluate_target_selection() -> void:
 			var dist := item.global_position.distance_to(player_pos)
 			var score := (item.get_interaction_priority() * 10.0) - dist
 			if item == _active_target:
-				score += 2.0 # Hysteresis stability boost
+				score += 2.0
 			if score > best_score:
 				best_score = score
 				best_target = item
@@ -125,17 +136,21 @@ func _on_tuner_frequency_changed(_freq: float, accuracy: float) -> void:
 
 func _on_tuner_signal_locked(tuner_ref: SignalTuner) -> void:
 	print("[WORLD_LOOP] SIGNAL LOCKED! Powering up Corroded Panel...")
+	current_world_state = WorldLoopState.SIGNAL_LOCKED
+	
 	var conduit := get_node_or_null("PowerConduit") as MeshInstance3D
 	if conduit:
 		var mat := conduit.get_surface_override_material(0) as StandardMaterial3D
 		if mat:
 			mat.emission = Color(0.1, 0.9, 1.0, 1.0)
 			mat.emission_energy_multiplier = 3.5
+			
 	if audio_mgr:
 		audio_mgr.set_tuning_audio(0.0)
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.SIGNAL_LOCK, tuner_ref.global_position)
 		if corroded_panel:
 			audio_mgr.play_event(AudioManagerScript.SoundEvent.PANEL_POWERED, corroded_panel.global_position)
+			
 	if player:
 		player.is_input_locked = false
 	if camera:
@@ -144,6 +159,7 @@ func _on_tuner_signal_locked(tuner_ref: SignalTuner) -> void:
 		touch_ui.close_interaction_overlay()
 	if corroded_panel:
 		corroded_panel.power_on()
+		current_world_state = WorldLoopState.PANEL_POWERED
 
 func _on_peel_gesture_dragged(progress: float) -> void:
 	if corroded_panel:
@@ -179,6 +195,11 @@ func _on_extraction_step_changed(step_name: String) -> void:
 
 func _on_extraction_completed() -> void:
 	_extracted_count += 1
+	current_world_state = WorldLoopState.CORE_EXTRACTED
+	await get_tree().create_timer(0.2).timeout
+	current_world_state = WorldLoopState.LOOP_COMPLETE
+	print("[WORLD_LOOP] MICRO-PLAY LOOP COMPLETE! Core extracted.")
+	
 	if player:
 		player.is_input_locked = false
 	if camera:
@@ -261,6 +282,7 @@ func _run_v2_assertions() -> void:
 	assert(signal_tuner != null, "FAIL: SignalTuner must exist")
 	assert(signal_tuner.current_state == SignalTuner.TunerState.DORMANT, "FAIL: Tuner must start DORMANT")
 	assert(not corroded_panel.is_powered, "FAIL: CorrodedPanel must start UNPOWERED")
+	assert(current_world_state == WorldLoopState.START, "FAIL: World state must start START")
 	
 	player.global_position = signal_tuner.global_position + Vector3(0, 0, 5.0)
 	await get_tree().create_timer(0.2).timeout
@@ -283,9 +305,20 @@ func _run_v2_assertions() -> void:
 	await get_tree().create_timer(0.5).timeout
 	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED, "FAIL: Tuner must lock signal")
 	assert(corroded_panel.is_powered, "FAIL: CorrodedPanel must power on upon Signal Lock")
+	assert(current_world_state == WorldLoopState.PANEL_POWERED, "FAIL: World state must advance to PANEL_POWERED")
 	assert(not player.is_input_locked, "FAIL: Player locomotion must unlock after lock")
 	
-	print("[V2_ASSERTIONS] PASSED! ALL 6 V2 TICKET 01 & 02 ASSERTIONS SUCCEEDED CLEANLY.")
+	# Transition to Panel & perform extraction
+	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.8)
+	await get_tree().create_timer(0.3).timeout
+	_active_target = corroded_panel
+	_on_action_pressed()
+	_on_peel_gesture_dragged(1.0)
+	_on_core_tap_pressed()
+	await get_tree().create_timer(0.4).timeout
+	assert(current_world_state == WorldLoopState.LOOP_COMPLETE, "FAIL: World state must reach LOOP_COMPLETE")
+	
+	print("[V2_ASSERTIONS] PASSED! ALL V2 MICRO-PLAY LOOP ASSERTIONS SUCCEEDED CLEANLY.")
 	get_tree().quit()
 
 func _export_v2_visuals() -> void:
