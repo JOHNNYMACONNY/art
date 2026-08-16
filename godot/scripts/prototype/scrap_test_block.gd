@@ -184,7 +184,7 @@ func _process_pursuit_loop(delta: float) -> void:
 			if audio_mgr:
 				audio_mgr.set_siren_audio(true, pursuer.global_position)
 				
-			if dist > 35.0:
+			if dist > 18.0:
 				_contact_broken_timer += delta
 				if _contact_broken_timer >= 3.0:
 					_contact_broken_timer = 0.0
@@ -238,14 +238,12 @@ func _on_signal_gate_triggered() -> void:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.GATE_SLAM, signal_gate.global_position)
 		
 	if pursuer:
-		# Dynamically generate detour waypoints relative to pursuer position (skip waypoints behind pursuer Z)
-		var waypoints: Array[Vector3] = []
-		var p_z := pursuer.global_position.z
-		if p_z < 8.0:
-			waypoints.append(Vector3(2.5, 0.6, 8.0))
-		if p_z < 18.0:
-			waypoints.append(Vector3(2.5, 0.6, 18.0))
-		waypoints.append(Vector3(-1.5, 0.6, 26.0))
+		# Detour waypoints routing pursuer around physical barrier arm
+		var waypoints: Array[Vector3] = [
+			Vector3(2.5, 0.6, 8.0),
+			Vector3(2.5, 0.6, 18.0),
+			Vector3(-1.5, 0.6, 26.0)
+		]
 		pursuer.set_detour_path(waypoints)
 
 func _on_pursuer_intercepted() -> void:

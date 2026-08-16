@@ -52,9 +52,14 @@ func deactivate_pursuit() -> void:
 		siren_light.visible = false
 
 func set_detour_path(waypoints: Array[Vector3]) -> void:
-	detour_waypoints = waypoints
-	current_detour_index = 0 if waypoints.size() > 0 else -1
-	print("[PURSUER] Detour reroute path set (%d waypoints)..." % waypoints.size())
+	detour_waypoints.clear()
+	# Filter out any waypoints behind pursuer Z position to prevent 180 deg U-turns
+	for wp in waypoints:
+		if wp.z > global_position.z:
+			detour_waypoints.append(wp)
+			
+	current_detour_index = 0 if detour_waypoints.size() > 0 else -1
+	print("[PURSUER] Detour reroute path set (%d forward waypoints)..." % detour_waypoints.size())
 
 func _physics_process(delta: float) -> void:
 	if not is_active or not target_node:
