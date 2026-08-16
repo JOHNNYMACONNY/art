@@ -1,80 +1,153 @@
-# Echos in the Scrap: V7 Playtest Handoff Document
+# HANDOFF.md — V7 Ticket 03 Complete / Next Session Briefing
 
-**Project**: Echos in the Scrap  
-**Repository**: [JOHNNYMACONNY/art](https://github.com/JOHNNYMACONNY/art)  
-**Current Commit**: `9972adfa4ecafe7b66ef6c7805601d6b77fe7e37`  
-**Playable Baseline Commit**: `904a80a23a54e4a43fc046d04bb52a04f9196a8b`  
-**ChatGPT Relay Tab**: `https://chatgpt.com/g/g-p-699d1f9e9c188191a392e1cc0783af99-fb-13-hs-7/c/6a815c99-1368-83e8-9414-5e17cdc83b27`  
-
----
-
-## 1. Executive Summary & Objective
-
-The codebase has completed all V1 through V6.1 development, physical safety sweeps, physical shortcut corridor geometry, touch UI signal reconnections, authoritative `reset_slice()` dismount cleanup, state-driven audio mix arc, 100% green automated assertion suites, and exported 6 visual screenshots.
-
-**CURRENT PHASE**: **V7 Baseline Playtest Cohort Collection**  
-**OBJECTIVE**: Execute 5 uncoached playtest sessions (`P01` through `P05`) using isolated subagents acting as fresh players interacting with the Godot game instance. Log quantitative telemetry, exit questionnaire responses, and aggregate failure taxonomies without altering game code until all 5 sessions finish.
+**Generated**: 2026-08-16T12:15 PDT  
+**Branch**: `main`  
+**Current HEAD**: `c790d4f`  
+**Repo**: https://github.com/JOHNNYMACONNY/art
 
 ---
 
-## 2. Key Repository Files & References
+## ChatGPT Collaboration Status
 
-- **Game Scene**: [`godot/scenes/prototype/scrap_test_block.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/prototype/scrap_test_block.tscn)
-- **Controller Script**: [`godot/scripts/prototype/scrap_test_block.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/prototype/scrap_test_block.gd)
-- **Touch UI Script**: [`godot/scripts/input/touch_controls.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/input/touch_controls.gd)
-- **Vehicle Controller**: [`godot/scripts/vehicles/courier_bike.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/vehicles/courier_bike.gd)
-- **Signal Tuner**: [`godot/scripts/interactions/signal_tuner.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/signal_tuner.gd)
-- **Corroded Panel**: [`godot/scripts/interactions/corroded_panel.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/corroded_panel.gd)
-- **Audio Engine**: [`godot/scripts/audio/audio_manager.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/audio/audio_manager.gd)
-- **V7 Validation Protocol**: [`.scratch/v7-playtest-validation/V7_PLAYTEST_VALIDATION_PROTOCOL.md`](file:///Users/bobbyinthelobby/{art/.scratch/v7-playtest-validation/V7_PLAYTEST_VALIDATION_PROTOCOL.md)
-- **Session Templates**: [`.scratch/v7-playtest-validation/sessions/P01.md`](file:///Users/bobbyinthelobby/{art/.scratch/v7-playtest-validation/sessions/P01.md) through [`P05.md`](file:///Users/bobbyinthelobby/{art/.scratch/v7-playtest-validation/sessions/P05.md)
-- **Aggregate Report**: [`.scratch/v7-playtest-validation/V7_BASELINE_PLAYTEST_REPORT.md`](file:///Users/bobbyinthelobby/{art/.scratch/v7-playtest-validation/V7_BASELINE_PLAYTEST_REPORT.md)
+Active relay loop running in Chrome (`chatgpt.com`).  
+Last ChatGPT verdict: **V7 TICKET 03 CLOSED** at `c790d4f`.
+
+ChatGPT directive for next session:
+> "Move off tuner work. Re-rank remaining open evidence frontier between camera transition, audio mix/replay behavior, and vehicle/joystick feel issues."
 
 ---
 
-## 3. Verification & Execution Commands
+## V7 Ticket Status at Handoff
 
-- **Parse Syntax Check**:
-  ```bash
-  godot --headless --path godot/ --check-only
+| Ticket | Description | Status |
+|--------|-------------|--------|
+| 01 | Gate phase-through / peel soft-lock | ✅ CLOSED |
+| 02 | Multi-touch driving / dismount rejection | ✅ CLOSED |
+| 02.1 | Chase balancing / pursuer detour sanitization | ✅ CLOSED |
+| 03 | Signal tuning gesture coherence | ✅ CLOSED `c790d4f` |
+
+---
+
+## V7 Ticket 03 — What Was Fixed (Full History)
+
+### Ticket 03 Initial (`a13b018`)
+- Horizontal drag UI prompt: `[ SWIPE ↔ TO TUNE FREQUENCY ]`
+- Fine drag sensitivity curve (0.003 per px)
+- Dwell lock: 0.4s inside ±0.05 tolerance
+
+### Ticket 03.1 (`f81d225`)
+- **Cumulative accumulator** (`_tuning_accum_px`) replaces per-event delta in `touch_controls.gd`
+- `signal_tuner._drag_start_freq` snapshotted on `begin_interaction()`
+- `tune_from_accum_px(px)` computes absolute frequency — 60Hz/120Hz invariant
+- **Near-lock exit lifecycle**: `tuner_interaction_released` signal on touch-up
+- `_on_tuner_interaction_released()` calls `cancel_interaction()` + `stop_event(PROXIMITY_HUM)`
+- V6 assertion compat fix: `signal_tuner.tune_dial(0.57)` direct call
+
+### Ticket 03.2 (`c790d4f`)
+- **`tanh` saturating curve** replaces linear clamp in `tune_from_accum_px`:
+  ```gdscript
+  var raw := accum_px * tuner_drag_sensitivity         # 0.003
+  var mapped := tuner_max_gesture_delta * tanh(raw / tuner_max_gesture_delta)  # cap 0.65
+  current_frequency = clampf(_drag_start_freq + mapped, 0.0, 1.0)
   ```
-- **Run Complete V1–V6 Automated Assertion Suites**:
-  ```bash
-  godot --path godot/ -- ++ --run-v1-assertions && godot --path godot/ -- ++ --run-v2-assertions && godot --path godot/ -- ++ --run-v3-assertions && godot --path godot/ -- ++ --run-v4-assertions && godot --path godot/ -- ++ --run-v5-assertions && godot --path godot/ -- ++ --run-v6-assertions
-  ```
-- **Export Visual Screenshots**:
-  ```bash
-  godot --path godot/ -- ++ --export-v6-visuals
-  ```
+  → 2000px from 0.15 → 0.80 (NOT 1.0)
+- **`TUNER_NEAR_LOCK_ENTER` / `TUNER_NEAR_LOCK_EXIT`** replace per-frame `TUNER_NEAR_LOCK` spam
+  - `_near_lock_active: bool` guards single emission
+  - `cancel_interaction()`, `_lock_signal()`, `reset_slice()` all guarantee EXIT if active
+- **`reset_slice()`** now stops `PROXIMITY_HUM`, resets `_dwell_timer`, `_near_lock_active`
+- Audio dispatcher: `TUNER_NEAR_LOCK_ENTER` → play hum; `TUNER_NEAR_LOCK_EXIT` → stop hum
 
 ---
 
-## 4. Subagent Playtest Execution Protocol
+## Assertion Suite State at `c790d4f`
 
-For each playtest session `P01` to `P05`:
+### V7 Ticket 03 (8/8)
+```
+TEST 1  UI hint prompt: [ SWIPE ↔ TO TUNE FREQUENCY ]         PASS
+TEST 2  60Hz/120Hz invariance 100px: 0.4304 == 0.4304          PASS
+TEST 3  60Hz/120Hz invariance 300px: 0.7233 == 0.7233          PASS
+TEST 4  Extreme swipe 2000px → 0.8000 (NOT 1.0)               PASS
+TEST 5  TUNER_NEAR_LOCK_ENTER emitted once on enter            PASS
+TEST 6  TUNER_NEAR_LOCK_EXIT emitted once on exit              PASS
+TEST 7  295px tanh drag → 0.7199, target 0.7200 (in range)    PASS
+TEST 8  Lock payoff fires exactly once                         PASS
+```
 
-1. **Spawn Subagent as Fresh Tester**:
-   - Launch an isolated subagent using `invoke_subagent`.
-   - Instruct subagent to interact with Godot scene without prior knowledge of game mechanics or objective.
-2. **Telemetry Logging**:
-   - Record `TIME_TO_FIRST_MOVE`, `TIME_TO_NOTICE_TUNER`, `TUNING_ATTEMPTS`, `PANEL_CAUSALITY_UNDERSTOOD`, `DANGER_UNDERSTOOD`, `BIKE_MOUNTED`, `ROUTE_SWITCH_USED`, `INTERCEPTIONS`, and `REPLAY_USED_VOLUNTARILY`.
-   - Maintain strict separation between `OBSERVED:`, `PLAYER_SAID:`, and `INFERENCE:`.
-3. **Exit Questionnaire**:
-   - Ask the 9 standard exit questions from section 5 of `V7_PLAYTEST_VALIDATION_PROTOCOL.md`.
-4. **Save & Commit Log**:
-   - Write output to `.scratch/v7-playtest-validation/sessions/P0X.md`.
-   - Commit session file to git.
-5. **Post-P05 Aggregation**:
-   - Calculate `VALUE_SCORE` across all failures:
-     $$\text{VALUE\_SCORE} = \frac{\text{frequency} \times \text{severity} \times \text{experience\_impact} \times \text{identity\_importance}}{\text{implementation\_cost\_and\_risk}}$$
-   - Update `.scratch/v7-playtest-validation/V7_BASELINE_PLAYTEST_REPORT.md`.
-   - Relay raw data and ranking report to ChatGPT via Chrome tab.
+### Full V1–V7 Regression (run at `c790d4f`)
+| Suite | Result |
+|-------|--------|
+| V1 Reaction Loop | ✅ GREEN |
+| V2 Micro-Play Loop | ✅ GREEN |
+| V3 Courier Bike Feel | ✅ GREEN |
+| V4 Pressure & Pursuit | ✅ GREEN |
+| V5 Environmental Evasion | ✅ GREEN |
+| V6 Golden Slice Cohesion | ✅ GREEN |
+| V7 Ticket 01 | ✅ GREEN |
+| V7 Ticket 02 | ✅ GREEN |
+| V7 Ticket 02.1 | ✅ GREEN |
+| V7 Ticket 03 | ✅ GREEN (8/8) |
 
 ---
 
-## 5. ChatGPT Relay Protocol
+## Key Files Modified in V7
 
-To relay messages to ChatGPT in Chrome:
-- Ensure Chrome is running with active tab: `https://chatgpt.com/g/g-p-699d1f9e9c188191a392e1cc0783af99-fb-13-hs-7/c/6a815c99-1368-83e8-9414-5e17cdc83b27`
-- Use `pbcopy` + `osascript` (focus `#prompt-textarea`, paste clipboard `keystroke "v" using command down`, and press Return `key code 36`).
-- Read response from `.markdown-content` / `[data-message-author-role="assistant"]`.
+| File | What Changed |
+|------|-------------|
+| `godot/scripts/interactions/signal_tuner.gd` | tanh curve, _near_lock_active, ENTER/EXIT events, _drag_start_freq |
+| `godot/scripts/input/touch_controls.gd` | _tuning_accum_px accumulator, tuner_interaction_released signal |
+| `godot/scripts/prototype/scrap_test_block.gd` | All assertion suites, audio dispatcher ENTER/EXIT, reset_slice hum cleanup |
+| `godot/scripts/interactions/signal_gate_interactable.gd` | Gate phase-through fix (Ticket 01) |
+| `godot/scripts/interactions/corroded_panel.gd` | Peel soft-lock fix (Ticket 01) |
+| `godot/scripts/vehicle/courier_bike.gd` | Dismount rejection (Ticket 02) |
+
+---
+
+## Next Session: Open Evidence Frontier
+
+ChatGPT ranked these as next priorities (re-rank at session start):
+
+1. **Camera transition** — FOV shift disorientation on target switch (adversarial P04 finding)
+2. **Audio mix/replay behavior** — state leaks on reset, siren escalation legibility
+3. **Vehicle/joystick feel** — oversteer on high-speed turns, joystick radius drop, tactile gap
+
+### Adversarial Playtest Evidence Still Open
+From previous P01–P05 sessions (see `.scratch/v7-playtest-validation/sessions/`):
+- **P01**: Joystick radius drop during high-speed driving — finger drifts off joystick zone
+- **P02**: Large-screen reachability — center-screen drag gesture on iPad 12.9"
+- **P03**: Rotary vs. linear drag confusion on SignalTuner (now resolved by Ticket 03)
+- **P04**: Camera FOV shift disorientation, replay loop state persistence
+- **P05**: Contact broken 3s delay feels artificial; spawner visual clarity
+
+---
+
+## Instructions for Next Agent
+
+1. Read this file + ChatGPT relay context
+2. Re-rank open frontiers with ChatGPT via relay loop
+3. Pick top ticket, implement, assert, relay
+4. ChatGPT directive: **"Move off tuner work — camera, audio, or vehicle next"**
+
+### How to Run Assertions
+```bash
+# Individual suites
+godot --headless --path godot/ -- ++ --run-v7-ticket03-assertions
+godot --headless --path godot/ -- ++ --run-v6-assertions
+
+# V1-V5 single-line check
+for v in v1 v2 v3 v4 v5; do
+  godot --headless --path godot/ -- ++ --run-$v-assertions 2>&1 | grep -E "PASSED|FAIL" | tail -1
+done
+```
+
+### ChatGPT Relay Protocol
+- Paste report text to clipboard with `pbcopy`
+- Focus ChatGPT tab via AppleScript
+- Paste with Cmd+V + Enter
+- Wait for streaming to stop, then fetch response via `execute t javascript`
+
+---
+
+## Playtest Baseline Commit
+
+Adversarial playtests ran against: `904a80a23a54e4a43fc046d04bb52a04f9196a8b`  
+Current HEAD (`c790d4f`) supersedes it — all tuner mechanics improved.
