@@ -239,7 +239,7 @@ func _gui_input(event: InputEvent) -> void:
 				var progress: float = clampf(_peel_accumulated_y / 150.0, 0.0, 1.0)
 				peel_gesture_dragged.emit(progress)
 			elif _is_tuning and abs(drag_ev.relative.x) > 0:
-				var delta_freq: float = clampf(drag_ev.relative.x * 0.003, -0.05, 0.05)
+				var delta_freq: float = drag_ev.relative.x * 0.003
 				tuner_dragged.emit(delta_freq)
 
 func _start_joystick(touch_idx: int, pos: Vector2) -> void:

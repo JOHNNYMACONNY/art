@@ -540,14 +540,8 @@ func _on_extraction_completed() -> void:
 func _on_audio_event_triggered(event_name: String, source_pos: Vector3) -> void:
 	if audio_mgr:
 		match event_name:
-			"PROXIMITY_HUM":
+			"PROXIMITY_HUM", "TUNER_NEAR_LOCK":
 				audio_mgr.play_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM, source_pos)
-			"TUNER_NEAR_LOCK":
-				audio_mgr.play_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM, source_pos)
-			"TUNER_ROTATE":
-				audio_mgr.play_event(AudioManagerScript.SoundEvent.SIGNAL_LOCK, source_pos)
-			"SIGNAL_LOCK":
-				audio_mgr.play_event(AudioManagerScript.SoundEvent.SIGNAL_LOCK, source_pos)
 			"PANEL_PEEL":
 				audio_mgr.play_event(AudioManagerScript.SoundEvent.PANEL_PEEL, source_pos)
 			"CORE_PULL":
@@ -1638,14 +1632,23 @@ func _run_v7_ticket03_assertions() -> void:
 	var initial_freq := signal_tuner.current_frequency
 	assert(initial_freq == 0.15, "FAIL: Initial frequency must be 0.15")
 	
-	# Drag right to tune toward target frequency 0.72
+	# 2. Test 60Hz vs 120Hz Event-Frequency Displacement Invariance (100px single vs 10x 10px multi)
 	var drag_ev := InputEventScreenDrag.new()
 	drag_ev.index = 0
+	
+	signal_tuner.current_frequency = 0.15
 	drag_ev.relative = Vector2(100.0, 0.0)
 	touch_ui._gui_input(drag_ev)
+	var single_event_delta := signal_tuner.current_frequency - 0.15
 	
-	assert(signal_tuner.current_frequency > initial_freq, "FAIL: Dragging right must increase frequency")
-	print("[TICKET 03 TEST 2 PASSED] Drag right increased frequency from 0.15 to %.2f" % signal_tuner.current_frequency)
+	signal_tuner.current_frequency = 0.15
+	drag_ev.relative = Vector2(10.0, 0.0)
+	for i in range(10):
+		touch_ui._gui_input(drag_ev)
+	var multi_event_delta := signal_tuner.current_frequency - 0.15
+	
+	assert(abs(single_event_delta - multi_event_delta) < 0.0001, "FAIL: Drag tuning must be event-frequency displacement invariant (60Hz vs 120Hz)")
+	print("[TICKET 03 TEST 2 PASSED] 60Hz vs 120Hz displacement invariance verified! Single 100px event delta = %.3f | 10x10px multi event delta = %.3f" % [single_event_delta, multi_event_delta])
 	
 	# Continue tuning to reach target frequency 0.72
 	for i in range(14):
