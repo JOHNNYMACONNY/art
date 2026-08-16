@@ -2,7 +2,7 @@
 
 **Generated**: 2026-08-16T12:15 PDT  
 **Branch**: `main`  
-**Current HEAD**: `c790d4f`  
+**Current HEAD**: `8c67396` (Gameplay baseline: `c790d4f`)  
 **Repo**: https://github.com/JOHNNYMACONNY/art
 
 ---
@@ -98,7 +98,7 @@ TEST 8  Lock payoff fires exactly once                         PASS
 | `godot/scripts/prototype/scrap_test_block.gd` | All assertion suites, audio dispatcher ENTER/EXIT, reset_slice hum cleanup |
 | `godot/scripts/interactions/signal_gate_interactable.gd` | Gate phase-through fix (Ticket 01) |
 | `godot/scripts/interactions/corroded_panel.gd` | Peel soft-lock fix (Ticket 01) |
-| `godot/scripts/vehicle/courier_bike.gd` | Dismount rejection (Ticket 02) |
+| `godot/scripts/vehicles/courier_bike.gd` | Dismount rejection (Ticket 02) |
 
 ---
 
