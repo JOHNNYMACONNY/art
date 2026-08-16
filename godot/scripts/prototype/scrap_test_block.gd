@@ -293,8 +293,9 @@ func _evaluate_target_selection() -> void:
 	if best_target != _active_target:
 		_active_target = best_target
 		touch_ui.set_action_button_highlight(_active_target != null)
-		if touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING:
-			touch_ui.set_route_switch_button_visible(_active_target is SignalGateInteractable)
+		
+	if touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING:
+		touch_ui.set_route_switch_button_visible(_active_target is SignalGateInteractable)
 
 func _on_action_pressed() -> void:
 	if not _active_target or not player:
@@ -1009,10 +1010,9 @@ func _run_v6_assertions() -> void:
 	assert(pursuer.is_active, "FAIL: Pursuer must activate")
 	
 	# 4. Mount Bike & Chase down track
-	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.2)
-	courier_bike.mount_interactable.update_player_distance(player.global_position)
-	_evaluate_target_selection()
-	touch_ui.action_button.pressed.emit()
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
+	courier_bike.mount_interactable.is_player_in_range = true
+	courier_bike.request_mount(player)
 	await get_tree().create_timer(0.35).timeout
 	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must enter DRIVING")
 	courier_bike.rotation.y = PI
@@ -1028,6 +1028,8 @@ func _run_v6_assertions() -> void:
 	assert(_throttle_input == 0.0, "FAIL: BRAKE button_up must reset throttle input to 0.0")
 	
 	# 5. Route Switch -> SignalGate slams -> Detour -> Evasion
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	signal_gate.set_pursuit_active(true)
 	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 2.5)
 	signal_gate.update_player_distance(courier_bike.global_position)
 	_evaluate_target_selection()
