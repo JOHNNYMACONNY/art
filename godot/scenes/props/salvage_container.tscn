@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://c00cont01proof"]
+[gd_scene format=3 uid="uid://c00cont01modular"]
 
 [ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="1_metal"]
 [ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="2_rust"]
@@ -15,7 +15,7 @@ size = Vector3(2.5, 2.3, 0.25)
 material = ExtResource("2_rust")
 size = Vector3(0.2, 0.2, 4.8)
 
-[node name="SalvageContainerProof" type="Node3D"]
+[node name="SalvageContainer" type="Node3D"]
 
 [node name="ContainerBody" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)

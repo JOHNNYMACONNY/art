@@ -1,7 +1,7 @@
-# V8 01.1A REFINED STYLE PROOF RENDERING & TELEMETRY REPORT
+# V8 01.1 PHASE B MODULAR KIT RENDERING & TELEMETRY REPORT
 
 **Measured At Branch**: `main`  
-**Timestamp**: 2026-08-16T13:58 PDT  
+**Timestamp**: 2026-08-16T14:03 PDT  
 **Engine**: Godot 4.7.1 Stable (Official)  
 **Hardware / Device**: Apple M4 (Metal 4.0 Forward+)  
 **Command**: `godot --path godot/ -- ++ --run-v8-telemetry`  
@@ -11,31 +11,31 @@
 
 ## 1. TELEMETRY COMPARISON (960 × 540 Viewport, Forward+)
 
-| Metric | V7 Baseline | V8 Style Proof (Initial) | V8 Style Proof (Refined) | Refined vs Baseline Delta |
-|---|---|---|---|---|
-| **Total Draw Calls (Frame)** | 68 | 106 | 100 | +32 |
-| **Primitives / Triangles** | 59,410 | 64,498 | 69,002 | +9,592 |
-| **Total Objects in Frame** | 75 | 126 | 120 | +45 |
-| **Average Frame Time** | 16.46 ms (60.8 FPS) | 16.39 ms (61.0 FPS) | 16.45 ms (60.8 FPS) | 0.0 ms |
-| **P95 Frame Time** | 17.20 ms | 17.37 ms | 17.32 ms | +0.12 ms |
-| **Real Mobile Performance** | UNKNOWN | UNKNOWN | UNKNOWN | Pending real mobile profiling |
+| Metric | V7 Baseline | V8 Style Proof (Initial) | V8 Style Proof (Refined) | V8 01.1 Phase B (Full 6-Kit) | Total Delta vs V7 Base |
+|---|---|---|---|---|---|
+| **Total Draw Calls (Frame)** | 68 | 106 | 100 | **120** | +52 |
+| **Primitives / Triangles** | 59,410 | 64,498 | 69,002 | **81,542** | +22,132 |
+| **Total Objects in Frame** | 75 | 126 | 120 | **144** | +69 |
+| **Average Frame Time** | 16.46 ms (60.8 FPS) | 16.39 ms (61.0 FPS) | 16.45 ms (60.8 FPS) | **16.44 ms (60.8 FPS)** | 0.0 ms |
+| **P95 Frame Time** | 17.20 ms | 17.37 ms | 17.32 ms | **17.14 ms** | -0.06 ms |
+| **Performance Status** | Base | Stable | Stable | **DEV CADENCE: STABLE \| DRAW SCALING: MEASURED \| REAL MOBILE: UNKNOWN** | — |
 
 ---
 
-## 2. STYLE PROOF ASSET REFINEMENTS
+## 2. FULL 6-ARCHETYPE MODULAR SCRAP KIT
 
-1. **Scrap Pile (`scrap_pile_proof.tscn`)**:
-   - Distinctive scrap-industrial silhouette: angled rusted core + slanted bent sheet plate + wheel rim / pulley form + protruding rusted axle pipe.
-   - Distinct junk silhouette from camera distance (not stacked primitives).
-2. **Salvage Container (`salvage_container_proof.tscn`)**:
-   - Added procedural normal corrugated ribs via `mat_corrugated_metal.tres`.
-   - Added reinforced front/back structural frames and top roof rails using `mat_rusted_scrap.tres`.
-3. **Ground Treatment (`ground_debris_proof.tscn`)**:
-   - Replaced rectangular tile with organic noise-masked oil/grime decal (`mat_oil_stain.tres`).
-   - Shadows disabled (`cast_shadow = 0`) on planar decals and ground flakes to prevent wasteful shadow draw calls.
+| Archetype Prop | Path | Key Silhouettes & Materials | Node Count | Collision |
+|---|---|---|---|---|
+| **Scrap Pile A** | `res://scenes/props/scrap_pile_a.tscn` | Crushed chassis core, slanted bent plate, hollow torus wheel rim, rusted axle pipe | 4 | None (Visual Only) |
+| **Scrap Pile B** | `res://scenes/props/scrap_pile_b.tscn` | Engine block mass, crushed fuel drum/barrel, angled steel I-beam girder | 3 | None (Visual Only) |
+| **Salvage Container** | `res://scenes/props/salvage_container.tscn` | Directional corrugated ribs, reinforced end frames, longitudinal roof rails | 3 | None (Visual Only) |
+| **Pipe Rack Modular** | `res://scenes/props/pipe_rack_modular.tscn` | Dual steel stanchions, horizontal crossbar, dual industrial rusted pipes | 4 | None (Visual Only) |
+| **Corrugated Fence** | `res://scenes/props/corrugated_fence.tscn` | Steel fence posts, directional corrugated sheet panel, top angle cap | 3 | None (Visual Only) |
+| **Ground Debris Flat** | `res://scenes/props/ground_debris_flat.tscn` | Irregular noise-masked oil/grime decal, scattered scrap flakes (`cast_shadow = 0`) | 3 | None (Visual Only) |
 
 ---
 
 ## 3. VISUAL ASSETS CAPTURED
-- `res://verification/v8/v8_proof_01_cold_start.png`: Cold start framing with Player against salvage container, scrap pile, and oil grime decal.
-- `res://verification/v8/v8_proof_02_tuner_approach.png`: Tuner approach framing with Player, glowing amber dial, and flanking scrap mound with wheel rim silhouette.
+- `res://verification/v8/v8_proof_01_cold_start.png`: Cold Start staging with Player avatar, Courier Bike, corrugated container with corner framing, refined scrap pile with wheel rim/axle, and irregular ground grime decals.
+- `res://verification/v8/v8_proof_02_tuner_approach.png`: Tuner Outpost approach with glowing amber dial framed against the organic scrap pile B with engine block and crushed barrel.
+- `res://verification/v8/v8_proof_03_modular_kit_lineup.png`: Modular kit lineup at Staging Pad showing pipe rack, corrugated fence, courier bike, and player.

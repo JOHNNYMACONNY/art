@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://e00pipe01modular"]
+
+[ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="1_metal"]
+[ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="2_rust"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_stanchion"]
+material = ExtResource("1_metal")
+size = Vector3(0.2, 3.2, 0.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_crossbar"]
+material = ExtResource("1_metal")
+size = Vector3(2.4, 0.2, 0.2)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_pipe"]
+material = ExtResource("2_rust")
+top_radius = 0.12
+bottom_radius = 0.12
+height = 6.0
+
+[node name="PipeRackModular" type="Node3D"]
+
+[node name="StanchionL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.0, 1.6, 0)
+mesh = SubResource("BoxMesh_stanchion")
+
+[node name="StanchionR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0, 1.6, 0)
+mesh = SubResource("BoxMesh_stanchion")
+
+[node name="Crossbar" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, 0)
+mesh = SubResource("BoxMesh_crossbar")
+
+[node name="UpperPipe" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, -0.4, 2.8, 0)
+mesh = SubResource("CylinderMesh_pipe")
+
+[node name="LowerPipe" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0.4, 2.8, 0)
+mesh = SubResource("CylinderMesh_pipe")

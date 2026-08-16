@@ -1,17 +1,17 @@
-[gd_scene format=3 uid="uid://d00debr01proof"]
+[gd_scene format=3 uid="uid://d00debr01flat"]
 
 [ext_resource type="Material" path="res://materials/mat_oil_stain.tres" id="1_stain"]
 [ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="2_rust"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_stain"]
 material = ExtResource("1_stain")
-size = Vector2(4.0, 3.2)
+size = Vector2(4.0, 3.5)
 
 [sub_resource type="BoxMesh" id="BoxMesh_flake"]
 material = ExtResource("2_rust")
 size = Vector3(0.35, 0.02, 0.25)
 
-[node name="GroundDebrisProof" type="Node3D"]
+[node name="GroundDebrisFlat" type="Node3D"]
 
 [node name="OilGrimeDecal" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0)

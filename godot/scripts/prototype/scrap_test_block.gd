@@ -1158,6 +1158,13 @@ func _export_v8_proof() -> void:
 	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_proof_02_tuner_approach.png")
 	print("[V8_STYLE_PROOF] Saved v8_proof_02_tuner_approach.png")
 	
+	# View 3: Modular Kit Lineup (Staging Pad with Pipe Rack, Corrugated Fence, Courier Bike)
+	player.global_position = Vector3(1.5, 0.4, 6.0)
+	courier_bike.global_position = _recovery_marker
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_proof_03_modular_kit_lineup.png")
+	print("[V8_STYLE_PROOF] Saved v8_proof_03_modular_kit_lineup.png")
+	
 	print("[V8_STYLE_PROOF] ALL V8 STYLE PROOF VIEWS EXPORTED CLEANLY!")
 	get_tree().quit(0)
 

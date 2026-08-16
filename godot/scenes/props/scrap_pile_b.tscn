@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://b00scrap02pileb"]
+
+[ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="1_rust"]
+[ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="2_metal"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_barrel1"]
+material = ExtResource("1_rust")
+top_radius = 0.35
+bottom_radius = 0.35
+height = 0.95
+
+[sub_resource type="BoxMesh" id="BoxMesh_beam"]
+material = ExtResource("2_metal")
+size = Vector3(0.3, 0.3, 3.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_engine"]
+material = ExtResource("1_rust")
+size = Vector3(1.2, 0.8, 1.1)
+
+[node name="ScrapPileB" type="Node3D"]
+
+[node name="EngineBlock" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.939693, 0, 0.34202, 0, 1, 0, -0.34202, 0, 0.939693, 0, 0.4, 0)
+mesh = SubResource("BoxMesh_engine")
+
+[node name="CrushedBarrel" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 0, 0, 1, -0.8, 0.35, 0.2)
+mesh = SubResource("CylinderMesh_barrel1")
+
+[node name="AngledGirder" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.866025, 0.353553, -0.353553, -0.5, 0.612372, -0.612372, 0, 0.707107, 0.707107, 0.4, 0.7, -0.1)
+mesh = SubResource("BoxMesh_beam")
