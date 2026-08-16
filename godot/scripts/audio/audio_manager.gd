@@ -17,7 +17,8 @@ enum SoundEvent {
 	BRAKE_SCREECH,
 	BIKE_MOUNT,
 	BIKE_DISMOUNT,
-	SIREN_ALARM
+	SIREN_ALARM,
+	GATE_SLAM
 }
 
 var _engine_player: AudioStreamPlayer3D = null
@@ -100,6 +101,8 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			_play_synth_click(pos, 380.0, 0.1)
 		SoundEvent.SIREN_ALARM:
 			set_siren_audio(true, pos)
+		SoundEvent.GATE_SLAM:
+			_play_synth_sweep(pos, 220.0, 60.0, 0.45)
 
 func stop_event(event: SoundEvent) -> void:
 	if event == SoundEvent.PROXIMITY_HUM and _hum_player:

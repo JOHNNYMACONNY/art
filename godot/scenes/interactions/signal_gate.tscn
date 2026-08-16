@@ -1,0 +1,47 @@
+[gd_scene load_steps=7 format=3 uid="uid://c_signal_gate_001"]
+
+[ext_resource type="Script" path="res://scripts/interactions/signal_gate_interactable.gd" id="1_gate"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_gate"]
+height = 3.0
+radius = 4.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_frame"]
+size = Vector3(0.6, 3.5, 0.6)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_frame"]
+albedo_color = Color(0.2, 0.2, 0.25, 1)
+roughness = 0.6
+
+[sub_resource type="SphereMesh" id="SphereMesh_light"]
+radius = 0.3
+height = 0.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_light"]
+albedo_color = Color(0.1, 0.9, 1, 1)
+emission_enabled = true
+emission = Color(0.1, 0.9, 1, 1)
+emission_energy_multiplier = 3.0
+
+[node name="SignalGate" type="Area3D"]
+script = ExtResource("1_gate")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("CylinderShape3D_gate")
+
+[node name="FrameMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.75, 0)
+mesh = SubResource("BoxMesh_frame")
+surface_material_override/0 = SubResource("StandardMaterial3D_frame")
+
+[node name="IndicatorMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.6, 0)
+mesh = SubResource("SphereMesh_light")
+surface_material_override/0 = SubResource("StandardMaterial3D_light")
+
+[node name="SignalLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.6, 0)
+light_color = Color(0.1, 0.9, 1, 1)
+light_energy = 3.5
+omni_range = 12.0

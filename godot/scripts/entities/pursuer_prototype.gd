@@ -1,8 +1,8 @@
 class_name PursuerPrototype
 extends CharacterBody3D
 
-# Pursuer Prototype Threat Entity for Echos in the Scrap (V4)
-# Direct vector pursuit steering toward active target at 11 m/s
+# Pursuer Prototype Threat Entity for Echos in the Scrap (V5)
+# Direct vector pursuit steering toward active target with detour waypoint rerouting
 
 signal intercepted_target
 
@@ -20,6 +20,9 @@ var target_node: Node3D = null
 var current_speed: float = 0.0
 var _intercept_timer: float = 0.0
 
+var detour_waypoints: Array[Vector3] = []
+var current_detour_index: int = -1
+
 func _ready() -> void:
 	visible = false
 	set_physics_process(false)
@@ -30,6 +33,8 @@ func activate_pursuit(target: Node3D) -> void:
 	visible = true
 	current_speed = 0.0
 	_intercept_timer = 0.0
+	detour_waypoints.clear()
+	current_detour_index = -1
 	set_physics_process(true)
 	if siren_light:
 		siren_light.visible = true
@@ -40,17 +45,32 @@ func deactivate_pursuit() -> void:
 	target_node = null
 	current_speed = 0.0
 	velocity = Vector3.ZERO
+	detour_waypoints.clear()
+	current_detour_index = -1
 	set_physics_process(false)
 	if siren_light:
 		siren_light.visible = false
+
+func set_detour_path(waypoints: Array[Vector3]) -> void:
+	detour_waypoints = waypoints
+	current_detour_index = 0 if waypoints.size() > 0 else -1
+	print("[PURSUER] Detour reroute path set (%d waypoints)..." % waypoints.size())
 
 func _physics_process(delta: float) -> void:
 	if not is_active or not target_node:
 		return
 		
-	var target_pos := target_node.global_position
-	var to_target := target_pos - global_position
-	to_target.y = 0.0 # Maintain ground plane
+	var destination: Vector3 = target_node.global_position
+	if current_detour_index >= 0 and current_detour_index < detour_waypoints.size():
+		destination = detour_waypoints[current_detour_index]
+		if global_position.distance_to(destination) < 1.8:
+			current_detour_index += 1
+			if current_detour_index >= detour_waypoints.size():
+				current_detour_index = -1
+				print("[PURSUER] Detour completed. Resuming direct pursuit...")
+				
+	var to_target := destination - global_position
+	to_target.y = 0.0
 	var dist := to_target.length()
 	
 	if dist > 0.1:
@@ -63,8 +83,7 @@ func _physics_process(delta: float) -> void:
 		velocity = -global_transform.basis.z * current_speed
 		move_and_slide()
 		
-	# Intercept check (~1.5m for 0.35s)
-	if dist <= intercept_distance:
+	if target_node and global_position.distance_to(target_node.global_position) <= intercept_distance:
 		_intercept_timer += delta
 		if _intercept_timer >= 0.35:
 			_intercept_timer = 0.0

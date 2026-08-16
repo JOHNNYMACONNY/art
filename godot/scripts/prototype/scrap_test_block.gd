@@ -1,8 +1,8 @@
 class_name ScrapTestBlock
 extends Node3D
 
-# Echos in the Scrap - Golden Slice v4 Main Controller
-# Integrated V4 Pressure & Pursuit Loop with PursuerPrototype, Tension HUD, and Interception Reset
+# Echos in the Scrap - Golden Slice v5 Main Controller
+# Integrated V5 Environmental Evasion / Scrap Route Switch
 
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 
@@ -34,6 +34,7 @@ enum PursuitState {
 var signal_tuner: SignalTuner = null
 var courier_bike: CourierBike = null
 var pursuer: PursuerPrototype = null
+var signal_gate: SignalGateInteractable = null
 
 var current_world_state: WorldLoopState = WorldLoopState.START
 var current_pursuit_state: PursuitState = PursuitState.CALM
@@ -81,6 +82,15 @@ func _ready() -> void:
 		add_child(pursuer)
 		pursuer.intercepted_target.connect(_on_pursuer_intercepted)
 		
+	var gate_scene: PackedScene = load("res://scenes/interactions/signal_gate.tscn")
+	if gate_scene:
+		signal_gate = gate_scene.instantiate() as SignalGateInteractable
+		signal_gate.name = "SignalGate"
+		signal_gate.position = Vector3(-1.5, 0.5, 12.0)
+		add_child(signal_gate)
+		signal_gate.gate_triggered.connect(_on_signal_gate_triggered)
+		_interactables.append(signal_gate)
+		
 	if corroded_panel:
 		corroded_panel.magnetism_changed.connect(_on_magnetism_changed)
 		corroded_panel.extraction_step_changed.connect(_on_extraction_step_changed)
@@ -103,7 +113,7 @@ func _ready() -> void:
 		touch_ui.dismount_pressed.connect(_on_dismount_pressed)
 		
 	if status_label:
-		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v4"
+		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v5"
 		
 	if OS.get_cmdline_user_args().has("--run-v1-assertions"):
 		_run_v1_assertions()
@@ -113,19 +123,23 @@ func _ready() -> void:
 		_run_v3_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v4-assertions"):
 		_run_v4_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v5-assertions"):
+		_run_v5_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v3-visuals"):
 		_export_v3_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v4-visuals"):
 		_export_v4_visuals()
+	elif OS.get_cmdline_user_args().has("--export-v5-visuals"):
+		_export_v5_visuals()
 
 func _process(delta: float) -> void:
-	if player:
-		for item in _interactables:
-			if item:
-				item.update_player_distance(player.global_position)
-		_evaluate_target_selection()
+	var active_pos: Vector3 = courier_bike.global_position if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player.global_position
+	for item in _interactables:
+		if item:
+			item.update_player_distance(active_pos)
+	_evaluate_target_selection()
 		
 	if courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING:
 		courier_bike.set_drive_inputs(_throttle_input, _steer_input, delta)
@@ -135,11 +149,10 @@ func _process(delta: float) -> void:
 			var speed_ratio: float = abs(courier_bike.current_speed) / courier_bike.max_speed
 			audio_mgr.set_engine_audio(speed_ratio, courier_bike.global_position)
 			
-	# Update pursuit loop state machine
 	_process_pursuit_loop(delta)
 		
 	if status_label:
-		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v4 [%s | PURSUIT: %s]\nFPS: %d | Frame: %.2f ms" % [
+		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v5 [%s | PURSUIT: %s]\nFPS: %d | Frame: %.2f ms" % [
 			WorldLoopState.keys()[current_world_state],
 			PursuitState.keys()[current_pursuit_state],
 			Engine.get_frames_per_second(),
@@ -175,6 +188,8 @@ func trigger_disturbance_alert() -> void:
 	current_pursuit_state = PursuitState.DISTURBANCE_ALERT
 	print("[PURSUIT] DISTURBANCE ALERT DETECTED!")
 	
+	if signal_gate:
+		signal_gate.set_pursuit_active(true)
 	if touch_ui:
 		touch_ui.show_tension_hud("[ ALERT: DISTURBANCE DETECTED ]")
 	if audio_mgr:
@@ -196,6 +211,8 @@ func trigger_disturbance_alert() -> void:
 func _deactivate_pursuit() -> void:
 	if pursuer:
 		pursuer.deactivate_pursuit()
+	if signal_gate:
+		signal_gate.set_pursuit_active(false)
 	if audio_mgr:
 		audio_mgr.set_siren_audio(false, Vector3.ZERO)
 	if touch_ui:
@@ -204,6 +221,20 @@ func _deactivate_pursuit() -> void:
 		world_env.environment.ambient_light_color = Color(0.3, 0.26, 0.2, 1.0)
 	current_pursuit_state = PursuitState.CALM
 	print("[PURSUIT] Contact evaded. Environment returned to CALM.")
+
+func _on_signal_gate_triggered() -> void:
+	print("[GATE] Signal Gate Triggered! Slamming scrap barrier...")
+	if audio_mgr and signal_gate:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.GATE_SLAM, signal_gate.global_position)
+		
+	if pursuer:
+		# Detour waypoints routing pursuer around scrap barrier
+		var waypoints: Array[Vector3] = [
+			Vector3(-5.0, 0.6, 10.0),
+			Vector3(-5.0, 0.6, 20.0),
+			Vector3(-1.5, 0.6, 28.0)
+		]
+		pursuer.set_detour_path(waypoints)
 
 func _on_pursuer_intercepted() -> void:
 	if current_pursuit_state == PursuitState.INTERCEPTED:
@@ -237,11 +268,11 @@ func _evaluate_target_selection() -> void:
 		
 	var best_target: InteractableBase = null
 	var best_score: float = -9999.0
-	var player_pos := player.global_position
+	var active_pos: Vector3 = courier_bike.global_position if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player.global_position
 	
 	for item in _interactables:
-		if item and item.can_interact(player_pos):
-			var dist := item.global_position.distance_to(player_pos)
+		if item and item.can_interact(active_pos):
+			var dist := item.global_position.distance_to(active_pos)
 			var score := (item.get_interaction_priority() * 10.0) - dist
 			if item == _active_target:
 				score += 2.0
@@ -257,18 +288,22 @@ func _on_action_pressed() -> void:
 	if not _active_target or not player:
 		return
 		
+	var active_pos: Vector3 = courier_bike.global_position if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player.global_position
+		
 	if _active_target is MountInteractable:
 		(_active_target as MountInteractable).set_player_reference(player)
-		_active_target.begin_interaction(player.global_position)
+		_active_target.begin_interaction(active_pos)
+	elif _active_target is SignalGateInteractable:
+		(_active_target as SignalGateInteractable).begin_interaction(active_pos)
 	elif _active_target == signal_tuner and signal_tuner:
-		if signal_tuner.begin_interaction(player.global_position):
+		if signal_tuner.begin_interaction(active_pos):
 			player.is_input_locked = true
 			if camera:
 				camera.set_interaction_mode(true, signal_tuner)
 			if touch_ui:
 				touch_ui.show_gesture_overlay("TUNE_SIGNAL")
 	elif _active_target == corroded_panel and corroded_panel:
-		if corroded_panel.begin_interaction(player.global_position):
+		if corroded_panel.begin_interaction(active_pos):
 			player.is_input_locked = true
 			if camera:
 				camera.set_interaction_mode(true, corroded_panel)
@@ -635,23 +670,83 @@ func _run_v4_assertions() -> void:
 	print("[V4_ASSERTIONS] PASSED! ALL V4 PRESSURE & PURSUIT SLICE ASSERTIONS GREEN.")
 	get_tree().quit()
 
+func _run_v5_assertions() -> void:
+	print("[V5_ASSERTIONS] Starting complete V5 Environmental Evasion / Scrap Route Switch assertions...")
+	await get_tree().create_timer(0.1).timeout
+	assert(signal_gate != null, "FAIL: SignalGateInteractable must exist")
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.DORMANT, "FAIL: SignalGate must start DORMANT")
+	
+	# Trigger pursuit -> SignalGate becomes READY
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.READY, "FAIL: Pursuit must make SignalGate READY")
+	
+	# Player/Bike approaches SignalGate -> Action arbitration selects SignalGate
+	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 1.5)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	signal_gate.update_player_distance(courier_bike.global_position)
+	_evaluate_target_selection()
+	assert(_active_target == signal_gate, "FAIL: Target selection must highlight SignalGate")
+	
+	# Trigger SignalGate -> GATE_SLAM audio event & Pursuer detour path set
+	_on_action_pressed()
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERING, "FAIL: SignalGate must enter TRIGGERING")
+	await get_tree().create_timer(0.6).timeout
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL: SignalGate must enter TRIGGERED")
+	assert(pursuer.current_detour_index == 0, "FAIL: SignalGate trigger must set pursuer detour path")
+	
+	# Deactivate pursuit -> SignalGate remains spent (TRIGGERED)
+	_deactivate_pursuit()
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL: Triggered gate remains spent TRIGGERED after pursuit ends")
+	
+	print("[V5_ASSERTIONS] PASSED! ALL V5 ENVIRONMENTAL EVASION SLICE ASSERTIONS GREEN.")
+	get_tree().quit()
+
+func _export_v5_visuals() -> void:
+	print("[V5_VISUALS] Exporting 6 required V5 visual screenshots to res://verification/v5/...")
+	await get_tree().create_timer(0.2).timeout
+	
+	# 1. v5_gate_dormant.png
+	get_viewport().get_texture().get_image().save_png("res://verification/v5/v5_gate_dormant.png")
+	
+	# 2. v5_gate_ready.png
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v5/v5_gate_ready.png")
+	
+	# 3. v5_gate_triggering.png
+	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 1.5)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	signal_gate.update_player_distance(courier_bike.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.15).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v5/v5_gate_triggering.png")
+	
+	# 4. v5_barrier_slam.png
+	await get_tree().create_timer(0.45).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v5/v5_barrier_slam.png")
+	
+	# 5. v5_pursuer_detour.png
+	await get_tree().create_timer(1.0).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v5/v5_pursuer_detour.png")
+	
+	# 6. v5_shortcut_evasion.png
+	await get_tree().create_timer(2.0).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v5/v5_shortcut_evasion.png")
+	
+	print("[V5_VISUALS] ALL 6 V5 SCREENSHOTS EXPORTED SUCCESSFULLY!")
+	get_tree().quit()
+
 func _export_v4_visuals() -> void:
 	print("[V4_VISUALS] Exporting 6 required V4 visual screenshots to res://verification/v4/...")
 	await get_tree().create_timer(0.2).timeout
-	
-	# 1. v4_calm.png
 	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_calm.png")
-	
-	# 2. v4_disturbance.png
 	trigger_disturbance_alert()
 	await get_tree().create_timer(0.3).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_disturbance.png")
-	
-	# 3. v4_pursuit_foot.png
 	await get_tree().create_timer(0.6).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_pursuit_foot.png")
-	
-	# 4. v4_mounting_under_pressure.png
 	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
 	await get_tree().create_timer(0.2).timeout
 	courier_bike.mount_interactable.update_player_distance(player.global_position)
@@ -659,18 +754,13 @@ func _export_v4_visuals() -> void:
 	_on_action_pressed()
 	await get_tree().create_timer(0.15).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_mounting_under_pressure.png")
-	
-	# 5. v4_driving_escape.png
 	await get_tree().create_timer(0.25).timeout
 	_throttle_input = 1.0
 	await get_tree().create_timer(1.5).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_driving_escape.png")
-	
-	# 6. v4_evaded_calm.png
 	await get_tree().create_timer(3.0).timeout
 	_throttle_input = 0.0
 	get_viewport().get_texture().get_image().save_png("res://verification/v4/v4_evaded_calm.png")
-	
 	print("[V4_VISUALS] ALL 6 V4 SCREENSHOTS EXPORTED SUCCESSFULLY!")
 	get_tree().quit()
 
