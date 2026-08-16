@@ -66,7 +66,7 @@ func _physics_process(delta: float) -> void:
 			if is_handbrake_active:
 				steer_rate *= 1.75 # Powerslide yaw agility
 				
-			if abs(steering_angle) > 0.01 and (abs(current_speed) > 0.05 or is_handbrake_active):
+			if abs(steering_angle) > 0.01 and abs(current_speed) > 0.1:
 				var steer_sign: float = 1.0 if current_speed >= -0.05 else -1.0
 				rotate_y(-steering_angle * steer_rate * steer_sign * delta)
 				
@@ -81,6 +81,8 @@ func _physics_process(delta: float) -> void:
 			var new_forward_vel: float = current_speed
 			
 			velocity = (forward_dir * new_forward_vel) + (right_dir * new_lateral_vel)
+			if velocity.length() > max_speed:
+				velocity = velocity.normalized() * max_speed
 			move_and_slide()
 			
 			# 3. GTA-style Glance Collision Response (Glancing impacts slide along tangent; head-on sheds speed)

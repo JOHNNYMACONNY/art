@@ -2145,6 +2145,50 @@ func _run_v7_ticket04_1_assertions() -> void:
 	assert(courier_bike.current_gear == CourierBike.GearState.FORWARD, "FAIL: Gear must remain FORWARD after incomplete settle")
 	print("[TICKET 04.1 TEST 8 PASSED] Zero-speed chatter immunity verified!")
 
+	# -------------------------------------------------------------------------
+	# TEST 9: E-BRAKE and ROUTE SWITCH Hitbox Separation
+	# -------------------------------------------------------------------------
+	print("[TEST 9] Testing E-BRAKE vs ROUTE SWITCH Hitbox Separation...")
+	var hb_btn: Button = touch_ui.get_node("DrivingOverlayPanel/HandbrakeButton")
+	var rs_btn: Button = touch_ui.get_node("DrivingOverlayPanel/RouteSwitchButton")
+	assert(hb_btn != null and rs_btn != null, "FAIL: Both buttons must exist")
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	touch_ui.set_route_switch_button_visible(true)
+	await get_tree().process_frame
+	var hb_rect: Rect2 = hb_btn.get_global_rect()
+	var rs_rect: Rect2 = rs_btn.get_global_rect()
+	print("[TEST 9 LOG] Handbrake Rect: %s | Route Switch Rect: %s" % [hb_rect, rs_rect])
+	assert(!hb_rect.intersects(rs_rect), "FAIL: Handbrake and Route Switch hit rectangles must not overlap!")
+	touch_ui.set_route_switch_button_visible(false)
+	print("[TICKET 04.1 TEST 9 PASSED] Control hitbox separation verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 10: Joystick Knob Visual Centering Invariant
+	# -------------------------------------------------------------------------
+	print("[TEST 10] Testing Joystick Knob Visual Centering Invariant...")
+	touch_ui.reset_all_input_states()
+	var base: Control = touch_ui.joystick_base
+	var handle: Control = touch_ui.joystick_handle
+	assert(base != null and handle != null, "FAIL: Joystick nodes missing")
+	
+	# Check at rest
+	var rest_base_c: Vector2 = base.position + (base.size * 0.5)
+	var rest_knob_c: Vector2 = handle.position + (handle.size * 0.5)
+	var rest_offset: Vector2 = (handle.position + (handle.size * 0.5)) - (base.size * 0.5)
+	print("[TEST 10 LOG] Rest knob center offset from base center: %s" % rest_offset)
+	assert(rest_offset.length() < 1.0, "FAIL: Knob must be visually centered in base at rest")
+	
+	# Start touch at (100, 400) and drag to (140, 400)
+	touch_ui._start_joystick(0, Vector2(100, 400))
+	touch_ui._update_joystick(Vector2(140, 400))
+	assert(touch_ui._current_joystick_vec.x > 0.0, "FAIL: Joystick vector must register right deflection")
+	
+	# Stop joystick
+	touch_ui._stop_joystick()
+	var stop_offset: Vector2 = (handle.position + (handle.size * 0.5)) - (base.size * 0.5)
+	assert(stop_offset.length() < 1.0, "FAIL: Knob must return to visual center on release")
+	print("[TICKET 04.1 TEST 10 PASSED] Joystick visual centering invariant verified!")
+
 	print("\n=========================================================================")
 	print("[ALL V7 TICKET 04.1 ASSERTIONS PASSED CLEANLY]")
 	print("=========================================================================\n")
@@ -2269,7 +2313,7 @@ func _run_v7_ticket04_2_assertions() -> void:
 	print("[TICKET 04.2 TEST 4 PASSED] Handbrake grip recovery verified!")
 
 	# -------------------------------------------------------------------------
-	# TEST 5: Numerical Stability & Velocity Bounding
+	# TEST 5: Numerical Stability & Velocity Bounding (Strict <= max_speed)
 	# -------------------------------------------------------------------------
 	print("[TEST 5] Testing Numerical Stability under 100 Frames of Aggressive Controls...")
 	for i in range(100):
@@ -2281,9 +2325,53 @@ func _run_v7_ticket04_2_assertions() -> void:
 		assert(not is_nan(courier_bike.current_speed), "FAIL: current_speed became NaN at frame %d" % i)
 		assert(not is_inf(courier_bike.current_speed), "FAIL: current_speed became Inf at frame %d" % i)
 		assert(not is_nan(courier_bike.velocity.x) and not is_nan(courier_bike.velocity.z), "FAIL: Velocity NaN at frame %d" % i)
-		assert(courier_bike.velocity.length() <= courier_bike.max_speed * 1.25, "FAIL: Velocity exploded beyond max speed bounds")
+		assert(courier_bike.velocity.length() <= courier_bike.max_speed + 0.01, "FAIL: Velocity exceeded strict max_speed bound")
 
-	print("[TICKET 04.2 TEST 5 PASSED] Numerical stability and velocity bounding verified!")
+	print("[TICKET 04.2 TEST 5 PASSED] Numerical stability and strict velocity bounding verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 6: Prevent Stationary Handbrake Body Pivot
+	# -------------------------------------------------------------------------
+	print("[TEST 6] Testing Stationary Handbrake Body Pivot Immunity (0 m/s)...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_speed = 0.0
+	courier_bike.velocity = Vector3.ZERO
+	courier_bike.rotation.y = 0.0
+
+	# Hold full steer + E-BRAKE for 60 frames (1.0s) at 0 m/s
+	for i in range(60):
+		courier_bike.set_drive_inputs(0.0, 1.0, dt, true) # FULL STEER + HANDBRAKE at 0 speed
+		courier_bike._physics_process(dt)
+
+	var stationary_yaw: float = abs(courier_bike.rotation.y)
+	print("[TEST 6 LOG] 1-second stationary steer+handbrake yaw delta = %.6f rad" % stationary_yaw)
+	assert(stationary_yaw < 0.0001, "FAIL: Stationary vehicle must not rotate in place under steer/handbrake")
+	print("[TICKET 04.2 TEST 6 PASSED] Stationary handbrake pivot immunity verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 7: Falsify Handbrake Speed Injection (Full Gas + Full Steer + Handbrake for 2s)
+	# -------------------------------------------------------------------------
+	print("[TEST 7] Falsifying Handbrake Speed Injection (2 seconds full gas + steer + drift)...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.global_position = Vector3(0, 0.05, 20.0) # Open road
+	courier_bike.current_speed = 0.0
+	courier_bike.velocity = Vector3.ZERO
+
+	var max_drift_vel_mag: float = 0.0
+	for i in range(120): # 120 * 0.016 = 1.92s ~ 2 seconds
+		courier_bike.set_drive_inputs(1.0, 1.0, dt, true) # FULL GAS + FULL STEER + HANDBRAKE
+		courier_bike._physics_process(dt)
+		var v_mag: float = courier_bike.velocity.length()
+		if v_mag > max_drift_vel_mag:
+			max_drift_vel_mag = v_mag
+		assert(v_mag <= courier_bike.max_speed + 0.01, "FAIL: Speed injection detected during handbrake! v=%.2f > %.2f" % [v_mag, courier_bike.max_speed])
+
+	print("[TEST 7 LOG] Max velocity magnitude during 2s full gas drift: %.2f m/s (max_speed=%.2f m/s)" % [max_drift_vel_mag, courier_bike.max_speed])
+	print("[TICKET 04.2 TEST 7 PASSED] Handbrake speed injection falsified cleanly!")
 
 	print("\n=========================================================================")
 	print("[ALL V7 TICKET 04.2 ASSERTIONS PASSED CLEANLY]")

@@ -56,6 +56,7 @@ var _gas_touch_index: int = -1
 var _brake_touch_index: int = -1
 var _handbrake_touch_index: int = -1
 var _joystick_center_pos: Vector2 = Vector2.ZERO
+var _joystick_handle_rest_pos: Vector2 = Vector2.ZERO
 var _current_joystick_vec: Vector2 = Vector2.ZERO
 var _is_peeling: bool = false
 var _is_tuning: bool = false
@@ -91,6 +92,10 @@ func reset_all_input_states() -> void:
 	hide_tension_hud()
 
 func _ready() -> void:
+	if joystick_handle and joystick_base:
+		_joystick_handle_rest_pos = (joystick_base.size - joystick_handle.size) * 0.5
+		joystick_handle.position = _joystick_handle_rest_pos
+
 	if OS.has_feature("debug_ui") or OS.get_cmdline_user_args().has("--debug-ui"):
 		debug_hud_enabled = true
 		
@@ -337,6 +342,8 @@ func _start_joystick(touch_idx: int, pos: Vector2) -> void:
 	_joystick_active = true
 	_joystick_touch_index = touch_idx
 	_joystick_center_pos = pos
+	if joystick_handle:
+		joystick_handle.position = _joystick_handle_rest_pos
 	if joystick_base:
 		joystick_base.visible = true
 		joystick_base.global_position = pos - (joystick_base.size * 0.5)
@@ -352,7 +359,7 @@ func _update_joystick(pos: Vector2) -> void:
 			joystick_base.global_position = _joystick_center_pos - (joystick_base.size * 0.5)
 		delta_pos = delta_pos.normalized() * max_joystick_radius
 	if joystick_handle:
-		joystick_handle.position = delta_pos
+		joystick_handle.position = _joystick_handle_rest_pos + delta_pos
 	_current_joystick_vec = delta_pos / max_joystick_radius
 	
 	if current_mode == UIMode.FOOT_TRAVERSAL:
@@ -365,7 +372,7 @@ func _stop_joystick() -> void:
 	_joystick_touch_index = -1
 	_current_joystick_vec = Vector2.ZERO
 	if joystick_handle:
-		joystick_handle.position = Vector2.ZERO
+		joystick_handle.position = _joystick_handle_rest_pos
 	if joystick_base:
 		joystick_base.visible = false
 		
