@@ -159,7 +159,7 @@ offset_left = 16.0
 offset_top = 16.0
 offset_right = 400.0
 offset_bottom = 70.0
-text = "ECHOS IN THE SCRAP // GOLDEN SLICE v2"
+text = "ECHOS IN THE SCRAP // GOLDEN SLICE v3"
 
 [node name="TouchControlsUI" type="Control" parent="CanvasLayer"]
 layout_mode = 3
@@ -257,3 +257,54 @@ offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 0
 text = "[ EXTRACT CORE ]"
+
+[node name="DrivingOverlayPanel" type="Control" parent="CanvasLayer/TouchControlsUI"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ThrottleButton" type="Button" parent="CanvasLayer/TouchControlsUI/DrivingOverlayPanel"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -160.0
+offset_top = -140.0
+offset_right = -30.0
+offset_bottom = -30.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "GAS"
+
+[node name="BrakeButton" type="Button" parent="CanvasLayer/TouchControlsUI/DrivingOverlayPanel"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -310.0
+offset_top = -140.0
+offset_right = -180.0
+offset_bottom = -30.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "BRAKE"
+
+[node name="DismountButton" type="Button" parent="CanvasLayer/TouchControlsUI/DrivingOverlayPanel"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -180.0
+offset_top = 30.0
+offset_right = -30.0
+offset_bottom = 90.0
+grow_horizontal = 0
+text = "[ DISMOUNT ]"
