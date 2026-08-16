@@ -65,6 +65,16 @@ func begin_interaction(_player_pos: Vector3) -> bool:
 	)
 	return true
 
+@onready var sweep_area: Area3D = $BarrierPivot/SweepArea
+
+func is_sweep_occupied() -> bool:
+	if not sweep_area:
+		return false
+	for body in sweep_area.get_overlapping_bodies():
+		if body != barrier_body and (body is CharacterBody3D or body.name == "Runner" or body.name == "CourierBike"):
+			return true
+	return false
+
 func trigger_gate() -> void:
 	if current_state == GateState.TRIGGERED:
 		return
@@ -72,18 +82,28 @@ func trigger_gate() -> void:
 	current_state = GateState.TRIGGERED
 	is_powered = false
 	if barrier_collision:
-		barrier_collision.disabled = false
+		barrier_collision.disabled = true
 		
 	# Animate physical barrier swinging 90 deg across main scrap lane over 0.3s
 	if barrier_pivot:
 		var tween := create_tween()
 		tween.tween_property(barrier_pivot, "rotation:y", deg_to_rad(90.0), 0.3)
 		tween.finished.connect(func():
-			print("[GATE] Physical scrap barrier arm locked in place!")
+			print("[GATE] Physical scrap barrier arm swing completed! Verifying sweep safety...")
+			_try_enable_collision()
 		)
 		
 	gate_triggered.emit()
 	_update_visual_state()
+
+func _try_enable_collision() -> void:
+	if is_sweep_occupied():
+		print("[GATE] Safety sweep volume occupied! Delaying barrier collision enablement...")
+		get_tree().create_timer(0.1).timeout.connect(_try_enable_collision)
+	else:
+		if barrier_collision:
+			barrier_collision.disabled = false
+			print("[GATE] Physical scrap barrier arm locked in solid place!")
 
 func _update_visual_state() -> void:
 	if not signal_light:

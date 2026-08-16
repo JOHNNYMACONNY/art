@@ -705,9 +705,10 @@ func _run_v5_assertions() -> void:
 	_throttle_input = 1.0
 	_on_action_pressed()
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERING, "FAIL: SignalGate must enter TRIGGERING")
+	assert(signal_gate.barrier_collision.disabled, "FAIL: Barrier collision shape must remain disabled until swing completes and safety sweep volume is clear")
 	await get_tree().create_timer(0.75).timeout
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL: SignalGate must enter TRIGGERED")
-	assert(not signal_gate.barrier_collision.disabled, "FAIL: Barrier collision shape must activate")
+	assert(not signal_gate.barrier_collision.disabled, "FAIL: Barrier collision shape must activate after sweep safety check passes")
 	assert(abs(signal_gate.barrier_pivot.rotation.y - deg_to_rad(90.0)) < 0.1, "FAIL: Barrier pivot must swing 90 degrees")
 	assert(pursuer.current_detour_index == 0, "FAIL: SignalGate trigger must set pursuer detour path")
 	

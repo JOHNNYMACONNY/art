@@ -69,6 +69,19 @@ roughness = 0.9
 [sub_resource type="BoxShape3D" id="BoxShape3D_fg"]
 size = Vector3(1.5, 5.0, 1.5)
 
+[sub_resource type="BoxMesh" id="BoxMesh_shortcut_road"]
+size = Vector3(3.0, 0.1, 24.0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_shortcut"]
+albedo_color = Color(0.1, 0.22, 0.28, 1)
+roughness = 0.65
+
+[sub_resource type="BoxMesh" id="BoxMesh_shortcut_wall"]
+size = Vector3(1.0, 3.0, 24.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_shortcut_wall"]
+size = Vector3(1.0, 3.0, 24.0)
+
 [node name="ScrapTestBlock" type="Node3D"]
 script = ExtResource("1_root")
 
@@ -135,6 +148,31 @@ surface_material_override/0 = SubResource("StandardMaterial3D_fg")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ForegroundPillar"]
 shape = SubResource("BoxShape3D_fg")
+
+[node name="ShortcutRoad" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.02, 20.0)
+mesh = SubResource("BoxMesh_shortcut_road")
+surface_material_override/0 = SubResource("StandardMaterial3D_shortcut")
+
+[node name="ShortcutLeftWall" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5, 1.5, 20.0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="ShortcutLeftWall"]
+mesh = SubResource("BoxMesh_shortcut_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_scrap")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ShortcutLeftWall"]
+shape = SubResource("BoxShape3D_shortcut_wall")
+
+[node name="ShortcutDividerWall" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 1.5, 20.0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="ShortcutDividerWall"]
+mesh = SubResource("BoxMesh_shortcut_wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_scrap")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ShortcutDividerWall"]
+shape = SubResource("BoxShape3D_shortcut_wall")
 
 [node name="Runner" parent="." instance=ExtResource("3_runner")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
