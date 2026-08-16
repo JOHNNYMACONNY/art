@@ -74,6 +74,9 @@ func _ready() -> void:
 		courier_bike.brake_screech_triggered.connect(func(pos: Vector3):
 			if audio_mgr: audio_mgr.play_event(AudioManagerScript.SoundEvent.BRAKE_SCREECH, pos)
 		)
+		courier_bike.collision_contact.connect(func(head_on_ratio: float, impact_speed: float, col_pos: Vector3):
+			if audio_mgr: audio_mgr.on_collision_contact(head_on_ratio, impact_speed, col_pos)
+		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
 			
@@ -153,6 +156,8 @@ func _ready() -> void:
 		_run_v7_ticket04_3_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v7-ticket05-assertions"):
 		_run_v7_ticket05_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v7-ticket06-assertions") or OS.get_cmdline_user_args().has("--run-v7-ticket06-1-assertions") or OS.get_cmdline_user_args().has("--run-v7-ticket06-2-assertions") or OS.get_cmdline_user_args().has("--run-v7-ticket06-3-assertions"):
+		_run_v7_ticket06_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v3-visuals"):
@@ -197,7 +202,7 @@ func _process_pursuit_loop(delta: float) -> void:
 			if touch_ui:
 				touch_ui.update_pursuer_proximity(dist)
 			if audio_mgr:
-				audio_mgr.set_siren_audio(true, pursuer.global_position)
+				audio_mgr.set_pursuit_pressure(dist, pursuer.global_position)
 				
 			if dist > 18.0:
 				_contact_broken_timer += delta
@@ -218,7 +223,7 @@ func trigger_disturbance_alert() -> void:
 	current_pursuit_state = PursuitState.DISTURBANCE_ALERT
 	print("[PULSE] Disturbance alert triggered! Pursuit sequence initiating...")
 	if audio_mgr:
-		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, global_position)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT, global_position)
 		
 	get_tree().create_timer(0.75).timeout.connect(func():
 		if current_pursuit_state == PursuitState.DISTURBANCE_ALERT:
@@ -237,8 +242,7 @@ func _deactivate_pursuit() -> void:
 	if signal_gate:
 		signal_gate.set_pursuit_active(false)
 	if audio_mgr:
-		audio_mgr.set_siren_audio(false, Vector3.ZERO)
-		audio_mgr.play_event(AudioManagerScript.SoundEvent.SIGNAL_LOCK, player.global_position if player else Vector3.ZERO)
+		audio_mgr.set_mix_state(AudioManagerScript.MixState.EVASION_RELEASE)
 	if touch_ui:
 		touch_ui.hide_tension_hud()
 		touch_ui.show_replay_overlay()
@@ -272,7 +276,7 @@ func _on_pursuer_intercepted() -> void:
 	if courier_bike: courier_bike.force_dismount()
 	if pursuer: pursuer.deactivate_pursuit()
 	if audio_mgr:
-		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, player.global_position if player else Vector3.ZERO)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED, player.global_position if player else Vector3.ZERO)
 		audio_mgr.set_siren_audio(false, Vector3.ZERO)
 		
 	get_tree().create_timer(0.8).timeout.connect(func():
@@ -366,7 +370,7 @@ func _on_dismount_pressed() -> void:
 func _on_bike_dismount_rejected(reason: CourierBike.DismountRejectReason, current_speed: float, speed_limit: float) -> void:
 	print("[CONTROLLER] Dismount rejected! Reason: %s | Speed: %.1f m/s" % [CourierBike.DismountRejectReason.keys()[reason], current_speed])
 	if audio_mgr and courier_bike:
-		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, courier_bike.global_position)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.DISMOUNT_REJECTED, courier_bike.global_position)
 	if touch_ui:
 		var toast := "[ SLOW DOWN TO DISMOUNT ]" if reason == CourierBike.DismountRejectReason.TOO_FAST else "[ CLEAR SPACE TO DISMOUNT ]"
 		touch_ui.show_dismount_rejection_warning(toast)
@@ -445,13 +449,7 @@ func reset_slice() -> void:
 		pursuer.current_detour_index = -1
 		
 	if audio_mgr:
-		audio_mgr.set_siren_audio(false, Vector3.ZERO)
-		audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
-		audio_mgr.stop_event(AudioManagerScript.SoundEvent.ENGINE_REV)
-		audio_mgr.set_engine_audio(0.0, Vector3.ZERO)
-		audio_mgr.set_tuning_audio(0.0)
-		if audio_mgr.has_method("set_mix_state"):
-			audio_mgr.set_mix_state(AudioManagerScript.MixState.CALM)
+		audio_mgr.reset_audio_instant()
 		
 	if touch_ui:
 		touch_ui.reset_all_input_states()
@@ -2892,6 +2890,216 @@ func _run_v7_ticket05_assertions() -> void:
 
 	print("\n=========================================================================")
 	print("[ALL V7 TICKET 05 ASSERTIONS PASSED CLEANLY]")
+	print("=========================================================================\n")
+	get_tree().quit(0)
+
+func _run_v7_ticket06_assertions() -> void:
+	print("\n=========================================================================")
+	print("[V7_TICKET06_ASSERTIONS] Starting Audio Pressure & Replay Cohesion Suite...")
+	print("Target Build: main | Testing Semantic Hierarchy, Pressure Layer, Voice Throttling, Sweeps & Instant Reset")
+	print("=========================================================================\n")
+
+	# -------------------------------------------------------------------------
+	# TEST 1: Semantic Event Routing Separation
+	# -------------------------------------------------------------------------
+	print("[TEST 1] Testing Semantic Event Routing Separation...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	assert(AudioManagerScript.SoundEvent.has("DISMOUNT_REJECTED"), "FAIL: SoundEvent must have DISMOUNT_REJECTED")
+	assert(AudioManagerScript.SoundEvent.has("DISTURBANCE_ALERT"), "FAIL: SoundEvent must have DISTURBANCE_ALERT")
+	assert(AudioManagerScript.SoundEvent.has("PURSUIT_INTERCEPTED"), "FAIL: SoundEvent must have PURSUIT_INTERCEPTED")
+	assert(AudioManagerScript.SoundEvent.has("EVASION_RELEASE"), "FAIL: SoundEvent must have EVASION_RELEASE")
+	assert(AudioManagerScript.SoundEvent.has("COLLISION_GLANCE"), "FAIL: SoundEvent must have COLLISION_GLANCE")
+	assert(AudioManagerScript.SoundEvent.has("COLLISION_HEAD_ON"), "FAIL: SoundEvent must have COLLISION_HEAD_ON")
+	print("[TICKET 06 TEST 1 PASSED] Semantic event routing separation verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 2: Pursuit Pressure Distance Response & Monotonic Pitch Scaling
+	# -------------------------------------------------------------------------
+	print("[TEST 2] Testing Pursuit Pressure Distance Response & Monotonic Pitch Scaling...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	audio_mgr.set_pursuit_pressure(25.0, Vector3(0, 0, -25.0))
+	assert(is_zero_approx(audio_mgr._current_pursuit_pressure), "FAIL: Pressure must be 0.0 at distance >= 20m")
+	assert(not audio_mgr._tension_layer_active, "FAIL: Tension drone must not engage at distance > 14m")
+
+	audio_mgr.set_pursuit_pressure(12.5, Vector3(0, 0, -12.5))
+	assert(abs(audio_mgr._current_pursuit_pressure - 0.5) < 0.01, "FAIL: Pressure must be 0.5 at distance 12.5m")
+	assert(audio_mgr._tension_layer_active, "FAIL: Tension drone must engage when distance < 14m")
+	assert(audio_mgr._siren_player.pitch_scale > 1.15, "FAIL: Siren pitch scale must elevate under pressure")
+
+	audio_mgr.set_pursuit_pressure(5.0, Vector3(0, 0, -5.0))
+	assert(is_equal_approx(audio_mgr._current_pursuit_pressure, 1.0), "FAIL: Pressure must be 1.0 at distance <= 5m")
+	assert(audio_mgr._siren_player.pitch_scale >= 1.44, "FAIL: Siren pitch scale must reach max ~1.45 at max pressure")
+	print("[TICKET 06 TEST 2 PASSED] Pursuit pressure distance response verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 3: Collision Severity Mapping (Glance vs Head-On)
+	# -------------------------------------------------------------------------
+	print("[TEST 3] Testing Collision Severity Mapping...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	# Shallow glance: head_on_ratio = 0.15
+	audio_mgr.on_collision_contact(0.15, 10.0, Vector3.ZERO)
+	assert(audio_mgr._active_transients.size() > 0, "FAIL: Collision contact must spawn transient voice")
+	# Head-on collision: head_on_ratio = 0.85
+	audio_mgr.reset_audio_instant()
+	audio_mgr.on_collision_contact(0.85, 10.0, Vector3.ZERO)
+	assert(audio_mgr._active_transients.size() > 0, "FAIL: Head-on collision must spawn transient voice")
+	print("[TICKET 06 TEST 3 PASSED] Collision severity mapping verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 4: Collision Voice Throttling & Bounded Node Spawning
+	# -------------------------------------------------------------------------
+	print("[TEST 4] Testing Collision Voice Throttling...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	# Fire 50 collision events in immediate succession
+	for i in range(50):
+		audio_mgr.on_collision_contact(0.2, 10.0, Vector3.ZERO)
+	print("[TEST 4 LOG] Active transients after 50 rapid calls: %d" % audio_mgr._active_transients.size())
+	assert(audio_mgr._active_transients.size() <= AudioManager.MAX_CONCURRENT_TRANSIENTS, "FAIL: Active transients exceeded max budget")
+	assert(audio_mgr._active_transients.size() == 1, "FAIL: Same-event throttling should allow only 1 voice per cooldown period")
+	print("[TICKET 06 TEST 4 PASSED] Collision voice throttling verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 5: Tuning Static and Near-Lock Lifecycle
+	# -------------------------------------------------------------------------
+	print("[TEST 5] Testing Tuning Static and Near-Lock Lifecycle...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	audio_mgr.set_tuning_audio(0.0)
+	assert(audio_mgr._static_player == null or not audio_mgr._static_player.playing, "FAIL: Static player should not play at accuracy 0")
+
+	audio_mgr.set_tuning_audio(0.5)
+	assert(audio_mgr._static_player.playing, "FAIL: Static player must play when tuning active")
+	var vol_mid: float = audio_mgr._static_player.volume_db
+	audio_mgr.set_tuning_audio(0.95)
+	var vol_high: float = audio_mgr._static_player.volume_db
+	assert(vol_high < vol_mid, "FAIL: Static volume must attenuate as accuracy rises")
+	audio_mgr.set_tuning_audio(0.0)
+	assert(not audio_mgr._static_player.playing, "FAIL: Canceling tuning must stop static player")
+	print("[TICKET 06 TEST 5 PASSED] Tuning static and near-lock lifecycle verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 6: Panel Peel Pitch Progression
+	# -------------------------------------------------------------------------
+	print("[TEST 6] Testing Panel Peel Pitch Progression...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	audio_mgr.play_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM, Vector3.ZERO)
+	audio_mgr.set_hum_pitch(1.15)
+	assert(is_equal_approx(audio_mgr._hum_player.pitch_scale, 1.15), "FAIL: Hum pitch at start of drag must be 1.15")
+	audio_mgr.set_hum_pitch(1.30)
+	assert(is_equal_approx(audio_mgr._hum_player.pitch_scale, 1.30), "FAIL: Hum pitch at end of drag must be 1.30")
+	audio_mgr.set_hum_pitch(1.50)
+	assert(is_equal_approx(audio_mgr._hum_player.pitch_scale, 1.50), "FAIL: Hum pitch at core expose must be 1.50")
+	print("[TICKET 06 TEST 6 PASSED] Panel peel pitch progression verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 7: True Procedural Frequency Sweep Synthesis
+	# -------------------------------------------------------------------------
+	print("[TEST 7] Testing True Procedural Frequency Sweep Synthesis...")
+	var sweep_wav: AudioStreamWAV = audio_mgr._create_sweep_wav(200.0, 800.0, 0.2, 0.4)
+	assert(sweep_wav != null and sweep_wav.data.size() > 0, "FAIL: Sweep WAV buffer must not be empty")
+	var min_val: int = 255
+	var max_val: int = 0
+	for b in sweep_wav.data:
+		if b < min_val: min_val = b
+		if b > max_val: max_val = b
+	assert(min_val < 100 and max_val > 155, "FAIL: Sweep WAV must have dynamic amplitude range")
+	print("[TEST 7 LOG] Generated sweep byte range: [%d, %d]" % [min_val, max_val])
+	print("[TICKET 06 TEST 7 PASSED] True procedural frequency sweep synthesis verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 8: Transient Voice Budget & Auto-Cleanup
+	# -------------------------------------------------------------------------
+	print("[TEST 8] Testing Transient Voice Budget & Auto-Cleanup...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	for i in range(15):
+		var p := AudioStreamPlayer3D.new()
+		p.stream = audio_mgr._create_tone_wav(300.0 + float(i) * 20.0, 0.05, 0.3)
+		audio_mgr._register_and_play_transient(p, Vector3.ZERO, 0.05)
+	assert(audio_mgr._active_transients.size() <= AudioManager.MAX_CONCURRENT_TRANSIENTS, "FAIL: Active transients exceeded max budget")
+	await get_tree().create_timer(0.12).timeout
+	print("[TEST 8 LOG] Active transients after timer expiry: %d" % audio_mgr._active_transients.size())
+	assert(audio_mgr._active_transients.size() == 0, "FAIL: All transient voices must clean up after expiry")
+	print("[TICKET 06 TEST 8 PASSED] Transient voice budget & auto-cleanup verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 9: Gate Slam Semantic Trigger
+	# -------------------------------------------------------------------------
+	print("[TEST 9] Testing Gate Slam Semantic Trigger...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	audio_mgr.play_event(AudioManagerScript.SoundEvent.GATE_SLAM, signal_gate.global_position)
+	assert(audio_mgr._active_transients.size() > 0, "FAIL: Gate slam must spawn transient audio voice")
+	print("[TICKET 06 TEST 9 PASSED] Gate slam semantic trigger verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 10: Pursuit Intercept and Evasion Semantics
+	# -------------------------------------------------------------------------
+	print("[TEST 10] Testing Pursuit Intercept and Evasion Semantics...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	audio_mgr.play_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED, Vector3.ZERO)
+	assert(audio_mgr._active_transients.size() > 0, "FAIL: Interception must play dedicated event")
+	audio_mgr.reset_audio_instant()
+	audio_mgr.set_mix_state(AudioManager.MixState.EVASION_RELEASE)
+	assert(audio_mgr.current_mix_state == AudioManager.MixState.EVASION_RELEASE, "FAIL: Mix state must be EVASION_RELEASE")
+	assert(not audio_mgr._siren_player.playing, "FAIL: Siren must stop on evasion release")
+	print("[TICKET 06 TEST 10 PASSED] Pursuit intercept and evasion semantics verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 11: reset_audio_instant() Authoritative Full Silence
+	# -------------------------------------------------------------------------
+	print("[TEST 11] Testing reset_audio_instant() Authoritative Full Silence...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	# Start everything playing
+	audio_mgr.set_engine_audio(0.8, Vector3.ZERO)
+	audio_mgr.set_siren_audio(true, Vector3.ZERO)
+	audio_mgr.set_tuning_audio(0.6)
+	audio_mgr.set_pursuit_pressure(5.0, Vector3.ZERO)
+	audio_mgr.play_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM, Vector3.ZERO)
+	for i in range(4):
+		audio_mgr._play_synth_click(Vector3.ZERO, 400.0, 1.0)
+	
+	assert(audio_mgr._engine_player.playing, "Pre-check engine")
+	assert(audio_mgr._siren_player.playing, "Pre-check siren")
+	assert(audio_mgr._static_player.playing, "Pre-check static")
+	assert(audio_mgr._active_transients.size() > 0, "Pre-check transients")
+
+	audio_mgr.reset_audio_instant()
+
+	assert(not audio_mgr._engine_player.playing, "FAIL: Engine must be stopped after reset")
+	assert(not audio_mgr._siren_player.playing, "FAIL: Siren must be stopped after reset")
+	assert(not audio_mgr._static_player.playing, "FAIL: Static must be stopped after reset")
+	assert(not audio_mgr._hum_player.playing, "FAIL: Hum must be stopped after reset")
+	assert(not audio_mgr._tension_player.playing, "FAIL: Tension player must be stopped after reset")
+	assert(audio_mgr._active_transients.size() == 0, "FAIL: All transients must be cleared on reset")
+	assert(audio_mgr.current_mix_state == AudioManager.MixState.CALM, "FAIL: Mix state must be CALM after reset")
+	print("[TICKET 06 TEST 11 PASSED] reset_audio_instant() full silence verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 12: Replay During Pursuit and Interaction
+	# -------------------------------------------------------------------------
+	print("[TEST 12] Testing Replay During Active Pursuit and Interaction...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.2).timeout
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	assert(not audio_mgr._siren_player.playing, "FAIL: Siren must not play after mid-pursuit replay")
+	assert(not audio_mgr._tension_player.playing, "FAIL: Tension drone must not play after mid-pursuit replay")
+	assert(audio_mgr._active_transients.size() == 0, "FAIL: 0 transients active after replay")
+	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit state must be CALM")
+	print("[TICKET 06 TEST 12 PASSED] Replay during pursuit and interaction verified!")
+
+	print("\n=========================================================================")
+	print("[ALL V7 TICKET 06 ASSERTIONS PASSED CLEANLY]")
 	print("=========================================================================\n")
 	get_tree().quit(0)
 

@@ -19,6 +19,7 @@ signal mounted(player: PlayerRunner)
 signal dismounted
 signal brake_screech_triggered(pos: Vector3)
 signal dismount_rejected(reason: DismountRejectReason, current_speed: float, speed_limit: float)
+signal collision_contact(head_on_ratio: float, impact_speed: float, collision_pos: Vector3)
 
 enum BikeState {
 	PARKED,
@@ -94,6 +95,7 @@ func _physics_process(delta: float) -> void:
 						var head_on_ratio: float = abs(forward_dir.dot(normal))
 						var impact_decay: float = lerpf(2.0, 32.0, head_on_ratio * head_on_ratio)
 						current_speed = move_toward(current_speed, 0.0, impact_decay * delta)
+						collision_contact.emit(head_on_ratio, abs(current_speed), col.get_position())
 						
 		if occupant:
 			occupant.global_position = rider_socket.global_position
