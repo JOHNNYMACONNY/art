@@ -47,6 +47,7 @@ var _joystick_center_pos: Vector2 = Vector2.ZERO
 var _current_joystick_vec: Vector2 = Vector2.ZERO
 var _is_peeling: bool = false
 var _is_tuning: bool = false
+var _current_gesture_type: String = ""
 
 func _ready() -> void:
 	if action_button:
@@ -102,6 +103,7 @@ func set_action_button_highlight(highlighted: bool) -> void:
 		action_button.modulate = Color(1.2, 1.2, 0.4, 1.0) if highlighted else Color(1.0, 1.0, 1.0, 0.7)
 
 func show_gesture_overlay(type: String) -> void:
+	_current_gesture_type = type
 	if gesture_panel:
 		gesture_panel.visible = true
 	if core_tap_button: core_tap_button.visible = (type == "EXPOSE_CORE")
@@ -117,25 +119,24 @@ func close_interaction_overlay() -> void:
 	_is_peeling = false
 	_is_tuning = false
 	_interaction_touch_index = -1
+	_current_gesture_type = ""
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch_ev := event as InputEventScreenTouch
 		if gesture_panel and gesture_panel.visible:
-			# Tactile interaction overlay owns touch input
 			if touch_ev.pressed:
 				if _interaction_touch_index == -1:
 					_interaction_touch_index = touch_ev.index
-					if gesture_hint_label.text.contains("PEEL"):
+					if _current_gesture_type == "PEEL_PANEL":
 						_is_peeling = true
-					elif gesture_hint_label.text.contains("TUNE"):
+					elif _current_gesture_type == "TUNE_SIGNAL":
 						_is_tuning = true
 			elif not touch_ev.pressed and touch_ev.index == _interaction_touch_index:
 				_is_peeling = false
 				_is_tuning = false
 				_interaction_touch_index = -1
 		else:
-			# Traversal / Driving Joystick Touch Handling
 			if touch_ev.position.x < get_viewport_rect().size.x * 0.5:
 				if touch_ev.pressed and not _joystick_active:
 					_start_joystick(touch_ev.index, touch_ev.position)

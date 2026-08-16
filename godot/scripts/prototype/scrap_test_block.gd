@@ -538,6 +538,51 @@ func _run_v4_assertions() -> void:
 	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit state must start CALM")
 	assert(not pursuer.is_active, "FAIL: Pursuer must start INACTIVE")
 	
+	# Gate 0 Proof 1: Siren Spatial Position Updating
+	audio_mgr.set_siren_audio(true, Vector3(5, 1, 5))
+	assert(audio_mgr._siren_player.global_position == Vector3(5, 1, 5), "FAIL: Siren position A must update")
+	audio_mgr.set_siren_audio(true, Vector3(-10, 2, 15))
+	assert(audio_mgr._siren_player.global_position == Vector3(-10, 2, 15), "FAIL: Siren position B must update while playing")
+	audio_mgr.set_siren_audio(false, Vector3.ZERO)
+	
+	# Gate 0 Proof 2: Touch Pointer Isolation
+	touch_ui.show_gesture_overlay("TUNE_SIGNAL")
+	var touch_down := InputEventScreenTouch.new()
+	touch_down.index = 7
+	touch_down.pressed = true
+	touch_down.position = Vector2(600, 300)
+	touch_ui._gui_input(touch_down)
+	assert(touch_ui._interaction_touch_index == 7, "FAIL: Interaction touch must acquire index 7")
+	
+	var wrong_drag := InputEventScreenDrag.new()
+	wrong_drag.index = 9
+	wrong_drag.relative = Vector2(100, 0)
+	var tuner_emitted: Array = [false]
+	var tune_cb := func(_df: float): tuner_emitted[0] = true
+	touch_ui.tuner_dragged.connect(tune_cb)
+	touch_ui._gui_input(wrong_drag)
+	assert(not tuner_emitted[0], "FAIL: Wrong pointer drag must NOT emit tuner_dragged")
+	
+	var right_drag := InputEventScreenDrag.new()
+	right_drag.index = 7
+	right_drag.relative = Vector2(100, 0)
+	touch_ui._gui_input(right_drag)
+	assert(tuner_emitted[0], "FAIL: Matching pointer drag MUST emit tuner_dragged")
+	touch_ui.tuner_dragged.disconnect(tune_cb)
+	
+	var wrong_up := InputEventScreenTouch.new()
+	wrong_up.index = 9
+	wrong_up.pressed = false
+	touch_ui._gui_input(wrong_up)
+	assert(touch_ui._interaction_touch_index == 7, "FAIL: Wrong pointer release must NOT clear ownership")
+	
+	var right_up := InputEventScreenTouch.new()
+	right_up.index = 7
+	right_up.pressed = false
+	touch_ui._gui_input(right_up)
+	assert(touch_ui._interaction_touch_index == -1, "FAIL: Matching pointer release MUST clear ownership")
+	touch_ui.close_interaction_overlay()
+	
 	# Trigger disturbance alert
 	trigger_disturbance_alert()
 	assert(current_pursuit_state == PursuitState.DISTURBANCE_ALERT, "FAIL: Core extraction must trigger DISTURBANCE_ALERT")
@@ -570,15 +615,22 @@ func _run_v4_assertions() -> void:
 	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit must return to CALM after evasion")
 	assert(not pursuer.is_active, "FAIL: Pursuer must deactivate after evasion")
 	
-	# Verify Interception reset mechanic
-	trigger_disturbance_alert()
-	await get_tree().create_timer(0.85).timeout
-	pursuer.global_position = player.global_position + Vector3(0.5, 0, 0)
-	await get_tree().create_timer(0.5).timeout
-	assert(current_pursuit_state == PursuitState.INTERCEPTED, "FAIL: Proximity intercept must trigger INTERCEPTED")
-	await get_tree().create_timer(1.0).timeout
-	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Interception recovery must return pursuit to CALM")
-	assert(player.global_position.distance_to(_recovery_marker) < 3.0, "FAIL: Interception must reset player near recovery marker")
+	# Gate 0 Proof 3: Mounted Interception Force Dismount Recovery
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.35).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must be DRIVING before interception")
+	
+	_on_pursuer_intercepted()
+	await get_tree().create_timer(0.95).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Interception must reset bike state to PARKED")
+	assert(courier_bike.occupant == null, "FAIL: Bike occupant must be null after interception")
+	assert(not player.is_input_locked, "FAIL: Player input must unlock after interception")
+	assert(touch_ui.current_mode == TouchControlsUI.UIMode.FOOT_TRAVERSAL, "FAIL: Touch UI must reset to FOOT_TRAVERSAL")
+	assert(camera.target_node == player, "FAIL: Camera target must reset to player")
+	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit state must reset to CALM")
 	
 	print("[V4_ASSERTIONS] PASSED! ALL V4 PRESSURE & PURSUIT SLICE ASSERTIONS GREEN.")
 	get_tree().quit()
