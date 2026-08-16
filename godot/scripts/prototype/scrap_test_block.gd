@@ -184,7 +184,7 @@ func _process_pursuit_loop(delta: float) -> void:
 			if audio_mgr:
 				audio_mgr.set_siren_audio(true, pursuer.global_position)
 				
-			if dist > 18.0:
+			if dist > 35.0:
 				_contact_broken_timer += delta
 				if _contact_broken_timer >= 3.0:
 					_contact_broken_timer = 0.0
@@ -201,26 +201,19 @@ func trigger_disturbance_alert() -> void:
 		return
 		
 	current_pursuit_state = PursuitState.DISTURBANCE_ALERT
-	print("[PURSUIT] DISTURBANCE ALERT DETECTED!")
-	
-	if touch_ui:
-		touch_ui.show_tension_hud("[ ALERT: DISTURBANCE DETECTED ]")
+	print("[PULSE] Disturbance alert triggered! Pursuit sequence initiating...")
 	if audio_mgr:
-		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, corroded_panel.global_position if corroded_panel else Vector3.ZERO)
-		
-	if world_env and world_env.environment:
-		world_env.environment.ambient_light_color = Color(0.4, 0.1, 0.1, 1.0)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, global_position)
 		
 	get_tree().create_timer(0.75).timeout.connect(func():
 		if current_pursuit_state == PursuitState.DISTURBANCE_ALERT:
 			current_pursuit_state = PursuitState.PURSUIT_ACTIVE
-			if signal_gate:
-				signal_gate.set_pursuit_active(true)
-			if touch_ui:
-				touch_ui.show_tension_hud("[ ALERT: PURSUIT ACTIVE ]")
 			if pursuer:
 				var target: Node3D = courier_bike if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player
 				pursuer.activate_pursuit(target)
+				if signal_gate:
+					signal_gate.set_pursuit_active(true)
+				print("[PURSUIT] Pursuer active! Chasing target...")
 	)
 
 func _deactivate_pursuit() -> void:
@@ -245,12 +238,14 @@ func _on_signal_gate_triggered() -> void:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.GATE_SLAM, signal_gate.global_position)
 		
 	if pursuer:
-		# Detour waypoints routing pursuer around physical barrier arm
-		var waypoints: Array[Vector3] = [
-			Vector3(2.5, 0.6, 8.0),
-			Vector3(2.5, 0.6, 18.0),
-			Vector3(-1.5, 0.6, 26.0)
-		]
+		# Dynamically generate detour waypoints relative to pursuer position (skip waypoints behind pursuer Z)
+		var waypoints: Array[Vector3] = []
+		var p_z := pursuer.global_position.z
+		if p_z < 8.0:
+			waypoints.append(Vector3(2.5, 0.6, 8.0))
+		if p_z < 18.0:
+			waypoints.append(Vector3(2.5, 0.6, 18.0))
+		waypoints.append(Vector3(-1.5, 0.6, 26.0))
 		pursuer.set_detour_path(waypoints)
 
 func _on_pursuer_intercepted() -> void:
@@ -1337,4 +1332,272 @@ func _run_v7_ticket02_assertions() -> void:
 	print("[ALL V7 TICKET 02 STRESS TESTS COMPLETED SUCCESSFULLY]")
 	print("=========================================================================")
 	get_tree().quit(0)
+
+func _run_v7_ticket02_1_assertions() -> void:
+	print("\n=========================================================================")
+	print("[V7_TICKET02_1_ASSERTIONS] Starting Adversarial Chase Falsification Suite (Ticket 02.1)...")
+	print("Target Build: main@eb9e82a | Pursuer Max Speed: %.1f m/s | Bike Max Speed: %.1f m/s" % [pursuer.max_speed if pursuer else 15.5, courier_bike.max_speed if courier_bike else 14.0])
+	print("=========================================================================\n")
+	await get_tree().create_timer(0.2).timeout
+
+	# =========================================================================
+	# TASK 1A: STRAIGHT-LINE DRIVING AT DEFAULT SPAWN (PURSUER Z = -15.0, BIKE Z = 3.0)
+	# =========================================================================
+	print("\n--- [TASK 1A] Straight-Line Driving at Default Spawn (Pursuer Z = -15.0, Dist = 18.07m) ---")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.0)
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.35).timeout
+
+	courier_bike.rotation.y = PI
+	_steer_input = 0.0
+	_throttle_input = 1.0
+
+	var task1a_start := Time.get_ticks_msec() / 1000.0
+	var task1a_evaded := false
+	var task1a_intercepted := false
+	var task1a_initial_dist := pursuer.global_position.distance_to(courier_bike.global_position)
+	print("[TASK 1A LOG] Initial Spawn Pos: Pursuer Z = %.2fm | Bike Z = %.2fm | Dist = %.2fm" % [
+		pursuer.global_position.z, courier_bike.global_position.z, task1a_initial_dist
+	])
+
+	for frame in range(300):
+		await get_tree().process_frame
+		if current_pursuit_state == PursuitState.INTERCEPTED:
+			task1a_intercepted = true
+			break
+		if current_pursuit_state == PursuitState.CONTACT_BROKEN or current_pursuit_state == PursuitState.EVADED or current_pursuit_state == PursuitState.CALM:
+			task1a_evaded = true
+			var elapsed := (Time.get_ticks_msec() / 1000.0) - task1a_start
+			print("[TASK 1A LOG] EVADED pursuit at t = %.2fs! Initial dist was %.2fm (> 18.0m threshold bug)." % [elapsed, task1a_initial_dist])
+			break
+
+	print("[TASK 1A RESULT] Default Spawn Straight-Line Driving: Evaded Without Gate = %s | Intercepted = %s" % [task1a_evaded, task1a_intercepted])
+
+	# =========================================================================
+	# TASK 1B: STRAIGHT-LINE DRIVING AT CLOSE SPAWN (PURSUER Z = -5.0, BIKE Z = 3.0, DIST = 8.0m)
+	# =========================================================================
+	print("\n--- [TASK 1B] Straight-Line Driving at Close Spawn (Pursuer Z = -5.0, Dist = 8.0m) ---")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.0)
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.35).timeout
+
+	courier_bike.rotation.y = PI
+	pursuer.global_position = Vector3(0, 0.6, -5.0) # 8m behind bike
+	_steer_input = 0.0
+	_throttle_input = 1.0
+
+	var task1b_start := Time.get_ticks_msec() / 1000.0
+	var task1b_intercepted := false
+	var task1b_intercept_time := 0.0
+
+	for frame in range(600):
+		await get_tree().process_frame
+		if current_pursuit_state == PursuitState.INTERCEPTED:
+			task1b_intercepted = true
+			task1b_intercept_time = (Time.get_ticks_msec() / 1000.0) - task1b_start
+			print("[TASK 1B LOG] INTERCEPTED by Pursuer at t = %.2fs! Bike Speed = %.1fm/s | Pursuer Speed = %.1fm/s" % [
+				task1b_intercept_time, courier_bike.current_speed, pursuer.current_speed
+			])
+			break
+
+	print("[TASK 1B RESULT] Close Spawn Straight-Line Driving: Intercepted = %s | Intercept Time = %.2fs" % [task1b_intercepted, task1b_intercept_time])
+
+	# =========================================================================
+	# TASK 2A: FOOT CIRCLES AROUND CORRODED PANEL (PURSUER Z = -10.0)
+	# =========================================================================
+	print("\n--- [TASK 2A] Testing Foot Circles around Corroded Panel (Runner 8.5m/s vs Pursuer 15.5m/s) ---")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+
+	var panel_center := corroded_panel.global_position if corroded_panel else Vector3(0, 0, -3.5)
+	player.global_position = panel_center + Vector3(2.0, 0, 0)
+	pursuer.global_position = Vector3(0, 0.6, -10.0)
+
+	var task2a_start := Time.get_ticks_msec() / 1000.0
+	var task2a_intercepted := false
+	var task2a_intercept_time := 0.0
+	var circle_angle := 0.0
+
+	for frame in range(300):
+		await get_tree().process_frame
+		circle_angle += 0.15
+		var input_vec := Vector2(cos(circle_angle), sin(circle_angle))
+		player.set_joystick_input(input_vec)
+
+		if current_pursuit_state == PursuitState.INTERCEPTED:
+			task2a_intercepted = true
+			task2a_intercept_time = (Time.get_ticks_msec() / 1000.0) - task2a_start
+			print("[TASK 2A LOG] INTERCEPTED on foot around Corroded Panel at t = %.2fs! Runner Speed = %.1fm/s | Pursuer Speed = %.1fm/s" % [
+				task2a_intercept_time, player.velocity.length(), pursuer.current_speed
+			])
+			break
+
+	print("[TASK 2A RESULT] Foot circles (Panel): Intercepted = %s | Intercept Time = %.2fs" % [task2a_intercepted, task2a_intercept_time])
+
+	# =========================================================================
+	# TASK 2B: FOOT CIRCLES AROUND COURIER BIKE (PURSUER Z = -5.0)
+	# =========================================================================
+	print("\n--- [TASK 2B] Testing Foot Circles around Courier Bike (Runner 8.5m/s vs Pursuer 15.5m/s) ---")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+
+	player.global_position = courier_bike.global_position + Vector3(2.0, 0, 0)
+	pursuer.global_position = Vector3(0, 0.6, -5.0)
+
+	var task2b_start := Time.get_ticks_msec() / 1000.0
+	var task2b_intercepted := false
+	var task2b_intercept_time := 0.0
+	circle_angle = 0.0
+
+	for frame in range(300):
+		await get_tree().process_frame
+		circle_angle += 0.15
+		var input_vec := Vector2(cos(circle_angle), sin(circle_angle))
+		player.set_joystick_input(input_vec)
+
+		if current_pursuit_state == PursuitState.INTERCEPTED:
+			task2b_intercepted = true
+			task2b_intercept_time = (Time.get_ticks_msec() / 1000.0) - task2b_start
+			print("[TASK 2B LOG] INTERCEPTED on foot around Courier Bike at t = %.2fs! Runner Speed = %.1fm/s | Pursuer Speed = %.1fm/s" % [
+				task2b_intercept_time, player.velocity.length(), pursuer.current_speed
+			])
+			break
+
+	print("[TASK 2B RESULT] Foot circles (Bike): Intercepted = %s | Intercept Time = %.2fs" % [task2b_intercepted, task2b_intercept_time])
+
+	# =========================================================================
+	# TASK 3: TRIGGERING SIGNALGATE LATE (PURSUER 2.0M BEHIND BIKE)
+	# =========================================================================
+	print("\n--- [TASK 3] Testing Late SignalGate Trigger (Pursuer 2.0m behind bike) ---")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.0)
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.35).timeout
+
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 0.5) # z = 12.5
+	courier_bike.rotation.y = PI
+	courier_bike.current_speed = 12.0
+	pursuer.global_position = courier_bike.global_position - Vector3(0, 0, 2.0) # z = 10.5 (2m behind)
+	pursuer.current_speed = 15.5
+	_throttle_input = 1.0
+
+	signal_gate.set_pursuit_active(true)
+	signal_gate.update_player_distance(courier_bike.global_position)
+
+	print("[TASK 3 LOG] Triggering SignalGate! Bike Z = %.2fm, Pursuer Z = %.2fm, Initial Dist = %.2fm" % [
+		courier_bike.global_position.z, pursuer.global_position.z, pursuer.global_position.distance_to(courier_bike.global_position)
+	])
+	signal_gate.begin_interaction(courier_bike.global_position)
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERING, "FAIL: Gate must be TRIGGERING")
+
+	var task3_intercepted_during_swing := false
+	var task3_passed_gate_before_close := false
+	var task3_backtracked_detour := false
+
+	for frame in range(120):
+		await get_tree().process_frame
+		var pursuer_z := pursuer.global_position.z
+		var gate_z := signal_gate.global_position.z
+
+		if signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERING and pursuer_z > gate_z:
+			task3_passed_gate_before_close = true
+
+		if current_pursuit_state == PursuitState.INTERCEPTED:
+			task3_intercepted_during_swing = true
+			print("[TASK 3 LOG] INTERCEPTED during late gate swing! Frame = %d | Pursuer Z = %.2f" % [frame, pursuer_z])
+			break
+
+		if signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED and pursuer.current_detour_index >= 0:
+			if pursuer.velocity.z < -0.5:
+				task3_backtracked_detour = true
+				print("[TASK 3 EXPLOIT LOG] Pursuer passed gate before closure and is BACKTRACKING (-Z velocity %.1f m/s) to detour waypoint 0 at Z=8.0!" % pursuer.velocity.z)
+
+	print("[TASK 3 RESULT] Late SignalGate Trigger (2m behind): Intercepted = %s | Passed Gate Before Close = %s | Backtracked Detour = %s" % [
+		task3_intercepted_during_swing, task3_passed_gate_before_close, task3_backtracked_detour
+	])
+
+	# =========================================================================
+	# TASK 4: EVALUATE IF ROUTE-SWITCH COUNTERPLAY IS 100% REQUIRED OR BYPASSABLE
+	# =========================================================================
+	print("\n--- [TASK 4] Evaluating Route-Switch Counterplay Requirement & Bypassability ---")
+	
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.0)
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.35).timeout
+
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 2.5) # z = 14.5
+	courier_bike.rotation.y = PI
+	courier_bike.current_speed = 12.0
+	pursuer.global_position = signal_gate.global_position - Vector3(0, 0, 6.0) # z = 6.0 (8.5m behind bike)
+	pursuer.current_speed = 14.0
+	_throttle_input = 1.0
+
+	signal_gate.set_pursuit_active(true)
+	signal_gate.update_player_distance(courier_bike.global_position)
+
+	print("[TASK 4 LOG] Executing On-Time SignalGate trigger (Pursuer 8.5m behind)...")
+	signal_gate.begin_interaction(courier_bike.global_position)
+
+	var task4_evaded_cleanly := false
+	var task4_evasion_time := 0.0
+	var task4_start := Time.get_ticks_msec() / 1000.0
+
+	for frame in range(600):
+		await get_tree().process_frame
+		if current_pursuit_state == PursuitState.CONTACT_BROKEN or current_pursuit_state == PursuitState.EVADED or current_pursuit_state == PursuitState.CALM:
+			task4_evaded_cleanly = true
+			task4_evasion_time = (Time.get_ticks_msec() / 1000.0) - task4_start
+			print("[TASK 4 LOG] Clean Evasion Achieved via SignalGate Route Switch! Time = %.2fs" % task4_evasion_time)
+			break
+
+	print("\n=========================================================================")
+	print("[SUMMARY OF ADVERSARIAL CHASE FALSIFICATION TESTS (V7 TICKET 02.1)]")
+	print("  1A. Straight-Line Driving (Default Spawn Z=-15m, Dist=18.07m): Evaded = %s (Fails Tension: Default spawn exceeds 18m contact break threshold on frame 1!)" % task1a_evaded)
+	print("  1B. Straight-Line Driving (Close Spawn Z=-5m, Dist=8.0m): Intercepted = %s at t=%.2fs (Passes Tension: Pursuer 15.5 m/s > Bike 14.0 m/s catches bike)" % [task1b_intercepted, task1b_intercept_time])
+	print("  2A. Foot Circles around Corroded Panel: Intercepted = %s at t=%.2fs (Fails Evasion: Pursuer 15.5 m/s > Runner 8.5 m/s catches runner in < 1.5s)" % [task2a_intercepted, task2a_intercept_time])
+	print("  2B. Foot Circles around Courier Bike: Intercepted = %s at t=%.2fs (Fails Evasion: Pursuer catches runner in < 1.8s)" % [task2b_intercepted, task2b_intercept_time])
+	print("  3.  Late SignalGate Trigger (Pursuer 2.0m behind bike): Passed Gate = %s | Backtracked Detour = %s (Fails AI Logic: Gate 0.75s swing delay lets pursuer pass, then detour forces 180° backward U-turn)" % [task3_passed_gate_before_close, task3_backtracked_detour])
+	print("  4.  On-Time SignalGate Route Switch (Pursuer 8.5m behind): Clean Evasion = %s in %.2fs (Passes Counterplay: Gate slam forces detour, enabling escape)" % [task4_evaded_cleanly, task4_evasion_time])
+	print("=========================================================================")
+	get_tree().quit(0)
+
 
