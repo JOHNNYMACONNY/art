@@ -22,8 +22,7 @@ var _step_timer: float = 0.0
 
 func _physics_process(delta: float) -> void:
 	if is_input_locked:
-		velocity = velocity.move_toward(Vector3.ZERO, friction * delta)
-		move_and_slide()
+		velocity = Vector3.ZERO
 		return
 		
 	# Fallback keyboard input if joystick vector is zero

@@ -13,6 +13,7 @@ signal tuner_interaction_released
 signal core_tap_pressed
 signal driving_steer_updated(steer: float)
 signal driving_throttle_updated(throttle: float)
+signal driving_handbrake_updated(active: bool)
 signal dismount_pressed
 signal replay_pressed
 
@@ -33,6 +34,7 @@ var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 @onready var driving_panel: Control = $DrivingOverlayPanel
 @onready var gas_button: Button = $DrivingOverlayPanel/ThrottleButton
 @onready var brake_button: Button = $DrivingOverlayPanel/BrakeButton
+@onready var handbrake_button: Button = $DrivingOverlayPanel/HandbrakeButton
 @onready var dismount_button: Button = $DrivingOverlayPanel/DismountButton
 @onready var route_switch_button: Button = $DrivingOverlayPanel/RouteSwitchButton
 
@@ -50,6 +52,9 @@ var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 var _joystick_active: bool = false
 var _joystick_touch_index: int = -1
 var _interaction_touch_index: int = -1
+var _gas_touch_index: int = -1
+var _brake_touch_index: int = -1
+var _handbrake_touch_index: int = -1
 var _joystick_center_pos: Vector2 = Vector2.ZERO
 var _current_joystick_vec: Vector2 = Vector2.ZERO
 var _is_peeling: bool = false
@@ -58,6 +63,7 @@ var _current_gesture_type: String = ""
 var _tuning_accum_px: float = 0.0
 var _is_gas_pressed: bool = false
 var _is_brake_pressed: bool = false
+var _is_handbrake_pressed: bool = false
 
 func _emit_net_throttle() -> void:
 	var throttle := 0.0
@@ -69,8 +75,20 @@ func _emit_net_throttle() -> void:
 
 func reset_driving_inputs() -> void:
 	_is_gas_pressed = false
+	_gas_touch_index = -1
 	_is_brake_pressed = false
+	_brake_touch_index = -1
+	_is_handbrake_pressed = false
+	_handbrake_touch_index = -1
 	_emit_net_throttle()
+	driving_handbrake_updated.emit(false)
+
+func reset_all_input_states() -> void:
+	_stop_joystick()
+	reset_driving_inputs()
+	close_interaction_overlay()
+	hide_replay_overlay()
+	hide_tension_hud()
 
 func _ready() -> void:
 	if OS.has_feature("debug_ui") or OS.get_cmdline_user_args().has("--debug-ui"):
@@ -100,7 +118,14 @@ func _ready() -> void:
 		)
 		gas_button.button_up.connect(func():
 			_is_gas_pressed = false
+			_gas_touch_index = -1
 			_emit_net_throttle()
+		)
+		gas_button.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventScreenTouch and ev.pressed:
+				_gas_touch_index = ev.index
+				_is_gas_pressed = true
+				_emit_net_throttle()
 		)
 	if brake_button:
 		brake_button.button_down.connect(func():
@@ -109,7 +134,30 @@ func _ready() -> void:
 		)
 		brake_button.button_up.connect(func():
 			_is_brake_pressed = false
+			_brake_touch_index = -1
 			_emit_net_throttle()
+		)
+		brake_button.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventScreenTouch and ev.pressed:
+				_brake_touch_index = ev.index
+				_is_brake_pressed = true
+				_emit_net_throttle()
+		)
+	if handbrake_button:
+		handbrake_button.button_down.connect(func():
+			_is_handbrake_pressed = true
+			driving_handbrake_updated.emit(true)
+		)
+		handbrake_button.button_up.connect(func():
+			_is_handbrake_pressed = false
+			_handbrake_touch_index = -1
+			driving_handbrake_updated.emit(false)
+		)
+		handbrake_button.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventScreenTouch and ev.pressed:
+				_handbrake_touch_index = ev.index
+				_is_handbrake_pressed = true
+				driving_handbrake_updated.emit(true)
 		)
 
 func _apply_golden_slice_design_tokens() -> void:
@@ -121,6 +169,8 @@ func _apply_golden_slice_design_tokens() -> void:
 		action_button.add_theme_color_override("font_color", Color(0.1, 0.9, 1.0, 1.0))
 	if route_switch_button:
 		route_switch_button.add_theme_color_override("font_color", Color(0.1, 0.9, 1.0, 1.0))
+	if handbrake_button:
+		handbrake_button.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
 
 func set_mode(mode: UIMode) -> void:
 	current_mode = mode
@@ -207,6 +257,47 @@ func close_interaction_overlay() -> void:
 	_current_gesture_type = ""
 	_peel_accumulated_y = 0.0
 
+func _input(event: InputEvent) -> void:
+	# Global safety net: finger release anywhere on screen releases any owned pointer
+	if event is InputEventScreenTouch:
+		var touch_ev := event as InputEventScreenTouch
+		if not touch_ev.pressed:
+			_handle_touch_up_anywhere(touch_ev.index)
+	elif event is InputEventMouseButton:
+		var mouse_ev := event as InputEventMouseButton
+		if not mouse_ev.pressed:
+			# If mouse released, clear all active states
+			_handle_touch_up_anywhere(_joystick_touch_index)
+			_handle_touch_up_anywhere(_gas_touch_index)
+			_handle_touch_up_anywhere(_brake_touch_index)
+			_handle_touch_up_anywhere(_handbrake_touch_index)
+			_handle_touch_up_anywhere(_interaction_touch_index)
+
+func _handle_touch_up_anywhere(index: int) -> void:
+	if index == _joystick_touch_index and _joystick_active:
+		_stop_joystick()
+	if index == _interaction_touch_index:
+		if _is_peeling:
+			peel_gesture_released.emit()
+		elif _is_tuning:
+			tuner_interaction_released.emit()
+		_is_peeling = false
+		_is_tuning = false
+		_interaction_touch_index = -1
+		_tuning_accum_px = 0.0
+	if index == _gas_touch_index:
+		_is_gas_pressed = false
+		_gas_touch_index = -1
+		_emit_net_throttle()
+	if index == _brake_touch_index:
+		_is_brake_pressed = false
+		_brake_touch_index = -1
+		_emit_net_throttle()
+	if index == _handbrake_touch_index:
+		_is_handbrake_pressed = false
+		_handbrake_touch_index = -1
+		driving_handbrake_updated.emit(false)
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch_ev := event as InputEventScreenTouch
@@ -221,14 +312,7 @@ func _gui_input(event: InputEvent) -> void:
 						_is_tuning = true
 						_tuning_accum_px = 0.0
 			elif not touch_ev.pressed and touch_ev.index == _interaction_touch_index:
-				if _is_peeling:
-					peel_gesture_released.emit()
-				elif _is_tuning:
-					tuner_interaction_released.emit()
-				_is_peeling = false
-				_is_tuning = false
-				_interaction_touch_index = -1
-				_tuning_accum_px = 0.0
+				_handle_touch_up_anywhere(touch_ev.index)
 		else:
 			if touch_ev.position.x < get_viewport_rect().size.x * 0.5:
 				if touch_ev.pressed and not _joystick_active:
@@ -259,7 +343,13 @@ func _start_joystick(touch_idx: int, pos: Vector2) -> void:
 
 func _update_joystick(pos: Vector2) -> void:
 	var delta_pos := pos - _joystick_center_pos
-	if delta_pos.length() > max_joystick_radius:
+	var dist := delta_pos.length()
+	if dist > max_joystick_radius:
+		# Anchor-follow: slide center towards current touch position to remove reversal deadband!
+		var excess := dist - max_joystick_radius
+		_joystick_center_pos += delta_pos.normalized() * excess
+		if joystick_base:
+			joystick_base.global_position = _joystick_center_pos - (joystick_base.size * 0.5)
 		delta_pos = delta_pos.normalized() * max_joystick_radius
 	if joystick_handle:
 		joystick_handle.position = delta_pos

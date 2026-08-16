@@ -46,6 +46,7 @@ var _interactables: Array[InteractableBase] = []
 
 var _steer_input: float = 0.0
 var _throttle_input: float = 0.0
+var _handbrake_input: bool = false
 var _contact_broken_timer: float = 0.0
 var _recovery_marker: Vector3 = Vector3(-1.5, 0.05, 3.0)
 
@@ -114,6 +115,7 @@ func _ready() -> void:
 		touch_ui.core_tap_pressed.connect(_on_core_tap_pressed)
 		touch_ui.driving_steer_updated.connect(func(steer: float): _steer_input = steer)
 		touch_ui.driving_throttle_updated.connect(func(throttle: float): _throttle_input = throttle)
+		touch_ui.driving_handbrake_updated.connect(func(active: bool): _handbrake_input = active)
 		touch_ui.dismount_pressed.connect(_on_dismount_pressed)
 		touch_ui.replay_pressed.connect(reset_slice)
 		
@@ -143,6 +145,12 @@ func _ready() -> void:
 		_run_v7_ticket03_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v7-ticket03-stress-retest"):
 		_run_v7_ticket03_stress_retest()
+	elif OS.get_cmdline_user_args().has("--run-v7-ticket04-1-assertions"):
+		_run_v7_ticket04_1_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v7-ticket04-2-assertions"):
+		_run_v7_ticket04_2_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v7-ticket04-3-assertions"):
+		_run_v7_ticket04_3_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v3-visuals"):
@@ -162,7 +170,7 @@ func _process(delta: float) -> void:
 	_evaluate_target_selection()
 		
 	if courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING:
-		courier_bike.set_drive_inputs(_throttle_input, _steer_input, delta)
+		courier_bike.set_drive_inputs(_throttle_input, _steer_input, delta, _handbrake_input)
 		if touch_ui:
 			touch_ui.set_dismount_button_enabled(abs(courier_bike.current_speed) <= courier_bike.dismount_speed_limit)
 		if audio_mgr:
@@ -370,6 +378,7 @@ func reset_slice() -> void:
 	_contact_broken_timer = 0.0
 	_steer_input = 0.0
 	_throttle_input = 0.0
+	_handbrake_input = false
 	_active_target = null
 	
 	if player:
@@ -383,6 +392,9 @@ func reset_slice() -> void:
 		
 	if courier_bike:
 		courier_bike.current_state = CourierBike.BikeState.PARKED
+		courier_bike.current_gear = CourierBike.GearState.FORWARD
+		courier_bike.is_handbrake_active = false
+		courier_bike._gear_settle_timer = 0.0
 		courier_bike.global_position = Vector3(-1.5, 0.05, 3.0)
 		courier_bike.rotation.y = 0.0
 		courier_bike.occupant = null
@@ -434,21 +446,17 @@ func reset_slice() -> void:
 	if audio_mgr:
 		audio_mgr.set_siren_audio(false, Vector3.ZERO)
 		audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
+		audio_mgr.stop_event(AudioManagerScript.SoundEvent.ENGINE_REV)
+		audio_mgr.set_engine_audio(0.0, Vector3.ZERO)
 		audio_mgr.set_tuning_audio(0.0)
 		if audio_mgr.has_method("set_mix_state"):
 			audio_mgr.set_mix_state(AudioManagerScript.MixState.CALM)
 		
 	if touch_ui:
-		touch_ui.set_mode(TouchControlsUI.UIMode.FOOT_TRAVERSAL)
-		touch_ui.close_interaction_overlay()
-		touch_ui.hide_tension_hud()
-		touch_ui.hide_replay_overlay()
+		touch_ui.reset_all_input_states()
 		touch_ui.set_route_switch_button_visible(false)
-		touch_ui._joystick_active = false
-		touch_ui._joystick_touch_index = -1
-		touch_ui._interaction_touch_index = -1
-		touch_ui._is_peeling = false
-		touch_ui._is_tuning = false
+		
+	print("[WORLD_LOOP] Slice reset to initial cold start state cleanly.")
 		
 	print("[WORLD_LOOP] Slice reset to initial cold start state cleanly.")
 
@@ -666,6 +674,7 @@ func _run_v3_assertions() -> void:
 	assert(player.is_input_locked, "FAIL: Player input must be locked while mounted")
 	assert(touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING, "FAIL: Touch UI must enter VEHICLE_DRIVING")
 	
+	courier_bike.rotation.y = PI
 	var initial_rot := courier_bike.rotation.y
 	_steer_input = 0.5
 	_throttle_input = 1.0
@@ -1968,6 +1977,459 @@ func _run_v7_ticket03_stress_retest() -> void:
 	
 	print("\n=========================================================================")
 	print("[V7 TICKET 03 ADVERSARIAL STRESS RETEST SUITE COMPLETED]")
+	print("=========================================================================\n")
+	get_tree().quit(0)
+
+func _run_v7_ticket04_1_assertions() -> void:
+	print("\n=========================================================================")
+	print("[V7_TICKET04_1_ASSERTIONS] Starting GTA/CTW Controls & Transmission Suite (Ticket 04.1)...")
+	print("Target Build: main | Testing Touch Ownership, Anchor-Follow, & Transmission Contract")
+	print("=========================================================================\n")
+	await get_tree().create_timer(0.2).timeout
+
+	# -------------------------------------------------------------------------
+	# TEST 1: Drag-off GAS cannot latch throttle
+	# -------------------------------------------------------------------------
+	print("[TEST 1] Testing Drag-off GAS pointer release...")
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	touch_ui._is_gas_pressed = true
+	touch_ui._gas_touch_index = 2
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == 1.0, "FAIL: Initial gas input must be 1.0")
+
+	# Simulate finger release off-rect anywhere on screen (touch index 2 released)
+	touch_ui._handle_touch_up_anywhere(2)
+	assert(touch_ui._is_gas_pressed == false, "FAIL: Drag-off gas release must set _is_gas_pressed to false")
+	assert(touch_ui._gas_touch_index == -1, "FAIL: _gas_touch_index must reset to -1")
+	assert(_throttle_input == 0.0, "FAIL: Net throttle must return to 0.0 on drag-off release")
+	print("[TICKET 04.1 TEST 1 PASSED] Drag-off GAS release verified cleanly!")
+
+	# -------------------------------------------------------------------------
+	# TEST 2: Drag-off BRAKE cannot latch brake/reverse
+	# -------------------------------------------------------------------------
+	print("[TEST 2] Testing Drag-off BRAKE pointer release...")
+	touch_ui._is_brake_pressed = true
+	touch_ui._brake_touch_index = 3
+	touch_ui._emit_net_throttle()
+	assert(_throttle_input == -1.0, "FAIL: Initial brake input must be -1.0")
+
+	# Simulate finger release off-rect anywhere on screen (touch index 3 released)
+	touch_ui._handle_touch_up_anywhere(3)
+	assert(touch_ui._is_brake_pressed == false, "FAIL: Drag-off brake release must set _is_brake_pressed to false")
+	assert(touch_ui._brake_touch_index == -1, "FAIL: _brake_touch_index must reset to -1")
+	assert(_throttle_input == 0.0, "FAIL: Net throttle must return to 0.0 on drag-off release")
+	print("[TICKET 04.1 TEST 2 PASSED] Drag-off BRAKE release verified cleanly!")
+
+	# -------------------------------------------------------------------------
+	# TEST 3: Handbrake Release Safety
+	# -------------------------------------------------------------------------
+	print("[TEST 3] Testing Handbrake Touch Ownership & Release...")
+	touch_ui._is_handbrake_pressed = true
+	touch_ui._handbrake_touch_index = 4
+	touch_ui.driving_handbrake_updated.emit(true)
+	assert(_handbrake_input == true, "FAIL: _handbrake_input must be true when handbrake pressed")
+
+	touch_ui._handle_touch_up_anywhere(4)
+	assert(touch_ui._is_handbrake_pressed == false, "FAIL: Handbrake release must set _is_handbrake_pressed to false")
+	assert(touch_ui._handbrake_touch_index == -1, "FAIL: _handbrake_touch_index must reset to -1")
+	assert(_handbrake_input == false, "FAIL: _handbrake_input must reset to false on release")
+	print("[TICKET 04.1 TEST 3 PASSED] Handbrake touch ownership and release verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 4: Joystick Anchor-Follow Reversal without Deadband
+	# -------------------------------------------------------------------------
+	print("[TEST 4] Testing Joystick Anchor-Follow Dynamic Re-centering...")
+	touch_ui._start_joystick(1, Vector2(100.0, 300.0))
+	assert(touch_ui._joystick_center_pos == Vector2(100.0, 300.0), "FAIL: Joystick center must start at touch point")
+
+	# Drag right to 300px (displacement = 200px > 80px max radius)
+	touch_ui._update_joystick(Vector2(300.0, 300.0))
+	assert(is_equal_approx(touch_ui._current_joystick_vec.x, 1.0), "FAIL: Max displacement must clamp steer to +1.0")
+	# With anchor follow, center must have shifted to 300 - 80 = 220px
+	assert(is_equal_approx(touch_ui._joystick_center_pos.x, 220.0), "FAIL: Anchor-follow center must shift to 220.0 (got %.1f)" % touch_ui._joystick_center_pos.x)
+
+	# Now reverse direction by moving 10px left to 290px
+	touch_ui._update_joystick(Vector2(290.0, 300.0))
+	# New displacement: 290 - 220 = 70px -> steer = 70 / 80 = 0.875 (Immediate drop without deadband!)
+	assert(is_equal_approx(touch_ui._current_joystick_vec.x, 70.0 / 80.0), "FAIL: Immediate reverse steer must be 0.875 (got %.4f)" % touch_ui._current_joystick_vec.x)
+	assert(_steer_input < 1.0, "FAIL: Reversal must immediately reduce steer below 1.0")
+	touch_ui._stop_joystick()
+	print("[TICKET 04.1 TEST 4 PASSED] Joystick anchor-follow eliminates reversal deadband cleanly!")
+
+	# -------------------------------------------------------------------------
+	# TEST 5: Public reset_all_input_states Invariant
+	# -------------------------------------------------------------------------
+	print("[TEST 5] Testing reset_all_input_states() lifecycle method...")
+	touch_ui._start_joystick(1, Vector2(100, 100))
+	touch_ui._is_gas_pressed = true
+	touch_ui._is_brake_pressed = true
+	touch_ui._is_handbrake_pressed = true
+	touch_ui._emit_net_throttle()
+
+	touch_ui.reset_all_input_states()
+	assert(touch_ui._joystick_active == false, "FAIL: Joystick must be inactive after reset")
+	assert(touch_ui._is_gas_pressed == false and touch_ui._is_brake_pressed == false and touch_ui._is_handbrake_pressed == false, "FAIL: All driving inputs must be false")
+	assert(_throttle_input == 0.0, "FAIL: Net throttle must be 0.0")
+	assert(_steer_input == 0.0, "FAIL: Steer input must be 0.0")
+	assert(_handbrake_input == false, "FAIL: Handbrake must be false")
+	print("[TICKET 04.1 TEST 5 PASSED] reset_all_input_states() verified completely!")
+
+	# -------------------------------------------------------------------------
+	# TEST 6: FORWARD + BRAKE HELD -> DECEL -> SETTLE HYSTERESIS -> REVERSE
+	# -------------------------------------------------------------------------
+	print("[TEST 6] Testing Forward + Brake continuous crossing into Reverse...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_gear = CourierBike.GearState.FORWARD
+	courier_bike.current_speed = 10.0
+
+	var dt := 0.016
+	var steps := 0
+	while courier_bike.current_speed > 0.0 and steps < 100:
+		courier_bike.set_drive_inputs(-1.0, 0.0, dt)
+		steps += 1
+
+	assert(courier_bike.current_speed == 0.0, "FAIL: Bike must reach 0.0 m/s under braking")
+	assert(courier_bike.current_gear == CourierBike.GearState.FORWARD, "FAIL: Must remain in FORWARD during initial zero-speed frame (hysteresis active)")
+
+	# Continue holding brake for 0.06s (less than 0.12s settle window)
+	for i in range(4): # 4 * 0.016 = 0.064s
+		courier_bike.set_drive_inputs(-1.0, 0.0, dt)
+		assert(courier_bike.current_speed == 0.0, "FAIL: Speed must remain 0.0 during settle window")
+		assert(courier_bike.current_gear == CourierBike.GearState.FORWARD, "FAIL: Must remain FORWARD during settle window")
+
+	# Continue holding brake past settle duration (another 5 frames -> 0.144s total)
+	for i in range(5):
+		courier_bike.set_drive_inputs(-1.0, 0.0, dt)
+
+	assert(courier_bike.current_gear == CourierBike.GearState.REVERSE, "FAIL: Gear must shift to REVERSE after settle window")
+	assert(courier_bike.current_speed < 0.0, "FAIL: Bike must accelerate into negative reverse speed (got %.2f)" % courier_bike.current_speed)
+	print("[TICKET 04.1 TEST 6 PASSED] Forward -> Stop -> Settle -> Reverse transition verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 7: REVERSE + GAS HELD -> DECEL -> SETTLE HYSTERESIS -> FORWARD
+	# -------------------------------------------------------------------------
+	print("[TEST 7] Testing Reverse + Gas continuous crossing into Forward...")
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_gear = CourierBike.GearState.REVERSE
+	courier_bike.current_speed = -3.5
+
+	steps = 0
+	while courier_bike.current_speed < 0.0 and steps < 100:
+		courier_bike.set_drive_inputs(1.0, 0.0, dt) # Gas applied to reverse motion
+		steps += 1
+
+	assert(courier_bike.current_speed == 0.0, "FAIL: Reverse motion must decelerate to 0.0 under Gas")
+	assert(courier_bike.current_gear == CourierBike.GearState.REVERSE, "FAIL: Must remain REVERSE during initial zero frame")
+
+	# Continue holding Gas past settle window
+	for i in range(10): # 10 * 0.016 = 0.16s > 0.12s
+		courier_bike.set_drive_inputs(1.0, 0.0, dt)
+
+	assert(courier_bike.current_gear == CourierBike.GearState.FORWARD, "FAIL: Gear must shift to FORWARD after settle window")
+	assert(courier_bike.current_speed > 0.0, "FAIL: Bike must accelerate forward (got %.2f)" % courier_bike.current_speed)
+	print("[TICKET 04.1 TEST 7 PASSED] Reverse -> Stop -> Settle -> Forward transition verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 8: Zero-Speed Chatter Immunity
+	# -------------------------------------------------------------------------
+	print("[TEST 8] Testing Zero-Speed Chatter Immunity on Brief Brake Taps...")
+	courier_bike.current_speed = 0.0
+	courier_bike.current_gear = CourierBike.GearState.FORWARD
+	# Tap brake for 2 frames (32ms < 120ms), then release
+	courier_bike.set_drive_inputs(-1.0, 0.0, dt)
+	courier_bike.set_drive_inputs(-1.0, 0.0, dt)
+	courier_bike.set_drive_inputs(0.0, 0.0, dt) # release
+	assert(courier_bike.current_speed == 0.0, "FAIL: Brief brake tap at zero must not induce reverse movement")
+	assert(courier_bike.current_gear == CourierBike.GearState.FORWARD, "FAIL: Gear must remain FORWARD after incomplete settle")
+	print("[TICKET 04.1 TEST 8 PASSED] Zero-speed chatter immunity verified!")
+
+	print("\n=========================================================================")
+	print("[ALL V7 TICKET 04.1 ASSERTIONS PASSED CLEANLY]")
+	print("=========================================================================\n")
+	get_tree().quit(0)
+
+func _run_v7_ticket04_2_assertions() -> void:
+	print("\n=========================================================================")
+	print("[V7_TICKET04_2_ASSERTIONS] Starting GTA/CTW Handling Foundation Suite (Ticket 04.2)...")
+	print("Target Build: main | Testing Speed-Sensitive Steer, Arcade Drift & Traction Model")
+	print("=========================================================================\n")
+	await get_tree().create_timer(0.2).timeout
+
+	# -------------------------------------------------------------------------
+	# TEST 1: Speed-Sensitive Steering Rate Authority
+	# -------------------------------------------------------------------------
+	print("[TEST 1] Testing Speed-Sensitive Steering Scaling (Low Speed vs Max Speed)...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+
+	# Measure yaw change at low speed (2.0 m/s) over 10 frames
+	courier_bike.current_speed = 2.0
+	courier_bike.rotation.y = 0.0
+	var dt := 0.016
+	for i in range(10):
+		courier_bike.set_drive_inputs(0.0, 1.0, dt) # full right steer
+		courier_bike._physics_process(dt)
+	var low_speed_yaw: float = abs(courier_bike.rotation.y)
+
+	# Measure yaw change at top speed (14.0 m/s) over 10 frames
+	courier_bike.current_speed = 14.0
+	courier_bike.rotation.y = 0.0
+	for i in range(10):
+		courier_bike.set_drive_inputs(0.0, 1.0, dt) # full right steer
+		courier_bike._physics_process(dt)
+	var high_speed_yaw: float = abs(courier_bike.rotation.y)
+
+	print("[TEST 1 LOG] Low speed (2m/s) yaw delta = %.4f rad | High speed (14m/s) yaw delta = %.4f rad" % [low_speed_yaw, high_speed_yaw])
+	assert(low_speed_yaw > high_speed_yaw * 1.8, "FAIL: Low-speed steer authority must be >1.8x higher than high-speed steer authority!")
+	print("[TICKET 04.2 TEST 1 PASSED] Speed-sensitive steering curve verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 2: Heading / Velocity Decoupling & Lateral Momentum Preservation
+	# -------------------------------------------------------------------------
+	print("[TEST 2] Testing Heading/Velocity Decoupling under Normal Traction...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_speed = 14.0
+	courier_bike.velocity = Vector3(0, 0, -14.0) # Moving in -Z
+	courier_bike.rotation.y = 0.0
+
+	# Apply 1 frame of sharp steer
+	courier_bike.set_drive_inputs(0.0, 1.0, dt, false)
+	courier_bike._physics_process(dt)
+
+	# Heading has rotated right (basis.x has non-zero Z component)
+	var forward_dir: Vector3 = -courier_bike.global_transform.basis.z
+	var right_dir: Vector3 = courier_bike.global_transform.basis.x
+	var lateral_slip: float = courier_bike.velocity.dot(right_dir)
+
+	# In pure kinematic rotation, lateral_slip would be 0.0. In our arcade model, velocity preserves outward lateral momentum!
+	print("[TEST 2 LOG] Frame 1 Lateral momentum preserved: %.4f m/s" % lateral_slip)
+	# Heading angle vs velocity angle
+	var heading_angle: float = atan2(-forward_dir.x, -forward_dir.z)
+	var vel_angle: float = atan2(-courier_bike.velocity.normalized().x, -courier_bike.velocity.normalized().z)
+	var slip_diff: float = abs(wrapf(heading_angle - vel_angle, -PI, PI))
+	print("[TEST 2 LOG] Heading/Velocity slip angle difference: %.4f rad (%.2f°)" % [slip_diff, rad_to_deg(slip_diff)])
+	assert(slip_diff > 0.001, "FAIL: Velocity must decouple from heading to preserve lateral momentum!")
+	print("[TICKET 04.2 TEST 2 PASSED] Heading/velocity decoupling verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 3: Handbrake Traction Break & Slip Angle Enlargement
+	# -------------------------------------------------------------------------
+	print("[TEST 3] Testing Handbrake Powerslide & Slip Angle Enlargement...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_speed = 12.0
+	courier_bike.velocity = Vector3(0, 0, -12.0)
+	courier_bike.rotation.y = 0.0
+
+	# Steer without handbrake over 15 frames
+	for i in range(15):
+		courier_bike.set_drive_inputs(0.0, 1.0, dt, false)
+		courier_bike._physics_process(dt)
+	var normal_forward: Vector3 = -courier_bike.global_transform.basis.z
+	var normal_slip: float = courier_bike.velocity.cross(normal_forward).length()
+
+	# Steer WITH handbrake over 15 frames from identical initial condition
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_speed = 12.0
+	courier_bike.velocity = Vector3(0, 0, -12.0)
+	courier_bike.rotation.y = 0.0
+
+	for i in range(15):
+		courier_bike.set_drive_inputs(0.0, 1.0, dt, true) # HANDBRAKE ON
+		courier_bike._physics_process(dt)
+	var handbrake_forward: Vector3 = -courier_bike.global_transform.basis.z
+	var handbrake_slip: float = courier_bike.velocity.cross(handbrake_forward).length()
+
+	print("[TEST 3 LOG] Normal slip cross = %.4f | Handbrake slip cross = %.4f" % [normal_slip, handbrake_slip])
+	assert(handbrake_slip > normal_slip * 1.5, "FAIL: Handbrake must produce significantly larger slip angle than normal grip!")
+	print("[TICKET 04.2 TEST 3 PASSED] Handbrake slip angle enlargement verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 4: Handbrake Release Grip Recovery
+	# -------------------------------------------------------------------------
+	print("[TEST 4] Testing Grip Recovery on Handbrake Release...")
+	# Vehicle is sliding; release handbrake and simulate 25 frames of straight tracking
+	for i in range(25):
+		courier_bike.set_drive_inputs(1.0, 0.0, dt, false) # Straight gas, handbrake OFF
+		courier_bike._physics_process(dt)
+
+	var recovery_forward: Vector3 = -courier_bike.global_transform.basis.z
+	var recovery_right: Vector3 = courier_bike.global_transform.basis.x
+	var recovered_lateral: float = abs(courier_bike.velocity.dot(recovery_right))
+	print("[TEST 4 LOG] Post-drift recovered lateral speed: %.4f m/s" % recovered_lateral)
+	assert(recovered_lateral < 0.25, "FAIL: Releasing handbrake must recover tire grip and align velocity with forward heading!")
+	print("[TICKET 04.2 TEST 4 PASSED] Handbrake grip recovery verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 5: Numerical Stability & Velocity Bounding
+	# -------------------------------------------------------------------------
+	print("[TEST 5] Testing Numerical Stability under 100 Frames of Aggressive Controls...")
+	for i in range(100):
+		var test_throttle: float = 1.0 if (i % 3 == 0) else (-1.0 if (i % 3 == 1) else 0.0)
+		var test_steer: float = sin(i * 0.3)
+		var test_hb: bool = (i % 5 == 0)
+		courier_bike.set_drive_inputs(test_throttle, test_steer, dt, test_hb)
+		courier_bike._physics_process(dt)
+		assert(not is_nan(courier_bike.current_speed), "FAIL: current_speed became NaN at frame %d" % i)
+		assert(not is_inf(courier_bike.current_speed), "FAIL: current_speed became Inf at frame %d" % i)
+		assert(not is_nan(courier_bike.velocity.x) and not is_nan(courier_bike.velocity.z), "FAIL: Velocity NaN at frame %d" % i)
+		assert(courier_bike.velocity.length() <= courier_bike.max_speed * 1.25, "FAIL: Velocity exploded beyond max speed bounds")
+
+	print("[TICKET 04.2 TEST 5 PASSED] Numerical stability and velocity bounding verified!")
+
+	print("\n=========================================================================")
+	print("[ALL V7 TICKET 04.2 ASSERTIONS PASSED CLEANLY]")
+	print("=========================================================================\n")
+	get_tree().quit(0)
+
+func _run_v7_ticket04_3_assertions() -> void:
+	print("\n=========================================================================")
+	print("[V7_TICKET04_3_ASSERTIONS] Starting GTA Collision Response & Glance Deflection Suite...")
+	print("Target Build: main | Testing Tangential Retention, Impact Shedding, & Corner Recovery")
+	print("=========================================================================\n")
+	await get_tree().create_timer(0.2).timeout
+	var dt: float = 0.016
+
+	# -------------------------------------------------------------------------
+	# TEST 1: Shallow Wall Glance at Medium Speed (8 m/s, ~15° incidence)
+	# -------------------------------------------------------------------------
+	print("[TEST 1] Testing Shallow Wall Glance at Medium Speed (8 m/s, 15° incidence)...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.global_position = Vector3(-2.8, 0.05, 10.0) # Near ShortcutLeftWall at X = -3.0
+	courier_bike.rotation.y = deg_to_rad(-15.0) # Aimed slightly into wall
+	courier_bike.current_speed = 8.0
+	courier_bike.velocity = -courier_bike.global_transform.basis.z * 8.0
+
+	for i in range(15):
+		courier_bike.set_drive_inputs(1.0, 0.0, dt, false)
+		courier_bike._physics_process(dt)
+
+	var speed_t1: float = courier_bike.current_speed
+	print("[TEST 1 LOG] Post-glance speed: %.2f m/s (from 8.0 m/s)" % speed_t1)
+	assert(speed_t1 >= 6.0, "FAIL: Shallow glance at medium speed must retain >= 75%% speed (got %.2f m/s)" % speed_t1)
+	assert(courier_bike.global_position.x > -3.5, "FAIL: Bike tunneled through wall")
+	print("[TICKET 04.3 TEST 1 PASSED] Medium-speed shallow glance verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 2: Shallow Wall Glance at Max Speed (14 m/s, ~15° incidence)
+	# -------------------------------------------------------------------------
+	print("[TEST 2] Testing Shallow Wall Glance at Max Speed (14 m/s, 15° incidence)...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.global_position = Vector3(-2.8, 0.05, 10.0)
+	courier_bike.rotation.y = deg_to_rad(-15.0)
+	courier_bike.current_speed = 14.0
+	courier_bike.velocity = -courier_bike.global_transform.basis.z * 14.0
+
+	for i in range(15):
+		courier_bike.set_drive_inputs(1.0, 0.0, dt, false)
+		courier_bike._physics_process(dt)
+
+	var speed_t2: float = courier_bike.current_speed
+	print("[TEST 2 LOG] Post-glance speed: %.2f m/s (from 14.0 m/s)" % speed_t2)
+	assert(speed_t2 >= 11.0, "FAIL: Shallow glance at max speed must retain high tangential momentum (got %.2f m/s)" % speed_t2)
+	print("[TICKET 04.3 TEST 2 PASSED] High-speed shallow glance verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 3: 45° Impact at 10 m/s
+	# -------------------------------------------------------------------------
+	print("[TEST 3] Testing 45° Impact at 10 m/s...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.global_position = Vector3(-2.8, 0.05, 10.0)
+	courier_bike.rotation.y = deg_to_rad(-45.0)
+	courier_bike.current_speed = 10.0
+	courier_bike.velocity = -courier_bike.global_transform.basis.z * 10.0
+
+	for i in range(15):
+		courier_bike.set_drive_inputs(0.0, 0.0, dt, false)
+		courier_bike._physics_process(dt)
+
+	var speed_t3: float = courier_bike.current_speed
+	print("[TEST 3 LOG] Post-45° impact speed: %.2f m/s (from 10.0 m/s)" % speed_t3)
+	assert(speed_t3 < 8.5 and speed_t3 > 2.0, "FAIL: 45° impact must shed proportional speed (got %.2f m/s)" % speed_t3)
+	print("[TICKET 04.3 TEST 3 PASSED] 45° impact response verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 4: Near-Head-On Impact (90° into wall)
+	# -------------------------------------------------------------------------
+	print("[TEST 4] Testing Near-Head-On Impact (90° into wall)...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.global_position = Vector3(-2.8, 0.05, 10.0)
+	courier_bike.rotation.y = deg_to_rad(-90.0) # Straight into wall
+	courier_bike.current_speed = 10.0
+	courier_bike.velocity = -courier_bike.global_transform.basis.z * 10.0
+
+	for i in range(20):
+		courier_bike.set_drive_inputs(0.0, 0.0, dt, false)
+		courier_bike._physics_process(dt)
+
+	var speed_t4: float = courier_bike.current_speed
+	print("[TEST 4 LOG] Post-head-on impact speed: %.2f m/s (from 10.0 m/s)" % speed_t4)
+	assert(speed_t4 <= 2.5, "FAIL: Head-on collision must shed substantial speed (got %.2f m/s)" % speed_t4)
+	print("[TICKET 04.3 TEST 4 PASSED] Head-on impact speed shedding verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 5: Repeated Wall Scraping (50 frames sustained contact)
+	# -------------------------------------------------------------------------
+	print("[TEST 5] Testing Repeated Wall Scraping (50 frames sustained contact)...")
+	for i in range(50):
+		courier_bike.set_drive_inputs(1.0, 0.2, dt, false) # Holding slight steer into wall
+		courier_bike._physics_process(dt)
+		assert(not is_nan(courier_bike.current_speed) and not is_inf(courier_bike.current_speed), "FAIL: NaN/Inf speed during wall grind")
+		assert(courier_bike.velocity.length() <= courier_bike.max_speed * 1.05, "FAIL: Velocity energy injection during wall grind")
+
+	print("[TICKET 04.3 TEST 5 PASSED] Repeated wall scraping stability verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 6: Reverse Recovery from Wall Contact
+	# -------------------------------------------------------------------------
+	print("[TEST 6] Testing Reverse Recovery after Obstacle Contact...")
+	# While blocked against wall, hold brake/reverse to back away
+	for i in range(30):
+		courier_bike.set_drive_inputs(-1.0, 0.0, dt, false)
+		courier_bike._physics_process(dt)
+
+	print("[TEST 6 LOG] Post-recovery gear: %s | speed: %.2f m/s" % [CourierBike.GearState.keys()[courier_bike.current_gear], courier_bike.current_speed])
+	assert(courier_bike.current_gear == CourierBike.GearState.REVERSE or courier_bike.current_speed < 0.0, "FAIL: Vehicle must reverse away from wall on reverse input")
+	print("[TICKET 04.3 TEST 6 PASSED] Reverse recovery from wall verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 7: Handbrake Slide Wall Contact
+	# -------------------------------------------------------------------------
+	print("[TEST 7] Testing Handbrake Powerslide Wall Contact...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.global_position = Vector3(-2.8, 0.05, 10.0)
+	courier_bike.rotation.y = deg_to_rad(-30.0)
+	courier_bike.current_speed = 12.0
+	courier_bike.velocity = Vector3(0, 0, -12.0)
+
+	for i in range(20):
+		courier_bike.set_drive_inputs(0.0, 1.0, dt, true) # Handbrake powerslide into wall
+		courier_bike._physics_process(dt)
+		assert(not is_nan(courier_bike.rotation.y), "FAIL: NaN yaw during drift collision")
+		assert(courier_bike.velocity.length() <= 14.0, "FAIL: Speed exploded during drift collision")
+
+	print("[TICKET 04.3 TEST 7 PASSED] Handbrake drift collision stability verified!")
+
+	print("\n=========================================================================")
+	print("[ALL V7 TICKET 04.3 ASSERTIONS PASSED CLEANLY]")
 	print("=========================================================================\n")
 	get_tree().quit(0)
 
