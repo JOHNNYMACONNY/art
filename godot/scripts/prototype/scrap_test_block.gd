@@ -347,6 +347,9 @@ func _on_dismount_pressed() -> void:
 		courier_bike.request_dismount()
 
 func reset_slice() -> void:
+	if courier_bike and courier_bike.occupant != null:
+		courier_bike.force_dismount()
+		
 	current_world_state = WorldLoopState.START
 	current_pursuit_state = PursuitState.CALM
 	_contact_broken_timer = 0.0
@@ -359,6 +362,9 @@ func reset_slice() -> void:
 		player.velocity = Vector3.ZERO
 		player.visible = true
 		player.is_input_locked = false
+		var player_col = player.get_node_or_null("CollisionShape3D") as CollisionShape3D
+		if player_col:
+			player_col.disabled = false
 		
 	if courier_bike:
 		courier_bike.current_state = CourierBike.BikeState.PARKED
@@ -367,6 +373,9 @@ func reset_slice() -> void:
 		courier_bike.occupant = null
 		courier_bike.current_speed = 0.0
 		courier_bike.steering_angle = 0.0
+		if courier_bike.mount_interactable:
+			courier_bike.mount_interactable.is_powered = true
+			courier_bike.mount_interactable.visible = true
 		
 	if camera:
 		camera.set_target(player)
@@ -407,6 +416,8 @@ func reset_slice() -> void:
 		
 	if audio_mgr:
 		audio_mgr.set_siren_audio(false, Vector3.ZERO)
+		if audio_mgr.has_method("set_mix_state"):
+			audio_mgr.set_mix_state(AudioManagerScript.MixState.CALM)
 		
 	if touch_ui:
 		touch_ui.set_mode(TouchControlsUI.UIMode.FOOT_TRAVERSAL)
@@ -414,6 +425,11 @@ func reset_slice() -> void:
 		touch_ui.hide_tension_hud()
 		touch_ui.hide_replay_overlay()
 		touch_ui.set_route_switch_button_visible(false)
+		touch_ui._joystick_active = false
+		touch_ui._joystick_touch_index = -1
+		touch_ui._interaction_touch_index = -1
+		touch_ui._is_peeling = false
+		touch_ui._is_tuning = false
 		
 	print("[WORLD_LOOP] Slice reset to initial cold start state cleanly.")
 
@@ -977,10 +993,20 @@ func _run_v6_assertions() -> void:
 	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.2)
 	courier_bike.mount_interactable.update_player_distance(player.global_position)
 	_evaluate_target_selection()
-	_on_action_pressed()
+	touch_ui.action_button.pressed.emit()
 	await get_tree().create_timer(0.35).timeout
 	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must enter DRIVING")
 	courier_bike.rotation.y = PI
+	
+	# Verify real GAS & BRAKE touch button routes
+	touch_ui.gas_button.button_down.emit()
+	assert(_throttle_input == 1.0, "FAIL: GAS button_down must set throttle input to 1.0")
+	touch_ui.gas_button.button_up.emit()
+	assert(_throttle_input == 0.0, "FAIL: GAS button_up must reset throttle input to 0.0")
+	touch_ui.brake_button.button_down.emit()
+	assert(_throttle_input == -1.0, "FAIL: BRAKE button_down must set throttle input to -1.0")
+	touch_ui.brake_button.button_up.emit()
+	assert(_throttle_input == 0.0, "FAIL: BRAKE button_up must reset throttle input to 0.0")
 	
 	# 5. Route Switch -> SignalGate slams -> Detour -> Evasion
 	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 2.5)
@@ -988,7 +1014,7 @@ func _run_v6_assertions() -> void:
 	_evaluate_target_selection()
 	assert(touch_ui.route_switch_button.visible, "FAIL: Driving RouteSwitchButton must show")
 	_throttle_input = 1.0
-	_on_action_pressed()
+	touch_ui.route_switch_button.pressed.emit()
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERING, "FAIL: Gate must enter TRIGGERING")
 	await get_tree().create_timer(0.75).timeout
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL: Gate must enter TRIGGERED")
@@ -1000,8 +1026,8 @@ func _run_v6_assertions() -> void:
 	assert(current_pursuit_state == PursuitState.CALM or current_pursuit_state == PursuitState.EVADED, "FAIL: Pursuit must evade naturally")
 	assert(touch_ui.replay_panel.visible, "FAIL: Replay button must show upon quiet aftermath")
 	
-	# 6. Deterministic Replay Reset
-	reset_slice()
+	# 6. Deterministic Replay Reset via ReplayButton Signal
+	touch_ui.replay_button.pressed.emit()
 	assert(player.global_position.distance_to(Vector3(0, 0, 10.0)) < 0.1, "FAIL: Replay reset must restore player spawn to Vector3(0, 0, 10.0)")
 	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Replay reset must restore bike state to PARKED")
 	assert(signal_tuner.current_state == SignalTuner.TunerState.DORMANT, "FAIL: Replay reset must restore tuner to DORMANT")

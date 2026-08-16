@@ -21,6 +21,21 @@ enum SoundEvent {
 	GATE_SLAM
 }
 
+enum MixState {
+	CALM,
+	SIGNAL_CURIOSITY,
+	TUNING_FOCUS,
+	PANEL_ENERGY,
+	EXTRACTION_IMPACT,
+	DISTURBANCE,
+	PURSUIT_PRESSURE,
+	ROUTE_SWITCH_IMPACT,
+	EVASION_RELEASE,
+	QUIET_AFTERMATH
+}
+
+var current_mix_state: MixState = MixState.CALM
+
 var _engine_player: AudioStreamPlayer3D = null
 var _hum_player: AudioStreamPlayer3D = null
 var _static_player: AudioStreamPlayer = null
@@ -201,3 +216,29 @@ func _create_noise_wav(duration: float, volume: float = 0.3) -> AudioStreamWAV:
 		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
 	wav.data = data
 	return wav
+
+func set_mix_state(state: MixState) -> void:
+	current_mix_state = state
+	match state:
+		MixState.CALM:
+			set_tuning_audio(0.0)
+			set_siren_audio(false, Vector3.ZERO)
+		MixState.SIGNAL_CURIOSITY:
+			set_tuning_audio(0.15)
+		MixState.TUNING_FOCUS:
+			set_tuning_audio(0.4)
+		MixState.PANEL_ENERGY:
+			set_tuning_audio(0.0)
+		MixState.EXTRACTION_IMPACT:
+			play_event(SoundEvent.COMPLETION, Vector3.ZERO)
+		MixState.DISTURBANCE:
+			play_event(SoundEvent.SIREN_ALARM, Vector3.ZERO)
+		MixState.PURSUIT_PRESSURE:
+			pass
+		MixState.ROUTE_SWITCH_IMPACT:
+			play_event(SoundEvent.GATE_SLAM, Vector3.ZERO)
+		MixState.EVASION_RELEASE:
+			set_siren_audio(false, Vector3.ZERO)
+		MixState.QUIET_AFTERMATH:
+			set_siren_audio(false, Vector3.ZERO)
+			set_tuning_audio(0.0)

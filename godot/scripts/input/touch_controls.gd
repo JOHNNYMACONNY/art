@@ -66,6 +66,8 @@ func _ready() -> void:
 		route_switch_button.pressed.connect(func(): action_button_pressed.emit())
 	if core_tap_button:
 		core_tap_button.pressed.connect(func(): core_tap_pressed.emit())
+	if replay_button:
+		replay_button.pressed.connect(func(): replay_pressed.emit())
 		
 	_apply_golden_slice_design_tokens()
 	set_mode(UIMode.FOOT_TRAVERSAL)
@@ -73,6 +75,9 @@ func _ready() -> void:
 	hide_tension_hud()
 	set_route_switch_button_visible(false)
 
+	if gas_button:
+		gas_button.button_down.connect(func(): driving_throttle_updated.emit(1.0))
+		gas_button.button_up.connect(func(): driving_throttle_updated.emit(0.0))
 	if brake_button:
 		brake_button.button_down.connect(func(): driving_throttle_updated.emit(-1.0))
 		brake_button.button_up.connect(func(): driving_throttle_updated.emit(0.0))
