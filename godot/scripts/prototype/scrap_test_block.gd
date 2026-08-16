@@ -2726,44 +2726,84 @@ func _run_v7_ticket05_assertions() -> void:
 	print("[TICKET 05 TEST 6 PASSED] Interaction focus enter and exit verified!")
 
 	# -------------------------------------------------------------------------
-	# TEST 7: 60Hz vs 120Hz Simulation Equivalence
+	# TEST 7: 60Hz vs 120Hz Full Dynamic Trajectory Equivalence
 	# -------------------------------------------------------------------------
-	print("[TEST 7] Testing 60Hz vs 120Hz Simulation Equivalence...")
+	print("[TEST 7] Testing 60Hz vs 120Hz Dynamic Trajectory Equivalence (Look-Ahead + Focus + FOV)...")
 	var cam_60: ChinatownCamera3D = ChinatownCamera3D.new()
 	var cam_120: ChinatownCamera3D = ChinatownCamera3D.new()
 	add_child(cam_60)
 	add_child(cam_120)
 	
-	var dummy_target: Node3D = Node3D.new()
-	add_child(dummy_target)
-	dummy_target.global_position = Vector3(0, 0, 0)
+	var char_60: CharacterBody3D = CharacterBody3D.new()
+	var char_120: CharacterBody3D = CharacterBody3D.new()
+	add_child(char_60)
+	add_child(char_120)
 	
-	cam_60.reset_camera_instant(dummy_target)
-	cam_120.reset_camera_instant(dummy_target)
+	char_60.global_position = Vector3.ZERO
+	char_120.global_position = Vector3.ZERO
 	
-	# Move target at constant speed 10 m/s for 1.0 second
+	cam_60.reset_camera_instant(char_60)
+	cam_120.reset_camera_instant(char_120)
+	
+	# Helper lambda to compute velocity at time t in 5-phase trajectory
+	var trajectory_vel := func(t: float) -> Vector3:
+		if t < 0.5:
+			return Vector3(0, 0, -8.0) # Phase A: Constant forward
+		elif t < 1.0:
+			var p: float = (t - 0.5) / 0.5
+			return Vector3(0, 0, lerpf(-8.0, -14.0, p)) # Phase B: Acceleration to 14 m/s
+		elif t < 1.3:
+			var p: float = (t - 1.0) / 0.3
+			return Vector3(0, 0, lerpf(-14.0, 0.0, p)) # Phase C: Deceleration to 0
+		elif t < 1.8:
+			var p: float = (t - 1.3) / 0.5
+			return Vector3(0, 0, lerpf(0.0, 10.0, p)) # Phase D: 180° reversal to +10 m/s
+		else:
+			return Vector3(0, 0, 6.0) # Phase E: Settle in reverse at +6 m/s
+
+	var total_time: float = 2.3
 	var dt_60: float = 1.0 / 60.0
+	var steps_60: int = int(round(total_time / dt_60))
 	var dt_120: float = 1.0 / 120.0
-	
+	var steps_120: int = int(round(total_time / dt_120))
+
 	# Run 60Hz sim
-	for i in range(60):
-		dummy_target.global_position = Vector3(0, 0, float(i + 1) * dt_60 * 10.0)
+	for i in range(steps_60):
+		var t: float = float(i) * dt_60
+		char_60.velocity = trajectory_vel.call(t)
+		char_60.global_position += char_60.velocity * dt_60
 		cam_60._process(dt_60)
-		
-	# Run 120Hz sim from same initial state
-	dummy_target.global_position = Vector3(0, 0, 0)
-	for i in range(120):
-		dummy_target.global_position = Vector3(0, 0, float(i + 1) * dt_120 * 10.0)
+
+	# Run 120Hz sim
+	for i in range(steps_120):
+		var t: float = float(i) * dt_120
+		char_120.velocity = trajectory_vel.call(t)
+		char_120.global_position += char_120.velocity * dt_120
 		cam_120._process(dt_120)
-		
-	var diff_dist: float = cam_60.global_position.distance_to(cam_120.global_position)
-	print("[TEST 7 LOG] 60Hz vs 120Hz final position difference: %.6f m" % diff_dist)
-	assert(diff_dist < 0.05, "FAIL: 60Hz and 120Hz simulation must be equivalent within 0.05m tolerance")
-	
+
+	var focus_diff: float = cam_60._smoothed_focus_pos.distance_to(cam_120._smoothed_focus_pos)
+	var lookahead_diff: float = cam_60._smoothed_look_ahead.distance_to(cam_120._smoothed_look_ahead)
+	var pos_diff: float = cam_60.global_position.distance_to(cam_120.global_position)
+	var fov_diff: float = abs(cam_60.fov - cam_120.fov)
+	var basis_diff: float = cam_60.global_transform.basis.z.distance_to(cam_120.global_transform.basis.z)
+
+	print("[TEST 7 LOG] 60Hz vs 120Hz Focus Pos Diff: %.6f m" % focus_diff)
+	print("[TEST 7 LOG] 60Hz vs 120Hz Look-Ahead Diff: %.6f m" % lookahead_diff)
+	print("[TEST 7 LOG] 60Hz vs 120Hz Global Pos Diff: %.6f m" % pos_diff)
+	print("[TEST 7 LOG] 60Hz vs 120Hz FOV Diff: %.6f°" % fov_diff)
+	print("[TEST 7 LOG] 60Hz vs 120Hz Basis Diff: %.6f" % basis_diff)
+
+	assert(focus_diff < 0.08, "FAIL: Focus pos 60Hz vs 120Hz exceeded tolerance")
+	assert(lookahead_diff < 0.05, "FAIL: Look-ahead 60Hz vs 120Hz exceeded tolerance")
+	assert(pos_diff < 0.08, "FAIL: Camera global position 60Hz vs 120Hz exceeded tolerance")
+	assert(fov_diff < 0.1, "FAIL: FOV 60Hz vs 120Hz exceeded tolerance")
+	assert(basis_diff < 0.001, "FAIL: Camera basis 60Hz vs 120Hz exceeded tolerance")
+
 	cam_60.queue_free()
 	cam_120.queue_free()
-	dummy_target.queue_free()
-	print("[TICKET 05 TEST 7 PASSED] 60Hz vs 120Hz simulation equivalence verified!")
+	char_60.queue_free()
+	char_120.queue_free()
+	print("[TICKET 05 TEST 7 PASSED] 60Hz vs 120Hz dynamic trajectory equivalence verified!")
 
 	# -------------------------------------------------------------------------
 	# TEST 8: Follow Error Bound Telemetry at 14 m/s
