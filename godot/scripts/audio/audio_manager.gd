@@ -1,8 +1,7 @@
 class_name AudioManager
 extends Node
 
-# Procedural Audio Manager for Echoes in the Scrapheap
-# Synthesizes audio feedback for movement, proximity, panel extraction, and ambience.
+# State-Driven Spatialized 3D Audio Manager for Echos in the Scrap
 
 enum SoundEvent {
 	FOOTSTEP,
@@ -14,37 +13,52 @@ enum SoundEvent {
 }
 
 var _players: Dictionary = {}
+var _spatial_hum_player: AudioStreamPlayer3D = null
 
 func _ready() -> void:
-	# Create stream players for distinct sound categories
 	for event in SoundEvent.values():
-		var p := AudioStreamPlayer.new()
-		p.name = "AudioPlayer_" + str(event)
-		add_child(p)
-		_players[event] = p
+		if event == SoundEvent.PROXIMITY_HUM:
+			var p3d := AudioStreamPlayer3D.new()
+			p3d.name = "SpatialHumPlayer"
+			p3d.unit_size = 4.0
+			p3d.max_distance = 12.0
+			add_child(p3d)
+			_spatial_hum_player = p3d
+			_players[event] = p3d
+		else:
+			var p := AudioStreamPlayer.new()
+			p.name = "AudioPlayer_" + str(event)
+			add_child(p)
+			_players[event] = p
 	_setup_synth_sounds()
 
 func _setup_synth_sounds() -> void:
-	# Generate procedural audio streams for prototype verification
 	_players[SoundEvent.FOOTSTEP].stream = _create_click_stream(0.04, 120.0)
-	_players[SoundEvent.PROXIMITY_HUM].stream = _create_hum_stream(0.5, 60.0)
-	_players[SoundEvent.PANEL_PEEL].stream = _create_noise_stream(0.2, 800.0)
+	_players[SoundEvent.PROXIMITY_HUM].stream = _create_hum_stream(0.5, 65.0)
+	_players[SoundEvent.PANEL_PEEL].stream = _create_noise_stream(0.25, 600.0)
 	_players[SoundEvent.SPARK].stream = _create_noise_stream(0.08, 2400.0)
 	_players[SoundEvent.CORE_PULL].stream = _create_click_stream(0.3, 440.0)
 	_players[SoundEvent.COMPLETION].stream = _create_chime_stream(0.6, 880.0)
 
-func play_event(event: SoundEvent) -> void:
+func play_event(event: SoundEvent, global_pos: Vector3 = Vector3.ZERO) -> void:
 	if _players.has(event):
-		var p: AudioStreamPlayer = _players[event]
-		if not p.playing:
-			p.play()
+		if event == SoundEvent.PROXIMITY_HUM and _spatial_hum_player:
+			_spatial_hum_player.global_position = global_pos
+			if not _spatial_hum_player.playing:
+				_spatial_hum_player.play()
+		else:
+			var p: AudioStreamPlayer = _players[event]
+			if not p.playing:
+				p.play()
+
+func set_hum_pitch(pitch_scale: float) -> void:
+	if _spatial_hum_player:
+		_spatial_hum_player.pitch_scale = clamp(pitch_scale, 0.5, 2.0)
 
 func stop_event(event: SoundEvent) -> void:
 	if _players.has(event):
-		var p: AudioStreamPlayer = _players[event]
-		p.stop()
+		_players[event].stop()
 
-# Helper procedural generator functions
 func _create_click_stream(duration: float, freq: float) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
@@ -71,12 +85,12 @@ func _create_hum_stream(duration: float, freq: float) -> AudioStreamWAV:
 	data.resize(sample_count)
 	for i in range(sample_count):
 		var t := float(i) / float(wav.mix_rate)
-		var sample := int(128.0 + 40.0 * (sin(2.0 * PI * freq * t) + 0.5 * sin(2.0 * PI * (freq * 2.0) * t)))
+		var sample := int(128.0 + 45.0 * (sin(2.0 * PI * freq * t) + 0.5 * sin(2.0 * PI * (freq * 2.0) * t)))
 		data[i] = clamp(sample, 0, 255)
 	wav.data = data
 	return wav
 
-func _create_noise_stream(duration: float, filter_freq: float) -> AudioStreamWAV:
+func _create_noise_stream(duration: float, _filter_freq: float) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
 	wav.mix_rate = 22050
