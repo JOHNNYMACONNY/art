@@ -1,8 +1,8 @@
 class_name TouchControlsUI
 extends Control
 
-# Echos in the Scrap - Dual-Thumb Touch Controls UI (V4.2 Deterministic Pointer Ownership)
-# Features Foot Traversal, Vehicle Driving, Tension HUD Panel, and Pointer Isolation
+# Echos in the Scrap - Dual-Thumb Touch Controls UI (V5.1 Gate Counterplay)
+# Features Foot Traversal, Vehicle Driving, Driving Route Switch UI, and Pointer Isolation
 
 signal joystick_vector_updated(vec: Vector2)
 signal action_button_pressed
@@ -31,6 +31,7 @@ var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 @onready var gas_button: Button = $DrivingOverlayPanel/ThrottleButton
 @onready var brake_button: Button = $DrivingOverlayPanel/BrakeButton
 @onready var dismount_button: Button = $DrivingOverlayPanel/DismountButton
+@onready var route_switch_button: Button = $DrivingOverlayPanel/RouteSwitchButton
 
 @onready var gesture_panel: Control = $GestureOverlayPanel
 @onready var gesture_hint_label: Label = $GestureOverlayPanel/GestureLabel
@@ -54,6 +55,8 @@ func _ready() -> void:
 		action_button.pressed.connect(func(): action_button_pressed.emit())
 	if dismount_button:
 		dismount_button.pressed.connect(func(): dismount_pressed.emit())
+	if route_switch_button:
+		route_switch_button.pressed.connect(func(): action_button_pressed.emit())
 	if core_tap_button:
 		core_tap_button.pressed.connect(func(): core_tap_pressed.emit())
 		
@@ -67,6 +70,7 @@ func _ready() -> void:
 	set_mode(UIMode.FOOT_TRAVERSAL)
 	close_interaction_overlay()
 	hide_tension_hud()
+	set_route_switch_button_visible(false)
 
 func set_mode(mode: UIMode) -> void:
 	current_mode = mode
@@ -82,6 +86,10 @@ func set_dismount_button_enabled(enabled: bool) -> void:
 	if dismount_button:
 		dismount_button.disabled = not enabled
 		dismount_button.modulate = Color(1, 1, 1, 1.0) if enabled else Color(1, 1, 1, 0.4)
+
+func set_route_switch_button_visible(visible_flag: bool) -> void:
+	if route_switch_button:
+		route_switch_button.visible = visible_flag
 
 func show_tension_hud(alert_text: String) -> void:
 	if tension_panel:

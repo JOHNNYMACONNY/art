@@ -188,8 +188,6 @@ func trigger_disturbance_alert() -> void:
 	current_pursuit_state = PursuitState.DISTURBANCE_ALERT
 	print("[PURSUIT] DISTURBANCE ALERT DETECTED!")
 	
-	if signal_gate:
-		signal_gate.set_pursuit_active(true)
 	if touch_ui:
 		touch_ui.show_tension_hud("[ ALERT: DISTURBANCE DETECTED ]")
 	if audio_mgr:
@@ -201,6 +199,8 @@ func trigger_disturbance_alert() -> void:
 	get_tree().create_timer(0.75).timeout.connect(func():
 		if current_pursuit_state == PursuitState.DISTURBANCE_ALERT:
 			current_pursuit_state = PursuitState.PURSUIT_ACTIVE
+			if signal_gate:
+				signal_gate.set_pursuit_active(true)
 			if touch_ui:
 				touch_ui.show_tension_hud("[ ALERT: PURSUIT ACTIVE ]")
 			if pursuer:
@@ -228,11 +228,11 @@ func _on_signal_gate_triggered() -> void:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.GATE_SLAM, signal_gate.global_position)
 		
 	if pursuer:
-		# Detour waypoints routing pursuer around scrap barrier
+		# Detour waypoints routing pursuer around physical barrier arm
 		var waypoints: Array[Vector3] = [
-			Vector3(-5.0, 0.6, 10.0),
-			Vector3(-5.0, 0.6, 20.0),
-			Vector3(-1.5, 0.6, 28.0)
+			Vector3(2.5, 0.6, 8.0),
+			Vector3(2.5, 0.6, 18.0),
+			Vector3(-1.5, 0.6, 26.0)
 		]
 		pursuer.set_detour_path(waypoints)
 
@@ -283,6 +283,8 @@ func _evaluate_target_selection() -> void:
 	if best_target != _active_target:
 		_active_target = best_target
 		touch_ui.set_action_button_highlight(_active_target != null)
+		if touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING:
+			touch_ui.set_route_switch_button_visible(_active_target is SignalGateInteractable)
 
 func _on_action_pressed() -> void:
 	if not _active_target or not player:
@@ -676,27 +678,46 @@ func _run_v5_assertions() -> void:
 	assert(signal_gate != null, "FAIL: SignalGateInteractable must exist")
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.DORMANT, "FAIL: SignalGate must start DORMANT")
 	
-	# Trigger pursuit -> SignalGate becomes READY
+	# DISTURBANCE_ALERT keeps gate DORMANT
 	trigger_disturbance_alert()
-	await get_tree().create_timer(0.85).timeout
-	assert(signal_gate.current_state == SignalGateInteractable.GateState.READY, "FAIL: Pursuit must make SignalGate READY")
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.DORMANT, "FAIL: DISTURBANCE_ALERT must keep gate DORMANT")
 	
-	# Player/Bike approaches SignalGate -> Action arbitration selects SignalGate
-	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 1.5)
-	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	# PURSUIT_ACTIVE makes gate READY
+	await get_tree().create_timer(0.85).timeout
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.READY, "FAIL: PURSUIT_ACTIVE must make SignalGate READY")
+	
+	# Player mounts bike and approaches SignalGate -> Driving RouteSwitchButton becomes visible
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.35).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must enter DRIVING")
+	courier_bike.rotation.y = PI
+	
+	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 2.5)
 	signal_gate.update_player_distance(courier_bike.global_position)
 	_evaluate_target_selection()
 	assert(_active_target == signal_gate, "FAIL: Target selection must highlight SignalGate")
+	assert(touch_ui.route_switch_button.visible, "FAIL: Driving RouteSwitchButton must become visible")
 	
-	# Trigger SignalGate -> GATE_SLAM audio event & Pursuer detour path set
+	# Trigger SignalGate via UI action press -> GATE_SLAM audio event & physical barrier slam
+	_throttle_input = 1.0
 	_on_action_pressed()
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERING, "FAIL: SignalGate must enter TRIGGERING")
-	await get_tree().create_timer(0.6).timeout
+	await get_tree().create_timer(0.75).timeout
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL: SignalGate must enter TRIGGERED")
+	assert(not signal_gate.barrier_collision.disabled, "FAIL: Barrier collision shape must activate")
+	assert(abs(signal_gate.barrier_pivot.rotation.y - deg_to_rad(90.0)) < 0.1, "FAIL: Barrier pivot must swing 90 degrees")
 	assert(pursuer.current_detour_index == 0, "FAIL: SignalGate trigger must set pursuer detour path")
 	
-	# Deactivate pursuit -> SignalGate remains spent (TRIGGERED)
-	_deactivate_pursuit()
+	# Continue driving bike down shortcut channel -> Pursuer steps through detour waypoints -> Evasion
+	await get_tree().create_timer(3.8).timeout
+	assert(pursuer.current_detour_index > 0 or pursuer.current_detour_index == -1, "FAIL: Pursuer must progress through detour waypoints")
+	await get_tree().create_timer(2.2).timeout
+	assert(current_pursuit_state == PursuitState.CONTACT_BROKEN or current_pursuit_state == PursuitState.EVADED or current_pursuit_state == PursuitState.CALM, "FAIL: Contact must break naturally after detour reroute")
+	await get_tree().create_timer(1.2).timeout
+	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit must return to CALM after evasion")
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL: Triggered gate remains spent TRIGGERED after pursuit ends")
 	
 	print("[V5_ASSERTIONS] PASSED! ALL V5 ENVIRONMENTAL EVASION SLICE ASSERTIONS GREEN.")

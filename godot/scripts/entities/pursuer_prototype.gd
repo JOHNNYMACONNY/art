@@ -1,7 +1,7 @@
 class_name PursuerPrototype
 extends CharacterBody3D
 
-# Pursuer Prototype Threat Entity for Echos in the Scrap (V5)
+# Pursuer Prototype Threat Entity for Echos in the Scrap (V5.1)
 # Direct vector pursuit steering toward active target with detour waypoint rerouting
 
 signal intercepted_target
@@ -63,8 +63,9 @@ func _physics_process(delta: float) -> void:
 	var destination: Vector3 = target_node.global_position
 	if current_detour_index >= 0 and current_detour_index < detour_waypoints.size():
 		destination = detour_waypoints[current_detour_index]
-		if global_position.distance_to(destination) < 1.8:
+		if global_position.distance_to(destination) < 3.0:
 			current_detour_index += 1
+			print("[PURSUER] Detour waypoint reached. Advancing to index %d..." % current_detour_index)
 			if current_detour_index >= detour_waypoints.size():
 				current_detour_index = -1
 				print("[PURSUER] Detour completed. Resuming direct pursuit...")

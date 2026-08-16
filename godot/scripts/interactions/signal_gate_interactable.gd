@@ -1,8 +1,8 @@
 class_name SignalGateInteractable
 extends InteractableBase
 
-# Echos in the Scrap - Signal Gate Interactable Node (V5)
-# Features state machine (DORMANT -> READY -> TRIGGERING -> TRIGGERED) and pursuit counterplay
+# Echos in the Scrap - Signal Gate Interactable Node (V5.1 Physical Barrier & Route Switch)
+# Features physical swinging scrap barrier mesh, collision shape blocking, and pursuit-only activation
 
 signal gate_trigger_started
 signal gate_triggered
@@ -15,17 +15,22 @@ enum GateState {
 	TRIGGERED
 }
 
-@export var activation_time: float = 0.5
+@export var activation_time: float = 0.4
 
 @onready var signal_light: OmniLight3D = $SignalLight
 @onready var indicator_mesh: MeshInstance3D = $IndicatorMesh
+@onready var barrier_pivot: Node3D = $BarrierPivot
+@onready var barrier_body: StaticBody3D = $BarrierPivot/BarrierBody
+@onready var barrier_collision: CollisionShape3D = $BarrierPivot/BarrierBody/CollisionShape3D
 
 var current_state: GateState = GateState.DORMANT
 
 func _ready() -> void:
-	interaction_radius = 4.0
-	interaction_priority = 3.0
+	interaction_radius = 6.0
+	interaction_priority = 4.0
 	is_powered = false
+	if barrier_collision:
+		barrier_collision.disabled = true
 	_update_visual_state()
 
 func set_pursuit_active(active: bool) -> void:
@@ -66,7 +71,17 @@ func trigger_gate() -> void:
 		
 	current_state = GateState.TRIGGERED
 	is_powered = false
-	gate_state_changed.emit("TRIGGERED")
+	if barrier_collision:
+		barrier_collision.disabled = false
+		
+	# Animate physical barrier swinging 90 deg across main scrap lane over 0.3s
+	if barrier_pivot:
+		var tween := create_tween()
+		tween.tween_property(barrier_pivot, "rotation:y", deg_to_rad(90.0), 0.3)
+		tween.finished.connect(func():
+			print("[GATE] Physical scrap barrier arm locked in place!")
+		)
+		
 	gate_triggered.emit()
 	_update_visual_state()
 
@@ -76,7 +91,7 @@ func _update_visual_state() -> void:
 		
 	match current_state:
 		GateState.DORMANT:
-			signal_light.light_color = Color(0.2, 0.2, 0.25, 1.0) # Dim neutral
+			signal_light.light_color = Color(0.25, 0.22, 0.15, 1.0) # Dim amber
 			signal_light.light_energy = 0.5
 		GateState.READY:
 			signal_light.light_color = Color(0.1, 0.9, 1.0, 1.0) # Bright cyan pulse
@@ -85,5 +100,5 @@ func _update_visual_state() -> void:
 			signal_light.light_color = Color(1.0, 1.0, 1.0, 1.0) # Intense white charge
 			signal_light.light_energy = 6.0
 		GateState.TRIGGERED:
-			signal_light.light_color = Color(0.1, 0.4, 0.5, 1.0) # Dim spent cyan
+			signal_light.light_color = Color(0.2, 0.35, 0.4, 1.0) # Dim cyan spent
 			signal_light.light_energy = 1.0
