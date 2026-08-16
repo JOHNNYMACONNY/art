@@ -184,8 +184,8 @@ func _gui_input(event: InputEvent) -> void:
 		if drag_ev.index == _joystick_touch_index and _joystick_active:
 			_update_joystick(drag_ev.position)
 		elif drag_ev.index == _interaction_touch_index:
-			if _is_peeling and drag_ev.relative.y > 0:
-				_peel_accumulated_y += drag_ev.relative.y
+			if _is_peeling:
+				_peel_accumulated_y = clampf(_peel_accumulated_y + drag_ev.relative.y, 0.0, 150.0)
 				var progress: float = clampf(_peel_accumulated_y / 150.0, 0.0, 1.0)
 				peel_gesture_dragged.emit(progress)
 			elif _is_tuning and abs(drag_ev.relative.x) > 0:

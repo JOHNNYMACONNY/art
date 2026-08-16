@@ -90,21 +90,13 @@ func trigger_gate() -> void:
 		var tween := create_tween()
 		tween.tween_property(barrier_pivot, "rotation:y", deg_to_rad(90.0), 0.3)
 		tween.finished.connect(func():
-			print("[GATE] Physical scrap barrier arm swing completed! Verifying sweep safety...")
-			_try_enable_collision()
+			print("[GATE] Physical scrap barrier arm swing completed! Solid collision active.")
+			if barrier_collision:
+				barrier_collision.disabled = false
 		)
 		
 	gate_triggered.emit()
 	_update_visual_state()
-
-func _try_enable_collision() -> void:
-	if is_sweep_occupied():
-		print("[GATE] Safety sweep volume occupied! Delaying barrier collision enablement...")
-		get_tree().create_timer(0.1).timeout.connect(_try_enable_collision)
-	else:
-		if barrier_collision:
-			barrier_collision.disabled = false
-			print("[GATE] Physical scrap barrier arm locked in solid place!")
 
 func _update_visual_state() -> void:
 	if not signal_light:

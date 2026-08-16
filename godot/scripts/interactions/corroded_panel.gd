@@ -53,6 +53,11 @@ func begin_interaction(_player_pos: Vector3) -> bool:
 func cancel_interaction() -> void:
 	if current_step == Step.PEELING:
 		current_step = Step.APPROACHED if is_player_in_range else Step.IDLE
+		if panel_mesh:
+			var tween := create_tween()
+			tween.set_parallel(true)
+			tween.tween_property(panel_mesh, "rotation:x", 0.0, 0.2)
+			tween.tween_property(panel_mesh, "position:z", 0.0, 0.2)
 
 func _on_body_entered(body: Node3D) -> void:
 	if body is CharacterBody3D:
@@ -90,8 +95,8 @@ func trigger_action() -> bool:
 func progress_peel(amount: float) -> void:
 	if current_step == Step.PEELING:
 		if panel_mesh:
-			panel_mesh.rotation.x = lerp(panel_mesh.rotation.x, deg_to_rad(-75.0), amount)
-			panel_mesh.position.z = lerp(panel_mesh.position.z, 0.8, amount)
+			panel_mesh.rotation.x = lerp(0.0, deg_to_rad(-75.0), amount)
+			panel_mesh.position.z = lerp(0.0, 0.8, amount)
 		if amount >= 0.85:
 			current_step = Step.EXPOSED
 			if core_mesh:
