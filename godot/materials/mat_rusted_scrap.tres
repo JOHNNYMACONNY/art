@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[resource]
+resource_name = "mat_rusted_scrap"
+albedo_color = Color(0.28, 0.18, 0.12, 1.0)
+metallic = 0.45
+roughness = 0.82
+rim_enabled = true
+rim = 0.15
+rim_tint = 0.5

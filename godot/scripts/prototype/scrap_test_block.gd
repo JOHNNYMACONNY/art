@@ -168,6 +168,14 @@ func _ready() -> void:
 		_export_v5_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v6-visuals"):
 		_export_v6_visuals()
+	elif OS.get_cmdline_user_args().has("--export-v8-proof"):
+		_export_v8_proof()
+	elif OS.get_cmdline_user_args().has("--export-v8-baseline"):
+		_export_v8_benchmarks("v7_baseline")
+	elif OS.get_cmdline_user_args().has("--export-v8-dressed"):
+		_export_v8_benchmarks("v8_dressed")
+	elif OS.get_cmdline_user_args().has("--run-v8-telemetry"):
+		_run_v8_telemetry()
 
 func _process(delta: float) -> void:
 	var active_pos: Vector3 = courier_bike.global_position if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player.global_position
@@ -1129,6 +1137,135 @@ func _export_v6_visuals() -> void:
 	
 	print("[V6_VISUALS] ALL 6 V6 SCREENSHOTS EXPORTED SUCCESSFULLY!")
 	get_tree().quit()
+
+func _export_v8_proof() -> void:
+	print("[V8_STYLE_PROOF] Exporting V8 Style Proof views to res://verification/v8/v8_proof_*.png...")
+	reset_slice()
+	await get_tree().create_timer(0.2).timeout
+	
+	# View 1: Cold start staging (Player, Container, Scrap Pile, Ground Debris)
+	player.global_position = Vector3(0, 0.4, 10.0)
+	player.velocity = Vector3.ZERO
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_proof_01_cold_start.png")
+	print("[V8_STYLE_PROOF] Saved v8_proof_01_cold_start.png")
+	
+	# View 2: Tuner approach staging (Player approaching Tuner with East Scrap Pile and Ground Debris)
+	player.global_position = signal_tuner.global_position + Vector3(0, 0, 1.8)
+	signal_tuner.update_player_distance(player.global_position)
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_proof_02_tuner_approach.png")
+	print("[V8_STYLE_PROOF] Saved v8_proof_02_tuner_approach.png")
+	
+	print("[V8_STYLE_PROOF] ALL V8 STYLE PROOF VIEWS EXPORTED CLEANLY!")
+	get_tree().quit(0)
+
+func _export_v8_benchmarks(prefix: String) -> void:
+	print("[V8_BENCHMARKS] Exporting 8 required V8 visual benchmark views to res://verification/v8/%s_*.png..." % prefix)
+	reset_slice()
+	await get_tree().create_timer(0.2).timeout
+	
+	# 1. 01_cold_start.png
+	player.global_position = Vector3(0, 0.4, 10.0)
+	player.velocity = Vector3.ZERO
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/%s_01_cold_start.png" % prefix)
+	print("[V8_BENCHMARKS] Saved view 01_cold_start")
+	
+	# 2. 02_tuner_approach.png
+	player.global_position = signal_tuner.global_position + Vector3(0, 0, 1.8)
+	signal_tuner.update_player_distance(player.global_position)
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/%s_02_tuner_approach.png" % prefix)
+	print("[V8_BENCHMARKS] Saved view 02_tuner_approach")
+	
+	# 3. 03_panel_extraction.png
+	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.2)
+	corroded_panel.update_player_distance(player.global_position)
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/%s_03_panel_extraction.png" % prefix)
+	print("[V8_BENCHMARKS] Saved view 03_panel_extraction")
+	
+	# 4. 04_bike_staging.png
+	player.global_position = _recovery_marker + Vector3(0, 0, 1.5)
+	courier_bike.global_position = _recovery_marker
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/%s_04_bike_staging.png" % prefix)
+	print("[V8_BENCHMARKS] Saved view 04_bike_staging")
+	
+	# 5. 05_gate_approach.png
+	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 6.0)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	player.global_position = courier_bike.global_position
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/%s_05_gate_approach.png" % prefix)
+	print("[V8_BENCHMARKS] Saved view 05_gate_approach")
+	
+	# 6. 06_shortcut_ramp.png
+	courier_bike.global_position = Vector3(4.0, 0.05, 14.0)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	player.global_position = courier_bike.global_position
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/%s_06_shortcut_ramp.png" % prefix)
+	print("[V8_BENCHMARKS] Saved view 06_shortcut_ramp")
+	
+	# 7. 07_active_chase.png
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+	courier_bike.global_position = Vector3(0.0, 0.05, 20.0)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	player.global_position = courier_bike.global_position
+	pursuer.global_position = Vector3(0.0, 0.05, 12.0)
+	audio_mgr.set_pursuit_pressure(8.0, pursuer.global_position)
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/%s_07_active_chase.png" % prefix)
+	print("[V8_BENCHMARKS] Saved view 07_active_chase")
+	
+	# 8. 08_quiet_aftermath.png
+	_on_successful_evasion()
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/%s_08_quiet_aftermath.png" % prefix)
+	print("[V8_BENCHMARKS] Saved view 08_quiet_aftermath")
+	
+	print("[V8_BENCHMARKS] ALL 8 %s BENCHMARKS EXPORTED CLEANLY!" % prefix)
+	get_tree().quit(0)
+
+func _run_v8_telemetry() -> void:
+	print("[V8_TELEMETRY] Gathering rendering and frame-timing telemetry...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	
+	var frame_times: Array[float] = []
+	for i in range(120):
+		var t0: int = Time.get_ticks_usec()
+		await get_tree().process_frame
+		var t1: int = Time.get_ticks_usec()
+		frame_times.append(float(t1 - t0) / 1000.0)
+	
+	frame_times.sort()
+	var avg_ms: float = 0.0
+	for ft in frame_times:
+		avg_ms += ft
+	avg_ms /= float(frame_times.size())
+	var p95_idx: int = int(float(frame_times.size()) * 0.95)
+	var p95_ms: float = frame_times[p95_idx]
+	
+	var draw_calls: int = RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)
+	var primitives: int = RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME)
+	var objects: int = RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME)
+	var vp_size: Vector2i = get_viewport().size
+	
+	print("\n=========================================================================")
+	print("[V8_TELEMETRY_REPORT]")
+	print("  Viewport Size: %dx%d" % [vp_size.x, vp_size.y])
+	print("  Rendering Method: Forward+")
+	print("  Draw Calls: %d" % draw_calls)
+	print("  Primitives/Triangles: %d" % primitives)
+	print("  Total Objects: %d" % objects)
+	print("  Average Frame Time: %.2f ms (%.1f FPS)" % [avg_ms, 1000.0 / max(avg_ms, 0.001)])
+	print("  P95 Frame Time: %.2f ms" % p95_ms)
+	print("=========================================================================\n")
+	get_tree().quit(0)
 
 func _run_v7_ticket01_assertions() -> void:
 	print("[V7_TICKET01_ASSERTIONS] Starting V7 Ticket 01 Retest Assertions (BUG-01 & BUG-02)...")

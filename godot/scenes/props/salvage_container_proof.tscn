@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://c00cont01proof"]
+
+[ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="1_metal"]
+[ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="2_rust"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+material = ExtResource("1_metal")
+size = Vector3(2.4, 2.2, 4.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_frame"]
+material = ExtResource("2_rust")
+size = Vector3(2.46, 2.26, 0.2)
+
+[node name="SalvageContainerProof" type="Node3D"]
+
+[node name="ContainerBody" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+mesh = SubResource("BoxMesh_body")
+
+[node name="FrontFrame" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 2.3)
+mesh = SubResource("BoxMesh_frame")
+
+[node name="BackFrame" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -2.3)
+mesh = SubResource("BoxMesh_frame")

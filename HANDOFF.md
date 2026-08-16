@@ -1,8 +1,8 @@
 # HANDOFF.md — V7 Complete / Next Session Briefing (V8 Scrapheap World Identity)
 
-**Generated**: 2026-08-16T13:46 PDT  
+**Generated**: 2026-08-16T13:50 PDT  
 **Branch**: `main`  
-**Current HEAD**: `ade1a8f` (or latest commit)  
+**Current HEAD**: `47456504711a85a35d94f4f95e56315fbe395f70`  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official)  
 
@@ -15,10 +15,10 @@ All 7 tickets (including sub-tickets) of V7 Golden Slice Polish & Hardening are 
 | Ticket | Description | Status | Key Deliverable / Behavior |
 |---|---|---|---|
 | **01** | Gate Collision & Peel Release | ✅ CLOSED | Barrier collision enabled instantly on trigger; touch release cancels peel gesture. |
-| **02** | Multi-Touch & Dismount Rejection | ✅ CLOSED | Joystick tracking isolation; high-speed dismount denial (<2.5 m/s threshold). |
+| **02** | Multi-Touch & Dismount Rejection | ✅ CLOSED | Joystick tracking isolation; high-speed dismount denial (threshold 1.5 m/s). |
 | **02.1**| Chase Falsification & Detour | ✅ CLOSED | Barrier arm routing waypoints; straight driving & foot circle balance. |
 | **03** | Signal Tuner Gesture Coherence | ✅ CLOSED | `tanh` bounded drag accumulator; single-event near-lock enter/exit lifecycle. |
-| **04.1**| GTA Transmission & Controls | ✅ CLOSED | 2-stage gear curve (0-8 / 8-14 m/s), handbrake lock & reverse transition. |
+| **04.1**| GTA Transmission & Controls | ✅ CLOSED | Continuous forward/reverse state machine with 0.12s settle transition, speed-sensitive steering, handbrake lock. |
 | **04.2**| GTA Handling & Drift Foundation | ✅ CLOSED | Speed-sensitive steering, power-slide drift slip decay, and counter-steer recovery. |
 | **04.3**| GTA Collision Response | ✅ CLOSED | Tangent slide retention on glances; speed shedding on head-on wall impacts. |
 | **05** | GTA Chinatown Camera Feel | ✅ CLOSED | Single-layer smoothed focus, dual-rate look-ahead (3.5 / 7.0 s⁻¹), speed-breathing FOV, fixed 3/4 yaw decoupling. |

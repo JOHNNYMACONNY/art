@@ -1,72 +1,81 @@
-# V8 M01 TICKETS: SCRAPHEAP WORLD IDENTITY, DRESSING & ATMOSPHERE
+# V8 M01 TICKETS: SCRAPHEAP WORLD IDENTITY, DRESSING & ATMOSPHERE (REVISED)
 
 **Spec Reference**: [`contracts/v8_m01_scrapheap_world_spec.md`](file:///Users/bobbyinthelobby/{art/contracts/v8_m01_scrapheap_world_spec.md)  
 **Parent Milestone**: V8 — Scrapheap World Identity & Visual Readability  
-**Status**: TICKETS-PROPOSED / PENDING REVIEW  
+**Status**: APPROVED / SPEC-LOCKED  
 
 ---
 
-## TICKET OVERVIEW & DEPENDENCY GRAPH
+## TICKET OVERVIEW & SEQUENTIAL PIPELINE
 
 ```
-[V8 01.1: Modular Scrap Kit] ---> [V8 01.2: World Dressing & Landmarks]
-                                              |
-                                              v
-[V8 01.3: Lighting & Atmosphere] ---> [V8 01.4: Readability & A/B Benchmark]
+[V7 Baseline Capture (Visual + Performance)]
+                      ↓
+[V8 01.1: Style Proof → Full Modular Kit]
+                      ↓
+[V8 01.2: World Dressing & 6 Landmarks]
+                      ↓
+[V8 01.3: Lighting, Atmosphere & Depth]
+                      ↓
+[V8 01.4: Readability & Performance Verification]
 ```
 
 ---
 
-## TICKET V8 01.1: Visual Language & Modular Scrap Kit
+## PRE-REQUISITE: V7 Baseline Telemetry & Screenshot Capture
 - **Scope**:
-  - Author reusable PBR materials: `mat_rusted_scrap.tres`, `mat_corrugated_metal.tres`, `mat_salvage_tarmac.tres`, `mat_hazard_trim.tres`, `mat_industrial_concrete.tres`.
-  - Model 6 lightweight modular prop scenes in `godot/scenes/props/`:
-    - `scrap_pile_a.tscn` (organic metal heap, LOD0 < 350 tris)
-    - `scrap_pile_b.tscn` (crushed metal chassis stack, LOD0 < 400 tris)
-    - `salvage_container.tscn` (corrugated shipping container with dent variations)
-    - `pipe_rack_modular.tscn` (flanged industrial conduit run)
-    - `corrugated_fence.tscn` (weathered metal panel perimeter wall segment)
-    - `ground_debris_flat.tscn` (planar quad with dirty grease/shredded scrap decals)
-  - Ensure zero collision snag points (all decorative colliders strictly align with gameplay boundary geometry).
+  - Add benchmark exporter `_export_v8_benchmarks(prefix: String)` to `scrap_test_block.gd`.
+  - Capture 8 baseline screenshots (`v7_baseline_01.png` through `v7_baseline_08.png`).
+  - Capture baseline performance telemetry (draw calls, primitive count, average frame time, object count at 960×540 viewport).
 - **Verification Gate**:
-  - Test scene instantiating all 6 props; draw call budget verified < 25 for the entire kit.
+  - Baseline images and performance log committed to repository before any visual dressing changes.
+
+---
+
+## TICKET V8 01.1: Visual Language, Style Proof & Modular Scrap Kit
+- **Phase A (Style Proof Checkpoint)**:
+  - Author shared PBR materials: `mat_rusted_scrap.tres`, `mat_corrugated_metal.tres`, `mat_salvage_tarmac.tres`.
+  - Create 3 proof assets:
+    1. `scrap_pile_proof.tscn` (organic metal heap with chunky silhouette)
+    2. `salvage_container_proof.tscn` (corrugated industrial salvage box)
+    3. `ground_debris_proof.tscn` (flat planar ground decal / dirt quad)
+  - Create dedicated art layer `godot/scenes/world/scrap_yard_dressing.tscn` (instanced in `scrap_test_block.tscn`).
+  - Stage proof assets around Cold Start and Tuner Outpost (0 gameplay collision changes).
+  - Capture Camera3D screenshots and relay render telemetry to ChatGPT for style verification before building full kit.
+- **Phase B (Full Modular Kit Expansion)**:
+  - Expand modular library: `scrap_pile_b.tscn`, `pipe_rack_modular.tscn`, `corrugated_fence.tscn`.
+  - Ensure materials are aggressively shared across all props (minimize draw calls and state switches).
 
 ---
 
 ## TICKET V8 01.2: World Dressing & Landmark Pass
 - **Scope**:
-  - Integrate modular props into `godot/scenes/world/scrap_test_block.tscn` without altering underlying collision boxes.
-  - Dress the 5 hero landmarks:
-    - **Cold Start Garage**: Lean-to corrugated roof, oil barrels, workbench silhouette.
-    - **Tuner Outpost**: Transformer rig frame, ceramic insulators, high-contrast beacon mast.
-    - **Extraction Bay**: Heavy industrial machinery chassis framing the Corroded Panel.
-    - **Bike Staging Pad**: Concrete footing with hazard border.
-    - **Signal Gate Barrier Assembly**: Reinforced pivot stanchions and overhead warning bracket.
-    - **Shortcut Ramp**: Structural trusses and guide rails.
-  - Populate perimeter walls with salvage containers, stacked scrap heaps, and background silhouettes.
-- **Verification Gate**:
-  - Visual inspection from 3/4 Camera3D view; zero player occlusion along all main transit routes.
+  - Populate `godot/scenes/world/scrap_yard_dressing.tscn` across the entire test block.
+  - Dress the 6 functional landmarks:
+    1. **Cold Start Shelter**: Low-profile corrugated steel overhang and oil barrel silhouettes.
+    2. **Tuner Outpost**: Transformer rig frame with insulator geometry and antenna mast.
+    3. **Extraction Bay**: Decommissioned machinery chassis enclosing the Corroded Panel.
+    4. **Bike Staging Pad**: Concrete slab with hazard striping border.
+    5. **Gate Barrier Assembly**: Reinforced pivot stanchions and overhead warning bracket.
+    6. **Shortcut Ramp**: Structural steel trusses and guide rail silhouettes.
+  - Perimeter wall dressing: Stacked containers, scrap heaps, and background silhouettes.
+  - High-speed driving lane verification: Drive route at full bike speed; assert zero player/bike occlusion at decision points.
 
 ---
 
 ## TICKET V8 01.3: Lighting, Atmosphere & Silhouette Depth
 - **Scope**:
-  - Configure `DirectionalLight3D` for dramatic low-angle industrial sunlight with shadow soft-filtering.
+  - Configure `DirectionalLight3D` for warm low-angle industrial sunlight with soft shadow filtering.
   - Configure `WorldEnvironment` for moody overcast ambient fill and subtle tonemapping.
-  - Add atmospheric dust drift GPU particle emitter (`GPUParticles3D`) over the salvage yard.
-  - Add emissive accent lights to the Tuner mast, Extraction Core, Gate hazard lights, and Bike headlight.
-- **Verification Gate**:
-  - High-contrast visual separation: Player, Bike, Pursuer, and Interactables clearly legible against all lighting zones.
+  - Add low-density dust drift GPU particle emitter (`GPUParticles3D`).
+  - Add emissive accents for interactable POIs (Tuner mast, Extraction Core, Gate hazard beacons, Bike headlight).
+  - No expensive volumetric fog or excessive real-time spotlights.
 
 ---
 
-## TICKET V8 01.4: Readability & Mobile Performance Falsification
+## TICKET V8 01.4: Readability & Performance Falsification
 - **Scope**:
-  - Implement deterministic A/B benchmark exporter `_export_v8_benchmarks()` in `scrap_test_block.gd`.
-  - Capture 8 high-resolution camera angles comparing V7 baseline vs V8 dressed slice.
-  - Measure frame times and draw call counts in Godot Profiler.
-  - Run full 15-suite regression sweep to guarantee 0 gameplay physics or interaction regressions.
-- **Verification Gate**:
-  - 8/8 benchmark screenshots exported and verified clean.
-  - 15/15 regression suites 100% GREEN.
-  - Frame time < 16.6ms at 1080p.
+  - Export 8 dressed screenshots (`v8_dressed_01.png` through `v8_dressed_08.png`).
+  - A/B score all 8 shots against V7 baseline (`IDENTITY`, `ROUTE_READABILITY`, `INTERACTABLE_READABILITY`, `PLAYER_VISIBILITY`, `PURSUER_VISIBILITY`, `DEPTH/SILHOUETTE`, `FALSE-COLLISION CUES`, `OCCLUSION`, `CLUTTER`).
+  - Measure dressed performance telemetry vs V7 baseline (assert 60 FPS maintained without material p95 regression).
+  - Run full 15-suite regression sweep to guarantee 100% green compliance.

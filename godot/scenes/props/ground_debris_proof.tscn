@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://d00debr01proof"]
+
+[ext_resource type="Material" path="res://materials/mat_salvage_tarmac.tres" id="1_tarmac"]
+[ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="2_rust"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_stain"]
+material = ExtResource("1_tarmac")
+size = Vector2(3.5, 3.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_flake"]
+material = ExtResource("2_rust")
+size = Vector3(0.4, 0.04, 0.3)
+
+[node name="GroundDebrisProof" type="Node3D"]
+
+[node name="DarkStain" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0)
+mesh = SubResource("PlaneMesh_stain")
+
+[node name="MetalFlake1" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, 0.5, 0.02, 0.4)
+mesh = SubResource("BoxMesh_flake")
+
+[node name="MetalFlake2" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.5, 0, -0.866025, 0, 1, 0, 0.866025, 0, 0.5, -0.6, 0.02, -0.3)
+mesh = SubResource("BoxMesh_flake")

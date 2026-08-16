@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://e00dress01proof"]
+
+[ext_resource type="PackedScene" path="res://scenes/props/scrap_pile_proof.tscn" id="1_pile"]
+[ext_resource type="PackedScene" path="res://scenes/props/salvage_container_proof.tscn" id="2_container"]
+[ext_resource type="PackedScene" path="res://scenes/props/ground_debris_proof.tscn" id="3_debris"]
+
+[node name="ScrapYardDressing" type="Node3D"]
+
+[node name="ColdStartZone" type="Node3D" parent="."]
+
+[node name="Container_ColdWest" parent="ColdStartZone" instance=ExtResource("2_container")]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, -4.2, 0, 9.5)
+
+[node name="ScrapPile_ColdSW" parent="ColdStartZone" instance=ExtResource("1_pile")]
+transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, -3.2, 0, 12.5)
+
+[node name="GroundDebris_Cold" parent="ColdStartZone" instance=ExtResource("3_debris")]
+transform = Transform3D(1.2, 0, 0, 0, 1, 0, 0, 0, 1.2, 0, 0, 10)
+
+[node name="TunerZone" type="Node3D" parent="."]
+
+[node name="ScrapPile_TunerEast" parent="TunerZone" instance=ExtResource("1_pile")]
+transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, 3.2, 0, -4.2)
+
+[node name="GroundDebris_Tuner" parent="TunerZone" instance=ExtResource("3_debris")]
+transform = Transform3D(1.4, 0, 0, 0, 1, 0, 0, 0, 1.4, 0, 0, -3.5)
