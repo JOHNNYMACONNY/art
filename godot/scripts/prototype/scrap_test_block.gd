@@ -136,6 +136,8 @@ func _ready() -> void:
 		_run_v7_ticket01_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v7-ticket02-assertions"):
 		_run_v7_ticket02_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v7-ticket02-1-assertions"):
+		_run_v7_ticket02_1_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v3-visuals"):

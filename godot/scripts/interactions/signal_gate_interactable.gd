@@ -26,7 +26,7 @@ enum GateState {
 var current_state: GateState = GateState.DORMANT
 
 func _ready() -> void:
-	interaction_radius = 6.0
+	interaction_radius = 15.0
 	interaction_priority = 4.0
 	is_powered = false
 	if barrier_collision:
