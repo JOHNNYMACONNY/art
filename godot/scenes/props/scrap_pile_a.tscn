@@ -15,12 +15,16 @@ size = Vector3(1.6, 0.1, 1.4)
 material = ExtResource("2_metal")
 inner_radius = 0.22
 outer_radius = 0.48
+rings = 16
+ring_segments = 10
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_axle"]
 material = ExtResource("1_rust")
 top_radius = 0.08
 bottom_radius = 0.08
 height = 2.4
+radial_segments = 8
+rings = 1
 
 [node name="ScrapPileA" type="Node3D"]
 

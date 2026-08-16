@@ -8,6 +8,8 @@ material = ExtResource("1_rust")
 top_radius = 0.35
 bottom_radius = 0.35
 height = 0.95
+radial_segments = 10
+rings = 1
 
 [sub_resource type="BoxMesh" id="BoxMesh_beam"]
 material = ExtResource("2_metal")

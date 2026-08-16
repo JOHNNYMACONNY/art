@@ -16,6 +16,8 @@ material = ExtResource("2_rust")
 top_radius = 0.12
 bottom_radius = 0.12
 height = 6.0
+radial_segments = 8
+rings = 1
 
 [node name="PipeRackModular" type="Node3D"]
 
