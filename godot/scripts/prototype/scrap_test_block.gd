@@ -151,6 +151,8 @@ func _ready() -> void:
 		_run_v7_ticket04_2_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v7-ticket04-3-assertions"):
 		_run_v7_ticket04_3_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v7-ticket05-assertions"):
+		_run_v7_ticket05_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v3-visuals"):
@@ -405,8 +407,7 @@ func reset_slice() -> void:
 			courier_bike.mount_interactable.visible = true
 		
 	if camera:
-		camera.set_target(player)
-		camera.fov = 32.0
+		camera.reset_camera_instant(player)
 		
 	if signal_tuner:
 		signal_tuner._set_state(SignalTuner.TunerState.DORMANT)
@@ -2520,6 +2521,340 @@ func _run_v7_ticket04_3_assertions() -> void:
 	print("[ALL V7 TICKET 04.3 ASSERTIONS PASSED CLEANLY]")
 	print("=========================================================================\n")
 	get_tree().quit(0)
+
+func _run_v7_ticket05_assertions() -> void:
+	print("\n=========================================================================")
+	print("[V7_TICKET05_ASSERTIONS] Starting GTA/Chinatown Wars Camera Transition & Framing Suite...")
+	print("Target Build: main | Testing Single-Layer Smooth Focus, Look-Ahead, FOV Breathing, Decoupled Yaw")
+	print("=========================================================================\n")
+	await get_tree().create_timer(0.2).timeout
+
+	# -------------------------------------------------------------------------
+	# TEST 1: Target Switch Zero Instant Transform Change & Smooth Transition
+	# -------------------------------------------------------------------------
+	print("[TEST 1] Testing Target Switch Zero Instant Transform Change...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	var dt: float = 0.016
+	
+	# Camera starts settled on Player at (0, 0, 10)
+	camera.reset_camera_instant(player)
+	var pos_before: Vector3 = camera.global_position
+	var basis_before: Basis = camera.global_transform.basis
+	
+	# Switch target to Courier Bike (located at -1.5, 0.05, 3.0)
+	camera.set_target(courier_bike)
+	var pos_on_call: Vector3 = camera.global_position
+	var basis_on_call: Basis = camera.global_transform.basis
+	
+	assert(pos_on_call.distance_to(pos_before) < 0.0001, "FAIL: set_target() must not change camera position instantly")
+	assert(basis_on_call.is_equal_approx(basis_before), "FAIL: set_target() must not change camera orientation instantly")
+	
+	# Simulate 1 frame: continuous smooth glide begins
+	camera._process(dt)
+	var pos_frame_1: Vector3 = camera.global_position
+	var step_dist: float = pos_frame_1.distance_to(pos_before)
+	print("[TEST 1 LOG] Frame 1 glide displacement: %.4f m" % step_dist)
+	assert(step_dist > 0.001 and step_dist < 1.0, "FAIL: Camera must begin smooth continuous transition without popping")
+	print("[TICKET 05 TEST 1 PASSED] Target switch zero instant transform change verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 2: Mount / Dismount Focus Continuity
+	# -------------------------------------------------------------------------
+	print("[TEST 2] Testing Mount / Dismount Focus Continuity...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	
+	# Player positions near bike and mounts
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
+	await get_tree().create_timer(0.2).timeout
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	
+	assert(courier_bike.current_state == CourierBike.BikeState.MOUNTING, "FAIL: Bike must enter MOUNTING")
+	camera.set_target(courier_bike)
+	
+	var last_pos: Vector3 = camera.global_position
+	for i in range(15):
+		await get_tree().create_timer(0.02).timeout
+		camera._process(dt)
+		var current_pos: Vector3 = camera.global_position
+		assert(not is_nan(current_pos.x) and not is_inf(current_pos.x), "FAIL: Camera NaN during mount")
+		assert(current_pos.distance_to(last_pos) < 0.8, "FAIL: Camera position step during mount")
+		last_pos = current_pos
+
+	await get_tree().create_timer(0.15).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike should be in DRIVING state")
+	print("[TEST 2 LOG] Mount focus transition completed smoothly.")
+	
+	# Dismount
+	_on_dismount_pressed()
+	camera.set_target(player)
+	for i in range(15):
+		await get_tree().create_timer(0.02).timeout
+		camera._process(dt)
+		var current_pos: Vector3 = camera.global_position
+		assert(not is_nan(current_pos.x) and not is_inf(current_pos.x), "FAIL: Camera NaN during dismount")
+		assert(current_pos.distance_to(last_pos) < 0.8, "FAIL: Camera position step during dismount")
+		last_pos = current_pos
+
+	print("[TICKET 05 TEST 2 PASSED] Mount/dismount focus continuity verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 3: Handbrake 180° Look-Ahead Reversal Damping
+	# -------------------------------------------------------------------------
+	print("[TEST 3] Testing Handbrake 180° Look-Ahead Reversal Damping...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	camera.reset_camera_instant(courier_bike)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_speed = 14.0
+	courier_bike.velocity = Vector3(0, 0, -14.0) # Moving in -Z
+	
+	# Settle look-ahead for 30 frames
+	for i in range(30):
+		camera._process(dt)
+	var forward_look_ahead_z: float = camera._smoothed_look_ahead.z
+	print("[TEST 3 LOG] Steady-state look-ahead Z at 14 m/s: %.4f m" % forward_look_ahead_z)
+	assert(forward_look_ahead_z < -1.5, "FAIL: Forward look-ahead should lead in -Z direction")
+
+	# Instantaneous 180° velocity flip to +Z
+	courier_bike.velocity = Vector3(0, 0, 14.0)
+	var crossed_zero: bool = false
+	var no_overshoot: bool = true
+	
+	for i in range(40):
+		var prev_z: float = camera._smoothed_look_ahead.z
+		camera._process(dt)
+		var cur_z: float = camera._smoothed_look_ahead.z
+		if prev_z < 0.0 and cur_z >= 0.0:
+			crossed_zero = true
+		assert(not is_nan(cur_z) and not is_inf(cur_z), "FAIL: NaN in look-ahead during reversal")
+
+	assert(crossed_zero, "FAIL: Look-ahead must smoothly cross zero during 180° reversal")
+	print("[TEST 3 LOG] Final look-ahead Z after reversal: %.4f m" % camera._smoothed_look_ahead.z)
+	assert(camera._smoothed_look_ahead.z > 1.0, "FAIL: Look-ahead must settle in new +Z direction")
+	print("[TICKET 05 TEST 3 PASSED] 180° look-ahead reversal damping verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 4: Vehicle Yaw / Camera Orientation Decoupling
+	# -------------------------------------------------------------------------
+	print("[TEST 4] Testing Vehicle Yaw Decoupling (Camera Basis Invariant)...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	camera.reset_camera_instant(courier_bike)
+	var initial_cam_basis: Basis = camera.global_transform.basis
+
+	# Rotate vehicle through 360° at high angular speed (powerslide donut)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_speed = 5.0
+	for i in range(60):
+		courier_bike.rotation.y += deg_to_rad(15.0) # 15 deg/frame * 60 = 900 deg
+		courier_bike.velocity = -courier_bike.global_transform.basis.z * 5.0
+		camera._process(dt)
+		
+		# Camera basis must NOT rotate with vehicle yaw!
+		var current_cam_basis: Basis = camera.global_transform.basis
+		var basis_diff_x: float = current_cam_basis.x.distance_to(initial_cam_basis.x)
+		var basis_diff_y: float = current_cam_basis.y.distance_to(initial_cam_basis.y)
+		var basis_diff_z: float = current_cam_basis.z.distance_to(initial_cam_basis.z)
+		assert(basis_diff_x < 0.005 and basis_diff_y < 0.005 and basis_diff_z < 0.005, "FAIL: Camera basis must remain fixed during vehicle spin/donut")
+
+	print("[TICKET 05 TEST 4 PASSED] Vehicle yaw / camera orientation decoupling verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 5: FOV Bounds & Monotonic Speed Response
+	# -------------------------------------------------------------------------
+	print("[TEST 5] Testing FOV Bounds [27.2°, 38.0°] and Monotonic Speed Breathing...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	camera.reset_camera_instant(courier_bike)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	
+	# Test at 0 m/s: FOV settles to 32.0°
+	courier_bike.current_speed = 0.0
+	courier_bike.velocity = Vector3.ZERO
+	for i in range(40):
+		camera._process(dt)
+	print("[TEST 5 LOG] Settle FOV at 0 m/s: %.2f°" % camera.fov)
+	assert(abs(camera.fov - 32.0) < 0.2, "FAIL: FOV should be 32.0° at rest")
+
+	# Accelerate to 14.0 m/s: FOV settles to 38.0°
+	courier_bike.current_speed = 14.0
+	courier_bike.velocity = Vector3(0, 0, -14.0)
+	for i in range(100):
+		camera._process(dt)
+		assert(camera.fov >= 31.9 and camera.fov <= 38.05, "FAIL: FOV exceeded valid range during acceleration")
+	print("[TEST 5 LOG] Settle FOV at 14 m/s: %.2f°" % camera.fov)
+	assert(abs(camera.fov - 38.0) < 0.2, "FAIL: FOV should reach 38.0° at max speed")
+
+	# Interaction mode: FOV settles to 27.2° (32.0 * 0.85)
+	camera.set_interaction_mode(true, signal_tuner)
+	for i in range(100):
+		camera._process(dt)
+		assert(camera.fov >= 27.15 and camera.fov <= 38.05, "FAIL: FOV exceeded range during interaction")
+	print("[TEST 5 LOG] Settle FOV in interaction mode: %.2f°" % camera.fov)
+	assert(abs(camera.fov - 27.2) < 0.2, "FAIL: FOV should reach 27.2° in interaction mode")
+	print("[TICKET 05 TEST 5 PASSED] FOV bounds and speed breathing verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 6: Interaction Focus Enter & Exit
+	# -------------------------------------------------------------------------
+	print("[TEST 6] Testing Interaction Focus Enter and Exit Transition...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	camera.reset_camera_instant(player)
+	
+	# Enter interaction mode with Signal Tuner at (1.5, 0.5, 3.0)
+	camera.set_interaction_mode(true, signal_tuner)
+	for i in range(70):
+		camera._process(dt)
+		assert(not is_nan(camera.global_position.x), "FAIL: NaN position during interaction enter")
+	
+	var focus_error_tuner: float = (camera._smoothed_focus_pos - signal_tuner.global_position).length()
+	print("[TEST 6 LOG] Focus distance to tuner after 70 frames: %.4f m" % focus_error_tuner)
+	assert(focus_error_tuner < 0.15, "FAIL: Camera focus must converge to interaction object")
+
+	# Exit interaction mode: returns to player
+	camera.set_interaction_mode(false)
+	for i in range(70):
+		camera._process(dt)
+	var focus_error_player: float = (camera._smoothed_focus_pos - player.global_position).length()
+	print("[TEST 6 LOG] Focus distance to player after exit: %.4f m" % focus_error_player)
+	assert(focus_error_player < 0.15, "FAIL: Camera focus must return smoothly to player")
+	print("[TICKET 05 TEST 6 PASSED] Interaction focus enter and exit verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 7: 60Hz vs 120Hz Simulation Equivalence
+	# -------------------------------------------------------------------------
+	print("[TEST 7] Testing 60Hz vs 120Hz Simulation Equivalence...")
+	var cam_60: ChinatownCamera3D = ChinatownCamera3D.new()
+	var cam_120: ChinatownCamera3D = ChinatownCamera3D.new()
+	add_child(cam_60)
+	add_child(cam_120)
+	
+	var dummy_target: Node3D = Node3D.new()
+	add_child(dummy_target)
+	dummy_target.global_position = Vector3(0, 0, 0)
+	
+	cam_60.reset_camera_instant(dummy_target)
+	cam_120.reset_camera_instant(dummy_target)
+	
+	# Move target at constant speed 10 m/s for 1.0 second
+	var dt_60: float = 1.0 / 60.0
+	var dt_120: float = 1.0 / 120.0
+	
+	# Run 60Hz sim
+	for i in range(60):
+		dummy_target.global_position = Vector3(0, 0, float(i + 1) * dt_60 * 10.0)
+		cam_60._process(dt_60)
+		
+	# Run 120Hz sim from same initial state
+	dummy_target.global_position = Vector3(0, 0, 0)
+	for i in range(120):
+		dummy_target.global_position = Vector3(0, 0, float(i + 1) * dt_120 * 10.0)
+		cam_120._process(dt_120)
+		
+	var diff_dist: float = cam_60.global_position.distance_to(cam_120.global_position)
+	print("[TEST 7 LOG] 60Hz vs 120Hz final position difference: %.6f m" % diff_dist)
+	assert(diff_dist < 0.05, "FAIL: 60Hz and 120Hz simulation must be equivalent within 0.05m tolerance")
+	
+	cam_60.queue_free()
+	cam_120.queue_free()
+	dummy_target.queue_free()
+	print("[TICKET 05 TEST 7 PASSED] 60Hz vs 120Hz simulation equivalence verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 8: Follow Error Bound Telemetry at 14 m/s
+	# -------------------------------------------------------------------------
+	print("[TEST 8] Testing Steady-State Follow Error Bound Telemetry (14 m/s)...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	camera.reset_camera_instant(courier_bike)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_speed = 14.0
+	courier_bike.velocity = Vector3(0, 0, -14.0)
+
+	# Simulate 120 frames (2.0s) of continuous 14 m/s driving
+	for i in range(120):
+		courier_bike.global_position += courier_bike.velocity * dt
+		camera._process(dt)
+
+	print("[TEST 8 LOG] Steady-state follow error: %.4f m (theoretical ≈ %.4f m)" % [camera.last_follow_error, 14.0 / 5.0])
+	assert(camera.last_follow_error < 3.2, "FAIL: Follow error exceeded 3.2m bound at 14 m/s")
+	assert(camera.last_follow_error > 2.0, "FAIL: Follow error unexpectedly low (filter not damping)")
+	print("[TICKET 05 TEST 8 PASSED] Follow error bound telemetry verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 9: reset_camera_instant() Full State Clear
+	# -------------------------------------------------------------------------
+	print("[TEST 9] Testing reset_camera_instant() Full State Clear...")
+	# Put camera in dirty state: interaction mode on, offset fov, nonzero lookahead
+	camera.set_interaction_mode(true, signal_tuner)
+	camera.fov = 27.2
+	camera._smoothed_look_ahead = Vector3(2.0, 0.0, -3.0)
+	
+	# Execute instant reset
+	camera.reset_camera_instant(player)
+	
+	assert(camera._is_interaction_mode == false, "FAIL: _is_interaction_mode must be false")
+	assert(camera._interaction_target == null, "FAIL: _interaction_target must be null")
+	assert(camera.fov == 32.0, "FAIL: fov must be reset to 32.0°")
+	assert(camera._smoothed_look_ahead == Vector3.ZERO, "FAIL: look-ahead must be zeroed")
+	assert(camera._smoothed_focus_pos == player.global_position, "FAIL: focus pos must snap to player")
+	
+	var expected_cam_pos: Vector3 = player.global_position + Vector3(12, 18, 12)
+	assert(camera.global_position.distance_to(expected_cam_pos) < 0.001, "FAIL: Camera position must snap to fixed rig offset")
+	print("[TICKET 05 TEST 9 PASSED] reset_camera_instant() full state clear verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 10: Forward -> Reverse Look-Ahead Smooth Zero-Crossing
+	# -------------------------------------------------------------------------
+	print("[TEST 10] Testing Forward -> Reverse Look-Ahead Smooth Zero-Crossing...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	camera.reset_camera_instant(courier_bike)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_speed = 10.0
+	courier_bike.velocity = Vector3(0, 0, -10.0)
+
+	# Settle forward look-ahead
+	for i in range(25):
+		camera._process(dt)
+	assert(camera._smoothed_look_ahead.z < -1.0, "FAIL: Look-ahead should be negative in Z")
+
+	# Apply continuous deceleration and reverse crossing
+	var z_history: Array[float] = []
+	for i in range(60):
+		var target_v_z: float = lerpf(-10.0, 6.0, float(i) / 60.0)
+		courier_bike.velocity = Vector3(0, 0, target_v_z)
+		courier_bike.current_speed = abs(target_v_z)
+		camera._process(dt)
+		z_history.append(camera._smoothed_look_ahead.z)
+
+	# Simulate 20 frames at settled reverse speed
+	for i in range(20):
+		camera._process(dt)
+		z_history.append(camera._smoothed_look_ahead.z)
+
+	# Verify monotonic or smooth progression across zero without jerky spikes
+	var max_frame_delta: float = 0.0
+	for i in range(1, z_history.size()):
+		var step: float = abs(z_history[i] - z_history[i - 1])
+		if step > max_frame_delta:
+			max_frame_delta = step
+	print("[TEST 10 LOG] Max look-ahead Z delta per frame during reverse crossing: %.4f m" % max_frame_delta)
+	print("[TEST 10 LOG] Final settled reverse look-ahead Z: %.4f m" % z_history[-1])
+	assert(max_frame_delta < 0.25, "FAIL: Look-ahead Z delta exceeded smoothness threshold during gear crossing")
+	assert(z_history[-1] > 0.5, "FAIL: Look-ahead must smoothly reach reverse (+Z) direction")
+	print("[TICKET 05 TEST 10 PASSED] Forward -> Reverse look-ahead zero-crossing verified!")
+
+	print("\n=========================================================================")
+	print("[ALL V7 TICKET 05 ASSERTIONS PASSED CLEANLY]")
+	print("=========================================================================\n")
+	get_tree().quit(0)
+
 
 
 
