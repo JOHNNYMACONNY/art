@@ -122,7 +122,36 @@ func _run_v1_assertions() -> void:
 	var duplicate_trigger := corroded_panel.trigger_action()
 	assert(not duplicate_trigger, "FAIL: Duplicate extraction must be rejected")
 	
-	print("[V1_ASSERTIONS] PASSED! ALL 7 V1 STRICT ASSERTIONS SUCCEEDED CLEANLY.")
+	print("[V1_ASSERTIONS] 8. Asserting multitouch input event routing & pointer isolation...")
+	var touch0_down := InputEventScreenTouch.new()
+	touch0_down.index = 0
+	touch0_down.pressed = true
+	touch0_down.position = Vector2(100, 200)
+	touch_ui._input(touch0_down)
+	assert(touch_ui.left_pointer_id == 0, "FAIL: Touch 0 down on left screen must acquire left_pointer_id=0")
+	
+	var touch1_down := InputEventScreenTouch.new()
+	touch1_down.index = 1
+	touch1_down.pressed = true
+	touch1_down.position = Vector2(700, 200)
+	touch_ui._input(touch1_down)
+	assert(touch_ui.left_pointer_id == 0, "FAIL: Touch 1 on right screen must NOT steal left_pointer_id")
+	
+	var touch_wrong_up := InputEventScreenTouch.new()
+	touch_wrong_up.index = 99
+	touch_wrong_up.pressed = false
+	touch_wrong_up.position = Vector2(700, 200)
+	touch_ui._input(touch_wrong_up)
+	assert(touch_ui.left_pointer_id == 0, "FAIL: Unrelated pointer release must NOT reset joystick")
+	
+	var touch0_up := InputEventScreenTouch.new()
+	touch0_up.index = 0
+	touch0_up.pressed = false
+	touch0_up.position = Vector2(100, 200)
+	touch_ui._input(touch0_up)
+	assert(touch_ui.left_pointer_id == -1, "FAIL: Matching pointer release must reset joystick")
+	
+	print("[V1_ASSERTIONS] PASSED! ALL 8 V1.1 MULTITOUCH & STATE ASSERTIONS SUCCEEDED CLEANLY.")
 	get_tree().quit()
 
 func _run_automated_gameplay_test() -> void:
@@ -168,6 +197,10 @@ func _on_action_pressed() -> void:
 func _on_peel_gesture_dragged(progress: float) -> void:
 	if corroded_panel:
 		corroded_panel.progress_peel(progress)
+	if audio_mgr:
+		# Pitch ramps 1.15 -> 1.30 during peel gesture
+		var peel_pitch: float = lerp(1.15, 1.30, progress)
+		audio_mgr.set_hum_pitch(peel_pitch)
 
 func _on_core_tap_pressed() -> void:
 	if corroded_panel:
@@ -180,6 +213,14 @@ func _on_magnetism_changed(highlighted: bool, _panel: CorrodedPanel) -> void:
 func _on_extraction_step_changed(step_name: String) -> void:
 	if touch_ui:
 		touch_ui.show_gesture_overlay(step_name)
+	if audio_mgr:
+		match step_name:
+			"PEEL_PANEL":
+				audio_mgr.set_hum_pitch(1.15)
+			"EXPOSE_CORE":
+				audio_mgr.set_hum_pitch(1.50)
+			"EXTRACTED":
+				audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
 
 func _on_extraction_completed() -> void:
 	_extracted_count += 1
