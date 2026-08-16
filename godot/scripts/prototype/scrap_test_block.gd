@@ -3287,9 +3287,8 @@ func _run_v7_ticket06_assertions() -> void:
 	assert(signal_tuner.current_state == SignalTuner.TunerState.READY, "FAIL: Tuner must enter READY state")
 	var success: bool = signal_tuner.begin_interaction(player.global_position)
 	assert(success and signal_tuner.current_state == SignalTuner.TunerState.TUNING, "FAIL: Tuner must enter TUNING state")
-	signal_tuner.tune_dial(0.55) # Tune near target frequency
-	await get_tree().process_frame
-	await get_tree().process_frame
+	signal_tuner.tune_dial(0.25) # Tune into active tuning accuracy range without early locking
+	await get_tree().create_timer(0.05).timeout
 	assert(audio_mgr._static_player.playing, "FAIL: Static player must be active during tuning")
 
 	reset_slice()

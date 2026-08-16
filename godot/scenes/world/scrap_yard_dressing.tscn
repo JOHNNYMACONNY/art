@@ -9,29 +9,101 @@
 
 [node name="ScrapYardDressing" type="Node3D"]
 
-[node name="ColdStartZone" type="Node3D" parent="."]
+[node name="1_ColdStartShelter" type="Node3D" parent="."]
 
-[node name="Container_ColdWest" parent="ColdStartZone" instance=ExtResource("3_container")]
-transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, -4.2, 0, 9.5)
+[node name="Container_WestBase" parent="1_ColdStartShelter" instance=ExtResource("3_container")]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, -4.5, 0, 9.5)
 
-[node name="ScrapPileA_ColdSW" parent="ColdStartZone" instance=ExtResource("1_pile_a")]
-transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, -3.2, 0, 12.5)
+[node name="ScrapPileA_SWCorner" parent="1_ColdStartShelter" instance=ExtResource("1_pile_a")]
+transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, -3.5, 0, 13.0)
 
-[node name="GroundDebris_Cold" parent="ColdStartZone" instance=ExtResource("6_debris")]
-transform = Transform3D(1.2, 0, 0, 0, 1, 0, 0, 0, 1.2, 0, 0, 10)
+[node name="ScrapPileB_Drums" parent="1_ColdStartShelter" instance=ExtResource("2_pile_b")]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, -3.8, 0, 6.5)
 
-[node name="StagingPadZone" type="Node3D" parent="."]
+[node name="GroundDebris_Spawn" parent="1_ColdStartShelter" instance=ExtResource("6_debris")]
+transform = Transform3D(1.3, 0, 0, 0, 1, 0, 0, 0, 1.3, 0, 0, 10.0)
 
-[node name="PipeRack_East" parent="StagingPadZone" instance=ExtResource("4_piperack")]
-transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, 3.8, 0, 4.0)
+[node name="CorrugatedFence_SouthBack" parent="1_ColdStartShelter" instance=ExtResource("5_fence")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.0, 0, 14.2)
 
-[node name="CorrugatedFence_East" parent="StagingPadZone" instance=ExtResource("5_fence")]
-transform = Transform3D(0.965926, 0, -0.258819, 0, 1, 0, 0.258819, 0, 0.965926, 4.0, 0, 8.0)
+[node name="2_TunerOutpost" type="Node3D" parent="."]
 
-[node name="TunerZone" type="Node3D" parent="."]
+[node name="Fence_TunerBackdrop" parent="2_TunerOutpost" instance=ExtResource("5_fence")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6.8)
 
-[node name="ScrapPileB_TunerEast" parent="TunerZone" instance=ExtResource("2_pile_b")]
-transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, 3.2, 0, -4.2)
+[node name="PipeRack_TunerEast" parent="2_TunerOutpost" instance=ExtResource("4_piperack")]
+transform = Transform3D(0.965926, 0, -0.258819, 0, 1, 0, 0.258819, 0, 0.965926, 3.2, 0, -5.5)
 
-[node name="GroundDebris_Tuner" parent="TunerZone" instance=ExtResource("6_debris")]
-transform = Transform3D(1.4, 0, 0, 0, 1, 0, 0, 0, 1.4, 0, 0, -3.5)
+[node name="ScrapPileB_TunerEast" parent="2_TunerOutpost" instance=ExtResource("2_pile_b")]
+transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, 3.4, 0, -3.8)
+
+[node name="ScrapPileA_TunerWest" parent="2_TunerOutpost" instance=ExtResource("1_pile_a")]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, -3.4, 0, -4.8)
+
+[node name="GroundDebris_TunerPad" parent="2_TunerOutpost" instance=ExtResource("6_debris")]
+transform = Transform3D(1.4, 0, 0, 0, 1, 0, 0, 0, 1.4, 0, 0, -5.0)
+
+[node name="3_ExtractionBay" type="Node3D" parent="."]
+
+[node name="Container_MachineryFlank" parent="3_ExtractionBay" instance=ExtResource("3_container")]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -4.5, 0, 0.0)
+
+[node name="PipeRack_ExtractionConduit" parent="3_ExtractionBay" instance=ExtResource("4_piperack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.2, 0, 2.6)
+
+[node name="ScrapPileA_PanelWest" parent="3_ExtractionBay" instance=ExtResource("1_pile_a")]
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, -4.2, 0, -2.4)
+
+[node name="GroundDebris_PanelBase" parent="3_ExtractionBay" instance=ExtResource("6_debris")]
+transform = Transform3D(1.5, 0, 0, 0, 1, 0, 0, 0, 1.5, -2.0, 0, 0.0)
+
+[node name="4_BikeStagingPad" type="Node3D" parent="."]
+
+[node name="PipeRack_StagingEast" parent="4_BikeStagingPad" instance=ExtResource("4_piperack")]
+transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, 4.4, 0, 3.8)
+
+[node name="CorrugatedFence_StagingEast" parent="4_BikeStagingPad" instance=ExtResource("5_fence")]
+transform = Transform3D(0.965926, 0, -0.258819, 0, 1, 0, 0.258819, 0, 0.965926, 4.4, 0, 7.5)
+
+[node name="GroundDebris_StagingPad" parent="4_BikeStagingPad" instance=ExtResource("6_debris")]
+transform = Transform3D(1.2, 0, 0, 0, 1, 0, 0, 0, 1.2, 3.5, 0, 5.5)
+
+[node name="5_GateBarrierAssembly" type="Node3D" parent="."]
+
+[node name="PipeRack_GateStanchionEast" parent="5_GateBarrierAssembly" instance=ExtResource("4_piperack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2, 0, -9.0)
+
+[node name="PipeRack_GateStanchionWest" parent="5_GateBarrierAssembly" instance=ExtResource("4_piperack")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2, 0, -9.0)
+
+[node name="CorrugatedFence_GateWest" parent="5_GateBarrierAssembly" instance=ExtResource("5_fence")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 0, -9.0)
+
+[node name="CorrugatedFence_GateEast" parent="5_GateBarrierAssembly" instance=ExtResource("5_fence")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, -9.0)
+
+[node name="ScrapPileB_GateFlank" parent="5_GateBarrierAssembly" instance=ExtResource("2_pile_b")]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, 3.5, 0, -11.0)
+
+[node name="GroundDebris_GateBase" parent="5_GateBarrierAssembly" instance=ExtResource("6_debris")]
+transform = Transform3D(1.6, 0, 0, 0, 1, 0, 0, 0, 1.6, 0, 0, -9.0)
+
+[node name="6_ShortcutRampAndPerimeter" type="Node3D" parent="."]
+
+[node name="PipeRack_RampBridge" parent="6_ShortcutRampAndPerimeter" instance=ExtResource("4_piperack")]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, 2.5, 0, -14.2)
+
+[node name="ScrapPileA_RampEntrance" parent="6_ShortcutRampAndPerimeter" instance=ExtResource("1_pile_a")]
+transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, 0.8, 0, -14.5)
+
+[node name="Container_NorthWest" parent="6_ShortcutRampAndPerimeter" instance=ExtResource("3_container")]
+transform = Transform3D(0.965926, 0, -0.258819, 0, 1, 0, 0.258819, 0, 0.965926, -4.5, 0, -19.5)
+
+[node name="Container_NorthEast" parent="6_ShortcutRampAndPerimeter" instance=ExtResource("3_container")]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, 4.5, 0, -19.5)
+
+[node name="CorrugatedFence_NorthBackdrop" parent="6_ShortcutRampAndPerimeter" instance=ExtResource("5_fence")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -23.5)
+
+[node name="GroundDebris_RampLanding" parent="6_ShortcutRampAndPerimeter" instance=ExtResource("6_debris")]
+transform = Transform3D(1.4, 0, 0, 0, 1, 0, 0, 0, 1.4, 2.5, 0, -18.0)
