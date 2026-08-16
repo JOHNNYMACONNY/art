@@ -138,6 +138,8 @@ func _ready() -> void:
 		_run_v7_ticket02_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v7-ticket02-1-assertions"):
 		_run_v7_ticket02_1_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v7-ticket03-assertions"):
+		_run_v7_ticket03_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v3-visuals"):
@@ -1598,6 +1600,65 @@ func _run_v7_ticket02_1_assertions() -> void:
 	print("  3.  Late SignalGate Trigger (Pursuer 2.0m behind bike): Passed Gate = %s | Backtracked Detour = %s (Fails AI Logic: Gate 0.75s swing delay lets pursuer pass, then detour forces 180° backward U-turn)" % [task3_passed_gate_before_close, task3_backtracked_detour])
 	print("  4.  On-Time SignalGate Route Switch (Pursuer 8.5m behind): Clean Evasion = %s in %.2fs (Passes Counterplay: Gate slam forces detour, enabling escape)" % [task4_evaded_cleanly, task4_evasion_time])
 	print("=========================================================================")
+	get_tree().quit(0)
+
+func _run_v7_ticket03_assertions() -> void:
+	print("\n=========================================================================")
+	print("[V7_TICKET03_ASSERTIONS] Starting Signal Tuning Gesture Coherence Suite (Ticket 03)...")
+	print("Target Build: main@02445d3 | Testing prompt coherence & drag tuning curve")
+	print("=========================================================================\n")
+	
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	
+	# 1. Approach SignalTuner & Begin Interaction
+	player.global_position = signal_tuner.global_position + Vector3(0, 0, 1.0)
+	signal_tuner.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	
+	await get_tree().create_timer(0.2).timeout
+	assert(signal_tuner.current_state == SignalTuner.TunerState.TUNING, "FAIL: Tuner must enter TUNING state")
+	assert(touch_ui.gesture_hint_label.text == "[ SWIPE ↔ TO TUNE FREQUENCY ]", "FAIL: UI hint text must be [ SWIPE ↔ TO TUNE FREQUENCY ]")
+	print("[TICKET 03 TEST 1 PASSED] UI prompt hint verified: [ SWIPE ↔ TO TUNE FREQUENCY ]")
+	
+	# 2. Simulate InputEventScreenTouch & InputEventScreenDrag for horizontal tuning
+	var touch_down := InputEventScreenTouch.new()
+	touch_down.index = 0
+	touch_down.pressed = true
+	touch_down.position = Vector2(400, 300)
+	touch_ui._gui_input(touch_down)
+	
+	var initial_freq := signal_tuner.current_frequency
+	assert(initial_freq == 0.15, "FAIL: Initial frequency must be 0.15")
+	
+	# Drag right to tune toward target frequency 0.72
+	var drag_ev := InputEventScreenDrag.new()
+	drag_ev.index = 0
+	drag_ev.relative = Vector2(100.0, 0.0)
+	touch_ui._gui_input(drag_ev)
+	
+	assert(signal_tuner.current_frequency > initial_freq, "FAIL: Dragging right must increase frequency")
+	print("[TICKET 03 TEST 2 PASSED] Drag right increased frequency from 0.15 to %.2f" % signal_tuner.current_frequency)
+	
+	# Continue tuning to reach target frequency 0.72
+	for i in range(14):
+		drag_ev.relative = Vector2(16.0, 0.0)
+		touch_ui._gui_input(drag_ev)
+		if abs(signal_tuner.current_frequency - signal_tuner.target_frequency) <= signal_tuner.lock_tolerance:
+			break
+		
+	assert(abs(signal_tuner.current_frequency - signal_tuner.target_frequency) <= signal_tuner.lock_tolerance, "FAIL: Frequency must enter lock tolerance")
+	print("[TICKET 03 TEST 3 PASSED] Fine-tuning reached target frequency lock range: current = %.2f, target = %.2f" % [signal_tuner.current_frequency, signal_tuner.target_frequency])
+	
+	# Dwell for required lock time
+	await get_tree().create_timer(0.5).timeout
+	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED, "FAIL: SignalTuner must enter LOCKED state after dwell time")
+	print("[TICKET 03 TEST 4 PASSED] Signal lock achieved cleanly!")
+	
+	print("\n=========================================================================")
+	print("[ALL V7 TICKET 03 ASSERTIONS PASSED CLEANLY]")
+	print("=========================================================================\n")
 	get_tree().quit(0)
 
 
