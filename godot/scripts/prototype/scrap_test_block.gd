@@ -400,6 +400,8 @@ func reset_slice() -> void:
 		signal_tuner._set_state(SignalTuner.TunerState.DORMANT)
 		signal_tuner.is_powered = true
 		signal_tuner.current_frequency = 0.15
+		signal_tuner._dwell_timer = 0.0
+		signal_tuner._near_lock_active = false
 		
 	if corroded_panel:
 		corroded_panel.current_step = CorrodedPanel.Step.IDLE
@@ -431,6 +433,8 @@ func reset_slice() -> void:
 		
 	if audio_mgr:
 		audio_mgr.set_siren_audio(false, Vector3.ZERO)
+		audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
+		audio_mgr.set_tuning_audio(0.0)
 		if audio_mgr.has_method("set_mix_state"):
 			audio_mgr.set_mix_state(AudioManagerScript.MixState.CALM)
 		
@@ -549,8 +553,11 @@ func _on_extraction_completed() -> void:
 func _on_audio_event_triggered(event_name: String, source_pos: Vector3) -> void:
 	if audio_mgr:
 		match event_name:
-			"PROXIMITY_HUM", "TUNER_NEAR_LOCK":
+			"PROXIMITY_HUM", "TUNER_NEAR_LOCK_ENTER":
 				audio_mgr.play_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM, source_pos)
+			"TUNER_NEAR_LOCK_EXIT":
+				audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
+				audio_mgr.set_tuning_audio(0.0)
 			"PANEL_PEEL":
 				audio_mgr.play_event(AudioManagerScript.SoundEvent.PANEL_PEEL, source_pos)
 			"CORE_PULL":
@@ -1638,60 +1645,102 @@ func _run_v7_ticket03_assertions() -> void:
 	touch_down.position = Vector2(400, 300)
 	touch_ui._gui_input(touch_down)
 	
-	# 2. Test 60Hz vs 120Hz Event-Frequency Displacement Invariance
-	# Session A: single 100px event
-	signal_tuner.current_frequency = 0.15
-	signal_tuner._drag_start_freq = 0.15
+	# 2. 60Hz vs 120Hz displacement invariance at 100px (small) and 300px (moderate)
 	var drag_ev := InputEventScreenDrag.new()
 	drag_ev.index = 0
-	drag_ev.relative = Vector2(100.0, 0.0)
-	touch_ui._tuning_accum_px = 0.0
+	
+	# Test A: 1×100px vs 10×10px
+	signal_tuner.current_frequency = 0.15; signal_tuner._drag_start_freq = 0.15
+	drag_ev.relative = Vector2(100.0, 0.0); touch_ui._tuning_accum_px = 0.0
 	touch_ui._gui_input(drag_ev)
-	var session_a_freq := signal_tuner.current_frequency
+	var a1_freq := signal_tuner.current_frequency
+	signal_tuner.current_frequency = 0.15; signal_tuner._drag_start_freq = 0.15
+	drag_ev.relative = Vector2(10.0, 0.0); touch_ui._tuning_accum_px = 0.0
+	for i in range(10): touch_ui._gui_input(drag_ev)
+	var a2_freq := signal_tuner.current_frequency
+	assert(abs(a1_freq - a2_freq) < 0.0001, "FAIL: 1x100px vs 10x10px must be invariant")
+	print("[TICKET 03 TEST 2 PASSED] 60Hz/120Hz invariance 100px: single=%.4f multi=%.4f" % [a1_freq, a2_freq])
 	
-	# Session B: ten 10px events (simulate 120Hz fragmentation)
+	# Test B: 3×100px (total 300px) vs 30×10px — larger displacement
+	signal_tuner.current_frequency = 0.15; signal_tuner._drag_start_freq = 0.15
+	drag_ev.relative = Vector2(100.0, 0.0); touch_ui._tuning_accum_px = 0.0
+	for i in range(3): touch_ui._gui_input(drag_ev)
+	var b1_freq := signal_tuner.current_frequency
+	signal_tuner.current_frequency = 0.15; signal_tuner._drag_start_freq = 0.15
+	drag_ev.relative = Vector2(10.0, 0.0); touch_ui._tuning_accum_px = 0.0
+	for i in range(30): touch_ui._gui_input(drag_ev)
+	var b2_freq := signal_tuner.current_frequency
+	assert(abs(b1_freq - b2_freq) < 0.0001, "FAIL: 3x100px vs 30x10px must be invariant")
+	print("[TICKET 03 TEST 3 PASSED] 60Hz/120Hz invariance 300px: 3x100=%.4f 30x10=%.4f" % [b1_freq, b2_freq])
+	
+	# Test C: Extreme swipe saturation — 2000px must NOT slam to 0/1 instantly
+	signal_tuner.current_frequency = 0.15; signal_tuner._drag_start_freq = 0.15
+	drag_ev.relative = Vector2(2000.0, 0.0); touch_ui._tuning_accum_px = 0.0
+	touch_ui._gui_input(drag_ev)
+	var extreme_freq := signal_tuner.current_frequency
+	assert(extreme_freq < 1.0, "FAIL: Extreme swipe must NOT instantly reach 1.0 (tanh saturation required)")
+	assert(extreme_freq > 0.6, "FAIL: Extreme swipe from 0.15 must reach upper range")
+	print("[TICKET 03 TEST 4 PASSED] Extreme swipe saturation: freq=%.4f (bounded, not 1.0)" % extreme_freq)
+	
+	# 3. Near-lock exit lifecycle: NEAR_LOCK_ENTER/EXIT events
+	signal_tuner.current_frequency = 0.15; signal_tuner._drag_start_freq = 0.15
+	signal_tuner._near_lock_active = false
+	var near_lock_events: Array = []
+	var evt_cb := func(ev: String, _pos: Vector3): near_lock_events.append(ev)
+	signal_tuner.audio_event_triggered.connect(evt_cb)
+	
+	# Drag into lock range to trigger ENTER
+	signal_tuner.current_frequency = 0.72 # place inside lock range
+	signal_tuner._process(0.016) # one frame
+	assert("TUNER_NEAR_LOCK_ENTER" in near_lock_events, "FAIL: Must emit TUNER_NEAR_LOCK_ENTER on entering lock range")
+	var enter_count := near_lock_events.count("TUNER_NEAR_LOCK_ENTER")
+	signal_tuner._process(0.016) # second frame — must NOT re-emit ENTER
+	assert(near_lock_events.count("TUNER_NEAR_LOCK_ENTER") == enter_count, "FAIL: TUNER_NEAR_LOCK_ENTER must emit ONCE, not every frame")
+	print("[TICKET 03 TEST 5 PASSED] TUNER_NEAR_LOCK_ENTER emitted once on entering tolerance")
+	
+	# Drag out of lock range to trigger EXIT
+	signal_tuner.current_frequency = 0.90 # outside lock range
+	signal_tuner._process(0.016)
+	assert("TUNER_NEAR_LOCK_EXIT" in near_lock_events, "FAIL: Must emit TUNER_NEAR_LOCK_EXIT when leaving lock range")
+	var exit_count := near_lock_events.count("TUNER_NEAR_LOCK_EXIT")
+	signal_tuner._process(0.016) # second frame — must NOT re-emit EXIT
+	assert(near_lock_events.count("TUNER_NEAR_LOCK_EXIT") == exit_count, "FAIL: TUNER_NEAR_LOCK_EXIT must emit ONCE, not every frame")
+	print("[TICKET 03 TEST 6 PASSED] TUNER_NEAR_LOCK_EXIT emitted once on leaving tolerance")
+	
+	signal_tuner.audio_event_triggered.disconnect(evt_cb)
+	
+	# 4. Fine-tune using tanh accumulator to reach lock range and complete lock payoff
+	# Force READY so begin_interaction can succeed (near-lock tests left tuner in TUNING)
+	signal_tuner._set_state(SignalTuner.TunerState.READY)
 	signal_tuner.current_frequency = 0.15
-	signal_tuner._drag_start_freq = 0.15
-	drag_ev.relative = Vector2(10.0, 0.0)
+	# Reset touch_ui accumulator state — extreme swipe test (2000px) left _tuning_accum_px dirty
 	touch_ui._tuning_accum_px = 0.0
-	for i in range(10):
-		touch_ui._gui_input(drag_ev)
-	var session_b_freq := signal_tuner.current_frequency
-	
-	assert(abs(session_a_freq - session_b_freq) < 0.0001, "FAIL: Cumulative accumulator must be 60Hz/120Hz displacement invariant")
-	print("[TICKET 03 TEST 2 PASSED] 60Hz vs 120Hz invariance: Session A (1x100px) = %.4f | Session B (10x10px) = %.4f" % [session_a_freq, session_b_freq])
-	
-	# 3. Near-lock exit lifecycle: finger-up while in lock range must stop hum & cancel interaction
-	signal_tuner.current_frequency = 0.72
-	signal_tuner._drag_start_freq = 0.72
-	# Simulate touch-up while tuning
-	var touch_up := InputEventScreenTouch.new()
-	touch_up.index = 0
-	touch_up.pressed = false
-	touch_ui._gui_input(touch_up)
-	assert(signal_tuner.current_state != SignalTuner.TunerState.TUNING, "FAIL: cancel_interaction must exit TUNING state on touch-up")
-	print("[TICKET 03 TEST 3 PASSED] Near-lock exit: touch release cancels TUNING state cleanly")
-	
-	# 4. Fine-tune from 0.15 to lock range (accumulator-based, single event)
-	signal_tuner.current_frequency = 0.15
+	touch_ui._is_tuning = false
+	touch_ui._interaction_touch_index = -1
 	signal_tuner.begin_interaction(player.global_position)
+	assert(signal_tuner.current_state == SignalTuner.TunerState.TUNING, "FAIL: begin_interaction must set TUNING")
 	var re_touch_down := InputEventScreenTouch.new()
-	re_touch_down.index = 0
-	re_touch_down.pressed = true
+	re_touch_down.index = 0; re_touch_down.pressed = true
 	re_touch_down.position = Vector2(400, 300)
 	touch_ui._gui_input(re_touch_down)
-	# 190px total = start(0.15) + 190*0.003 = 0.72 → inside lock range [0.67, 0.77]
+	# tanh(295*0.003/0.65) = tanh(1.362) = 0.878; 0.65*0.878 = 0.571; 0.15+0.571 = 0.721 ∈ [0.67, 0.77]
 	var fine_drag := InputEventScreenDrag.new()
-	fine_drag.index = 0
-	fine_drag.relative = Vector2(190.0, 0.0)
+	fine_drag.index = 0; fine_drag.relative = Vector2(295.0, 0.0)
 	touch_ui._gui_input(fine_drag)
-	assert(abs(signal_tuner.current_frequency - signal_tuner.target_frequency) <= signal_tuner.lock_tolerance, "FAIL: Frequency must enter lock tolerance")
-	print("[TICKET 03 TEST 4 PASSED] Fine-tuning reached target frequency lock range: current = %.2f, target = %.2f" % [signal_tuner.current_frequency, signal_tuner.target_frequency])
+	print("[TICKET 03 TEST 7 DEBUG] freq=%.4f target=%.4f tol=%.4f" % [signal_tuner.current_frequency, signal_tuner.target_frequency, signal_tuner.lock_tolerance])
+	assert(abs(signal_tuner.current_frequency - signal_tuner.target_frequency) <= signal_tuner.lock_tolerance, "FAIL: 295px drag must reach lock tolerance via tanh curve")
+	print("[TICKET 03 TEST 7 PASSED] Fine-tuning reached lock range: current=%.3f, target=%.3f" % [signal_tuner.current_frequency, signal_tuner.target_frequency])
 	
-	# 5. Dwell for required lock time
+	# 5. Dwell lock payoff — fires exactly once
+	# Use array ref to avoid GDScript int capture-by-value in lambda
+	var lock_count := [0]
+	var lock_cb := func(_t: SignalTuner): lock_count[0] += 1
+	signal_tuner.signal_locked.connect(lock_cb)
 	await get_tree().create_timer(0.5).timeout
-	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED, "FAIL: SignalTuner must enter LOCKED state after dwell time")
-	print("[TICKET 03 TEST 5 PASSED] Signal lock achieved cleanly!")
+	signal_tuner.signal_locked.disconnect(lock_cb)
+	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED, "FAIL: SignalTuner must enter LOCKED state after dwell")
+	assert(lock_count[0] == 1, "FAIL: signal_locked must fire exactly once (got %d)" % lock_count[0])
+	print("[TICKET 03 TEST 8 PASSED] Signal lock achieved cleanly! Lock count = %d" % lock_count[0])
 	
 	print("\n=========================================================================")
 	print("[ALL V7 TICKET 03 ASSERTIONS PASSED CLEANLY]")

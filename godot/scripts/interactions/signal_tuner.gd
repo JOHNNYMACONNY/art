@@ -21,13 +21,19 @@ enum TunerState {
 @export var lock_tolerance: float = 0.05
 @export var dwell_time_required: float = 0.4
 
+# Saturating drag curve: small moves precise, extreme moves smoothly bounded
+@export var tuner_drag_sensitivity: float = 0.003
+@export var tuner_max_gesture_delta: float = 0.65
+
 @onready var dial_mesh: MeshInstance3D = $MeshPivot/DialMesh
 @onready var aura_mesh: MeshInstance3D = $MeshPivot/AuraMesh
 
 var current_state: TunerState = TunerState.DORMANT
 var _dwell_timer: float = 0.0
 var _drag_start_freq: float = 0.0
+var _near_lock_active: bool = false
 
+# Legacy direct-delta API used by assertion suites only
 const DRAG_SENSITIVITY: float = 0.003
 
 func update_player_distance(player_pos: Vector3) -> void:
@@ -56,18 +62,24 @@ func begin_interaction(_player_pos: Vector3) -> bool:
 	if not can_interact(_player_pos):
 		return false
 	_drag_start_freq = current_frequency
+	_near_lock_active = false
 	_set_state(TunerState.TUNING)
 	return true
 
 func tune_from_accum_px(accum_px: float) -> void:
 	if current_state != TunerState.TUNING:
 		return
-	current_frequency = clampf(_drag_start_freq + accum_px * DRAG_SENSITIVITY, 0.0, 1.0)
+	# Saturating tanh curve: same displacement = same result regardless of event count
+	# Small moves: linear precision. Extreme moves: smoothly bounded by max_gesture_delta.
+	var raw: float = accum_px * tuner_drag_sensitivity
+	var mapped: float = tuner_max_gesture_delta * tanh(raw / tuner_max_gesture_delta)
+	current_frequency = clampf(_drag_start_freq + mapped, 0.0, 1.0)
 	if dial_mesh:
 		dial_mesh.rotation.y = current_frequency * TAU
 
 func cancel_interaction() -> void:
 	if current_state == TunerState.TUNING:
+		_emit_near_lock_exit_if_active()
 		_set_state(TunerState.READY if is_player_in_range else TunerState.ATTRACTING)
 
 func _process(delta: float) -> void:
@@ -77,21 +89,27 @@ func _process(delta: float) -> void:
 		
 		if abs(current_frequency - target_frequency) <= lock_tolerance:
 			_dwell_timer += delta
-			audio_event_triggered.emit("TUNER_NEAR_LOCK", global_position)
+			if not _near_lock_active:
+				_near_lock_active = true
+				audio_event_triggered.emit("TUNER_NEAR_LOCK_ENTER", global_position)
 			if _dwell_timer >= dwell_time_required:
 				_lock_signal()
 		else:
 			_dwell_timer = max(0.0, _dwell_timer - delta * 2.0)
+			if _near_lock_active:
+				_near_lock_active = false
+				audio_event_triggered.emit("TUNER_NEAR_LOCK_EXIT", global_position)
 
 func tune_dial(delta_freq: float) -> void:
+	# Direct delta API for assertion suites. Does not use accumulator.
 	if current_state != TunerState.TUNING:
 		return
 	current_frequency = clamp(current_frequency + delta_freq, 0.0, 1.0)
 	if dial_mesh:
 		dial_mesh.rotation.y = current_frequency * TAU
-	audio_event_triggered.emit("TUNER_ROTATE", global_position)
 
 func _lock_signal() -> void:
+	_emit_near_lock_exit_if_active()
 	_set_state(TunerState.LOCKED)
 	audio_event_triggered.emit("SIGNAL_LOCK", global_position)
 	signal_locked.emit(self)
@@ -100,6 +118,11 @@ func _lock_signal() -> void:
 		if mat:
 			mat.albedo_color = Color(0.1, 0.9, 0.4, 0.8)
 			mat.emission = Color(0.1, 0.9, 0.4, 1.0)
+
+func _emit_near_lock_exit_if_active() -> void:
+	if _near_lock_active:
+		_near_lock_active = false
+		audio_event_triggered.emit("TUNER_NEAR_LOCK_EXIT", global_position)
 
 func _set_state(new_state: TunerState) -> void:
 	if current_state == new_state:
