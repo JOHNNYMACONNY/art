@@ -1,19 +1,23 @@
 class_name AudioManager
 extends Node
 
-# State-Driven Spatialized 3D Audio Manager for Echos in the Scrap
+# State-Driven Spatial 3D Audio Mix Engine for Echos in the Scrap
 
 enum SoundEvent {
 	FOOTSTEP,
 	PROXIMITY_HUM,
+	STATIC_NOISE,
 	PANEL_PEEL,
 	SPARK,
 	CORE_PULL,
+	SIGNAL_LOCK,
+	PANEL_POWERED,
 	COMPLETION
 }
 
 var _players: Dictionary = {}
 var _spatial_hum_player: AudioStreamPlayer3D = null
+var _static_noise_player: AudioStreamPlayer = null
 
 func _ready() -> void:
 	for event in SoundEvent.values():
@@ -25,6 +29,12 @@ func _ready() -> void:
 			add_child(p3d)
 			_spatial_hum_player = p3d
 			_players[event] = p3d
+		elif event == SoundEvent.STATIC_NOISE:
+			var p_static := AudioStreamPlayer.new()
+			p_static.name = "StaticNoisePlayer"
+			add_child(p_static)
+			_static_noise_player = p_static
+			_players[event] = p_static
 		else:
 			var p := AudioStreamPlayer.new()
 			p.name = "AudioPlayer_" + str(event)
@@ -35,9 +45,12 @@ func _ready() -> void:
 func _setup_synth_sounds() -> void:
 	_players[SoundEvent.FOOTSTEP].stream = _create_click_stream(0.04, 120.0)
 	_players[SoundEvent.PROXIMITY_HUM].stream = _create_hum_stream(0.5, 65.0)
+	_players[SoundEvent.STATIC_NOISE].stream = _create_noise_stream(1.0, 1000.0)
 	_players[SoundEvent.PANEL_PEEL].stream = _create_noise_stream(0.25, 600.0)
 	_players[SoundEvent.SPARK].stream = _create_noise_stream(0.08, 2400.0)
 	_players[SoundEvent.CORE_PULL].stream = _create_click_stream(0.3, 440.0)
+	_players[SoundEvent.SIGNAL_LOCK].stream = _create_chime_stream(0.5, 660.0)
+	_players[SoundEvent.PANEL_POWERED].stream = _create_chime_stream(0.4, 520.0)
 	_players[SoundEvent.COMPLETION].stream = _create_chime_stream(0.6, 880.0)
 
 func play_event(event: SoundEvent, global_pos: Vector3 = Vector3.ZERO) -> void:
@@ -50,6 +63,19 @@ func play_event(event: SoundEvent, global_pos: Vector3 = Vector3.ZERO) -> void:
 			var p: AudioStreamPlayer = _players[event]
 			if not p.playing:
 				p.play()
+
+func set_tuning_audio(accuracy: float) -> void:
+	if _static_noise_player:
+		if accuracy > 0.0:
+			if not _static_noise_player.playing:
+				_static_noise_player.play()
+			# Static volume ducks as accuracy increases
+			_static_noise_player.volume_db = lerp(-6.0, -30.0, accuracy)
+		else:
+			_static_noise_player.stop()
+			
+	if _spatial_hum_player:
+		_spatial_hum_player.pitch_scale = lerp(0.8, 1.6, accuracy)
 
 func set_hum_pitch(pitch_scale: float) -> void:
 	if _spatial_hum_player:
@@ -94,13 +120,14 @@ func _create_noise_stream(duration: float, _filter_freq: float) -> AudioStreamWA
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
 	wav.mix_rate = 22050
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	wav.loop_end = int(wav.mix_rate * duration)
 	var sample_count := int(wav.mix_rate * duration)
 	var data := PackedByteArray()
 	data.resize(sample_count)
 	for i in range(sample_count):
-		var env := 1.0 - (float(i) / float(sample_count))
-		var noise := (randf() * 2.0 - 1.0) * env
-		var sample := int(128.0 + 80.0 * noise)
+		var noise := (randf() * 2.0 - 1.0)
+		var sample := int(128.0 + 60.0 * noise)
 		data[i] = clamp(sample, 0, 255)
 	wav.data = data
 	return wav

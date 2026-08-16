@@ -1,14 +1,11 @@
 class_name SignalTuner
-extends Area3D
+extends InteractableBase
 
-# SignalTuner: Electrical / Perceptual Frequency Dial Mechanic for Echos in the Scrap
+# SignalTuner: Frequency Dial Mechanic for Echos in the Scrap
 # State machine: DORMANT -> ATTRACTING -> READY -> TUNING -> LOCKED -> SPENT
 
 signal frequency_changed(frequency: float, accuracy: float)
 signal signal_locked(tuner: SignalTuner)
-signal proximity_changed(in_range: bool, tuner: SignalTuner)
-signal state_changed(new_state_name: String)
-signal audio_event_triggered(event_name: String)
 
 enum TunerState {
 	DORMANT,
@@ -19,8 +16,6 @@ enum TunerState {
 	SPENT
 }
 
-@export var sensory_radius: float = 6.0
-@export var interaction_radius: float = 2.5
 @export var target_frequency: float = 0.72
 @export var current_frequency: float = 0.15
 @export var lock_tolerance: float = 0.05
@@ -30,13 +25,7 @@ enum TunerState {
 @onready var aura_mesh: MeshInstance3D = $MeshPivot/AuraMesh
 
 var current_state: TunerState = TunerState.DORMANT
-var is_player_in_range: bool = false
 var _dwell_timer: float = 0.0
-var _player_ref: Node3D = null
-
-func _ready() -> void:
-	body_entered.connect(_on_body_entered)
-	body_exited.connect(_on_body_exited)
 
 func update_player_distance(player_pos: Vector3) -> void:
 	if current_state == TunerState.LOCKED or current_state == TunerState.SPENT:
@@ -57,13 +46,16 @@ func update_player_distance(player_pos: Vector3) -> void:
 		else:
 			_set_state(TunerState.DORMANT)
 
-func begin_tuning() -> bool:
-	if current_state != TunerState.READY:
+func can_interact(_player_pos: Vector3) -> bool:
+	return is_powered and current_state == TunerState.READY
+
+func begin_interaction(_player_pos: Vector3) -> bool:
+	if not can_interact(_player_pos):
 		return false
 	_set_state(TunerState.TUNING)
 	return true
 
-func cancel_tuning() -> void:
+func cancel_interaction() -> void:
 	if current_state == TunerState.TUNING:
 		_set_state(TunerState.READY if is_player_in_range else TunerState.ATTRACTING)
 
@@ -74,7 +66,7 @@ func _process(delta: float) -> void:
 		
 		if abs(current_frequency - target_frequency) <= lock_tolerance:
 			_dwell_timer += delta
-			audio_event_triggered.emit("TUNER_NEAR_LOCK")
+			audio_event_triggered.emit("TUNER_NEAR_LOCK", global_position)
 			if _dwell_timer >= dwell_time_required:
 				_lock_signal()
 		else:
@@ -86,25 +78,17 @@ func tune_dial(delta_freq: float) -> void:
 	current_frequency = clamp(current_frequency + delta_freq, 0.0, 1.0)
 	if dial_mesh:
 		dial_mesh.rotation.y = current_frequency * TAU
-	audio_event_triggered.emit("TUNER_ROTATE")
+	audio_event_triggered.emit("TUNER_ROTATE", global_position)
 
 func _lock_signal() -> void:
 	_set_state(TunerState.LOCKED)
-	audio_event_triggered.emit("SIGNAL_LOCK")
+	audio_event_triggered.emit("SIGNAL_LOCK", global_position)
 	signal_locked.emit(self)
 	if aura_mesh:
 		var mat := aura_mesh.get_surface_override_material(0) as StandardMaterial3D
 		if mat:
 			mat.albedo_color = Color(0.1, 0.9, 0.4, 0.8)
 			mat.emission = Color(0.1, 0.9, 0.4, 1.0)
-
-func _on_body_entered(body: Node3D) -> void:
-	if body is CharacterBody3D:
-		_player_ref = body
-
-func _on_body_exited(body: Node3D) -> void:
-	if body == _player_ref:
-		_player_ref = null
 
 func _set_state(new_state: TunerState) -> void:
 	if current_state == new_state:

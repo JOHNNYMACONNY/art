@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://c_scrap_test_block_001"]
+[gd_scene load_steps=21 format=3 uid="uid://c_scrap_test_block_001"]
 
 [ext_resource type="Script" path="res://scripts/prototype/scrap_test_block.gd" id="1_root"]
 
@@ -50,6 +50,15 @@ size = Vector3(6, 0.5, 4)
 [sub_resource type="BoxShape3D" id="BoxShape3D_step"]
 size = Vector3(6, 0.5, 4)
 
+[sub_resource type="BoxMesh" id="BoxMesh_conduit"]
+size = Vector3(0.15, 0.1, 4.0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_conduit"]
+albedo_color = Color(0.2, 0.25, 0.3, 1)
+emission_enabled = true
+emission = Color(0.1, 0.3, 0.4, 1)
+emission_energy_multiplier = 0.5
+
 [node name="ScrapTestBlock" type="Node3D"]
 script = ExtResource("1_root")
 
@@ -71,6 +80,11 @@ surface_material_override/0 = SubResource("StandardMaterial3D_floor")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
 shape = SubResource("BoxShape3D_floor")
+
+[node name="PowerConduit" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -5.5)
+mesh = SubResource("BoxMesh_conduit")
+surface_material_override/0 = SubResource("StandardMaterial3D_conduit")
 
 [node name="ScrapWallLeft" type="StaticBody3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 1.5, -3)
@@ -125,7 +139,7 @@ offset_left = 16.0
 offset_top = 16.0
 offset_right = 400.0
 offset_bottom = 70.0
-text = "ECHOS IN THE SCRAP // GOLDEN SLICE v1"
+text = "ECHOS IN THE SCRAP // GOLDEN SLICE v2"
 
 [node name="TouchControlsUI" type="Control" parent="CanvasLayer"]
 layout_mode = 3
@@ -205,7 +219,7 @@ anchor_right = 1.0
 offset_top = 20.0
 offset_bottom = 50.0
 grow_horizontal = 2
-text = "DRAG DOWN TO PEEL CORRODED COVER"
+text = "SWIPE HORIZONTALLY TO TUNE FREQUENCY"
 horizontal_alignment = 1
 
 [node name="CorePullButton" type="Button" parent="CanvasLayer/TouchControlsUI/GestureOverlayPanel"]
