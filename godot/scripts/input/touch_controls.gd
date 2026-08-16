@@ -131,23 +131,30 @@ func set_mode(mode: UIMode) -> void:
 		if driving_panel: driving_panel.visible = true
 		close_interaction_overlay()
 
+var _is_rejection_flashing: bool = false
+var _toast_timer_count: int = 0
+
 func set_dismount_button_enabled(available: bool) -> void:
 	if dismount_button:
 		dismount_button.disabled = false # Keep button clickable so rejection events reach controller!
-		dismount_button.modulate = Color(1.0, 1.0, 1.0, 1.0) if available else Color(1.0, 1.0, 1.0, 0.6)
+		if not _is_rejection_flashing:
+			dismount_button.modulate = Color(1.0, 1.0, 1.0, 1.0) if available else Color(1.0, 1.0, 1.0, 0.6)
 
 func show_dismount_rejection_warning(toast_text: String) -> void:
+	_toast_timer_count += 1
+	var current_timer_id := _toast_timer_count
 	if dismount_button:
-		var orig_mod := dismount_button.modulate
+		_is_rejection_flashing = true
 		dismount_button.modulate = Color(1.5, 0.3, 0.3, 1.0)
 		get_tree().create_timer(0.2).timeout.connect(func():
+			_is_rejection_flashing = false
 			if dismount_button:
-				dismount_button.modulate = orig_mod
+				dismount_button.modulate = Color(1.0, 1.0, 1.0, 0.6)
 		)
 	if alert_label:
 		show_tension_hud(toast_text)
 		get_tree().create_timer(1.2).timeout.connect(func():
-			if current_mode == UIMode.VEHICLE_DRIVING and alert_label and alert_label.text == toast_text:
+			if _toast_timer_count == current_timer_id and current_mode == UIMode.VEHICLE_DRIVING and alert_label:
 				hide_tension_hud()
 		)
 

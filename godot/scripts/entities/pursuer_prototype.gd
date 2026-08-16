@@ -6,7 +6,7 @@ extends CharacterBody3D
 
 signal intercepted_target
 
-@export var max_speed: float = 11.0
+@export var max_speed: float = 15.5
 @export var acceleration: float = 14.0
 @export var steering_speed: float = 4.0
 @export var intercept_distance: float = 1.5
