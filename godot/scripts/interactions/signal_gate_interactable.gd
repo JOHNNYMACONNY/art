@@ -71,8 +71,9 @@ func is_sweep_occupied() -> bool:
 	if not sweep_area:
 		return false
 	for body in sweep_area.get_overlapping_bodies():
-		if body != barrier_body and (body is CharacterBody3D or body.name == "Runner" or body.name == "CourierBike"):
-			return true
+		if body != barrier_body:
+			if body is PlayerRunner or body is CourierBike or body.name == "Runner" or body.name == "CourierBike":
+				return true
 	return false
 
 func trigger_gate() -> void:

@@ -107,6 +107,7 @@ func _ready() -> void:
 		touch_ui.joystick_vector_updated.connect(_on_joystick_vector_updated)
 		touch_ui.action_button_pressed.connect(_on_action_pressed)
 		touch_ui.peel_gesture_dragged.connect(_on_peel_gesture_dragged)
+		touch_ui.peel_gesture_released.connect(_on_peel_gesture_released)
 		touch_ui.tuner_dragged.connect(_on_tuner_dragged)
 		touch_ui.core_tap_pressed.connect(_on_core_tap_pressed)
 		touch_ui.driving_steer_updated.connect(func(steer: float): _steer_input = steer)
@@ -474,6 +475,16 @@ func _on_peel_gesture_dragged(progress: float) -> void:
 	if audio_mgr:
 		var peel_pitch: float = lerp(1.15, 1.30, progress)
 		audio_mgr.set_hum_pitch(peel_pitch)
+
+func _on_peel_gesture_released() -> void:
+	if corroded_panel and corroded_panel.current_step == CorrodedPanel.Step.PEELING:
+		corroded_panel.cancel_interaction()
+		if player:
+			player.is_input_locked = false
+		if camera:
+			camera.set_interaction_mode(false)
+		if touch_ui:
+			touch_ui.close_interaction_overlay()
 
 func _on_core_tap_pressed() -> void:
 	if corroded_panel:

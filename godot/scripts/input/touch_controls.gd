@@ -7,6 +7,7 @@ extends Control
 signal joystick_vector_updated(vec: Vector2)
 signal action_button_pressed
 signal peel_gesture_dragged(progress: float)
+signal peel_gesture_released
 signal tuner_dragged(delta_freq: float)
 signal core_tap_pressed
 signal driving_steer_updated(steer: float)
@@ -130,13 +131,16 @@ func set_action_button_highlight(highlighted: bool) -> void:
 	if action_button:
 		action_button.modulate = Color(1.2, 1.2, 0.4, 1.0) if highlighted else Color(1.0, 1.0, 1.0, 0.7)
 
-func show_gesture_overlay(type: String) -> void:
-	_current_gesture_type = type
+var _peel_accumulated_y: float = 0.0
+
+func show_gesture_overlay(gesture_type: String) -> void:
+	_current_gesture_type = gesture_type
+	_peel_accumulated_y = 0.0
 	if gesture_panel:
 		gesture_panel.visible = true
-	if core_tap_button: core_tap_button.visible = (type == "EXPOSE_CORE")
+	if core_tap_button: core_tap_button.visible = (gesture_type == "EXPOSE_CORE")
 	if gesture_hint_label:
-		match type:
+		match gesture_type:
 			"TUNE_SIGNAL": gesture_hint_label.text = "[ ROTATE DIAL TO LOCK FREQUENCY ]"
 			"PEEL_PANEL": gesture_hint_label.text = "[ SWIPE DOWN TO PEEL PANEL ]"
 			"EXPOSE_CORE": gesture_hint_label.text = "[ TAP CORE TO EXTRACT ]"
@@ -148,6 +152,7 @@ func close_interaction_overlay() -> void:
 	_is_tuning = false
 	_interaction_touch_index = -1
 	_current_gesture_type = ""
+	_peel_accumulated_y = 0.0
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
@@ -158,9 +163,12 @@ func _gui_input(event: InputEvent) -> void:
 					_interaction_touch_index = touch_ev.index
 					if _current_gesture_type == "PEEL_PANEL":
 						_is_peeling = true
+						_peel_accumulated_y = 0.0
 					elif _current_gesture_type == "TUNE_SIGNAL":
 						_is_tuning = true
 			elif not touch_ev.pressed and touch_ev.index == _interaction_touch_index:
+				if _is_peeling:
+					peel_gesture_released.emit()
 				_is_peeling = false
 				_is_tuning = false
 				_interaction_touch_index = -1
@@ -177,7 +185,8 @@ func _gui_input(event: InputEvent) -> void:
 			_update_joystick(drag_ev.position)
 		elif drag_ev.index == _interaction_touch_index:
 			if _is_peeling and drag_ev.relative.y > 0:
-				var progress: float = clampf(drag_ev.relative.y / 200.0, 0.0, 1.0)
+				_peel_accumulated_y += drag_ev.relative.y
+				var progress: float = clampf(_peel_accumulated_y / 150.0, 0.0, 1.0)
 				peel_gesture_dragged.emit(progress)
 			elif _is_tuning and abs(drag_ev.relative.x) > 0:
 				var delta_freq: float = drag_ev.relative.x / 300.0
