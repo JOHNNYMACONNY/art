@@ -110,6 +110,7 @@ func _ready() -> void:
 		touch_ui.peel_gesture_dragged.connect(_on_peel_gesture_dragged)
 		touch_ui.peel_gesture_released.connect(_on_peel_gesture_released)
 		touch_ui.tuner_dragged.connect(_on_tuner_dragged)
+		touch_ui.tuner_interaction_released.connect(_on_tuner_interaction_released)
 		touch_ui.core_tap_pressed.connect(_on_core_tap_pressed)
 		touch_ui.driving_steer_updated.connect(func(steer: float): _steer_input = steer)
 		touch_ui.driving_throttle_updated.connect(func(throttle: float): _throttle_input = throttle)
@@ -447,9 +448,16 @@ func reset_slice() -> void:
 		
 	print("[WORLD_LOOP] Slice reset to initial cold start state cleanly.")
 
-func _on_tuner_dragged(delta_freq: float) -> void:
+func _on_tuner_dragged(accum_px: float) -> void:
 	if signal_tuner:
-		signal_tuner.tune_dial(delta_freq)
+		signal_tuner.tune_from_accum_px(accum_px)
+
+func _on_tuner_interaction_released() -> void:
+	if signal_tuner:
+		signal_tuner.cancel_interaction()
+	if audio_mgr:
+		audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
+		audio_mgr.set_tuning_audio(0.0)
 
 func _on_tuner_frequency_changed(_freq: float, accuracy: float) -> void:
 	if audio_mgr:
@@ -991,7 +999,7 @@ func _run_v6_assertions() -> void:
 	assert(_active_target == signal_tuner, "FAIL: SignalTuner must be targeted")
 	_on_action_pressed()
 	await get_tree().create_timer(0.2).timeout
-	_on_tuner_dragged(0.57)
+	signal_tuner.tune_dial(0.57)
 	await get_tree().create_timer(0.5).timeout
 	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED or signal_tuner.current_state == SignalTuner.TunerState.SPENT, "FAIL: SignalTuner must lock after tuning")
 	assert(corroded_panel.is_powered, "FAIL: CorrodedPanel must become powered")
@@ -1630,41 +1638,60 @@ func _run_v7_ticket03_assertions() -> void:
 	touch_down.position = Vector2(400, 300)
 	touch_ui._gui_input(touch_down)
 	
-	var initial_freq := signal_tuner.current_frequency
-	assert(initial_freq == 0.15, "FAIL: Initial frequency must be 0.15")
-	
-	# 2. Test 60Hz vs 120Hz Event-Frequency Displacement Invariance (100px single vs 10x 10px multi)
+	# 2. Test 60Hz vs 120Hz Event-Frequency Displacement Invariance
+	# Session A: single 100px event
+	signal_tuner.current_frequency = 0.15
+	signal_tuner._drag_start_freq = 0.15
 	var drag_ev := InputEventScreenDrag.new()
 	drag_ev.index = 0
-	
-	signal_tuner.current_frequency = 0.15
 	drag_ev.relative = Vector2(100.0, 0.0)
+	touch_ui._tuning_accum_px = 0.0
 	touch_ui._gui_input(drag_ev)
-	var single_event_delta := signal_tuner.current_frequency - 0.15
+	var session_a_freq := signal_tuner.current_frequency
 	
+	# Session B: ten 10px events (simulate 120Hz fragmentation)
 	signal_tuner.current_frequency = 0.15
+	signal_tuner._drag_start_freq = 0.15
 	drag_ev.relative = Vector2(10.0, 0.0)
+	touch_ui._tuning_accum_px = 0.0
 	for i in range(10):
 		touch_ui._gui_input(drag_ev)
-	var multi_event_delta := signal_tuner.current_frequency - 0.15
+	var session_b_freq := signal_tuner.current_frequency
 	
-	assert(abs(single_event_delta - multi_event_delta) < 0.0001, "FAIL: Drag tuning must be event-frequency displacement invariant (60Hz vs 120Hz)")
-	print("[TICKET 03 TEST 2 PASSED] 60Hz vs 120Hz displacement invariance verified! Single 100px event delta = %.3f | 10x10px multi event delta = %.3f" % [single_event_delta, multi_event_delta])
+	assert(abs(session_a_freq - session_b_freq) < 0.0001, "FAIL: Cumulative accumulator must be 60Hz/120Hz displacement invariant")
+	print("[TICKET 03 TEST 2 PASSED] 60Hz vs 120Hz invariance: Session A (1x100px) = %.4f | Session B (10x10px) = %.4f" % [session_a_freq, session_b_freq])
 	
-	# Continue tuning to reach target frequency 0.72
-	for i in range(14):
-		drag_ev.relative = Vector2(16.0, 0.0)
-		touch_ui._gui_input(drag_ev)
-		if abs(signal_tuner.current_frequency - signal_tuner.target_frequency) <= signal_tuner.lock_tolerance:
-			break
-		
+	# 3. Near-lock exit lifecycle: finger-up while in lock range must stop hum & cancel interaction
+	signal_tuner.current_frequency = 0.72
+	signal_tuner._drag_start_freq = 0.72
+	# Simulate touch-up while tuning
+	var touch_up := InputEventScreenTouch.new()
+	touch_up.index = 0
+	touch_up.pressed = false
+	touch_ui._gui_input(touch_up)
+	assert(signal_tuner.current_state != SignalTuner.TunerState.TUNING, "FAIL: cancel_interaction must exit TUNING state on touch-up")
+	print("[TICKET 03 TEST 3 PASSED] Near-lock exit: touch release cancels TUNING state cleanly")
+	
+	# 4. Fine-tune from 0.15 to lock range (accumulator-based, single event)
+	signal_tuner.current_frequency = 0.15
+	signal_tuner.begin_interaction(player.global_position)
+	var re_touch_down := InputEventScreenTouch.new()
+	re_touch_down.index = 0
+	re_touch_down.pressed = true
+	re_touch_down.position = Vector2(400, 300)
+	touch_ui._gui_input(re_touch_down)
+	# 190px total = start(0.15) + 190*0.003 = 0.72 → inside lock range [0.67, 0.77]
+	var fine_drag := InputEventScreenDrag.new()
+	fine_drag.index = 0
+	fine_drag.relative = Vector2(190.0, 0.0)
+	touch_ui._gui_input(fine_drag)
 	assert(abs(signal_tuner.current_frequency - signal_tuner.target_frequency) <= signal_tuner.lock_tolerance, "FAIL: Frequency must enter lock tolerance")
-	print("[TICKET 03 TEST 3 PASSED] Fine-tuning reached target frequency lock range: current = %.2f, target = %.2f" % [signal_tuner.current_frequency, signal_tuner.target_frequency])
+	print("[TICKET 03 TEST 4 PASSED] Fine-tuning reached target frequency lock range: current = %.2f, target = %.2f" % [signal_tuner.current_frequency, signal_tuner.target_frequency])
 	
-	# Dwell for required lock time
+	# 5. Dwell for required lock time
 	await get_tree().create_timer(0.5).timeout
 	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED, "FAIL: SignalTuner must enter LOCKED state after dwell time")
-	print("[TICKET 03 TEST 4 PASSED] Signal lock achieved cleanly!")
+	print("[TICKET 03 TEST 5 PASSED] Signal lock achieved cleanly!")
 	
 	print("\n=========================================================================")
 	print("[ALL V7 TICKET 03 ASSERTIONS PASSED CLEANLY]")

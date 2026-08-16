@@ -26,6 +26,9 @@ enum TunerState {
 
 var current_state: TunerState = TunerState.DORMANT
 var _dwell_timer: float = 0.0
+var _drag_start_freq: float = 0.0
+
+const DRAG_SENSITIVITY: float = 0.003
 
 func update_player_distance(player_pos: Vector3) -> void:
 	if current_state == TunerState.LOCKED or current_state == TunerState.SPENT:
@@ -52,8 +55,16 @@ func can_interact(_player_pos: Vector3) -> bool:
 func begin_interaction(_player_pos: Vector3) -> bool:
 	if not can_interact(_player_pos):
 		return false
+	_drag_start_freq = current_frequency
 	_set_state(TunerState.TUNING)
 	return true
+
+func tune_from_accum_px(accum_px: float) -> void:
+	if current_state != TunerState.TUNING:
+		return
+	current_frequency = clampf(_drag_start_freq + accum_px * DRAG_SENSITIVITY, 0.0, 1.0)
+	if dial_mesh:
+		dial_mesh.rotation.y = current_frequency * TAU
 
 func cancel_interaction() -> void:
 	if current_state == TunerState.TUNING:

@@ -8,7 +8,8 @@ signal joystick_vector_updated(vec: Vector2)
 signal action_button_pressed
 signal peel_gesture_dragged(progress: float)
 signal peel_gesture_released
-signal tuner_dragged(delta_freq: float)
+signal tuner_dragged(accum_px: float)
+signal tuner_interaction_released
 signal core_tap_pressed
 signal driving_steer_updated(steer: float)
 signal driving_throttle_updated(throttle: float)
@@ -54,6 +55,7 @@ var _current_joystick_vec: Vector2 = Vector2.ZERO
 var _is_peeling: bool = false
 var _is_tuning: bool = false
 var _current_gesture_type: String = ""
+var _tuning_accum_px: float = 0.0
 var _is_gas_pressed: bool = false
 var _is_brake_pressed: bool = false
 
@@ -186,6 +188,7 @@ var _peel_accumulated_y: float = 0.0
 func show_gesture_overlay(gesture_type: String) -> void:
 	_current_gesture_type = gesture_type
 	_peel_accumulated_y = 0.0
+	_tuning_accum_px = 0.0
 	if gesture_panel:
 		gesture_panel.visible = true
 	if core_tap_button: core_tap_button.visible = (gesture_type == "EXPOSE_CORE")
@@ -216,12 +219,16 @@ func _gui_input(event: InputEvent) -> void:
 						_peel_accumulated_y = 0.0
 					elif _current_gesture_type == "TUNE_SIGNAL":
 						_is_tuning = true
+						_tuning_accum_px = 0.0
 			elif not touch_ev.pressed and touch_ev.index == _interaction_touch_index:
 				if _is_peeling:
 					peel_gesture_released.emit()
+				elif _is_tuning:
+					tuner_interaction_released.emit()
 				_is_peeling = false
 				_is_tuning = false
 				_interaction_touch_index = -1
+				_tuning_accum_px = 0.0
 		else:
 			if touch_ev.position.x < get_viewport_rect().size.x * 0.5:
 				if touch_ev.pressed and not _joystick_active:
@@ -239,8 +246,8 @@ func _gui_input(event: InputEvent) -> void:
 				var progress: float = clampf(_peel_accumulated_y / 150.0, 0.0, 1.0)
 				peel_gesture_dragged.emit(progress)
 			elif _is_tuning and abs(drag_ev.relative.x) > 0:
-				var delta_freq: float = drag_ev.relative.x * 0.003
-				tuner_dragged.emit(delta_freq)
+				_tuning_accum_px += drag_ev.relative.x
+				tuner_dragged.emit(_tuning_accum_px)
 
 func _start_joystick(touch_idx: int, pos: Vector2) -> void:
 	_joystick_active = true
