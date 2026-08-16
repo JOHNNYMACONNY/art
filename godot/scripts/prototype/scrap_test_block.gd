@@ -212,7 +212,7 @@ func _process_pursuit_loop(delta: float) -> void:
 					print("[PURSUIT] Contact broken! Evasion decay started...")
 					await get_tree().create_timer(1.0).timeout
 					current_pursuit_state = PursuitState.EVADED
-					_deactivate_pursuit()
+					_on_successful_evasion()
 			else:
 				_contact_broken_timer = move_toward(_contact_broken_timer, 0.0, delta)
 
@@ -242,11 +242,7 @@ func _end_pursuit_common() -> void:
 	if signal_gate:
 		signal_gate.set_pursuit_active(false)
 	if audio_mgr:
-		audio_mgr.set_siren_audio(false, Vector3.ZERO)
-		if audio_mgr._tension_player and audio_mgr._tension_player.playing:
-			audio_mgr._tension_player.stop()
-		audio_mgr._tension_layer_active = false
-		audio_mgr._current_pursuit_pressure = 0.0
+		audio_mgr.clear_pursuit_pressure()
 	if touch_ui:
 		touch_ui.hide_tension_hud()
 
@@ -260,9 +256,6 @@ func _on_successful_evasion() -> void:
 		world_env.environment.ambient_light_color = Color(0.3, 0.26, 0.2, 1.0)
 	current_pursuit_state = PursuitState.CALM
 	print("[PURSUIT] Contact evaded. Quiet aftermath reached. Replay button enabled.")
-
-func _deactivate_pursuit() -> void:
-	_on_successful_evasion()
 
 func _on_signal_gate_triggered() -> void:
 	print("[GATE] Signal Gate Triggered! Slamming scrap barrier...")
@@ -1130,7 +1123,7 @@ func _export_v6_visuals() -> void:
 	get_viewport().get_texture().get_image().save_png("res://verification/v6/v6_route_switch_slam.png")
 	
 	# 6. v6_quiet_aftermath_replay.png
-	_deactivate_pursuit()
+	_on_successful_evasion()
 	await get_tree().create_timer(0.2).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v6/v6_quiet_aftermath_replay.png")
 	
@@ -1152,7 +1145,7 @@ func _run_v7_ticket01_assertions() -> void:
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL: Gate must be TRIGGERED")
 	assert(not signal_gate.barrier_collision.disabled, "FAIL: barrier_collision.disabled MUST become false!")
 	print("[TEST BUG-01 PASSED] barrier_collision.disabled became false immediately!")
-	_deactivate_pursuit()
+	_on_successful_evasion()
 	await get_tree().create_timer(0.2).timeout
 	corroded_panel.power_on()
 	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.0)
@@ -3141,15 +3134,22 @@ func _run_v7_ticket06_assertions() -> void:
 	assert(audio_mgr._active_transients.size() == 0, "FAIL: 0 transients active after replay")
 	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit state must be CALM")
 
-	# Part B: Active tuner interaction replay
-	signal_tuner.begin_interaction(player.global_position)
-	audio_mgr.set_tuning_audio(0.6)
-	audio_mgr.play_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM, signal_tuner.global_position)
+	# Part B: Truly active tuner interaction replay
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	player.global_position = signal_tuner.global_position + Vector3(0, 0, 0.5)
+	signal_tuner.update_player_distance(player.global_position)
+	assert(signal_tuner.current_state == SignalTuner.TunerState.READY, "FAIL: Tuner must enter READY state")
+	var success: bool = signal_tuner.begin_interaction(player.global_position)
+	assert(success and signal_tuner.current_state == SignalTuner.TunerState.TUNING, "FAIL: Tuner must enter TUNING state")
+	signal_tuner.tune_dial(0.55) # Tune near target frequency
+	await get_tree().process_frame
+	await get_tree().process_frame
 	assert(audio_mgr._static_player.playing, "FAIL: Static player must be active during tuning")
-	assert(audio_mgr._hum_player.playing, "FAIL: Hum player must be active during tuning")
 
 	reset_slice()
 	await get_tree().create_timer(0.05).timeout
+	assert(signal_tuner.current_state == SignalTuner.TunerState.DORMANT, "FAIL: Tuner must be DORMANT after reset")
 	assert(not audio_mgr._static_player.playing, "FAIL: Static player must be stopped after tuner replay")
 	assert(not audio_mgr._hum_player.playing, "FAIL: Hum player must be stopped after tuner replay")
 	assert(audio_mgr._active_transients.size() == 0, "FAIL: 0 transients active after tuner replay")

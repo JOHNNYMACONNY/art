@@ -252,6 +252,14 @@ func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
 		# Low-mid tension layer volume scales smoothly from -24dB to -6dB
 		_tension_player.volume_db = lerpf(-24.0, -6.0, p)
 
+## Clear and halt all pursuit pressure audio layers
+func clear_pursuit_pressure() -> void:
+	set_siren_audio(false, Vector3.ZERO)
+	if _tension_player and _tension_player.playing:
+		_tension_player.stop()
+	_tension_layer_active = false
+	_current_pursuit_pressure = 0.0
+
 ## Handle neutral collision telemetry from CourierBike
 func on_collision_contact(head_on_ratio: float, impact_speed: float, pos: Vector3) -> void:
 	if impact_speed < 1.0:

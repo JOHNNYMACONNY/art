@@ -1,52 +1,56 @@
-# Wayfinder Map: Chinatown-Wars-Feel Golden Slice v0
+# Wayfinder Map: Echos in the Scrapheap — Godot 4 Golden Slice
 
-## Destination
-A playable, mobile-first WebGL (Three.js) vertical slice of ECHOES IN THE SCRAPHEAP with a 3/4 low-FOV perspective camera, floating left-thumb joystick, right-thumb contextual interaction magnetism, audio feedback, and a 1–2s tactile "Corroded Panel Extraction" interaction.
-
-## Notes
-- **Engine**: Three.js/WebGL embedded in `code/`
-- **Audio**: Web Audio API (`audio-engine.js`)
-- **Target**: 60 FPS on mobile Safari/Chrome
-- **Scope**: 1 scrap-yard test block, 1 runner placeholder, 1 interactable corroded panel, 0 combat/vehicles/missions
-
-## Decisions so far
-- [1. Renderer — Three.js WebGL](#decision-1) — Embedded in `code/` for zero-install mobile browser testing.
-- [2. Camera Projection — Low-FOV Perspective](#decision-2) — 32° FOV, 58° downward pitch, 45° fixed yaw, 12% max velocity look-ahead.
-- [3. Locomotion — Floating Left Joystick](#decision-3) — Screen-relative analog vector with 8-way visual mesh facing.
-- [4. Interaction — Magnetism & Corroded Panel Extraction](#decision-4) — Right-thumb contextual action -> 1–2s tactile peel/pull core gesture.
-- [5. Audio Bed — Web Audio Integration](#decision-5) — Ambience, footsteps, hum, panel peel, core pull, electrical sparks.
-- [6. Environment — 1 Scrap-Yard Test Block](#decision-6) — Scrap geometry, lighting, particle FX, no missions/enemies.
+## 1. Project Overview & Destination
+A playable, mobile-first Godot 4 3D vertical slice of **ECHOES IN THE SCRAPHEAP** featuring:
+- Chinatown Wars-style fixed 3/4 top-down perspective camera (`Camera3D` with smoothed single-layer tracking, dual-rate look-ahead, speed-breathing FOV, and decoupled yaw).
+- Floating left-thumb touch joystick locomotion with responsive screen-relative movement.
+- Right-thumb contextual touch interactions (Signal Tuner frequency matching, Corroded Panel peeling & core extraction).
+- Arcade Courier Bike with speed-sensitive steering, 2-stage gear acceleration, powerslide drift slip, handbrake, and glancing collision response.
+- Dynamic pursuer interception, environmental Signal Gate barrier routing, and multi-tier procedural audio atmosphere.
 
 ---
 
-### Decision 1: Renderer — Three.js WebGL
-- **Choice**: Three.js WebGL canvas inside `code/`.
-- **Rationale**: Existing 2D canvas (`renderer.js`) lacks 3/4 depth/parallax. Godot stubs stay for desktop/Steam exploration; WebGL allows instant URL testing on mobile touch devices.
+## 2. Architecture & Tech Stack
+- **Engine**: Godot 4.7.1 Stable Official (3D Forward+ / Mobile / Headless execution)
+- **Primary Codebase**: `godot/scripts/`
+  - `player/`: `player_character.gd`, `camera_3d.gd`
+  - `vehicles/`: `courier_bike.gd`
+  - `enemies/`: `pursuer_prototype.gd`
+  - `interactables/`: `signal_tuner.gd`, `corroded_panel.gd`, `signal_gate_interactable.gd`
+  - `audio/`: `audio_manager.gd`
+  - `ui/`: `touch_controls.gd`
+  - `prototype/`: `scrap_test_block.gd`
+- **Audio Architecture**: Procedural analytical synthesis (frequency chirps, harmonic drone, square beep denial, filtered noise) managed through a centralized 3-tier perceptual hierarchy and bounded transient registry.
 
-### Decision 2: Camera Projection — Low-FOV Perspective
-- **Choice**: `PerspectiveCamera` with low FOV (~32°), downward pitch ~58°, fixed yaw ~45°, camera look-ahead capped at 12% viewport displacement.
-- **Rationale**: Delivers Chinatown Wars 3/4 depth without wide-angle third-person distortion.
+---
 
-### Decision 3: Locomotion — Floating Left Joystick
-- **Choice**: Touch down on left half of screen sets origin; vector drag drives analog movement. Direction is screen-relative. Avatar faces 8 headings.
-- **Rationale**: Fixed virtual joysticks fail on touchscreens; floating origin prevents missed inputs.
+## 3. Milestones & Historical Record
 
-### Decision 4: Interaction — Magnetism & Corroded Panel Extraction
-- **Choice**: Single right-thumb contextual action button with highlight magnetism. "Corroded Panel Extraction" sequence: Approach -> Highlight -> Action -> Peel Cover -> Pull Core (~1-2s).
-- **Rationale**: Proves signature touch interactions over generic button presses.
+### V1–V6: Core Prototype Evolution
+- **V1**: Locomotion, floating joystick, reaction loop.
+- **V2**: Micro-play loop (Signal Tuner & Corroded Panel).
+- **V3**: Courier Bike mechanics, mount/dismount flow.
+- **V4**: Pursuer AI, pressure pacing, proximity alarm.
+- **V5**: Environmental evasion (Signal Gate slam, pursuer detour).
+- **V6**: Full Golden Slice integration & screenshot export pipeline.
 
-### Decision 5: Audio Bed — Web Audio Integration
-- **Choice**: Connect Web Audio engine (`audio-engine.js`) to prototype events (ambient bed, footsteps, proximity hum, metal peel, core pull, sparks).
-- **Rationale**: Audio provides essential tactile feedback on touchscreen devices.
+### V7: Golden Slice Hardening & Subsystem Polish (COMPLETE / VERIFIED)
+- **Ticket 01**: Gate solid collision & peel touch-release cancellation.
+- **Ticket 02 / 02.1**: Multi-touch isolation, dismount speed denial, chase detour balance.
+- **Ticket 03**: Saturating `tanh` tuner accumulator, near-lock enter/exit lifecycle.
+- **Ticket 04 (04.1, 04.2, 04.3)**: GTA 2-stage transmission, powerslide drift dynamics, glance collision slide retention.
+- **Ticket 05**: Chinatown Wars camera feel, single-layer smoothed focus, dual-rate look-ahead, speed FOV breathing.
+- **Ticket 06 (06.1–06.4)**: 3-tier audio hierarchy, pursuit pressure with hysteresis, true procedural sweeps, clean replay resets.
 
-### Decision 6: Environment — 1 Scrap-Yard Test Block
-- **Choice**: Single room with industrial floor, scrap silhouettes, lighting, particles, 1 interactable panel terminal.
-- **Rationale**: Micro-scope keeps test focused purely on touch feel and camera readability.
+### V8: Scrapheap World Identity & Visual Readability (ACTIVE)
+- **V8 M01**: Scrapheap World Identity, Dressing & Atmosphere.
+  - `01.1`: Visual Language & Modular Scrap Kit.
+  - `01.2`: World Dressing & Landmark Pass.
+  - `01.3`: Lighting, Atmosphere & Silhouette Depth.
+  - `01.4`: Readability & Mobile Performance Baseline.
 
-## Not yet specified
-- Vehicle camera transition and driving controls (deferred post-v0 slice).
-- Weapon targeting and combat mechanics (deferred).
+---
 
-## Out of scope
-- Engine migration to Godot 4 for v0 prototype.
-- Missions, inventory, progression, AI agents, networking, save file migration.
+## 4. Historical Context (Superseded)
+> [!NOTE]
+> Early exploratory v0 drafts originally investigated Three.js / WebGL in `code/` for quick browser previews. All production development is fully unified in Godot 4 under `godot/`.
