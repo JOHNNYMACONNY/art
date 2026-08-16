@@ -171,7 +171,8 @@ func _ready() -> void:
 	elif OS.get_cmdline_user_args().has("--export-v8-proof"):
 		_export_v8_proof()
 	elif OS.get_cmdline_user_args().has("--export-v8-baseline"):
-		_export_v8_benchmarks("v7_baseline")
+		print("[V8_BENCHMARKS] ERROR: V7 baseline is immutable and must be captured from baseline SHA 4745650. Overwrite prevented.")
+		get_tree().quit(1)
 	elif OS.get_cmdline_user_args().has("--export-v8-dressed"):
 		_export_v8_benchmarks("v8_dressed")
 	elif OS.get_cmdline_user_args().has("--run-v8-telemetry"):

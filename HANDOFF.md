@@ -1,8 +1,10 @@
 # HANDOFF.md — V7 Complete / Next Session Briefing (V8 Scrapheap World Identity)
 
-**Generated**: 2026-08-16T13:50 PDT  
+**Generated**: 2026-08-16T13:58 PDT  
 **Branch**: `main`  
-**Current HEAD**: `47456504711a85a35d94f4f95e56315fbe395f70`  
+**Parent / Spec Baseline**: `47456504711a85a35d94f4f95e56315fbe395f70`  
+**V7 Verified Gameplay Baseline**: `a546189cb4a689ad84f58fefd362fc12f86d4e91`  
+**Mutable HEAD**: *VERIFY LIVE BEFORE WORK* (`git rev-parse HEAD`)  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official)  
 

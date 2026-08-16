@@ -9,7 +9,11 @@ size = Vector3(2.4, 2.2, 4.8)
 
 [sub_resource type="BoxMesh" id="BoxMesh_frame"]
 material = ExtResource("2_rust")
-size = Vector3(2.46, 2.26, 0.2)
+size = Vector3(2.5, 2.3, 0.25)
+
+[sub_resource type="BoxMesh" id="BoxMesh_roof_rail"]
+material = ExtResource("2_rust")
+size = Vector3(0.2, 0.2, 4.8)
 
 [node name="SalvageContainerProof" type="Node3D"]
 
@@ -24,3 +28,11 @@ mesh = SubResource("BoxMesh_frame")
 [node name="BackFrame" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -2.3)
 mesh = SubResource("BoxMesh_frame")
+
+[node name="RoofRailL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.15, 2.2, 0)
+mesh = SubResource("BoxMesh_roof_rail")
+
+[node name="RoofRailR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.15, 2.2, 0)
+mesh = SubResource("BoxMesh_roof_rail")
