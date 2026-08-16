@@ -12,6 +12,7 @@ signal core_tap_pressed
 signal driving_steer_updated(steer: float)
 signal driving_throttle_updated(throttle: float)
 signal dismount_pressed
+signal replay_pressed
 
 enum UIMode {
 	FOOT_TRAVERSAL,
@@ -41,6 +42,9 @@ var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 @onready var alert_label: Label = $TensionHUDPanel/AlertLabel
 @onready var proximity_label: Label = $TensionHUDPanel/ProximityLabel
 
+@onready var replay_panel: Control = $ReplayOverlayPanel
+@onready var replay_button: Button = $ReplayOverlayPanel/ReplayButton
+
 var _joystick_active: bool = false
 var _joystick_touch_index: int = -1
 var _interaction_touch_index: int = -1
@@ -51,6 +55,9 @@ var _is_tuning: bool = false
 var _current_gesture_type: String = ""
 
 func _ready() -> void:
+	if OS.get_cmdline_user_args().has("--debug-ui") or OS.has_feature("debug_ui"):
+		debug_hud_enabled = true
+		
 	if action_button:
 		action_button.pressed.connect(func(): action_button_pressed.emit())
 	if dismount_button:
@@ -60,17 +67,25 @@ func _ready() -> void:
 	if core_tap_button:
 		core_tap_button.pressed.connect(func(): core_tap_pressed.emit())
 		
-	if gas_button:
-		gas_button.button_down.connect(func(): driving_throttle_updated.emit(1.0))
-		gas_button.button_up.connect(func(): driving_throttle_updated.emit(0.0))
-	if brake_button:
-		brake_button.button_down.connect(func(): driving_throttle_updated.emit(-1.0))
-		brake_button.button_up.connect(func(): driving_throttle_updated.emit(0.0))
-		
+	_apply_golden_slice_design_tokens()
 	set_mode(UIMode.FOOT_TRAVERSAL)
 	close_interaction_overlay()
 	hide_tension_hud()
 	set_route_switch_button_visible(false)
+
+	if brake_button:
+		brake_button.button_down.connect(func(): driving_throttle_updated.emit(-1.0))
+		brake_button.button_up.connect(func(): driving_throttle_updated.emit(0.0))
+
+func _apply_golden_slice_design_tokens() -> void:
+	if alert_label:
+		alert_label.add_theme_color_override("font_color", Color(0.95, 0.25, 0.25, 1.0))
+	if proximity_label:
+		proximity_label.visible = debug_hud_enabled
+	if action_button:
+		action_button.add_theme_color_override("font_color", Color(0.1, 0.9, 1.0, 1.0))
+	if route_switch_button:
+		route_switch_button.add_theme_color_override("font_color", Color(0.1, 0.9, 1.0, 1.0))
 
 func set_mode(mode: UIMode) -> void:
 	current_mode = mode
@@ -197,3 +212,11 @@ func _stop_joystick() -> void:
 		joystick_vector_updated.emit(Vector2.ZERO)
 	elif current_mode == UIMode.VEHICLE_DRIVING:
 		driving_steer_updated.emit(0.0)
+
+func show_replay_overlay() -> void:
+	if replay_panel:
+		replay_panel.visible = true
+
+func hide_replay_overlay() -> void:
+	if replay_panel:
+		replay_panel.visible = false

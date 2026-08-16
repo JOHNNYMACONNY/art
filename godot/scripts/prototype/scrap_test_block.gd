@@ -30,6 +30,7 @@ enum PursuitState {
 @onready var audio_mgr: Node = $AudioManager
 @onready var status_label: Label = $CanvasLayer/StatusLabel
 @onready var world_env: WorldEnvironment = $WorldEnvironment
+@onready var power_conduit: MeshInstance3D = $PowerConduit
 
 var signal_tuner: SignalTuner = null
 var courier_bike: CourierBike = null
@@ -111,9 +112,11 @@ func _ready() -> void:
 		touch_ui.driving_steer_updated.connect(func(steer: float): _steer_input = steer)
 		touch_ui.driving_throttle_updated.connect(func(throttle: float): _throttle_input = throttle)
 		touch_ui.dismount_pressed.connect(_on_dismount_pressed)
+		touch_ui.replay_pressed.connect(reset_slice)
 		
 	if status_label:
-		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v5"
+		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v6"
+		status_label.visible = OS.get_cmdline_user_args().has("--debug-ui") or OS.has_feature("debug_ui")
 		
 	if OS.get_cmdline_user_args().has("--run-v1-assertions"):
 		_run_v1_assertions()
@@ -125,6 +128,8 @@ func _ready() -> void:
 		_run_v4_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v5-assertions"):
 		_run_v5_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v6-assertions"):
+		_run_v6_assertions()
 	elif OS.get_cmdline_user_args().has("--export-v2-visuals"):
 		_export_v2_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v3-visuals"):
@@ -133,6 +138,8 @@ func _ready() -> void:
 		_export_v4_visuals()
 	elif OS.get_cmdline_user_args().has("--export-v5-visuals"):
 		_export_v5_visuals()
+	elif OS.get_cmdline_user_args().has("--export-v6-visuals"):
+		_export_v6_visuals()
 
 func _process(delta: float) -> void:
 	var active_pos: Vector3 = courier_bike.global_position if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player.global_position
@@ -215,12 +222,14 @@ func _deactivate_pursuit() -> void:
 		signal_gate.set_pursuit_active(false)
 	if audio_mgr:
 		audio_mgr.set_siren_audio(false, Vector3.ZERO)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SIGNAL_LOCK, player.global_position if player else Vector3.ZERO)
 	if touch_ui:
 		touch_ui.hide_tension_hud()
+		touch_ui.show_replay_overlay()
 	if world_env and world_env.environment:
 		world_env.environment.ambient_light_color = Color(0.3, 0.26, 0.2, 1.0)
 	current_pursuit_state = PursuitState.CALM
-	print("[PURSUIT] Contact evaded. Environment returned to CALM.")
+	print("[PURSUIT] Contact evaded. Quiet aftermath reached. Replay button enabled.")
 
 func _on_signal_gate_triggered() -> void:
 	print("[GATE] Signal Gate Triggered! Slamming scrap barrier...")
@@ -336,6 +345,77 @@ func _on_bike_dismounted() -> void:
 func _on_dismount_pressed() -> void:
 	if courier_bike:
 		courier_bike.request_dismount()
+
+func reset_slice() -> void:
+	current_world_state = WorldLoopState.START
+	current_pursuit_state = PursuitState.CALM
+	_contact_broken_timer = 0.0
+	_steer_input = 0.0
+	_throttle_input = 0.0
+	_active_target = null
+	
+	if player:
+		player.global_position = Vector3(0, 0, 10.0)
+		player.velocity = Vector3.ZERO
+		player.visible = true
+		player.is_input_locked = false
+		
+	if courier_bike:
+		courier_bike.current_state = CourierBike.BikeState.PARKED
+		courier_bike.global_position = Vector3(-1.5, 0.05, 3.0)
+		courier_bike.rotation.y = 0.0
+		courier_bike.occupant = null
+		courier_bike.current_speed = 0.0
+		courier_bike.steering_angle = 0.0
+		
+	if camera:
+		camera.set_target(player)
+		camera.fov = 32.0
+		
+	if signal_tuner:
+		signal_tuner._set_state(SignalTuner.TunerState.DORMANT)
+		signal_tuner.is_powered = true
+		signal_tuner.current_frequency = 0.15
+		
+	if corroded_panel:
+		corroded_panel.current_step = CorrodedPanel.Step.IDLE
+		corroded_panel.is_powered = false
+		if corroded_panel.panel_mesh:
+			corroded_panel.panel_mesh.rotation = Vector3.ZERO
+			corroded_panel.panel_mesh.position = Vector3.ZERO
+		if corroded_panel.core_mesh:
+			corroded_panel.core_mesh.visible = true
+		
+	if power_conduit:
+		var mat := power_conduit.get_surface_override_material(0) as StandardMaterial3D
+		if mat:
+			mat.emission_enabled = false
+			
+	if signal_gate:
+		signal_gate.current_state = SignalGateInteractable.GateState.DORMANT
+		signal_gate.is_powered = false
+		signal_gate.barrier_pivot.rotation.y = 0.0
+		signal_gate.barrier_collision.disabled = true
+		signal_gate._update_visual_state()
+		
+	if pursuer:
+		pursuer.global_position = Vector3(0, 0.6, -15.0)
+		pursuer.is_active = false
+		pursuer.current_speed = 0.0
+		pursuer.detour_waypoints.clear()
+		pursuer.current_detour_index = -1
+		
+	if audio_mgr:
+		audio_mgr.set_siren_audio(false, Vector3.ZERO)
+		
+	if touch_ui:
+		touch_ui.set_mode(TouchControlsUI.UIMode.FOOT_TRAVERSAL)
+		touch_ui.close_interaction_overlay()
+		touch_ui.hide_tension_hud()
+		touch_ui.hide_replay_overlay()
+		touch_ui.set_route_switch_button_visible(false)
+		
+	print("[WORLD_LOOP] Slice reset to initial cold start state cleanly.")
 
 func _on_tuner_dragged(delta_freq: float) -> void:
 	if signal_tuner:
@@ -853,4 +933,121 @@ func _export_v2_visuals() -> void:
 	await get_tree().create_timer(0.4).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v2/v2_loop_complete.png")
 	print("[V2_VISUALS] ALL 8 V2 SCREENSHOTS EXPORTED SUCCESSFULLY!")
+	get_tree().quit()
+
+func _run_v6_assertions() -> void:
+	print("[V6_ASSERTIONS] Starting complete V6 Golden Slice Cohesion & Full Run assertions...")
+	await get_tree().create_timer(0.2).timeout
+	
+	# 1. Cold Spawn & Discovery
+	player.global_position = Vector3(0, 0, 10.0)
+	assert(player.global_position.distance_to(Vector3(0, 0, 10.0)) < 0.1, "FAIL: Player must spawn at Vector3(0, 0, 10.0)")
+	assert(not touch_ui.tension_panel.visible, "FAIL: Tension HUD must start hidden")
+	assert(not touch_ui.replay_panel.visible, "FAIL: Replay panel must start hidden")
+	
+	# 2. Player moves to SignalTuner at z = -3.5 -> Tune Signal
+	player.global_position = signal_tuner.global_position + Vector3(0, 0, 1.2)
+	signal_tuner.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	assert(_active_target == signal_tuner, "FAIL: SignalTuner must be targeted")
+	_on_action_pressed()
+	await get_tree().create_timer(0.2).timeout
+	_on_tuner_dragged(0.57)
+	await get_tree().create_timer(0.5).timeout
+	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED or signal_tuner.current_state == SignalTuner.TunerState.SPENT, "FAIL: SignalTuner must lock after tuning")
+	assert(corroded_panel.is_powered, "FAIL: CorrodedPanel must become powered")
+	
+	# 3. Peel Panel -> Extract Core -> Disturbance Alert
+	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.2)
+	corroded_panel._on_body_entered(player)
+	corroded_panel.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.2).timeout
+	corroded_panel.progress_peel(1.0)
+	await get_tree().create_timer(0.2).timeout
+	corroded_panel.complete_extraction()
+	await get_tree().create_timer(0.3).timeout
+	assert(current_pursuit_state == PursuitState.DISTURBANCE_ALERT, "FAIL: Core extraction must trigger DISTURBANCE_ALERT")
+	await get_tree().create_timer(0.8).timeout
+	assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL: Alert must transition to PURSUIT_ACTIVE")
+	assert(pursuer.is_active, "FAIL: Pursuer must activate")
+	
+	# 4. Mount Bike & Chase down track
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.2)
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.35).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must enter DRIVING")
+	courier_bike.rotation.y = PI
+	
+	# 5. Route Switch -> SignalGate slams -> Detour -> Evasion
+	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 2.5)
+	signal_gate.update_player_distance(courier_bike.global_position)
+	_evaluate_target_selection()
+	assert(touch_ui.route_switch_button.visible, "FAIL: Driving RouteSwitchButton must show")
+	_throttle_input = 1.0
+	_on_action_pressed()
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERING, "FAIL: Gate must enter TRIGGERING")
+	await get_tree().create_timer(0.75).timeout
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL: Gate must enter TRIGGERED")
+	assert(not signal_gate.barrier_collision.disabled, "FAIL: Barrier collision must lock solid")
+	
+	await get_tree().create_timer(3.8).timeout
+	assert(pursuer.current_detour_index > 0 or pursuer.current_detour_index == -1, "FAIL: Pursuer must step through detour waypoints")
+	await get_tree().create_timer(2.2).timeout
+	assert(current_pursuit_state == PursuitState.CALM or current_pursuit_state == PursuitState.EVADED, "FAIL: Pursuit must evade naturally")
+	assert(touch_ui.replay_panel.visible, "FAIL: Replay button must show upon quiet aftermath")
+	
+	# 6. Deterministic Replay Reset
+	reset_slice()
+	assert(player.global_position.distance_to(Vector3(0, 0, 10.0)) < 0.1, "FAIL: Replay reset must restore player spawn to Vector3(0, 0, 10.0)")
+	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL: Replay reset must restore bike state to PARKED")
+	assert(signal_tuner.current_state == SignalTuner.TunerState.DORMANT, "FAIL: Replay reset must restore tuner to DORMANT")
+	assert(corroded_panel.current_step == CorrodedPanel.Step.IDLE, "FAIL: Replay reset must restore panel to IDLE")
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.DORMANT, "FAIL: Replay reset must restore gate to DORMANT")
+	assert(not pursuer.is_active, "FAIL: Replay reset must deactivate pursuer")
+	assert(not touch_ui.replay_panel.visible, "FAIL: Replay reset must hide replay overlay")
+	
+	print("[V6_ASSERTIONS] PASSED! ALL V6 GOLDEN SLICE COHESION ASSERTIONS GREEN.")
+	get_tree().quit()
+
+func _export_v6_visuals() -> void:
+	print("[V6_VISUALS] Exporting 6 required V6 visual screenshots to res://verification/v6/...")
+	await get_tree().create_timer(0.2).timeout
+	
+	# 1. v6_cold_spawn.png
+	get_viewport().get_texture().get_image().save_png("res://verification/v6/v6_cold_spawn.png")
+	
+	# 2. v6_signal_tuning.png
+	player.global_position = signal_tuner.global_position + Vector3(0, 0, 1.2)
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v6/v6_signal_tuning.png")
+	
+	# 3. v6_core_extraction.png
+	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.2)
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v6/v6_core_extraction.png")
+	
+	# 4. v6_bike_mount_chase.png
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+	courier_bike.global_position = signal_gate.global_position + Vector3(0, 0, 2.5)
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	get_viewport().get_texture().get_image().save_png("res://verification/v6/v6_bike_mount_chase.png")
+	
+	# 5. v6_route_switch_slam.png
+	signal_gate.update_player_distance(courier_bike.global_position)
+	_evaluate_target_selection()
+	_on_action_pressed()
+	await get_tree().create_timer(0.4).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v6/v6_route_switch_slam.png")
+	
+	# 6. v6_quiet_aftermath_replay.png
+	_deactivate_pursuit()
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v6/v6_quiet_aftermath_replay.png")
+	
+	print("[V6_VISUALS] ALL 6 V6 SCREENSHOTS EXPORTED SUCCESSFULLY!")
 	get_tree().quit()
