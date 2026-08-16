@@ -1,8 +1,8 @@
 class_name TouchControlsUI
 extends Control
 
-# Echos in the Scrap - Dual-Thumb Touch Controls UI (V4.1 Fix)
-# Features Foot Traversal, Vehicle Driving, Tension HUD Panel, and Touch Tuner Dragging
+# Echos in the Scrap - Dual-Thumb Touch Controls UI (V4.2 Deterministic Pointer Ownership)
+# Features Foot Traversal, Vehicle Driving, Tension HUD Panel, and Pointer Isolation
 
 signal joystick_vector_updated(vec: Vector2)
 signal action_button_pressed
@@ -42,6 +42,7 @@ var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 
 var _joystick_active: bool = false
 var _joystick_touch_index: int = -1
+var _interaction_touch_index: int = -1
 var _joystick_center_pos: Vector2 = Vector2.ZERO
 var _current_joystick_vec: Vector2 = Vector2.ZERO
 var _is_peeling: bool = false
@@ -115,31 +116,43 @@ func close_interaction_overlay() -> void:
 		gesture_panel.visible = false
 	_is_peeling = false
 	_is_tuning = false
+	_interaction_touch_index = -1
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch_ev := event as InputEventScreenTouch
-		if touch_ev.position.x < get_viewport_rect().size.x * 0.5:
-			if touch_ev.pressed and not _joystick_active:
-				_start_joystick(touch_ev.index, touch_ev.position)
-			elif not touch_ev.pressed and touch_ev.index == _joystick_touch_index:
-				_stop_joystick()
-		elif gesture_panel and gesture_panel.visible:
-			if gesture_hint_label.text.contains("PEEL"):
-				_is_peeling = touch_ev.pressed
-			elif gesture_hint_label.text.contains("TUNE"):
-				_is_tuning = touch_ev.pressed
+		if gesture_panel and gesture_panel.visible:
+			# Tactile interaction overlay owns touch input
+			if touch_ev.pressed:
+				if _interaction_touch_index == -1:
+					_interaction_touch_index = touch_ev.index
+					if gesture_hint_label.text.contains("PEEL"):
+						_is_peeling = true
+					elif gesture_hint_label.text.contains("TUNE"):
+						_is_tuning = true
+			elif not touch_ev.pressed and touch_ev.index == _interaction_touch_index:
+				_is_peeling = false
+				_is_tuning = false
+				_interaction_touch_index = -1
+		else:
+			# Traversal / Driving Joystick Touch Handling
+			if touch_ev.position.x < get_viewport_rect().size.x * 0.5:
+				if touch_ev.pressed and not _joystick_active:
+					_start_joystick(touch_ev.index, touch_ev.position)
+				elif not touch_ev.pressed and touch_ev.index == _joystick_touch_index:
+					_stop_joystick()
 				
 	elif event is InputEventScreenDrag:
 		var drag_ev := event as InputEventScreenDrag
 		if drag_ev.index == _joystick_touch_index and _joystick_active:
 			_update_joystick(drag_ev.position)
-		elif _is_peeling and drag_ev.relative.y > 0:
-			var progress: float = clampf(drag_ev.relative.y / 200.0, 0.0, 1.0)
-			peel_gesture_dragged.emit(progress)
-		elif _is_tuning and abs(drag_ev.relative.x) > 0:
-			var delta_freq: float = drag_ev.relative.x / 300.0
-			tuner_dragged.emit(delta_freq)
+		elif drag_ev.index == _interaction_touch_index:
+			if _is_peeling and drag_ev.relative.y > 0:
+				var progress: float = clampf(drag_ev.relative.y / 200.0, 0.0, 1.0)
+				peel_gesture_dragged.emit(progress)
+			elif _is_tuning and abs(drag_ev.relative.x) > 0:
+				var delta_freq: float = drag_ev.relative.x / 300.0
+				tuner_dragged.emit(delta_freq)
 
 func _start_joystick(touch_idx: int, pos: Vector2) -> void:
 	_joystick_active = true

@@ -99,9 +99,7 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 		SoundEvent.BIKE_DISMOUNT:
 			_play_synth_click(pos, 380.0, 0.1)
 		SoundEvent.SIREN_ALARM:
-			if _siren_player and not _siren_player.playing:
-				_siren_player.global_position = pos
-				_siren_player.play()
+			set_siren_audio(true, pos)
 
 func stop_event(event: SoundEvent) -> void:
 	if event == SoundEvent.PROXIMITY_HUM and _hum_player:
@@ -110,6 +108,16 @@ func stop_event(event: SoundEvent) -> void:
 		_engine_player.stop()
 	elif event == SoundEvent.SIREN_ALARM and _siren_player:
 		_siren_player.stop()
+
+func set_siren_audio(active: bool, pos: Vector3) -> void:
+	if _siren_player:
+		_siren_player.global_position = pos
+		if active:
+			if not _siren_player.playing:
+				_siren_player.play()
+		else:
+			if _siren_player.playing:
+				_siren_player.stop()
 
 func set_hum_pitch(pitch: float) -> void:
 	if _hum_player:

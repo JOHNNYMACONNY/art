@@ -154,7 +154,7 @@ func _process_pursuit_loop(delta: float) -> void:
 			if touch_ui:
 				touch_ui.update_pursuer_proximity(dist)
 			if audio_mgr:
-				audio_mgr.play_event(AudioManagerScript.SoundEvent.SIREN_ALARM, pursuer.global_position)
+				audio_mgr.set_siren_audio(true, pursuer.global_position)
 				
 			if dist > 18.0:
 				_contact_broken_timer += delta
@@ -197,7 +197,7 @@ func _deactivate_pursuit() -> void:
 	if pursuer:
 		pursuer.deactivate_pursuit()
 	if audio_mgr:
-		audio_mgr.stop_event(AudioManagerScript.SoundEvent.SIREN_ALARM)
+		audio_mgr.set_siren_audio(false, Vector3.ZERO)
 	if touch_ui:
 		touch_ui.hide_tension_hud()
 	if world_env and world_env.environment:
@@ -213,17 +213,13 @@ func _on_pursuer_intercepted() -> void:
 	print("[PURSUIT] TARGET INTERCEPTED! Resetting to recovery marker...")
 	
 	if player: player.is_input_locked = true
-	if courier_bike: courier_bike.current_speed = 0.0
+	if courier_bike: courier_bike.force_dismount()
 	if pursuer: pursuer.deactivate_pursuit()
 	if audio_mgr:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, player.global_position if player else Vector3.ZERO)
-		audio_mgr.stop_event(AudioManagerScript.SoundEvent.SIREN_ALARM)
+		audio_mgr.set_siren_audio(false, Vector3.ZERO)
 		
 	get_tree().create_timer(0.8).timeout.connect(func():
-		if courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING:
-			courier_bike.request_dismount()
-			await get_tree().create_timer(0.35).timeout
-			
 		if player:
 			player.global_position = _recovery_marker + Vector3(-1.5, 0, 0)
 			player.is_input_locked = false

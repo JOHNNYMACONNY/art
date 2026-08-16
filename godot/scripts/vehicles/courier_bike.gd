@@ -122,6 +122,21 @@ func request_dismount() -> bool:
 	)
 	return true
 
+func force_dismount() -> void:
+	if occupant:
+		var p_col := occupant.get_node_or_null("CollisionShape3D") as CollisionShape3D
+		if p_col: p_col.disabled = false
+		occupant.is_input_locked = false
+		occupant.velocity = Vector3.ZERO
+		occupant = null
+	if mount_interactable:
+		mount_interactable.is_powered = true
+	current_speed = 0.0
+	velocity = Vector3.ZERO
+	current_state = BikeState.PARKED
+	state_changed.emit("PARKED")
+	dismounted.emit()
+
 func _find_safe_dismount_position() -> Vector3:
 	var space_state := get_world_3d().direct_space_state
 	if not space_state:
