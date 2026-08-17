@@ -1,0 +1,938 @@
+extends SceneTree
+
+# CTW Feel Translation Wave 1 — Ticket #11.
+# Standalone verification only. This file does not alter gameplay tuning.
+
+const CourierBikeScript = preload("res://scripts/vehicles/courier_bike.gd")
+
+const FIXED_DT: float = 1.0 / 60.0
+const FIXED_HZ: int = 60
+const BASELINE_BEHAVIOR_SHA: String = "09fa2b0ab8aebc8a2ae54b989bffad7720503e48"
+const MAIN_SCENE_PATH: String = "res://scenes/prototype/scrap_test_block.tscn"
+const OUTPUT_DIR: String = "res://verification/feel"
+const TRACE_PREFIX: String = "baseline"
+const MAX_STEPS: int = 720
+
+var _host = null
+var _player = null
+var _bike = null
+var _camera = null
+var _pursuer = null
+var _gate = null
+var _hauler = null
+var _ambient_actors: Array = []
+
+var _scenario_id: String = ""
+var _scenario_phase: String = ""
+var _scenario_time: float = 0.0
+var _scenario_step: int = 0
+var _trace_enabled: bool = false
+var _traces: Dictionary = {}
+var _collision_events: Array = []
+var _fixtures: Array[Node] = []
+var _run_error: String = ""
+
+var _last_collision_step: int = -1
+var _last_collision_head_on_ratio: float = -1.0
+var _last_collision_impact_speed: float = -1.0
+var _last_collision_position: Vector3 = Vector3.ZERO
+var _peak_camera_follow_error: float = 0.0
+var _peak_camera_fov: float = 0.0
+
+
+func _initialize() -> void:
+	call_deferred("_run")
+
+
+func _run() -> void:
+	if not OS.get_cmdline_user_args().has("--run-ctw-feel-baseline"):
+		_fail("Missing --run-ctw-feel-baseline user argument.", 2)
+		return
+
+	print("=========================================================================\n")
+	print("[CTW_FEEL] Ticket #11 deterministic Courier Bike baseline")
+	print("[CTW_FEEL] Behavior source: %s" % _resolve_build_commit())
+	print("[CTW_FEEL] Fixed timestep: %d Hz (%.9f s)" % [FIXED_HZ, FIXED_DT])
+	print("=========================================================================\n")
+
+	var packed: PackedScene = load(MAIN_SCENE_PATH)
+	if packed == null:
+		_fail("Could not load %s" % MAIN_SCENE_PATH)
+		return
+
+	_host = packed.instantiate()
+	root.add_child(_host)
+	await process_frame
+	await physics_frame
+
+	if not _bind_live_systems():
+		return
+
+	if _host.has_method("reset_slice"):
+		_host.reset_slice()
+	await process_frame
+	await physics_frame
+	_prepare_manual_mode()
+
+	_trace_enabled = true
+	var pass_a: Dictionary = await _run_suite("A")
+	if not _run_error.is_empty():
+		return
+
+	_trace_enabled = false
+	var pass_b: Dictionary = await _run_suite("B")
+	if not _run_error.is_empty():
+		return
+
+	var repeatability: Dictionary = _compare_repeatability(pass_a, pass_b)
+	var summary: Dictionary = {
+		"schema_version": 3,
+		"ticket": 11,
+		"mode": "CTW_FEEL_BASELINE",
+		"metadata": {
+			"behavior_commit": _resolve_build_commit(),
+			"baseline_behavior_sha": BASELINE_BEHAVIOR_SHA,
+			"godot_version": Engine.get_version_info(),
+			"fixed_hz": FIXED_HZ,
+			"fixed_dt_seconds": FIXED_DT,
+			"main_scene": MAIN_SCENE_PATH,
+			"reference_vehicle": "CourierBike",
+			"courier_bike_max_speed": float(_bike.max_speed),
+			"courier_bike_acceleration": float(_bike.acceleration),
+			"courier_bike_braking_friction": float(_bike.braking_friction),
+			"camera_default_fov": float(_camera.default_fov),
+			"camera_max_speed_fov": float(_camera.max_speed_fov),
+			"camera_follow_speed": float(_camera.follow_speed)
+		},
+		"scenarios": pass_a,
+		"repeatability": repeatability
+	}
+
+	if not _ensure_output_dir():
+		return
+	if not _write_json("%s/baseline_summary.json" % OUTPUT_DIR, summary):
+		return
+	if not _write_trace_artifacts():
+		return
+	if not _write_verification_log(summary):
+		return
+
+	print("\n[CTW_FEEL] BASELINE SUMMARY")
+	for scenario in pass_a.keys():
+		print("  %s: %s" % [scenario, JSON.stringify(pass_a[scenario])])
+	print("[CTW_FEEL] Repeatability: %s" % ("PASS" if bool(repeatability["passed"]) else "FAIL"))
+
+	if not bool(repeatability["passed"]):
+		for failure in repeatability["failures"]:
+			print("  REPEATABILITY FAILURE: %s" % failure)
+		push_error("[CTW_FEEL] Determinism contract failed; artifacts retained for diagnosis.")
+		_finish(1)
+		return
+
+	print("[CTW_FEEL] PASS — deterministic baseline captured without feel retuning.")
+	_finish(0)
+
+
+func _bind_live_systems() -> bool:
+	_player = _host.get("player")
+	_bike = _host.get("courier_bike")
+	_camera = _host.get("camera")
+	_pursuer = _host.get("pursuer")
+	_gate = _host.get("signal_gate")
+	_hauler = _host.get("scrap_hauler")
+	var ambient_value = _host.get("ambient_actors")
+	if ambient_value is Array:
+		_ambient_actors = ambient_value
+
+	if _player == null:
+		_fail("Runner not found on live ScrapTestBlock")
+		return false
+	if _bike == null:
+		_fail("CourierBike not found on live ScrapTestBlock")
+		return false
+	if _camera == null:
+		_fail("ChinatownCamera3D not found on live ScrapTestBlock")
+		return false
+	if _pursuer == null:
+		_fail("PursuerPrototype not found on live ScrapTestBlock")
+		return false
+	if _gate == null:
+		_fail("SignalGateInteractable not found on live ScrapTestBlock")
+		return false
+
+	if not _bike.collision_contact.is_connected(_on_collision_contact):
+		_bike.collision_contact.connect(_on_collision_contact)
+	return true
+
+
+func _prepare_manual_mode() -> void:
+	_host.set_process(false)
+	_host.set_physics_process(false)
+	_player.set_process(false)
+	_player.set_physics_process(false)
+	_player.global_position = Vector3(1000.0, 0.0, 1000.0)
+	_bike.set_process(false)
+	_bike.set_physics_process(false)
+	_camera.set_process(false)
+	_camera.set_physics_process(false)
+	_pursuer.set_process(false)
+	_pursuer.set_physics_process(false)
+
+	if _hauler != null:
+		_hauler.set_process(false)
+		_hauler.set_physics_process(false)
+		if _hauler is Node3D:
+			_hauler.global_position = Vector3(1100.0, 0.0, 1100.0)
+
+	var ambient_offset: float = 1200.0
+	for actor in _ambient_actors:
+		if is_instance_valid(actor):
+			actor.set_process(false)
+			actor.set_physics_process(false)
+			if actor is Node3D:
+				actor.global_position = Vector3(ambient_offset, 0.0, ambient_offset)
+				ambient_offset += 10.0
+
+
+func _run_suite(pass_name: String) -> Dictionary:
+	print("[CTW_FEEL] Running deterministic pass %s..." % pass_name)
+	var result: Dictionary = {}
+	result["E1_launch_coast_brake"] = _run_e1_launch_coast_brake()
+	result["E2_constant_90_turn"] = _run_e2_constant_turns()
+	result["E3_steering_reversal"] = _run_e3_reversal()
+	result["E4_handbrake_recovery"] = _run_e4_handbrake_recovery()
+	result["E5_collision_pair"] = await _run_e5_collision_pair()
+	result["E6_forward_reverse"] = _run_e6_forward_reverse()
+	result["E7_pursuit_route"] = _run_e7_pursuit_route()
+	return result
+
+
+func _run_e1_launch_coast_brake() -> Dictionary:
+	_begin_scenario("E1_launch_coast_brake")
+	_reset_bike(Vector3(120.0, 0.05, 120.0), 0.0)
+
+	_scenario_phase = "launch"
+	var t_motion: float = -1.0
+	var t_50: float = -1.0
+	var t_90: float = -1.0
+	var launch_start: Vector3 = _bike.global_position
+	for _i in range(240):
+		_step_bike(1.0, 0.0, false)
+		var ratio: float = absf(float(_bike.current_speed)) / float(_bike.max_speed)
+		if t_motion < 0.0 and absf(float(_bike.current_speed)) > 0.05:
+			t_motion = _scenario_time
+		if t_50 < 0.0 and ratio >= 0.5:
+			t_50 = _scenario_time
+		if t_90 < 0.0 and ratio >= 0.9:
+			t_90 = _scenario_time
+		if ratio >= 0.999:
+			break
+	var launch_time: float = _scenario_time
+	var launch_distance: float = launch_start.distance_to(_bike.global_position)
+	var fov_at_max: float = float(_camera.fov)
+
+	_scenario_phase = "coast"
+	_reset_bike(Vector3(140.0, 0.05, 120.0), 0.0)
+	_bike.current_speed = float(_bike.max_speed)
+	var coast_start: Vector3 = _bike.global_position
+	var coast_half: float = -1.0
+	var coast_start_time: float = _scenario_time
+	for _i in range(MAX_STEPS):
+		_step_bike(0.0, 0.0, false)
+		if coast_half < 0.0 and absf(float(_bike.current_speed)) <= float(_bike.max_speed) * 0.5:
+			coast_half = _scenario_time - coast_start_time
+		if absf(float(_bike.current_speed)) <= 0.05:
+			break
+	var coast_time: float = _scenario_time - coast_start_time
+	var coast_distance: float = coast_start.distance_to(_bike.global_position)
+
+	_scenario_phase = "brake"
+	_reset_bike(Vector3(160.0, 0.05, 120.0), 0.0)
+	_bike.current_speed = float(_bike.max_speed)
+	_manual_camera_step()
+	_advance_clock(0.0, 0.0, false)
+	var brake_start: Vector3 = _bike.global_position
+	var brake_start_time: float = _scenario_time
+	for _i in range(MAX_STEPS):
+		_step_bike(-1.0, 0.0, false)
+		if absf(float(_bike.current_speed)) <= 0.05:
+			break
+	var brake_time: float = _scenario_time - brake_start_time
+	var brake_distance: float = brake_start.distance_to(_bike.global_position)
+
+	_scenario_phase = "fov_settle"
+	var fov_settle_start: float = _scenario_time
+	var fov_settle: float = -1.0
+	for _i in range(240):
+		_manual_camera_step()
+		_advance_clock(0.0, 0.0, false)
+		if absf(float(_camera.fov) - float(_camera.default_fov)) <= 0.05:
+			fov_settle = _scenario_time - fov_settle_start
+			break
+
+	return {
+		"input_to_motion_s": t_motion,
+		"time_to_50pct_s": t_50,
+		"time_to_90pct_s": t_90,
+		"time_to_max_s": launch_time,
+		"launch_distance_m": launch_distance,
+		"coast_half_life_s": coast_half,
+		"coast_stop_time_s": coast_time,
+		"coast_stop_distance_m": coast_distance,
+		"brake_stop_time_s": brake_time,
+		"brake_stop_distance_m": brake_distance,
+		"fov_at_launch_max_deg": fov_at_max,
+		"fov_settle_after_stop_s": fov_settle,
+		"camera_peak_follow_error_m": _peak_camera_follow_error,
+		"camera_peak_fov_deg": _peak_camera_fov,
+		"endpoint_position": _v3(_bike.global_position)
+	}
+
+
+func _run_e2_constant_turns() -> Dictionary:
+	_begin_scenario("E2_constant_90_turn")
+	var bands: Dictionary = {
+		"low": float(_bike.max_speed) * 0.30,
+		"medium": float(_bike.max_speed) * 0.60,
+		"high": float(_bike.max_speed) * 0.90
+	}
+	var out: Dictionary = {}
+	var offset_x: float = 180.0
+	for label in bands.keys():
+		_scenario_phase = str(label)
+		var target_speed: float = float(bands[label])
+		_reset_bike(Vector3(offset_x, 0.05, 160.0), 0.0)
+		offset_x += 24.0
+		_bike.current_speed = target_speed
+		var start_yaw: float = float(_bike.rotation.y)
+		var path_distance: float = 0.0
+		var peak_yaw_rate: float = 0.0
+		var start_time: float = _scenario_time
+		var previous_pos: Vector3 = _bike.global_position
+		var previous_yaw: float = start_yaw
+		for _i in range(360):
+			_step_bike_held_speed(target_speed, 1.0, false)
+			path_distance += previous_pos.distance_to(_bike.global_position)
+			var yaw_step: float = absf(_angle_delta(previous_yaw, float(_bike.rotation.y)))
+			peak_yaw_rate = maxf(peak_yaw_rate, rad_to_deg(yaw_step) / FIXED_DT)
+			previous_pos = _bike.global_position
+			previous_yaw = float(_bike.rotation.y)
+			if absf(_angle_delta(start_yaw, float(_bike.rotation.y))) >= PI * 0.5:
+				break
+		var elapsed: float = _scenario_time - start_time
+		out[label] = {
+			"held_speed_mps": target_speed,
+			"turn_90_time_s": elapsed,
+			"path_length_m": path_distance,
+			"radius_estimate_m": path_distance / (PI * 0.5),
+			"peak_yaw_rate_deg_s": peak_yaw_rate,
+			"endpoint_yaw_deg": rad_to_deg(float(_bike.rotation.y)),
+			"endpoint_position": _v3(_bike.global_position),
+			"camera_follow_error_m": float(_camera.last_follow_error)
+		}
+	out["camera_peak_follow_error_m"] = _peak_camera_follow_error
+	out["camera_peak_fov_deg"] = _peak_camera_fov
+	return out
+
+
+func _run_e3_reversal() -> Dictionary:
+	_begin_scenario("E3_steering_reversal")
+	_reset_bike(Vector3(220.0, 0.05, 200.0), 0.0)
+	var held_speed: float = float(_bike.max_speed) * 0.65
+	_bike.current_speed = held_speed
+	var initial_yaw: float = float(_bike.rotation.y)
+	var previous_yaw: float = initial_yaw
+	var peak_left_rate: float = 0.0
+
+	_scenario_phase = "left_hold"
+	for _i in range(36):
+		_step_bike_held_speed(held_speed, -1.0, false)
+		var yaw_step: float = _angle_delta(previous_yaw, float(_bike.rotation.y))
+		peak_left_rate = maxf(peak_left_rate, absf(rad_to_deg(yaw_step) / FIXED_DT))
+		previous_yaw = float(_bike.rotation.y)
+
+	var reversal_yaw: float = float(_bike.rotation.y)
+	var reversal_start_time: float = _scenario_time
+	var opposite_response_time: float = -1.0
+	var heading_recovery_time: float = -1.0
+	var peak_right_rate: float = 0.0
+	var previous_delta_sign: float = signf(_angle_delta(initial_yaw, reversal_yaw))
+
+	_scenario_phase = "right_reversal"
+	for _i in range(180):
+		var before_yaw: float = float(_bike.rotation.y)
+		_step_bike_held_speed(held_speed, 1.0, false)
+		var yaw_step: float = _angle_delta(before_yaw, float(_bike.rotation.y))
+		var yaw_step_sign: float = signf(yaw_step)
+		peak_right_rate = maxf(peak_right_rate, absf(rad_to_deg(yaw_step) / FIXED_DT))
+		if opposite_response_time < 0.0 and previous_delta_sign != 0.0 and yaw_step_sign != 0.0 and yaw_step_sign != previous_delta_sign:
+			opposite_response_time = _scenario_time - reversal_start_time
+		if heading_recovery_time < 0.0 and absf(_angle_delta(initial_yaw, float(_bike.rotation.y))) <= deg_to_rad(5.0):
+			heading_recovery_time = _scenario_time - reversal_start_time
+			break
+
+	return {
+		"held_speed_mps": held_speed,
+		"left_hold_time_s": 36.0 * FIXED_DT,
+		"yaw_at_reversal_deg": rad_to_deg(reversal_yaw),
+		"opposite_yaw_response_s": opposite_response_time,
+		"heading_recovery_s": heading_recovery_time,
+		"peak_left_yaw_rate_deg_s": peak_left_rate,
+		"peak_right_yaw_rate_deg_s": peak_right_rate,
+		"camera_lookahead_m": _camera_lookahead_length(),
+		"camera_peak_follow_error_m": _peak_camera_follow_error,
+		"endpoint_position": _v3(_bike.global_position)
+	}
+
+
+func _run_e4_handbrake_recovery() -> Dictionary:
+	_begin_scenario("E4_handbrake_recovery")
+	_reset_bike(Vector3(260.0, 0.05, 220.0), 0.0)
+	var held_speed: float = float(_bike.max_speed) * 0.75
+	_bike.current_speed = held_speed
+	var peak_slip: float = 0.0
+	var peak_yaw_rate: float = 0.0
+	var previous_yaw: float = float(_bike.rotation.y)
+
+	_scenario_phase = "handbrake_slide"
+	for _i in range(42):
+		_step_bike_held_speed(held_speed, 1.0, true)
+		peak_slip = maxf(peak_slip, _lateral_slip_speed())
+		var yaw_step: float = absf(_angle_delta(previous_yaw, float(_bike.rotation.y)))
+		peak_yaw_rate = maxf(peak_yaw_rate, rad_to_deg(yaw_step) / FIXED_DT)
+		previous_yaw = float(_bike.rotation.y)
+
+	var release_time: float = _scenario_time
+	var release_slip: float = _lateral_slip_speed()
+	var recovery_time: float = -1.0
+	_scenario_phase = "traction_recovery"
+	for _i in range(180):
+		_step_bike_held_speed(held_speed, 0.0, false)
+		if _lateral_slip_speed() <= 0.25:
+			recovery_time = _scenario_time - release_time
+			break
+
+	return {
+		"held_speed_mps": held_speed,
+		"handbrake_hold_s": 42.0 * FIXED_DT,
+		"peak_lateral_slip_mps": peak_slip,
+		"release_slip_mps": release_slip,
+		"recovery_to_0_25_mps_s": recovery_time,
+		"peak_yaw_rate_deg_s": peak_yaw_rate,
+		"camera_peak_follow_error_m": _peak_camera_follow_error,
+		"endpoint_position": _v3(_bike.global_position)
+	}
+
+
+func _run_e5_collision_pair() -> Dictionary:
+	_begin_scenario("E5_collision_pair")
+	var head_on: Dictionary = await _run_collision_case("head_on", 0.0, Vector3(340.0, 0.05, 308.0))
+	if not _run_error.is_empty():
+		return {}
+	var glance: Dictionary = await _run_collision_case("glance", deg_to_rad(-72.0), Vector3(315.0, 0.05, 308.0))
+	_clear_fixtures()
+	return {
+		"head_on": head_on,
+		"glance": glance,
+		"camera_peak_follow_error_m": _peak_camera_follow_error
+	}
+
+
+func _run_collision_case(label: String, start_yaw: float, start_pos: Vector3) -> Dictionary:
+	_clear_fixtures()
+	_collision_events.clear()
+	_reset_collision_step_state()
+	_scenario_phase = label
+	_reset_bike(start_pos, start_yaw)
+	_bike.current_speed = 10.0
+	_spawn_wall_fixture(Vector3(340.0, 1.0, 300.0), Vector3(90.0, 2.0, 0.6), 0.0)
+	await physics_frame
+	_bike.set_physics_process(false)
+
+	var impact_step: int = -1
+	var impact_speed: float = -1.0
+	var impact_ratio: float = -1.0
+	var start_time: float = _scenario_time
+	for i in range(360):
+		_step_bike_held_speed(10.0, 0.0, false)
+		if not _collision_events.is_empty():
+			impact_step = i
+			impact_speed = float(_collision_events[0]["impact_speed"])
+			impact_ratio = float(_collision_events[0]["head_on_ratio"])
+			break
+
+	if impact_step < 0:
+		_fail("E5 %s fixture produced no collision within 360 fixed steps" % label)
+		return {}
+
+	var impact_time: float = _scenario_time - start_time
+	var speed_after_025: float = absf(float(_bike.current_speed))
+	for i in range(15):
+		_step_bike(0.0, 0.0, false)
+		if i == 14:
+			speed_after_025 = absf(float(_bike.current_speed))
+
+	var collision_event_count_025: int = _collision_events.size()
+	var retained_ratio: float = speed_after_025 / maxf(impact_speed, 0.001)
+
+	# Recovery is measured after the contact fixture is removed. This produces a
+	# controlled, comparable "how quickly can the vehicle become useful again"
+	# metric instead of waiting for a coasting vehicle to unstick from a wall.
+	_clear_fixtures()
+	_scenario_phase = "%s_recovery" % label
+	var recovery_start: float = _scenario_time
+	var recovery_to_half: float = -1.0
+	for _i in range(180):
+		_step_bike(1.0, 0.0, false)
+		if absf(float(_bike.current_speed)) >= float(_bike.max_speed) * 0.5:
+			recovery_to_half = _scenario_time - recovery_start
+			break
+
+	return {
+		"impact_time_s": impact_time,
+		"impact_head_on_ratio": impact_ratio,
+		"pre_impact_speed_mps": impact_speed,
+		"speed_after_0_25s_mps": speed_after_025,
+		"retained_speed_ratio_0_25s": retained_ratio,
+		"collision_events_first_0_25s": collision_event_count_025,
+		"recovery_to_50pct_max_s": recovery_to_half,
+		"post_recovery_yaw_deg": rad_to_deg(float(_bike.rotation.y)),
+		"endpoint_position": _v3(_bike.global_position)
+	}
+
+
+func _run_e6_forward_reverse() -> Dictionary:
+	_begin_scenario("E6_forward_reverse")
+	_reset_bike(Vector3(420.0, 0.05, 360.0), 0.0)
+
+	_scenario_phase = "forward_accel"
+	for _i in range(75):
+		_step_bike(1.0, 0.0, false)
+	var forward_peak: float = float(_bike.current_speed)
+	var forward_look: Vector3 = _camera_lookahead_vec()
+
+	_scenario_phase = "brake_to_reverse"
+	var brake_start: float = _scenario_time
+	var reverse_entry: float = -1.0
+	var reverse_target: float = -1.0
+	var camera_neutral: float = -1.0
+	var camera_reverse_established: float = -1.0
+	for _i in range(240):
+		_step_bike(-1.0, 0.0, false)
+		var current_look: Vector3 = _camera_lookahead_vec()
+		if camera_neutral < 0.0 and current_look.length() <= 0.10:
+			camera_neutral = _scenario_time - brake_start
+		if reverse_entry < 0.0 and int(_bike.current_gear) == int(CourierBikeScript.GearState.REVERSE):
+			reverse_entry = _scenario_time - brake_start
+		if camera_reverse_established < 0.0 and current_look.length() > 0.10 and forward_look.length() > 0.10 and current_look.dot(forward_look) < 0.0:
+			camera_reverse_established = _scenario_time - brake_start
+		if float(_bike.current_speed) <= -3.0:
+			reverse_target = _scenario_time - brake_start
+			break
+
+	_scenario_phase = "reverse_to_forward"
+	var forward_return_start: float = _scenario_time
+	var forward_gear_return: float = -1.0
+	var forward_motion_return: float = -1.0
+	for _i in range(240):
+		_step_bike(1.0, 0.0, false)
+		if forward_gear_return < 0.0 and int(_bike.current_gear) == int(CourierBikeScript.GearState.FORWARD):
+			forward_gear_return = _scenario_time - forward_return_start
+		if float(_bike.current_speed) >= 2.0:
+			forward_motion_return = _scenario_time - forward_return_start
+			break
+
+	return {
+		"forward_peak_mps": forward_peak,
+		"time_to_reverse_gear_s": reverse_entry,
+		"time_to_minus_3_mps_s": reverse_target,
+		"time_reverse_to_forward_gear_s": forward_gear_return,
+		"time_reverse_to_plus_2_mps_s": forward_motion_return,
+		"camera_lookahead_neutral_s": camera_neutral,
+		"camera_reverse_lead_established_s": camera_reverse_established,
+		"final_speed_mps": float(_bike.current_speed),
+		"camera_peak_follow_error_m": _peak_camera_follow_error,
+		"endpoint_position": _v3(_bike.global_position)
+	}
+
+
+func _run_e7_pursuit_route() -> Dictionary:
+	_begin_scenario("E7_pursuit_route")
+	_scenario_phase = "pursuit"
+	_reset_bike(Vector3(-1.5, 0.05, 3.0), PI)
+	_bike.current_speed = 0.0
+
+	# PursuerPrototype.reset_pursuer() resets lifecycle and position but does not
+	# reset transform rotation. For a repeatable harness, explicitly restore the
+	# same initial heading on every pass before activating the real pursuer logic.
+	_pursuer.reset_pursuer(Vector3(0.0, 0.6, -10.0))
+	_pursuer.rotation = Vector3.ZERO
+	_pursuer.activate_pursuit(_bike)
+	_pursuer.set_physics_process(false)
+	_gate.set_pursuit_active(true)
+
+	var min_distance: float = INF
+	var max_distance: float = 0.0
+	var collisions_at_start: int = _collision_events.size()
+	var route_switch_step: int = 60
+	var detour_seen: bool = false
+	var intercepted: bool = false
+	var path_distance: float = 0.0
+	var previous_pos: Vector3 = _bike.global_position
+	var start_time: float = _scenario_time
+
+	for i in range(300):
+		var steer: float = 0.0
+		if i >= 72 and i < 102:
+			steer = 0.35
+		elif i >= 102 and i < 132:
+			steer = -0.35
+
+		_bike.set_drive_inputs(1.0, steer, FIXED_DT, false)
+		_bike._physics_process(FIXED_DT)
+		_pursuer._physics_process(FIXED_DT)
+		_manual_camera_step()
+		_advance_clock(1.0, steer, false)
+
+		path_distance += previous_pos.distance_to(_bike.global_position)
+		previous_pos = _bike.global_position
+		var dist: float = _bike.global_position.distance_to(_pursuer.global_position)
+		min_distance = minf(min_distance, dist)
+		max_distance = maxf(max_distance, dist)
+
+		if i == route_switch_step:
+			_scenario_phase = "route_switch_detour"
+			_host._on_signal_gate_triggered()
+		if int(_pursuer.current_detour_index) >= 0:
+			detour_seen = true
+		if dist <= float(_pursuer.intercept_distance):
+			intercepted = true
+			break
+
+	var final_distance: float = _bike.global_position.distance_to(_pursuer.global_position)
+	var route_outcome: String = "INTERCEPTED" if intercepted else ("CONTACT_BREAK_CANDIDATE" if final_distance > 18.0 else "ACTIVE_PRESSURE")
+	return {
+		"duration_s": _scenario_time - start_time,
+		"route_switch_time_s": float(route_switch_step + 1) * FIXED_DT,
+		"detour_state_observed": detour_seen,
+		"bike_path_length_m": path_distance,
+		"min_pursuer_distance_m": min_distance,
+		"max_pursuer_distance_m": max_distance,
+		"final_pursuer_distance_m": final_distance,
+		"outcome": route_outcome,
+		"collision_events": _collision_events.size() - collisions_at_start,
+		"camera_peak_follow_error_m": _peak_camera_follow_error,
+		"bike_endpoint_position": _v3(_bike.global_position),
+		"pursuer_endpoint_position": _v3(_pursuer.global_position)
+	}
+
+
+func _begin_scenario(id: String) -> void:
+	_scenario_id = id
+	_scenario_phase = ""
+	_scenario_time = 0.0
+	_scenario_step = 0
+	_peak_camera_follow_error = 0.0
+	_peak_camera_fov = 0.0
+	_collision_events.clear()
+	_reset_collision_step_state()
+	_clear_fixtures()
+	_pursuer.reset_pursuer(Vector3(900.0, 0.6, 900.0))
+	_pursuer.rotation = Vector3.ZERO
+	_pursuer.set_physics_process(false)
+	_gate.set_pursuit_active(false)
+	if _trace_enabled:
+		_traces[id] = []
+
+
+func _reset_bike(pos: Vector3, yaw: float) -> void:
+	_bike.set_process(false)
+	_bike.set_physics_process(false)
+	_bike.current_state = CourierBikeScript.BikeState.DRIVING
+	_bike.current_gear = CourierBikeScript.GearState.FORWARD
+	_bike.current_speed = 0.0
+	_bike.steering_angle = 0.0
+	_bike.is_handbrake_active = false
+	_bike.velocity = Vector3.ZERO
+	_bike.global_position = pos
+	_bike.rotation = Vector3(0.0, yaw, 0.0)
+	var visual_root = _bike.get("visual_root")
+	if visual_root is Node3D:
+		visual_root.rotation = Vector3.ZERO
+	_camera.set_process(false)
+	_camera.reset_camera_instant(_bike)
+	_camera.set_process(false)
+	_peak_camera_fov = maxf(_peak_camera_fov, float(_camera.fov))
+
+
+func _step_bike(throttle: float, steer: float, handbrake: bool) -> void:
+	_bike.set_drive_inputs(throttle, steer, FIXED_DT, handbrake)
+	_bike._physics_process(FIXED_DT)
+	_manual_camera_step()
+	_advance_clock(throttle, steer, handbrake)
+
+
+func _step_bike_held_speed(speed_mps: float, steer: float, handbrake: bool) -> void:
+	_bike.set_drive_inputs(0.0, steer, FIXED_DT, handbrake)
+	_bike.current_speed = speed_mps
+	_bike._physics_process(FIXED_DT)
+	_manual_camera_step()
+	_advance_clock(0.0, steer, handbrake)
+
+
+func _manual_camera_step() -> void:
+	_camera._process(FIXED_DT)
+
+
+func _advance_clock(throttle: float, steer: float, handbrake: bool) -> void:
+	_scenario_step += 1
+	_scenario_time += FIXED_DT
+	_peak_camera_follow_error = maxf(_peak_camera_follow_error, float(_camera.last_follow_error))
+	_peak_camera_fov = maxf(_peak_camera_fov, float(_camera.fov))
+	if _trace_enabled:
+		_record_trace(throttle, steer, handbrake)
+
+
+func _record_trace(throttle: float, steer: float, handbrake: bool) -> void:
+	if not _traces.has(_scenario_id):
+		_traces[_scenario_id] = []
+
+	var focus_pos: Vector3 = Vector3.ZERO
+	var look_ahead: Vector3 = Vector3.ZERO
+	var focus_variant = _camera.get("_smoothed_focus_pos")
+	if focus_variant is Vector3:
+		focus_pos = focus_variant
+	var look_variant = _camera.get("_smoothed_look_ahead")
+	if look_variant is Vector3:
+		look_ahead = look_variant
+
+	var pursuit_state: int = int(_pursuer.current_state)
+	var pursuer_pos: Vector3 = _pursuer.global_position
+	var pursuer_distance: float = _bike.global_position.distance_to(_pursuer.global_position)
+	var collision_this_step: bool = _last_collision_step == _scenario_step
+
+	var row: Dictionary = {
+		"step": _scenario_step,
+		"time_s": _scenario_time,
+		"phase": _scenario_phase,
+		"throttle": throttle,
+		"steer": steer,
+		"handbrake_input": handbrake,
+		"handbrake_state": bool(_bike.is_handbrake_active),
+		"gear": int(_bike.current_gear),
+		"speed_mps": float(_bike.current_speed),
+		"position": _v3(_bike.global_position),
+		"velocity": _v3(_bike.velocity),
+		"yaw_deg": rad_to_deg(float(_bike.rotation.y)),
+		"lateral_slip_mps": _lateral_slip_speed(),
+		"collision_event": collision_this_step,
+		"collision_head_on_ratio": _last_collision_head_on_ratio if collision_this_step else -1.0,
+		"collision_impact_speed_mps": _last_collision_impact_speed if collision_this_step else -1.0,
+		"collision_position": _v3(_last_collision_position) if collision_this_step else [],
+		"camera_position": _v3(_camera.global_position),
+		"camera_focus": _v3(focus_pos),
+		"camera_look_ahead": _v3(look_ahead),
+		"camera_fov_deg": float(_camera.fov),
+		"camera_follow_error_m": float(_camera.last_follow_error),
+		"pursuit_state": pursuit_state,
+		"pursuer_position": _v3(pursuer_pos),
+		"pursuer_distance_m": pursuer_distance
+	}
+	(_traces[_scenario_id] as Array).append(row)
+
+
+func _lateral_slip_speed() -> float:
+	return absf(float(_bike.velocity.dot(_bike.global_transform.basis.x)))
+
+
+func _camera_lookahead_vec() -> Vector3:
+	var value = _camera.get("_smoothed_look_ahead")
+	if value is Vector3:
+		return value
+	return Vector3.ZERO
+
+
+func _camera_lookahead_length() -> float:
+	return _camera_lookahead_vec().length()
+
+
+func _angle_delta(from_angle: float, to_angle: float) -> float:
+	return wrapf(to_angle - from_angle, -PI, PI)
+
+
+func _v3(value: Vector3) -> Array:
+	return [value.x, value.y, value.z]
+
+
+func _spawn_wall_fixture(pos: Vector3, size: Vector3, yaw: float) -> void:
+	var body: StaticBody3D = StaticBody3D.new()
+	body.name = "CTWFeelCollisionFixture"
+	body.position = pos
+	body.rotation.y = yaw
+	var shape_node: CollisionShape3D = CollisionShape3D.new()
+	var shape: BoxShape3D = BoxShape3D.new()
+	shape.size = size
+	shape_node.shape = shape
+	body.add_child(shape_node)
+	_host.add_child(body)
+	_fixtures.append(body)
+
+
+func _clear_fixtures() -> void:
+	for fixture in _fixtures:
+		if is_instance_valid(fixture):
+			fixture.free()
+	_fixtures.clear()
+
+
+func _reset_collision_step_state() -> void:
+	_last_collision_step = -1
+	_last_collision_head_on_ratio = -1.0
+	_last_collision_impact_speed = -1.0
+	_last_collision_position = Vector3.ZERO
+
+
+func _on_collision_contact(head_on_ratio: float, impact_speed: float, collision_pos: Vector3) -> void:
+	_last_collision_step = _scenario_step + 1
+	_last_collision_head_on_ratio = head_on_ratio
+	_last_collision_impact_speed = impact_speed
+	_last_collision_position = collision_pos
+	_collision_events.append({
+		"scenario": _scenario_id,
+		"phase": _scenario_phase,
+		"step": _scenario_step + 1,
+		"time_s": _scenario_time + FIXED_DT,
+		"head_on_ratio": head_on_ratio,
+		"impact_speed": impact_speed,
+		"position": _v3(collision_pos)
+	})
+
+
+func _compare_repeatability(pass_a: Dictionary, pass_b: Dictionary) -> Dictionary:
+	var failures: Array[String] = []
+	_compare_variant("scenarios", pass_a, pass_b, failures)
+	return {
+		"passed": failures.is_empty(),
+		"scalar_tolerance_rule": "timing/velocity <= 1 fixed frame or <= 1%; endpoint position <= 0.05 m; yaw <= 0.5 deg",
+		"failures": failures
+	}
+
+
+func _compare_variant(path: String, a, b, failures: Array[String]) -> void:
+	if typeof(a) != typeof(b):
+		failures.append("%s type mismatch: %s vs %s" % [path, typeof(a), typeof(b)])
+		return
+
+	if a is Dictionary:
+		var a_dict: Dictionary = a
+		var b_dict: Dictionary = b
+		for key in a_dict.keys():
+			if not b_dict.has(key):
+				failures.append("%s.%s missing from repeat pass" % [path, key])
+				continue
+			_compare_variant("%s.%s" % [path, key], a_dict[key], b_dict[key], failures)
+		return
+
+	if a is Array:
+		var aa: Array = a
+		var bb: Array = b
+		if aa.size() != bb.size():
+			failures.append("%s array size mismatch: %d vs %d" % [path, aa.size(), bb.size()])
+			return
+		for i in range(aa.size()):
+			_compare_variant("%s[%d]" % [path, i], aa[i], bb[i], failures)
+		return
+
+	if a is float or a is int:
+		var af: float = float(a)
+		var bf: float = float(b)
+		var lower_path: String = path.to_lower()
+		var tolerance: float = maxf(FIXED_DT, absf(af) * 0.01)
+		if lower_path.contains("position"):
+			tolerance = 0.05
+		elif lower_path.contains("yaw"):
+			tolerance = 0.5
+		if absf(af - bf) > tolerance:
+			failures.append("%s drift %.9f exceeds tolerance %.9f (A=%.9f B=%.9f)" % [path, absf(af - bf), tolerance, af, bf])
+		return
+
+	if a != b:
+		failures.append("%s mismatch: %s vs %s" % [path, str(a), str(b)])
+
+
+func _resolve_build_commit() -> String:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--feel-build-commit="):
+			var value: String = arg.trim_prefix("--feel-build-commit=").strip_edges()
+			if not value.is_empty():
+				return value
+	var env_value: String = OS.get_environment("EITS_BUILD_COMMIT").strip_edges()
+	return env_value if not env_value.is_empty() else BASELINE_BEHAVIOR_SHA
+
+
+func _ensure_output_dir() -> bool:
+	var absolute: String = ProjectSettings.globalize_path(OUTPUT_DIR)
+	var err: Error = DirAccess.make_dir_recursive_absolute(absolute)
+	if err != OK and err != ERR_ALREADY_EXISTS:
+		_fail("Could not create output directory %s (error %d)" % [absolute, err])
+		return false
+	return true
+
+
+func _write_json(path: String, data) -> bool:
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_fail("Could not open %s for write (error %d)" % [path, FileAccess.get_open_error()])
+		return false
+	file.store_string(JSON.stringify(data, "\t"))
+	file.store_string("\n")
+	file.close()
+	return true
+
+
+func _write_trace_artifacts() -> bool:
+	for scenario in _traces.keys():
+		var path: String = "%s/%s_%s_trace.json" % [OUTPUT_DIR, TRACE_PREFIX, scenario]
+		var payload: Dictionary = {
+			"schema_version": 3,
+			"behavior_commit": _resolve_build_commit(),
+			"fixed_hz": FIXED_HZ,
+			"scenario": scenario,
+			"samples": _traces[scenario]
+		}
+		if not _write_json(path, payload):
+			return false
+	return true
+
+
+func _write_verification_log(summary: Dictionary) -> bool:
+	var path: String = "%s/baseline_verification.log" % OUTPUT_DIR
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_fail("Could not open %s for write (error %d)" % [path, FileAccess.get_open_error()])
+		return false
+	file.store_line("CTW FEEL BASELINE — Ticket #11")
+	file.store_line("behavior_commit=%s" % _resolve_build_commit())
+	file.store_line("baseline_behavior_sha=%s" % BASELINE_BEHAVIOR_SHA)
+	file.store_line("godot_version=%s" % JSON.stringify(Engine.get_version_info()))
+	file.store_line("fixed_hz=%d" % FIXED_HZ)
+	file.store_line("fixed_dt=%.9f" % FIXED_DT)
+	file.store_line("main_scene=%s" % MAIN_SCENE_PATH)
+	file.store_line("repeatability_passed=%s" % str(summary["repeatability"]["passed"]))
+	file.store_line("headless_command=godot --headless --path godot --script res://scripts/verification/ctw_feel_harness.gd -- --run-ctw-feel-baseline --feel-build-commit=<sha>")
+	file.store_line("windowed_command=godot --path godot --script res://scripts/verification/ctw_feel_harness.gd -- --run-ctw-feel-baseline --feel-build-commit=<sha>")
+	file.close()
+	return true
+
+
+func _finish(exit_code: int) -> void:
+	_clear_fixtures()
+	if is_instance_valid(_host):
+		_host.free()
+	quit(exit_code)
+
+
+func _fail(message: String, exit_code: int = 1) -> void:
+	_run_error = message
+	push_error("[CTW_FEEL] %s" % message)
+	_finish(exit_code)

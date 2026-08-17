@@ -1,0 +1,227 @@
+name: CTW Feel Harness Verify
+
+on:
+  push:
+    branches:
+      - codex/ctw-feel-01-harness
+
+permissions:
+  contents: read
+
+jobs:
+  verify-ticket-11:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BASELINE_SHA: 09fa2b0ab8aebc8a2ae54b989bffad7720503e48
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Godot 4.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x .godot-bin/Godot_v4.7.1-stable_linux.x86_64
+          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 --version
+
+      - name: Prime branch Godot project metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --editor \
+            --path godot \
+            --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: Run deterministic baseline harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path godot \
+            --script res://scripts/verification/ctw_feel_harness.gd \
+            -- \
+            --run-ctw-feel-baseline \
+            --feel-build-commit="${GITHUB_SHA}"
+
+      - name: Validate generated baseline evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s godot/verification/feel/baseline_summary.json
+          test -s godot/verification/feel/baseline_verification.log
+          test "$(find godot/verification/feel -maxdepth 1 -name 'baseline_*_trace.json' -type f | wc -l | tr -d ' ')" = "7"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = json.loads(Path('godot/verification/feel/baseline_summary.json').read_text())
+          assert summary['schema_version'] == 3
+          assert summary['ticket'] == 11
+          assert summary['metadata']['behavior_commit']
+          assert summary['repeatability']['passed'] is True
+          assert set(summary['scenarios']) == {
+              'E1_launch_coast_brake',
+              'E2_constant_90_turn',
+              'E3_steering_reversal',
+              'E4_handbrake_recovery',
+              'E5_collision_pair',
+              'E6_forward_reverse',
+              'E7_pursuit_route',
+          }
+          print(json.dumps(summary, indent=2))
+          PY
+
+      - name: Run and classify current 24-suite regression matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT="${GITHUB_WORKSPACE}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+          suites=(
+            --run-v1-assertions
+            --run-v2-assertions
+            --run-v3-assertions
+            --run-v4-assertions
+            --run-v5-assertions
+            --run-v6-assertions
+            --run-v7-ticket01-assertions
+            --run-v7-ticket02-assertions
+            --run-v7-ticket02-1-assertions
+            --run-v7-ticket03-assertions
+            --run-v7-ticket04-1-assertions
+            --run-v7-ticket04-2-assertions
+            --run-v7-ticket04-3-assertions
+            --run-v7-ticket05-assertions
+            --run-v7-ticket06-assertions
+            --run-v8-safe-area-assertions
+            --run-v8-thumb-reach-assertions
+            --run-v8-multitouch-assertions
+            --run-v8-m03-aftermath-assertions
+            --run-v8-m04-echo-assertions
+            --run-v8-m05-hero-identity-assertions
+            --run-v8-m06-vehicle-class-assertions
+            --run-v8-m07-world-life-assertions
+            --run-v8-readability
+          )
+
+          : > regression_matrix.log
+          : > branch_failures.txt
+          : > baseline_failures.txt
+          : > true_regressions.txt
+          : > regression_classification.log
+
+          echo "Branch under test: ${GITHUB_SHA}" | tee -a regression_classification.log
+          echo "Behavior baseline: ${BASELINE_SHA}" | tee -a regression_classification.log
+          echo "Godot: $($GODOT --version)" | tee -a regression_classification.log
+
+          for suite in "${suites[@]}"; do
+            echo "===== BRANCH ${suite} =====" | tee -a regression_matrix.log
+            set +e
+            timeout 120s "$GODOT" --headless --path godot -- "$suite" 2>&1 | tee -a regression_matrix.log
+            rc=${PIPESTATUS[0]}
+            set -e
+            if [[ $rc -ne 0 ]]; then
+              echo "$suite" | tee -a branch_failures.txt
+            fi
+          done
+
+          if [[ ! -s branch_failures.txt ]]; then
+            echo "24/24 branch regression commands exited 0." | tee -a regression_classification.log
+            exit 0
+          fi
+
+          echo "Branch failures detected; reproducing only those failures against untouched baseline in identical Linux/Godot environment." | tee -a regression_classification.log
+          cat branch_failures.txt | tee -a regression_classification.log
+
+          baseline_dir="${RUNNER_TEMP}/ctw-baseline"
+          rm -rf "$baseline_dir"
+          git worktree add --detach "$baseline_dir" "$BASELINE_SHA"
+          "$GODOT" --headless --editor --path "$baseline_dir/godot" --quit
+          test -s "$baseline_dir/godot/.godot/global_script_class_cache.cfg"
+
+          while IFS= read -r suite; do
+            [[ -n "$suite" ]] || continue
+            echo "===== BASELINE ${suite} =====" | tee -a regression_matrix.log
+            set +e
+            timeout 120s "$GODOT" --headless --path "$baseline_dir/godot" -- "$suite" 2>&1 | tee -a regression_matrix.log
+            rc=${PIPESTATUS[0]}
+            set -e
+            if [[ $rc -ne 0 ]]; then
+              echo "$suite" | tee -a baseline_failures.txt
+              echo "PRE_EXISTING_PLATFORM_FAILURE $suite" | tee -a regression_classification.log
+            else
+              echo "$suite" | tee -a true_regressions.txt
+              echo "BRANCH_REGRESSION $suite" | tee -a regression_classification.log
+            fi
+          done < branch_failures.txt
+
+          git worktree remove --force "$baseline_dir"
+
+          if [[ -s true_regressions.txt ]]; then
+            echo "Branch introduced regression(s):" | tee -a regression_classification.log
+            cat true_regressions.txt | tee -a regression_classification.log
+            exit 1
+          fi
+
+          echo "No branch-only regressions. All branch failures reproduced on untouched baseline and are classified as pre-existing Linux/headless platform failures." | tee -a regression_classification.log
+
+      - name: Run windowed rendered sanity
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT=.godot-bin/Godot_v4.7.1-stable_linux.x86_64
+          command -v xvfb-run >/dev/null
+
+          # Force fresh proof so this job cannot pass on PNGs already committed in main.
+          rm -f godot/verification/v8/m07/*.png
+          xvfb-run -a -s "-screen 0 1280x720x24" \
+            timeout 180s "$GODOT" --path godot -- --run-v8-m07-world-life-assertions
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          proof = Path('godot/verification/v8/m07')
+          files = sorted(proof.glob('m07_*.png'))
+          assert len(files) == 7, [p.name for p in files]
+          required = {
+              'm07_03_bike_yield_reaction.png',
+              'm07_06_cleared_pursuit_escape.png',
+          }
+          assert required.issubset({p.name for p in files})
+          for path in files:
+              data = path.read_bytes()
+              assert len(data) > 20_000, (path.name, len(data))
+              assert data[:8] == b'\x89PNG\r\n\x1a\n', path.name
+          print('fresh rendered M07 proof:', [(p.name, p.stat().st_size) for p in files])
+          PY
+
+      - name: Upload Ticket 11 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctw-feel-ticket-11-${{ github.sha }}
+          path: |
+            godot/verification/feel/baseline_summary.json
+            godot/verification/feel/baseline_*_trace.json
+            godot/verification/feel/baseline_verification.log
+            regression_matrix.log
+            regression_classification.log
+            branch_failures.txt
+            baseline_failures.txt
+            true_regressions.txt
+            godot/verification/v8/m07/m07_*.png
+          if-no-files-found: warn
+          retention-days: 14
