@@ -230,29 +230,12 @@ func _ready() -> void:
 		
 	if action_button:
 		action_button.pressed.connect(_on_action_button_clicked)
-		action_button.gui_input.connect(func(ev: InputEvent):
-			if (ev is InputEventScreenTouch and (ev as InputEventScreenTouch).pressed) or ev.is_pressed():
-				_on_action_button_clicked()
-		)
 	if dismount_button:
 		dismount_button.pressed.connect(_on_dismount_button_clicked)
-		dismount_button.gui_input.connect(func(ev: InputEvent):
-			if (ev is InputEventScreenTouch and (ev as InputEventScreenTouch).pressed) or ev.is_pressed():
-				_on_dismount_button_clicked()
-		)
 	if route_switch_button:
-		route_switch_button.button_down.connect(_on_route_switch_button_clicked)
 		route_switch_button.pressed.connect(_on_route_switch_button_clicked)
-		route_switch_button.gui_input.connect(func(ev: InputEvent):
-			if (ev is InputEventScreenTouch and (ev as InputEventScreenTouch).pressed) or ev.is_pressed():
-				_on_route_switch_button_clicked()
-		)
 	if core_tap_button:
 		core_tap_button.pressed.connect(func(): core_tap_pressed.emit())
-		core_tap_button.gui_input.connect(func(ev: InputEvent):
-			if (ev is InputEventScreenTouch and (ev as InputEventScreenTouch).pressed) or ev.is_pressed():
-				core_tap_pressed.emit()
-		)
 	if replay_button:
 		replay_button.pressed.connect(func(): replay_pressed.emit())
 		
@@ -262,53 +245,81 @@ func _ready() -> void:
 	hide_tension_hud()
 	set_route_switch_button_visible(false)
 
+	# Continuous driving controls use single, deterministic pointer ownership
 	if gas_button:
 		gas_button.button_down.connect(func():
-			_is_gas_pressed = true
-			_emit_net_throttle()
-		)
-		gas_button.button_up.connect(func():
-			_is_gas_pressed = false
-			_gas_touch_index = -1
-			_emit_net_throttle()
-		)
-		gas_button.gui_input.connect(func(ev: InputEvent):
-			if ev is InputEventScreenTouch and ev.pressed:
-				_gas_touch_index = ev.index
+			if _gas_touch_index == -1:
+				_gas_touch_index = 0
 				_is_gas_pressed = true
 				_emit_net_throttle()
 		)
+		gas_button.button_up.connect(func():
+			if _gas_touch_index == 0:
+				_is_gas_pressed = false
+				_gas_touch_index = -1
+				_emit_net_throttle()
+		)
+		gas_button.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventScreenTouch:
+				var st := ev as InputEventScreenTouch
+				if st.pressed and _gas_touch_index == -1:
+					_gas_touch_index = st.index
+					_is_gas_pressed = true
+					_emit_net_throttle()
+				elif not st.pressed and st.index == _gas_touch_index:
+					_is_gas_pressed = false
+					_gas_touch_index = -1
+					_emit_net_throttle()
+		)
 	if brake_button:
 		brake_button.button_down.connect(func():
-			_is_brake_pressed = true
-			_emit_net_throttle()
-		)
-		brake_button.button_up.connect(func():
-			_is_brake_pressed = false
-			_brake_touch_index = -1
-			_emit_net_throttle()
-		)
-		brake_button.gui_input.connect(func(ev: InputEvent):
-			if ev is InputEventScreenTouch and ev.pressed:
-				_brake_touch_index = ev.index
+			if _brake_touch_index == -1:
+				_brake_touch_index = 0
 				_is_brake_pressed = true
 				_emit_net_throttle()
 		)
+		brake_button.button_up.connect(func():
+			if _brake_touch_index == 0:
+				_is_brake_pressed = false
+				_brake_touch_index = -1
+				_emit_net_throttle()
+		)
+		brake_button.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventScreenTouch:
+				var st := ev as InputEventScreenTouch
+				if st.pressed and _brake_touch_index == -1:
+					_brake_touch_index = st.index
+					_is_brake_pressed = true
+					_emit_net_throttle()
+				elif not st.pressed and st.index == _brake_touch_index:
+					_is_brake_pressed = false
+					_brake_touch_index = -1
+					_emit_net_throttle()
+		)
 	if handbrake_button:
 		handbrake_button.button_down.connect(func():
-			_is_handbrake_pressed = true
-			driving_handbrake_updated.emit(true)
-		)
-		handbrake_button.button_up.connect(func():
-			_is_handbrake_pressed = false
-			_handbrake_touch_index = -1
-			driving_handbrake_updated.emit(false)
-		)
-		handbrake_button.gui_input.connect(func(ev: InputEvent):
-			if ev is InputEventScreenTouch and ev.pressed:
-				_handbrake_touch_index = ev.index
+			if _handbrake_touch_index == -1:
+				_handbrake_touch_index = 0
 				_is_handbrake_pressed = true
 				driving_handbrake_updated.emit(true)
+		)
+		handbrake_button.button_up.connect(func():
+			if _handbrake_touch_index == 0:
+				_is_handbrake_pressed = false
+				_handbrake_touch_index = -1
+				driving_handbrake_updated.emit(false)
+		)
+		handbrake_button.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventScreenTouch:
+				var st := ev as InputEventScreenTouch
+				if st.pressed and _handbrake_touch_index == -1:
+					_handbrake_touch_index = st.index
+					_is_handbrake_pressed = true
+					driving_handbrake_updated.emit(true)
+				elif not st.pressed and st.index == _handbrake_touch_index:
+					_is_handbrake_pressed = false
+					_handbrake_touch_index = -1
+					driving_handbrake_updated.emit(false)
 		)
 
 	if get_viewport():
