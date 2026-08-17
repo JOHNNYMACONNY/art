@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://lm02tunermast"]
+
+[ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="1_metal"]
+[ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="2_rust"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_mast"]
+material = ExtResource("1_metal")
+top_radius = 0.04
+bottom_radius = 0.12
+height = 5.0
+radial_segments = 8
+rings = 1
+
+[sub_resource type="TorusMesh" id="TorusMesh_insulator"]
+material = ExtResource("2_rust")
+inner_radius = 0.15
+outer_radius = 0.35
+rings = 12
+ring_segments = 8
+
+[node name="LandmarkTunerMast" type="Node3D"]
+
+[node name="SpireMast" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)
+mesh = SubResource("CylinderMesh_mast")
+
+[node name="InsulatorLower" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8, 0)
+mesh = SubResource("TorusMesh_insulator")
+
+[node name="InsulatorUpper" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.0, 0)
+mesh = SubResource("TorusMesh_insulator")

@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://lm05gatearch"]
+
+[ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="1_rust"]
+[ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="2_metal"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_gantry"]
+material = ExtResource("1_rust")
+size = Vector3(6.8, 0.3, 0.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_warning_plate"]
+material = ExtResource("2_metal")
+size = Vector3(3.6, 0.45, 0.08)
+
+[node name="LandmarkGateArch" type="Node3D"]
+
+[node name="GantryBeam" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+mesh = SubResource("BoxMesh_gantry")
+
+[node name="WarningPlate" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0.22)
+mesh = SubResource("BoxMesh_warning_plate")

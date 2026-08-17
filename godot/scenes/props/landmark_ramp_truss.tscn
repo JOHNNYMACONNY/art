@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://lm06ramptruss"]
+
+[ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="1_metal"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_truss_rail"]
+material = ExtResource("1_metal")
+size = Vector3(0.12, 0.4, 3.8)
+
+[node name="LandmarkRampTruss" type="Node3D"]
+
+[node name="TrussL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, -1.2, 0.5, 0)
+mesh = SubResource("BoxMesh_truss_rail")
+
+[node name="TrussR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, 1.2, 0.5, 0)
+mesh = SubResource("BoxMesh_truss_rail")

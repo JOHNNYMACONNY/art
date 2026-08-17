@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://lm04bikepad"]
+
+[ext_resource type="Material" path="res://materials/mat_concrete_pad.tres" id="1_concrete"]
+[ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="2_rust"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_pad"]
+material = ExtResource("1_concrete")
+size = Vector3(3.2, 0.02, 2.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_border"]
+material = ExtResource("2_rust")
+size = Vector3(3.4, 0.015, 2.6)
+
+[node name="LandmarkBikePad" type="Node3D"]
+
+[node name="BorderFrame" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.008, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_border")
+
+[node name="ConcreteSlab" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_pad")

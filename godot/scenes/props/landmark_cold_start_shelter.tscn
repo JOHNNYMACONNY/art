@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://lm01coldshelter"]
+
+[ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="1_rust"]
+[ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="2_metal"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_post"]
+material = ExtResource("1_rust")
+size = Vector3(0.18, 2.2, 0.18)
+
+[sub_resource type="BoxMesh" id="BoxMesh_roof"]
+material = ExtResource("2_metal")
+size = Vector3(3.4, 0.08, 2.2)
+
+[node name="LandmarkColdStartShelter" type="Node3D"]
+
+[node name="PostL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 1.1, 0)
+mesh = SubResource("BoxMesh_post")
+
+[node name="PostR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 1.1, 0)
+mesh = SubResource("BoxMesh_post")
+
+[node name="AngledRoof" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 2.1, 0.2)
+mesh = SubResource("BoxMesh_roof")
