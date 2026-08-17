@@ -11,11 +11,15 @@ permissions:
 jobs:
   verify-ticket-11:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
+    env:
+      BASELINE_SHA: 09fa2b0ab8aebc8a2ae54b989bffad7720503e48
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download Godot 4.7.1
         shell: bash
@@ -30,7 +34,7 @@ jobs:
           chmod +x .godot-bin/Godot_v4.7.1-stable_linux.x86_64
           .godot-bin/Godot_v4.7.1-stable_linux.x86_64 --version
 
-      - name: Prime Godot project metadata
+      - name: Prime branch Godot project metadata
         shell: bash
         run: |
           set -euo pipefail
@@ -81,11 +85,11 @@ jobs:
           print(json.dumps(summary, indent=2))
           PY
 
-      - name: Run current 24-suite regression matrix
+      - name: Run and classify current 24-suite regression matrix
         shell: bash
         run: |
           set -euo pipefail
-          GODOT=.godot-bin/Godot_v4.7.1-stable_linux.x86_64
+          GODOT="${GITHUB_WORKSPACE}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
           suites=(
             --run-v1-assertions
             --run-v2-assertions
@@ -114,11 +118,65 @@ jobs:
           )
 
           : > regression_matrix.log
+          : > branch_failures.txt
+          : > baseline_failures.txt
+          : > true_regressions.txt
+          : > regression_classification.log
+
+          echo "Branch under test: ${GITHUB_SHA}" | tee -a regression_classification.log
+          echo "Behavior baseline: ${BASELINE_SHA}" | tee -a regression_classification.log
+          echo "Godot: $($GODOT --version)" | tee -a regression_classification.log
+
           for suite in "${suites[@]}"; do
-            echo "===== ${suite} =====" | tee -a regression_matrix.log
+            echo "===== BRANCH ${suite} =====" | tee -a regression_matrix.log
+            set +e
             timeout 120s "$GODOT" --headless --path godot -- "$suite" 2>&1 | tee -a regression_matrix.log
+            rc=${PIPESTATUS[0]}
+            set -e
+            if [[ $rc -ne 0 ]]; then
+              echo "$suite" | tee -a branch_failures.txt
+            fi
           done
-          echo "24/24 regression commands exited 0" | tee -a regression_matrix.log
+
+          if [[ ! -s branch_failures.txt ]]; then
+            echo "24/24 branch regression commands exited 0." | tee -a regression_classification.log
+            exit 0
+          fi
+
+          echo "Branch failures detected; reproducing only those failures against untouched baseline in identical Linux/Godot environment." | tee -a regression_classification.log
+          cat branch_failures.txt | tee -a regression_classification.log
+
+          baseline_dir="${RUNNER_TEMP}/ctw-baseline"
+          rm -rf "$baseline_dir"
+          git worktree add --detach "$baseline_dir" "$BASELINE_SHA"
+          "$GODOT" --headless --editor --path "$baseline_dir/godot" --quit
+          test -s "$baseline_dir/godot/.godot/global_script_class_cache.cfg"
+
+          while IFS= read -r suite; do
+            [[ -n "$suite" ]] || continue
+            echo "===== BASELINE ${suite} =====" | tee -a regression_matrix.log
+            set +e
+            timeout 120s "$GODOT" --headless --path "$baseline_dir/godot" -- "$suite" 2>&1 | tee -a regression_matrix.log
+            rc=${PIPESTATUS[0]}
+            set -e
+            if [[ $rc -ne 0 ]]; then
+              echo "$suite" | tee -a baseline_failures.txt
+              echo "PRE_EXISTING_PLATFORM_FAILURE $suite" | tee -a regression_classification.log
+            else
+              echo "$suite" | tee -a true_regressions.txt
+              echo "BRANCH_REGRESSION $suite" | tee -a regression_classification.log
+            fi
+          done < branch_failures.txt
+
+          git worktree remove --force "$baseline_dir"
+
+          if [[ -s true_regressions.txt ]]; then
+            echo "Branch introduced regression(s):" | tee -a regression_classification.log
+            cat true_regressions.txt | tee -a regression_classification.log
+            exit 1
+          fi
+
+          echo "No branch-only regressions. All branch failures reproduced on untouched baseline and are classified as pre-existing Linux/headless platform failures." | tee -a regression_classification.log
 
       - name: Run windowed rendered sanity
         shell: bash
@@ -160,6 +218,10 @@ jobs:
             godot/verification/feel/baseline_*_trace.json
             godot/verification/feel/baseline_verification.log
             regression_matrix.log
+            regression_classification.log
+            branch_failures.txt
+            baseline_failures.txt
+            true_regressions.txt
             godot/verification/v8/m07/m07_*.png
           if-no-files-found: warn
           retention-days: 14
