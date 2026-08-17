@@ -287,6 +287,11 @@ func _show_retry_overlay(status: String) -> void:
 		return
 	_status_label.text = status
 	_overlay.visible = true
+	# The parent recovery timer unlocks the Runner at ~0.8s. Once the failure
+	# surface becomes authoritative, lock locomotion so the player cannot wander
+	# behind the modal and invalidate the deterministic chase checkpoint.
+	if _player:
+		_player.is_input_locked = true
 	_retry_button.grab_focus()
 
 
@@ -343,6 +348,7 @@ func _emit_intercept_and_wait_ready() -> void:
 	await get_tree().create_timer(RETRY_ARM_DELAY + 0.08).timeout
 	assert(_retry_ready, "RETRY: intercept must arm Retry Chase")
 	assert(is_retry_overlay_visible(), "RETRY: intercept must show retry overlay")
+	assert(_player.is_input_locked, "RETRY: failure modal must lock locomotion")
 
 
 func _run_retry_assertions(export_proof: bool) -> void:
