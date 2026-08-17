@@ -1,0 +1,83 @@
+name: CTW Feel Harness Verify
+
+on:
+  push:
+    branches:
+      - codex/ctw-feel-01-harness
+
+permissions:
+  contents: read
+
+jobs:
+  headless-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x .godot-bin/Godot_v4.7.1-stable_linux.x86_64
+          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 --version
+
+      - name: Run deterministic baseline harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --path godot \
+            --script res://scripts/verification/ctw_feel_harness.gd \
+            -- \
+            --run-ctw-feel-baseline \
+            --feel-build-commit="${GITHUB_SHA}"
+
+      - name: Validate generated evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s godot/verification/feel/baseline_summary.json
+          test -s godot/verification/feel/baseline_verification.log
+          test "$(find godot/verification/feel -maxdepth 1 -name 'baseline_*_trace.json' -type f | wc -l | tr -d ' ')" = "7"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = json.loads(Path('godot/verification/feel/baseline_summary.json').read_text())
+          assert summary['schema_version'] == 2
+          assert summary['ticket'] == 11
+          assert summary['metadata']['behavior_commit']
+          assert summary['repeatability']['passed'] is True
+          assert set(summary['scenarios']) == {
+              'E1_launch_coast_brake',
+              'E2_constant_90_turn',
+              'E3_steering_reversal',
+              'E4_handbrake_recovery',
+              'E5_collision_pair',
+              'E6_forward_reverse',
+              'E7_pursuit_route',
+          }
+          print(json.dumps(summary, indent=2))
+          PY
+
+      - name: Upload baseline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctw-feel-baseline-${{ github.sha }}
+          path: |
+            godot/verification/feel/baseline_summary.json
+            godot/verification/feel/baseline_*_trace.json
+            godot/verification/feel/baseline_verification.log
+          if-no-files-found: warn
+          retention-days: 14
