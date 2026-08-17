@@ -5520,20 +5520,32 @@ func _run_v8_m06_vehicle_class_assertions() -> void:
 		veh.current_speed = 5.0
 		veh.current_gear = 0 # FORWARD
 		
-		# Brake to stop
+		# 1. Forward -> Brake -> Stop -> Reverse
 		for _i in range(30):
 			veh.set_drive_inputs(-1.0, 0.0, 1.0 / 60.0, false)
+			veh._physics_process(1.0 / 60.0)
 		assert(veh.current_speed <= 0.0, "FAIL A4: Vehicle must brake to zero")
-		
-		# Settle gear timer
 		veh._gear_settle_timer = 0.0
 		
-		# Throttle in reverse
-		for _i in range(10):
+		for _i in range(15):
 			veh.set_drive_inputs(-1.0, 0.0, 1.0 / 60.0, false)
+			veh._physics_process(1.0 / 60.0)
 		assert(veh.current_speed < 0.0, "FAIL A4: Vehicle must reverse with backward throttle")
 		assert(veh.current_gear == 1, "FAIL A4: Vehicle gear must switch to REVERSE")
-	print("  -> Assertion 4 PASS: Deterministic forward/reverse gear transitions verified")
+		
+		# 2. Reverse -> Brake -> Stop -> Forward
+		for _i in range(30):
+			veh.set_drive_inputs(1.0, 0.0, 1.0 / 60.0, false)
+			veh._physics_process(1.0 / 60.0)
+		assert(veh.current_speed >= 0.0, "FAIL A4: Vehicle must brake from reverse to zero")
+		veh._gear_settle_timer = 0.0
+		
+		for _i in range(15):
+			veh.set_drive_inputs(1.0, 0.0, 1.0 / 60.0, false)
+			veh._physics_process(1.0 / 60.0)
+		assert(veh.current_speed > 0.0, "FAIL A4: Vehicle must drive forward with positive throttle")
+		assert(veh.current_gear == 0, "FAIL A4: Vehicle gear must switch to FORWARD")
+	print("  -> Assertion 4 PASS: Complete forward->reverse->forward gear cycle verified on all classes")
 
 	# ─────────────────────────────────────────────────────────────────────────
 	# ASSERTION 5: Handbrake zero-speed pivot exploit prevention
@@ -5574,37 +5586,45 @@ func _run_v8_m06_vehicle_class_assertions() -> void:
 	print("    -> Acceleration contrast PASS: Bike %.2f m/s vs Hauler %.2f m/s" % [courier_bike.current_speed, scrap_hauler.current_speed])
 
 	# Contrast 2: Same-input steering yaw rate (Bike is agile, Hauler has heavier rotational inertia)
-	courier_bike.current_speed = 10.0
+	courier_bike.current_state = CourierBike.BikeState.DRIVING
+	courier_bike.current_speed = 6.0
 	courier_bike.rotation.y = 0.0
-	scrap_hauler.current_speed = 10.0
+	scrap_hauler.current_state = ScrapHaulerScript.VehicleState.DRIVING
+	scrap_hauler.current_speed = 6.0
 	scrap_hauler.rotation.y = 0.0
 	
 	for _i in range(20):
-		courier_bike.set_drive_inputs(1.0, 1.0, 1.0 / 60.0, false)
-		courier_bike._physics_process(1.0 / 60.0)
-		scrap_hauler.set_drive_inputs(1.0, 1.0, 1.0 / 60.0, false)
-		scrap_hauler._physics_process(1.0 / 60.0)
+		courier_bike.set_drive_inputs(0.5, 1.0, 1.0 / 60.0, false)
+		scrap_hauler.set_drive_inputs(0.5, 1.0, 1.0 / 60.0, false)
+		await get_tree().physics_frame
 	var bike_yaw_deg: float = abs(rad_to_deg(courier_bike.rotation.y))
 	var hauler_yaw_deg: float = abs(rad_to_deg(scrap_hauler.rotation.y))
 	assert(bike_yaw_deg > hauler_yaw_deg,
 		"FAIL A6: Bike yaw (%.1f deg) must rotate faster than Hauler yaw (%.1f deg)" % [bike_yaw_deg, hauler_yaw_deg])
 	print("    -> Steering agility contrast PASS: Bike %.1f deg vs Hauler %.1f deg" % [bike_yaw_deg, hauler_yaw_deg])
 
-	# Contrast 3: Same-speed stopping distance (Bike has shorter stopping distance than heavy Hauler)
+	# Contrast 3: Same-speed stopping distance (Planar displacement from 10 m/s under full braking)
+	courier_bike.global_position = Vector3(0, 0.05, 0)
 	courier_bike.current_speed = 10.0
-	scrap_hauler.current_speed = 10.0
-	var bike_stop_frames: int = 0
-	var hauler_stop_frames: int = 0
-	
+	courier_bike.rotation = Vector3.ZERO
+	var bike_brake_start := courier_bike.global_position
 	while abs(courier_bike.current_speed) > 0.05:
 		courier_bike.set_drive_inputs(-1.0, 0.0, 1.0 / 60.0, false)
-		bike_stop_frames += 1
+		courier_bike._physics_process(1.0 / 60.0)
+	var bike_stopping_dist: float = bike_brake_start.distance_to(courier_bike.global_position)
+	
+	scrap_hauler.global_position = Vector3(0, 0.05, 0)
+	scrap_hauler.current_speed = 10.0
+	scrap_hauler.rotation = Vector3.ZERO
+	var hauler_brake_start := scrap_hauler.global_position
 	while abs(scrap_hauler.current_speed) > 0.05:
 		scrap_hauler.set_drive_inputs(-1.0, 0.0, 1.0 / 60.0, false)
-		hauler_stop_frames += 1
-	assert(bike_stop_frames < hauler_stop_frames,
-		"FAIL A6: Bike must stop in fewer frames (%d) than Hauler (%d)" % [bike_stop_frames, hauler_stop_frames])
-	print("    -> Braking distance contrast PASS: Bike stopped in %d frames vs Hauler in %d frames" % [bike_stop_frames, hauler_stop_frames])
+		scrap_hauler._physics_process(1.0 / 60.0)
+	var hauler_stopping_dist: float = hauler_brake_start.distance_to(scrap_hauler.global_position)
+	
+	assert(hauler_stopping_dist > bike_stopping_dist,
+		"FAIL A6: Hauler stopping distance (%.2fm) must exceed Bike stopping distance (%.2fm)" % [hauler_stopping_dist, bike_stopping_dist])
+	print("    -> Real stopping distance contrast PASS: Bike %.2fm vs Hauler %.2fm" % [bike_stopping_dist, hauler_stopping_dist])
 	print("  -> Assertion 6 PASS: Quantitative handling contrast verified across all axes")
 
 	# ─────────────────────────────────────────────────────────────────────────
@@ -5794,15 +5814,38 @@ func _run_v8_m06_vehicle_class_assertions() -> void:
 	_save_m06_proof_png("res://verification/v8/m06/m06_05_hauler_drift_turn.png")
 	print("  -> Visual proof saved: m06_05_hauler_drift_turn.png")
 
-	# Proof 6: Hauler Pursuit Chase Through Gate
+	# Physical Route Traversal: Drive Hauler from yard lane through Security Gate (Z = 12.0m to Z > 14.0m)
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.8).timeout
+	scrap_hauler.global_position = Vector3(-1.5, 0.05, 6.0)
+	scrap_hauler.rotation.y = PI
+	scrap_hauler.current_state = ScrapHaulerScript.VehicleState.DRIVING
+	scrap_hauler.current_speed = 14.0
+	camera.reset_camera_instant(scrap_hauler)
 	if pursuer:
 		pursuer.activate_pursuit(scrap_hauler)
-		pursuer.global_position = scrap_hauler.global_position - Vector3(0, 0, 8.0)
-		current_pursuit_state = PursuitState.PURSUIT_ACTIVE
-	for _i in range(8):
-		await get_tree().process_frame
-	_save_m06_proof_png("res://verification/v8/m06/m06_06_hauler_pursuit.png")
-	print("  -> Visual proof saved: m06_06_hauler_pursuit.png")
+		pursuer.global_position = Vector3(-1.5, 0.6, -2.0)
+	
+	var floor_node := get_node_or_null("Floor")
+	var hauler_snagged := false
+	for f in range(60):
+		scrap_hauler.set_drive_inputs(1.0, 0.0, 1.0 / 60.0, false)
+		if scrap_hauler.get_slide_collision_count() > 0:
+			for c in range(scrap_hauler.get_slide_collision_count()):
+				var col := scrap_hauler.get_slide_collision(c)
+				if col.get_collider() != floor_node and col.get_normal().y < 0.7:
+					var col_parent: Node = col.get_collider().get_parent()
+					if col_parent and col_parent.name.begins_with("ScrapYardDressing"):
+						hauler_snagged = true
+		await get_tree().physics_frame
+		if f == 30:
+			# Proof 6: Hauler Live Pursuit Chase Through Gate Corridor
+			_save_m06_proof_png("res://verification/v8/m06/m06_06_hauler_pursuit.png")
+			print("  -> Visual proof saved: m06_06_hauler_pursuit.png")
+
+	assert(not hauler_snagged, "FAIL A12: Hauler must not snag against dressed props")
+	assert(scrap_hauler.global_position.z > 14.0, "FAIL A12: Hauler must traverse post-gate plane (Z > 14.0m)")
+	print("  -> Hauler Gate Traversal: Final Z = %.2fm | Prop Snagged: %s" % [scrap_hauler.global_position.z, hauler_snagged])
 
 	# Evasion & Safe Exit into Aftermath
 	_on_successful_evasion()
