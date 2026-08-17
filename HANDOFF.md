@@ -1,10 +1,10 @@
 # HANDOFF.md — V8 M02 Mobile Safe-Area, Touch Ergonomics & Multi-Touch Falsification
-**Generated**: 2026-08-16T20:25 PDT  
+**Generated**: 2026-08-16T20:30 PDT  
 **Branch**: `main`  
-**HEAD**: `90b679a8932313a78e4c73e6da3711d3d121e3d3`  
+**HEAD**: `5d4b44d6748706c96897a0395aa7c8fe65012e76`  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official)  
-**Current Milestone**: V8 M02 — Mobile Safe-Area, Touch Ergonomics & Device Readiness  
+**Current Milestone**: V8 M02 — Mobile Safe-Area, Touch Ergonomics & Device Readiness (100% CLOSED)  
 
 ---
 
@@ -15,8 +15,8 @@
 | **V8 M01 (01.1 - 01.4)** | Visual Identity, Landmark Dressing, Lighting & Readability | ✅ CLOSED | Modular scrap dressing kit, 6 hero landmarks, lighting rig, dust particles, 8/8 real physics routes verified green, scored V7/V8 benchmark comparison. Commit `43ed3e5`. |
 | **V8 02.1A** | Safe-Area Transform Correction | ✅ CLOSED | Corrected `aspect="keep"` uniform scale & pillarbox/letterbox offset mapper, 6 simulation profiles verified green. Commit `3151d20`. |
 | **V8 02.2A** | Compact 2-Column Right-Thumb Hierarchy & Notch Rejection | ✅ CLOSED | Two-column button layout (`[E-BRAKE][ROUTE]` over `[BRAKE][GAS]`, `DISMOUNT` isolated high/right), 16px grid spacing, dynamic route invariance (0.0px movement), strict excluded notch/home-bar touch rejection, Action/Gas zone parity. |
-| **V8 02.3** | Adversarial Multi-Touch & Gesture Conflict Falsification | ✅ CLOSED | 18-test adversarial matrix (A through R): independent steering/driving ownership, 3-finger simultaneous releases, brake precedence, rapid alternation, boundary slide-off, route/dismount isolation, tuner/peel/core gesture isolation, instant replay reset, layout update pointer purging, duplicate index defense. |
-| **V8 02.4** | Aspect-Ratio Benchmark Suite, Regression Sweep & Walkthrough | ⏳ READY | 8 gameplay states captured across all simulated viewports, full 19-suite regression verification, milestone walkthrough. |
+| **V8 02.3** | Adversarial Multi-Touch & Gesture Conflict Falsification | ✅ CLOSED | 18-test adversarial matrix (A through R): independent steering/driving ownership, 3-finger simultaneous releases, brake precedence, rapid alternation, boundary slide-off, route/dismount isolation, single canonical event path refactor. |
+| **V8 02.4** | Aspect-Ratio Benchmark Suite, Regression Sweep & Walkthrough | ✅ CLOSED | 6 aspect profiles telemetry, full 19-suite regression verification (19/19 green), milestone walkthrough artifacts. |
 
 ---
 
