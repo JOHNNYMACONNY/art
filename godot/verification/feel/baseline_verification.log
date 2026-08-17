@@ -1,0 +1,10 @@
+CTW FEEL BASELINE — Ticket #11
+behavior_commit=25f7ff3a7e77549b22245bf8d972b32183e5a4d0
+baseline_behavior_sha=09fa2b0ab8aebc8a2ae54b989bffad7720503e48
+godot_version={"build":"official","hash":"a13da4feb8d8aefc283c3763d33a2f170a18d541","hex":263937,"major":4,"minor":7,"patch":1,"status":"stable","string":"4.7.1-stable (official)","timestamp":0}
+fixed_hz=60
+fixed_dt=0.016666667
+main_scene=res://scenes/prototype/scrap_test_block.tscn
+repeatability_passed=true
+headless_command=godot --headless --path godot --script res://scripts/verification/ctw_feel_harness.gd -- --run-ctw-feel-baseline --feel-build-commit=<sha>
+windowed_command=godot --path godot --script res://scripts/verification/ctw_feel_harness.gd -- --run-ctw-feel-baseline --feel-build-commit=<sha>

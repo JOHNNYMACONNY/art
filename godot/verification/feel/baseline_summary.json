@@ -1,0 +1,205 @@
+{
+	"metadata": {
+		"baseline_behavior_sha": "09fa2b0ab8aebc8a2ae54b989bffad7720503e48",
+		"behavior_commit": "25f7ff3a7e77549b22245bf8d972b32183e5a4d0",
+		"camera_default_fov": 32.0,
+		"camera_follow_speed": 5.0,
+		"camera_max_speed_fov": 38.0,
+		"courier_bike_acceleration": 12.0,
+		"courier_bike_braking_friction": 18.0,
+		"courier_bike_max_speed": 14.0,
+		"fixed_dt_seconds": 0.0166666666666667,
+		"fixed_hz": 60,
+		"godot_version": {
+			"build": "official",
+			"hash": "a13da4feb8d8aefc283c3763d33a2f170a18d541",
+			"hex": 263937,
+			"major": 4,
+			"minor": 7,
+			"patch": 1,
+			"status": "stable",
+			"string": "4.7.1-stable (official)",
+			"timestamp": 0
+		},
+		"main_scene": "res://scenes/prototype/scrap_test_block.tscn",
+		"reference_vehicle": "CourierBike"
+	},
+	"mode": "CTW_FEEL_BASELINE",
+	"repeatability": {
+		"failures": [],
+		"passed": true,
+		"scalar_tolerance_rule": "timing/velocity <= 1 fixed frame or <= 1%; endpoint position <= 0.05 m; yaw <= 0.5 deg"
+	},
+	"scenarios": {
+		"E1_launch_coast_brake": {
+			"brake_stop_distance_m": 5.32833862304688,
+			"brake_stop_time_s": 0.783333333333331,
+			"camera_peak_follow_error_m": 2.244873046875,
+			"camera_peak_fov_deg": 36.3787002563477,
+			"coast_half_life_s": 0.98333333333333,
+			"coast_stop_distance_m": 13.4946670532227,
+			"coast_stop_time_s": 1.94999999999999,
+			"endpoint_position": [
+				160.0,
+				0.0500000007450581,
+				114.671661376953
+			],
+			"fov_at_launch_max_deg": 36.3787002563477,
+			"fov_settle_after_stop_s": 1.18333333333333,
+			"input_to_motion_s": 0.0166666666666667,
+			"launch_distance_m": 8.28334045410156,
+			"time_to_50pct_s": 0.583333333333333,
+			"time_to_90pct_s": 1.06666666666667,
+			"time_to_max_s": 1.16666666666667
+		},
+		"E2_constant_90_turn": {
+			"camera_peak_follow_error_m": 2.33074331283569,
+			"camera_peak_fov_deg": 37.1311531066895,
+			"high": {
+				"camera_follow_error_m": 2.33074331283569,
+				"endpoint_position": [
+					235.189926147461,
+					0.0500000007450581,
+					150.96321105957
+				],
+				"endpoint_yaw_deg": -90.2408554651803,
+				"held_speed_mps": 12.6,
+				"path_length_m": 12.7101721018553,
+				"peak_yaw_rate_deg_s": 90.2412789369089,
+				"radius_estimate_m": 8.09154687023589,
+				"turn_90_time_s": 0.999999999999996
+			},
+			"low": {
+				"camera_follow_error_m": 0.728207290172577,
+				"endpoint_position": [
+					181.262619018555,
+					0.0500000007450581,
+					158.229446411133
+				],
+				"endpoint_yaw_deg": -92.1745708116702,
+				"held_speed_mps": 4.2,
+				"path_length_m": 2.36793977022171,
+				"peak_yaw_rate_deg_s": 167.590712419202,
+				"radius_estimate_m": 1.50747727749869,
+				"turn_90_time_s": 0.55
+			},
+			"medium": {
+				"camera_follow_error_m": 1.50638997554779,
+				"endpoint_position": [
+					207.241790771484,
+					0.0500000007450581,
+					155.594268798828
+				],
+				"endpoint_yaw_deg": -90.2408554651803,
+				"held_speed_mps": 8.4,
+				"path_length_m": 5.97574524581432,
+				"peak_yaw_rate_deg_s": 128.915995678055,
+				"radius_estimate_m": 3.80427757811697,
+				"turn_90_time_s": 0.7
+			}
+		},
+		"E3_steering_reversal": {
+			"camera_lookahead_m": 1.54813754558563,
+			"camera_peak_follow_error_m": 1.72508680820465,
+			"endpoint_position": [
+				213.922958374023,
+				0.0500000007450581,
+				191.876480102539
+			],
+			"heading_recovery_s": 0.56666666666667,
+			"held_speed_mps": 9.1,
+			"left_hold_time_s": 0.6,
+			"opposite_yaw_response_s": 0.0166666666666667,
+			"peak_left_yaw_rate_deg_s": 122.470072950748,
+			"peak_right_yaw_rate_deg_s": 122.470072950748,
+			"yaw_at_reversal_deg": 73.4818252043951
+		},
+		"E4_handbrake_recovery": {
+			"camera_peak_follow_error_m": 2.33400678634644,
+			"endpoint_position": [
+				268.243316650391,
+				0.0500000007450581,
+				215.749603271484
+			],
+			"handbrake_hold_s": 0.7,
+			"held_speed_mps": 10.5,
+			"peak_lateral_slip_mps": 9.56188774108887,
+			"peak_yaw_rate_deg_s": 191.762205476744,
+			"recovery_to_0_25_mps_s": 0.366666666666667,
+			"release_slip_mps": 9.56188678741455
+		},
+		"E5_collision_pair": {
+			"camera_peak_follow_error_m": 1.91762030124664,
+			"glance": {
+				"collision_events_first_0_25s": 32,
+			"endpoint_position": [
+					338.995056152344,
+					0.0500000007450581,
+					300.996917724609
+				],
+				"impact_head_on_ratio": 0.309016942977905,
+				"impact_time_s": 2.23333333333333,
+				"post_recovery_yaw_deg": -72.0000020035825,
+				"pre_impact_speed_mps": 10.0,
+				"recovery_to_50pct_max_s": 0.1166666666666667,
+				"retained_speed_ratio_0_25s": 0.560546979657478,
+				"speed_after_0_25s_mps": 5.60546979657478
+			},
+			"head_on": {
+				"collision_events_first_0_25s": 16,
+				"endpoint_position": [
+					340.0,
+					0.0500000007450581,
+					299.300109863281
+				],
+				"impact_head_on_ratio": 0.999999940395355,
+				"impact_time_s": 0.666666666666667,
+				"post_recovery_yaw_deg": 0.0,
+				"pre_impact_speed_mps": 10.0,
+					"recovery_to_50pct_max_s": 0.583333333333332,
+				"retained_speed_ratio_0_25s": 0.0,
+				"speed_after_0_25s_mps": 0.0
+			}
+		},
+		"E6_forward_reverse": {
+			"camera_lookahead_neutral_s": 1.08333333333333,
+			"camera_peak_follow_error_m": 2.43460083007812,
+			"camera_reverse_lead_established_s": 1.28333333333333,
+			"endpoint_position": [
+				420.0,
+				0.0500000007450581,
+				346.001708984375
+			],
+			"final_speed_mps": 2.2,
+			"forward_peak_mps": 14.0,
+			"time_reverse_to_forward_gear_s": 0.299999999999999,
+			"time_reverse_to_plus_2_mps_s": 0.483333333333332,
+			"time_to_minus_3_mps_s": 1.41666666666666,
+			"time_to_reverse_gear_s": 0.916666666666663
+		},
+		"E7_pursuit_route": {
+			"bike_endpoint_position": [
+				-2.47458076477051,
+				0.0500000007450581,
+				64.8879089355469
+			],
+			"bike_path_length_m": 61.9477134644985,
+			"camera_peak_follow_error_m": 2.68493270874023,
+			"collision_events": 14,
+			"detour_state_observed": true,
+			"duration_s": 4.99999999999999,
+			"final_pursuer_distance_m": 39.1515312194824,
+			"max_pursuer_distance_m": 39.1515312194824,
+			"min_pursuer_distance_m": 12.1512441635132,
+			"outcome": "CONTACT_BREAK_CANDIDATE",
+			"pursuer_endpoint_position": [
+				2.20456171035767,
+				0.600000023841858,
+				26.0208854675293
+			],
+			"route_switch_time_s": 1.01666666666667
+		}
+	},
+	"schema_version": 3,
+	"ticket": 11
+}
