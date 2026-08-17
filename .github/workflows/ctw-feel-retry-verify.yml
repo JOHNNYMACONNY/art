@@ -1,0 +1,189 @@
+name: CTW Feel Retry Chase Verify
+
+on:
+  push:
+    branches:
+      - codex/ctw-feel-05-retry-chase
+
+permissions:
+  contents: read
+
+jobs:
+  verify-retry-chase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BASELINE_SHA: 2d14254310ea2146d116cc5b8f1835af14d69642
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Godot 4.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x .godot-bin/Godot_v4.7.1-stable_linux.x86_64
+          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 --version
+
+      - name: Prime Godot project metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --editor --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: Run focused Retry Chase falsification
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path godot -- --run-ctw-feel-retry-assertions \
+            2>&1 | tee retry_assertions.log
+
+      - name: Re-run immutable Wave 1 feel baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp godot/verification/feel/baseline_summary.json /tmp/wave1_baseline_summary.json
+          timeout 120s .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --headless --path godot \
+            --script res://scripts/verification/ctw_feel_harness.gd -- \
+            --run-ctw-feel-baseline --feel-build-commit="${GITHUB_SHA}" \
+            2>&1 | tee feel_baseline_recheck.log
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          old = json.loads(Path('/tmp/wave1_baseline_summary.json').read_text())
+          new = json.loads(Path('godot/verification/feel/baseline_summary.json').read_text())
+          assert new['repeatability']['passed'] is True
+          assert new['scenarios'] == old['scenarios'], 'Retry Chase changed E1-E7 baseline behavior outside retry path'
+          print('E1-E7 scenario metrics exactly match frozen Wave 1 baseline.')
+          PY
+
+      - name: Run and classify current 24-suite regression matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT="${GITHUB_WORKSPACE}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+          suites=(
+            --run-v1-assertions
+            --run-v2-assertions
+            --run-v3-assertions
+            --run-v4-assertions
+            --run-v5-assertions
+            --run-v6-assertions
+            --run-v7-ticket01-assertions
+            --run-v7-ticket02-assertions
+            --run-v7-ticket02-1-assertions
+            --run-v7-ticket03-assertions
+            --run-v7-ticket04-1-assertions
+            --run-v7-ticket04-2-assertions
+            --run-v7-ticket04-3-assertions
+            --run-v7-ticket05-assertions
+            --run-v7-ticket06-assertions
+            --run-v8-safe-area-assertions
+            --run-v8-thumb-reach-assertions
+            --run-v8-multitouch-assertions
+            --run-v8-m03-aftermath-assertions
+            --run-v8-m04-echo-assertions
+            --run-v8-m05-hero-identity-assertions
+            --run-v8-m06-vehicle-class-assertions
+            --run-v8-m07-world-life-assertions
+            --run-v8-readability
+          )
+
+          : > regression_matrix.log
+          : > branch_failures.txt
+          : > baseline_failures.txt
+          : > true_regressions.txt
+          : > regression_classification.log
+
+          for suite in "${suites[@]}"; do
+            echo "===== BRANCH ${suite} =====" | tee -a regression_matrix.log
+            set +e
+            timeout 120s "$GODOT" --headless --path godot -- "$suite" 2>&1 | tee -a regression_matrix.log
+            rc=${PIPESTATUS[0]}
+            set -e
+            if [[ $rc -ne 0 ]]; then echo "$suite" >> branch_failures.txt; fi
+          done
+
+          if [[ ! -s branch_failures.txt ]]; then
+            echo "24/24 branch regression commands exited 0." | tee -a regression_classification.log
+            exit 0
+          fi
+
+          baseline_dir="${RUNNER_TEMP}/retry-baseline"
+          git worktree add --detach "$baseline_dir" "$BASELINE_SHA"
+          "$GODOT" --headless --editor --path "$baseline_dir/godot" --quit
+
+          while IFS= read -r suite; do
+            [[ -n "$suite" ]] || continue
+            echo "===== BASELINE ${suite} =====" | tee -a regression_matrix.log
+            set +e
+            timeout 120s "$GODOT" --headless --path "$baseline_dir/godot" -- "$suite" 2>&1 | tee -a regression_matrix.log
+            rc=${PIPESTATUS[0]}
+            set -e
+            if [[ $rc -ne 0 ]]; then
+              echo "$suite" >> baseline_failures.txt
+              echo "PRE_EXISTING_PLATFORM_FAILURE $suite" | tee -a regression_classification.log
+            else
+              echo "$suite" >> true_regressions.txt
+              echo "BRANCH_REGRESSION $suite" | tee -a regression_classification.log
+            fi
+          done < branch_failures.txt
+
+          git worktree remove --force "$baseline_dir"
+          if [[ -s true_regressions.txt ]]; then
+            cat true_regressions.txt
+            exit 1
+          fi
+          echo "No branch-only regressions." | tee -a regression_classification.log
+
+      - name: Render fresh Retry Chase proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v xvfb-run >/dev/null
+          rm -rf godot/verification/feel/retry
+          xvfb-run -a -s "-screen 0 1280x720x24" \
+            timeout 180s .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --path godot -- --export-ctw-feel-retry-proof \
+            2>&1 | tee retry_render.log
+          python3 - <<'PY'
+          from pathlib import Path
+          proof = Path('godot/verification/feel/retry')
+          expected = [proof/'retry_01_intercepted.png', proof/'retry_02_restarted_chase.png']
+          for path in expected:
+              data = path.read_bytes()
+              assert len(data) > 20_000, (path.name, len(data))
+              assert data[:8] == b'\x89PNG\r\n\x1a\n', path.name
+          print([(p.name, p.stat().st_size) for p in expected])
+          PY
+
+      - name: Upload Retry Chase evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctw-feel-retry-${{ github.sha }}
+          path: |
+            retry_assertions.log
+            feel_baseline_recheck.log
+            regression_matrix.log
+            regression_classification.log
+            branch_failures.txt
+            baseline_failures.txt
+            true_regressions.txt
+            retry_render.log
+            godot/verification/feel/retry/*.png
+          if-no-files-found: warn
+          retention-days: 14
