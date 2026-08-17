@@ -27,6 +27,8 @@ var _initial_rotation_y: float = 0.0
 var _anim_time: float = 0.0
 var _yield_timer: float = 0.0
 var _station_timer: float = 0.0
+var _servo_cooldown: float = 0.0
+var _audio_mgr: AudioManager = null
 
 @onready var beacon_light: OmniLight3D = $BeaconLight
 @onready var beacon_mesh: MeshInstance3D = $Chassis/BeaconMesh
@@ -34,6 +36,9 @@ var _station_timer: float = 0.0
 signal state_changed(new_state: String)
 signal yield_triggered(distance: float)
 signal alarm_triggered()
+
+func setup_audio(mgr: AudioManager) -> void:
+	_audio_mgr = mgr
 
 func _ready() -> void:
 	_initial_position = global_position
@@ -51,6 +56,7 @@ func reset_actor() -> void:
 	velocity = Vector3.ZERO
 	_yield_timer = 0.0
 	_station_timer = 0.0
+	_servo_cooldown = 1.5
 	_anim_time = 0.0
 	visible = true
 	if beacon_light:
@@ -59,6 +65,7 @@ func reset_actor() -> void:
 
 func _physics_process(delta: float) -> void:
 	_anim_time += delta * 4.0
+	_servo_cooldown = maxf(0.0, _servo_cooldown - delta)
 	
 	# Amber beacon rotation / pulse
 	if beacon_light:
@@ -139,6 +146,11 @@ func _process_ambient(delta: float) -> void:
 	var dir: Vector3 = (target - global_position).normalized()
 	velocity = dir * move_speed
 	rotation.y = lerp_angle(rotation.y, atan2(dir.x, dir.z), delta * 6.0)
+	
+	if _servo_cooldown <= 0.0:
+		_servo_cooldown = 1.8
+		if _audio_mgr:
+			_audio_mgr.play_event(AudioManager.SoundEvent.AMBIENT_SERVO_HUM, global_position)
 
 func _process_recovering(delta: float) -> void:
 	current_state = CrawlerState.AMBIENT

@@ -28,6 +28,8 @@ var _initial_rotation_y: float = 0.0
 var _anim_time: float = 0.0
 var _inspect_timer: float = 0.0
 var _yield_timer: float = 0.0
+var _clink_cooldown: float = 0.0
+var _audio_mgr: AudioManager = null
 
 @onready var mesh_pivot: Node3D = $MeshPivot
 @onready var torso_mesh: MeshInstance3D = $MeshPivot/Torso
@@ -41,6 +43,9 @@ var _yield_timer: float = 0.0
 signal state_changed(new_state: String)
 signal yield_triggered(distance: float)
 signal alarm_triggered()
+
+func setup_audio(mgr: AudioManager) -> void:
+	_audio_mgr = mgr
 
 func _ready() -> void:
 	_initial_position = global_position
@@ -58,6 +63,7 @@ func reset_actor() -> void:
 	velocity = Vector3.ZERO
 	_inspect_timer = 0.0
 	_yield_timer = 0.0
+	_clink_cooldown = 1.2
 	_anim_time = 0.0
 	visible = true
 	_reset_pose()
@@ -66,6 +72,7 @@ func reset_actor() -> void:
 
 func _physics_process(delta: float) -> void:
 	_anim_time += delta * 6.0
+	_clink_cooldown = maxf(0.0, _clink_cooldown - delta)
 	
 	match current_state:
 		WorkerState.AMBIENT:
@@ -143,6 +150,10 @@ func _process_ambient(delta: float) -> void:
 		_inspect_timer -= delta
 		velocity = Vector3.ZERO
 		_inspect_pose(delta)
+		if _clink_cooldown <= 0.0:
+			_clink_cooldown = 1.2
+			if _audio_mgr:
+				_audio_mgr.play_event(AudioManager.SoundEvent.AMBIENT_WORK_CLINK, global_position)
 		return
 		
 	var target: Vector3 = patrol_waypoints[current_waypoint_idx]
@@ -151,6 +162,10 @@ func _process_ambient(delta: float) -> void:
 		_inspect_timer = 2.5 # Inspect scrap pile for 2.5s
 		current_waypoint_idx = (current_waypoint_idx + 1) % patrol_waypoints.size()
 		velocity = Vector3.ZERO
+		if _clink_cooldown <= 0.0:
+			_clink_cooldown = 1.2
+			if _audio_mgr:
+				_audio_mgr.play_event(AudioManager.SoundEvent.AMBIENT_WORK_CLINK, global_position)
 		return
 		
 	var dir: Vector3 = (target - global_position).normalized()

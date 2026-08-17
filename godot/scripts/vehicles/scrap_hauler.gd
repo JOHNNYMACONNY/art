@@ -82,8 +82,8 @@ func _physics_process(delta: float) -> void:
 				visual_root.rotation.z = lerpf(visual_root.rotation.z, target_roll, delta * 8.0)
 				
 			# 2. Heavy Lateral Grip & Drift Slip Model (Decoupled Heading & Velocity)
-			var forward_dir: Vector3 = -global_transform.basis.z
-			var right_dir: Vector3 = global_transform.basis.x
+			var forward_dir: Vector3 = -transform.basis.z
+			var right_dir: Vector3 = transform.basis.x
 			
 			var current_lateral_vel: float = velocity.dot(right_dir)
 			var grip_rate: float = 3.5 if is_handbrake_active else 14.0
