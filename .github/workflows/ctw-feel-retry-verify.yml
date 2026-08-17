@@ -63,11 +63,45 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
+
           old = json.loads(Path('/tmp/wave1_baseline_summary.json').read_text())
           new = json.loads(Path('godot/verification/feel/baseline_summary.json').read_text())
           assert new['repeatability']['passed'] is True
-          assert new['scenarios'] == old['scenarios'], 'Retry Chase changed E1-E7 baseline behavior outside retry path'
-          print('E1-E7 scenario metrics exactly match frozen Wave 1 baseline.')
+
+          diffs = []
+          def compare(path, a, b):
+              if isinstance(a, bool) or isinstance(b, bool):
+                  if a != b:
+                      diffs.append((path, a, b))
+                  return
+              if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+                  # The committed compact baseline was serialized manually from
+                  # verified CI output, so a few decimals differ only around
+                  # 1e-15. 1e-9 is far below one simulation frame / meaningful
+                  # world-space change and catches any real #15 drift.
+                  if abs(float(a) - float(b)) > 1e-9:
+                      diffs.append((path, a, b))
+                  return
+              if isinstance(a, dict) and isinstance(b, dict):
+                  if set(a) != set(b):
+                      diffs.append((path + '.keys', sorted(a), sorted(b)))
+                      return
+                  for key in a:
+                      compare(f'{path}.{key}', a[key], b[key])
+                  return
+              if isinstance(a, list) and isinstance(b, list):
+                  if len(a) != len(b):
+                      diffs.append((path + '.length', len(a), len(b)))
+                      return
+                  for i, (av, bv) in enumerate(zip(a, b)):
+                      compare(f'{path}[{i}]', av, bv)
+                  return
+              if a != b:
+                  diffs.append((path, a, b))
+
+          compare('scenarios', old['scenarios'], new['scenarios'])
+          assert not diffs, 'Retry Chase changed E1-E7 baseline behavior: ' + repr(diffs[:10])
+          print('E1-E7 scenario metrics match frozen Wave 1 baseline within 1e-9 numeric serialization tolerance.')
           PY
 
       - name: Run and classify current 24-suite regression matrix
