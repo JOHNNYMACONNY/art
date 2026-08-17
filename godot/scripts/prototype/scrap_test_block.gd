@@ -12,6 +12,9 @@ const ScrapWorkerScript = preload("res://scripts/entities/scrap_worker.gd")
 const UtilityCrawlerScript = preload("res://scripts/entities/utility_crawler.gd")
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
+const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
+const RadioProgramDirectorScript = preload("res://scripts/audio/radio/radio_program_director.gd")
+const RadioProgramPlayerScript = preload("res://scripts/audio/radio/radio_program_player.gd")
 
 enum WorldLoopState {
 	START,
@@ -277,6 +280,8 @@ func _ready() -> void:
 		_run_v8_m15_fast_retry_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-m21-audio-registry-assertions") or OS.get_cmdline_user_args().has("--run-v8-m21-assertions"):
 		_run_v8_m21_audio_registry_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v8-m22-radio-director-assertions") or OS.get_cmdline_user_args().has("--run-v8-m22-assertions"):
+		_run_v8_m22_radio_director_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-readability") or OS.get_cmdline_user_args().has("--run-v8-assertions"):
 		_run_v8_dynamic_readability()
 
@@ -7099,5 +7104,290 @@ func _run_v8_m21_audio_registry_assertions() -> void:
 
 	print("\n=========================================================================")
 	print("[ALL V8 M21 AUDIO REGISTRY & RESOLVER ASSERTIONS (1-12) PASSED 100% GREEN!]")
+	print("=========================================================================\n")
+	get_tree().quit(0)
+
+# =============================================================================
+# V8 M22: REACTIVE RADIO RUNTIME & ONE-STATION PROGRAM DIRECTOR ASSERTIONS (#22)
+# =============================================================================
+
+func _run_v8_m22_radio_director_assertions() -> void:
+	print("\n=========================================================================")
+	print("[RUNNING V8 M22 REACTIVE RADIO RUNTIME & PROGRAM DIRECTOR SUITE (#22)]")
+	print("=========================================================================\n")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 1: Station Catalog Schema, Metadata & Item Pool Completeness
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 1] Testing Station Catalog Schema, Metadata & Content Pools...")
+	var all_stations: Dictionary = RadioStationCatalogScript.get_all_stations()
+	assert(all_stations.has("radio.echoes_fm"), "FAIL 1: Must contain radio.echoes_fm station definition")
+
+	var echoes_station: Dictionary = RadioStationCatalogScript.get_station("radio.echoes_fm")
+	assert(echoes_station["station_id"] == "radio.echoes_fm", "FAIL 1: Valid station_id")
+	assert(echoes_station["name"] == "ECHOES 99.4 FM", "FAIL 1: Valid station name")
+	assert(echoes_station["frequency_mhz"] == 99.4, "FAIL 1: Valid station frequency")
+	assert(echoes_station.get("is_experimental", false) == true, "FAIL 1: Must be marked as experimental station")
+
+	var songs: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.echoes_fm", RadioStationCatalogScript.Category.SONG)
+	assert(songs.size() >= 4, "FAIL 1: Must contain at least 4 songs (found %d)" % songs.size())
+
+	var dj_links: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.echoes_fm", RadioStationCatalogScript.Category.DJ_LINK)
+	assert(dj_links.size() >= 3, "FAIL 1: Must contain at least 3 DJ links (found %d)" % dj_links.size())
+
+	var station_ids: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.echoes_fm", RadioStationCatalogScript.Category.STATION_ID)
+	assert(station_ids.size() >= 2, "FAIL 1: Must contain at least 2 station IDs (found %d)" % station_ids.size())
+
+	var adverts: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.echoes_fm", RadioStationCatalogScript.Category.ADVERT)
+	assert(adverts.size() >= 2, "FAIL 1: Must contain at least 2 adverts (found %d)" % adverts.size())
+
+	var world_reactions: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.echoes_fm", RadioStationCatalogScript.Category.WORLD_REACTION)
+	assert(world_reactions.size() >= 2, "FAIL 1: Must contain at least 2 world reactions (found %d)" % world_reactions.size())
+
+	var echo_stubs: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.echoes_fm", RadioStationCatalogScript.Category.ECHO_INTRUSION)
+	assert(echo_stubs.size() >= 1, "FAIL 1: Must contain at least 1 echo intrusion stub (found %d)" % echo_stubs.size())
+
+	# Verify required schema on every item
+	for item in echoes_station["items"]:
+		assert(item.has("id") and not item["id"].is_empty(), "FAIL 1: Item missing id")
+		assert(item.has("category") and item["category"] is int, "FAIL 1: Item %s missing category" % item.get("id"))
+		assert(item.has("title") and not item["title"].is_empty(), "FAIL 1: Item %s missing title" % item.get("id"))
+		assert(item.has("slot_id") and not item["slot_id"].is_empty(), "FAIL 1: Item %s missing slot_id" % item.get("id"))
+		assert(item.has("duration_sec") and item["duration_sec"] > 0.0, "FAIL 1: Item %s missing duration_sec" % item.get("id"))
+		assert(item.has("base_freq_hz") and item["base_freq_hz"] > 0.0, "FAIL 1: Item %s missing base_freq_hz" % item.get("id"))
+	print("  -> Assertion 1 PASS: Station Catalog Schema, Metadata & 14-item pool 100% verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 2: Deterministic Program Sequence Generation Under Fixed Seed
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 2] Testing Deterministic Program Sequence under fixed seed...")
+	var director_a = RadioProgramDirectorScript.new(42)
+	var director_b = RadioProgramDirectorScript.new(42)
+	var director_c = RadioProgramDirectorScript.new(9999)
+
+	var sequence_a: Array[String] = []
+	var sequence_b: Array[String] = []
+	var sequence_c: Array[String] = []
+
+	for i in range(25):
+		var item_a: Dictionary = director_a.advance_next_item()
+		var item_b: Dictionary = director_b.advance_next_item()
+		var item_c: Dictionary = director_c.advance_next_item()
+
+		sequence_a.append(item_a["id"])
+		sequence_b.append(item_b["id"])
+		sequence_c.append(item_c["id"])
+
+	assert(sequence_a == sequence_b, "FAIL 2: Director A and B with identical seed must generate exact matching sequences")
+	assert(sequence_a != sequence_c, "FAIL 2: Director C with different seed must generate a distinct sequence")
+	print("  -> Assertion 2 PASS: Deterministic sequence generation verified across 25 consecutive transitions!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 3: Anti-Repeat Rules (Song History Window & Interstitial Spacing)
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 3] Testing Anti-Repeat Rules for Songs and Interstitials...")
+	var director_anti = RadioProgramDirectorScript.new(101)
+	var played_songs: Array[String] = []
+	var last_interstitial := ""
+
+	for i in range(60):
+		var item: Dictionary = director_anti.advance_next_item()
+		var cat: int = item["category"]
+		var item_id: String = item["id"]
+
+		if cat == RadioStationCatalogScript.Category.SONG:
+			# Verify no song repeats within history window (2 preceding songs)
+			if played_songs.size() >= 2:
+				var last_song := played_songs[-1]
+				var second_last_song := played_songs[-2]
+				assert(item_id != last_song, "FAIL 3: Song %s repeated immediately after itself!" % item_id)
+				assert(item_id != second_last_song, "FAIL 3: Song %s repeated within history window of 2 songs!" % item_id)
+			played_songs.append(item_id)
+		else:
+			# Verify interstitial does not repeat back-to-back
+			assert(item_id != last_interstitial, "FAIL 3: Interstitial %s repeated consecutively!" % item_id)
+			last_interstitial = item_id
+
+	assert(played_songs.size() >= 20, "FAIL 3: Must have played at least 20 songs during 60 transitions")
+	print("  -> Assertion 3 PASS: Anti-repeat rules strictly verified across 60 item transitions!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 4: Max-Gap Music Guarantee Rule (Max 2 Non-Song Items Between Songs)
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 4] Testing Max-Gap Music Guarantee Rule...")
+	for test_seed in [7, 42, 123, 777, 2026]:
+		var dir_gap = RadioProgramDirectorScript.new(test_seed)
+		var current_gap := 0
+		for step in range(80):
+			var item: Dictionary = dir_gap.advance_next_item()
+			if item["category"] == RadioStationCatalogScript.Category.SONG:
+				assert(current_gap <= RadioProgramDirectorScript.MAX_NON_SONG_GAP,
+					"FAIL 4: Gap %d exceeded MAX_NON_SONG_GAP %d before song!" % [current_gap, RadioProgramDirectorScript.MAX_NON_SONG_GAP])
+				current_gap = 0
+			else:
+				current_gap += 1
+				assert(current_gap <= RadioProgramDirectorScript.MAX_NON_SONG_GAP,
+					"FAIL 4: Consecutive non-song items reached %d (limit %d)!" % [current_gap, RadioProgramDirectorScript.MAX_NON_SONG_GAP])
+	print("  -> Assertion 4 PASS: Max-gap rule (<= 2 non-song inserts) strictly verified across 400 transitions!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 5: Reactive World Reaction Event Queue & Priority Injection
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 5] Testing Reactive World Reaction Event Queue & Priority...")
+	var dir_react = RadioProgramDirectorScript.new(555)
+	# Advance to a known song
+	var initial_item: Dictionary = dir_react.advance_next_item()
+
+	# Notify pursuit start event
+	dir_react.notify_world_event("PURSUIT_START")
+
+	# Next item MUST be the pursuit advisory world reaction
+	var reactive_item: Dictionary = dir_react.advance_next_item()
+	assert(reactive_item["category"] == RadioStationCatalogScript.Category.WORLD_REACTION, "FAIL 5: Next item after PURSUIT_START must be WORLD_REACTION")
+	assert(reactive_item["id"] == "world_01_pursuit_advisory", "FAIL 5: Scheduled item must be world_01_pursuit_advisory")
+
+	# Subsequent item should return to normal programming without repeating the event
+	var next_item: Dictionary = dir_react.advance_next_item()
+	assert(next_item["id"] != "world_01_pursuit_advisory", "FAIL 5: World event must be consumed and not repeat")
+
+	# Test gate event notification
+	dir_react.notify_world_event("GATE_SLAM")
+	var gate_item: Dictionary = dir_react.advance_next_item()
+	assert(gate_item["category"] == RadioStationCatalogScript.Category.WORLD_REACTION, "FAIL 5: Next item after GATE_SLAM must be WORLD_REACTION")
+	assert(gate_item["id"] == "world_02_gate_activity", "FAIL 5: Scheduled item must be world_02_gate_activity")
+	print("  -> Assertion 5 PASS: Reactive world reaction event queue & single-consumption verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 6: State Serialization & In-Memory Deserialization
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 6] Testing State Serialization & In-Memory Deserialization...")
+	var dir_origin = RadioProgramDirectorScript.new(888)
+	for i in range(12):
+		dir_origin.advance_next_item()
+	dir_origin.set_cursor_position(2.35)
+	dir_origin.set_paused(true)
+	dir_origin.notify_world_event("PURSUIT_START")
+
+	var state: Dictionary = dir_origin.serialize_state()
+	assert(state.has("station_id") and state["station_id"] == "radio.echoes_fm", "FAIL 6: Serialized station_id")
+	assert(is_equal_approx(state["cursor_position_sec"], 2.35), "FAIL 6: Serialized cursor position")
+	assert(state["is_paused"] == true, "FAIL 6: Serialized is_paused")
+	assert(state["pending_world_events"].has("PURSUIT_START"), "FAIL 6: Serialized pending world events")
+
+	var dir_restored = RadioProgramDirectorScript.new()
+	var success := dir_restored.deserialize_state(state)
+	assert(success == true, "FAIL 6: Deserialization returned true")
+	assert(dir_restored.get_station_id() == dir_origin.get_station_id(), "FAIL 6: Restored station ID match")
+	assert(is_equal_approx(dir_restored.get_cursor_position(), dir_origin.get_cursor_position()), "FAIL 6: Restored cursor position match")
+	assert(dir_restored.is_paused() == dir_origin.is_paused(), "FAIL 6: Restored is_paused match")
+	assert(dir_restored.get_current_item()["id"] == dir_origin.get_current_item()["id"], "FAIL 6: Restored current item match")
+
+	# Prove both directors continue synchronously from this point forward
+	for i in range(10):
+		var next_orig := dir_origin.advance_next_item()
+		var next_rest := dir_restored.advance_next_item()
+		assert(next_orig["id"] == next_rest["id"], "FAIL 6: Divergence after deserialization at step %d!" % i)
+	print("  -> Assertion 6 PASS: Full state serialization and synchronous resume verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 7: Fail-Closed Procedural Audio Synthesis for All Catalog Items
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 7] Testing Fail-Closed Procedural Synthesis for all items...")
+	var test_player = RadioProgramPlayerScript.new()
+	add_child(test_player)
+
+	for item in RadioStationCatalogScript.get_station("radio.echoes_fm")["items"]:
+		var wav: AudioStreamWAV = test_player._synthesize_procedural_segment(item)
+		assert(wav != null, "FAIL 7: Synthesized WAV must not be null for item %s" % item["id"])
+		assert(wav.format == AudioStreamWAV.FORMAT_16_BITS, "FAIL 7: Synthesized WAV must be 16-bit PCM for %s" % item["id"])
+		assert(wav.mix_rate == 22050, "FAIL 7: Mix rate must be 22050 for %s" % item["id"])
+		assert(wav.data.size() > 0, "FAIL 7: Synthesized byte array must be non-empty for %s" % item["id"])
+		var expected_samples := int(item["duration_sec"] * 22050)
+		if expected_samples % 2 != 0:
+			expected_samples += 1
+		assert(wav.data.size() == expected_samples * 2, "FAIL 7: Exact sample count byte alignment verified for %s" % item["id"])
+
+	test_player.free()
+	print("  -> Assertion 7 PASS: Procedural synthesis verified for 100% of catalog items!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 8: Real Segment Playback Lifecycle & Signal Dispatch
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 8] Testing Real Segment Playback Lifecycle & Signal Dispatch...")
+	var player_live = RadioProgramPlayerScript.new(RadioProgramDirectorScript.new(1234))
+	add_child(player_live)
+
+	var started_signals: Array[Dictionary] = []
+	var completed_signals: Array[Dictionary] = []
+	var state_changes: Array[Dictionary] = []
+
+	player_live.segment_started.connect(func(item): started_signals.append(item))
+	player_live.segment_completed.connect(func(item): completed_signals.append(item))
+	player_live.playback_state_changed.connect(func(playing, paused): state_changes.append({"playing": playing, "paused": paused}))
+
+	# Start station
+	player_live.play_station("radio.echoes_fm")
+	assert(player_live.is_playing() == true, "FAIL 8: Player is playing")
+	assert(player_live.is_paused() == false, "FAIL 8: Player is not paused")
+	assert(started_signals.size() == 1, "FAIL 8: segment_started emitted once on play")
+
+	var item_1_id: String = started_signals[0]["id"]
+
+	# Advance segment manually
+	player_live.advance_segment()
+	assert(completed_signals.size() == 1, "FAIL 8: segment_completed emitted on advance")
+	assert(completed_signals[0]["id"] == item_1_id, "FAIL 8: completed item matches initial item")
+	assert(started_signals.size() == 2, "FAIL 8: segment_started emitted for second item")
+	assert(started_signals[1]["id"] != item_1_id, "FAIL 8: second item is distinct")
+
+	player_live.free()
+	print("  -> Assertion 8 PASS: Real playback lifecycle and signal dispatch verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 9: Pause and Resume Cursor Continuity
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 9] Testing Pause and Resume Cursor Continuity...")
+	var player_pause = RadioProgramPlayerScript.new(RadioProgramDirectorScript.new(77))
+	add_child(player_pause)
+
+	player_pause.play_station("radio.echoes_fm")
+	player_pause.pause()
+	assert(player_pause.is_paused() == true, "FAIL 9: Player is paused")
+
+	# Set simulated cursor position on director while paused
+	player_pause.get_director().set_cursor_position(1.75)
+	assert(is_equal_approx(player_pause.get_director().get_cursor_position(), 1.75), "FAIL 9: Cursor preserved during pause")
+
+	player_pause.resume()
+	assert(player_pause.is_paused() == false, "FAIL 9: Player resumed")
+	assert(is_equal_approx(player_pause.get_director().get_cursor_position(), 1.75), "FAIL 9: Cursor preserved on resume")
+
+	player_pause.stop()
+	assert(player_pause.is_playing() == false, "FAIL 9: Player stopped cleanly")
+	player_pause.free()
+	print("  -> Assertion 9 PASS: Pause and resume cursor continuity verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 10: AudioManager Integration & Authoritative Instant Reset
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 10] Testing AudioManager Integration & Authoritative Reset...")
+	var radio_dir = audio_mgr.get_radio_director()
+	var radio_plyr = audio_mgr.get_radio_player()
+	assert(radio_dir != null, "FAIL 10: AudioManager returns valid RadioProgramDirector")
+	assert(radio_plyr != null, "FAIL 10: AudioManager returns valid RadioProgramPlayer")
+
+	radio_plyr.play_station("radio.echoes_fm")
+	assert(radio_plyr.is_playing() == true, "FAIL 10: AudioManager radio player starts playing")
+
+	# Instant reset
+	audio_mgr.reset_audio_instant()
+	assert(radio_plyr.is_playing() == false, "FAIL 10: Instant reset halts radio player")
+	assert(radio_plyr.is_paused() == false, "FAIL 10: Instant reset unpauses radio player")
+	assert(radio_plyr._current_stream == null, "FAIL 10: Stream reference cleared")
+	assert(radio_dir.get_current_item().is_empty(), "FAIL 10: Director programming state reset")
+	print("  -> Assertion 10 PASS: AudioManager integration and instant reset 100% verified!")
+
+	print("\n=========================================================================")
+	print("[ALL V8 M22 RADIO RUNTIME & PROGRAM DIRECTOR ASSERTIONS (1-10) PASSED!]")
 	print("=========================================================================\n")
 	get_tree().quit(0)

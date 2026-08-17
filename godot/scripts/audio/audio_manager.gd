@@ -3,6 +3,9 @@ extends Node
 
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
+const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
+const RadioProgramDirectorScript = preload("res://scripts/audio/radio/radio_program_director.gd")
+const RadioProgramPlayerScript = preload("res://scripts/audio/radio/radio_program_player.gd")
 
 # Echos in the Scrap - Audio Engine & Sound Synthesis Manager
 # Features procedural AudioStreamWAV synthesis, transient voice throttling,
@@ -62,6 +65,10 @@ var _siren_player: AudioStreamPlayer3D = null
 var _tension_player: AudioStreamPlayer = null
 ## M04: dedicated echo voice (non-spatial — echo is inside-the-head by design)
 var _echo_voice: AudioStreamPlayer = null
+
+## Radio Subsystem (#22)
+var _radio_director: RefCounted = null
+var _radio_player: Node = null
 
 var _engine_stream: AudioStreamWAV = null
 var _hum_stream: AudioStreamWAV = null
@@ -420,6 +427,19 @@ func reset_audio_instant() -> void:
 	event_counts.clear()
 	current_mix_state = MixState.CALM
 	AudioReferenceResolverScript.reset()
+	if _radio_player:
+		_radio_player.reset()
+
+func get_radio_director() -> RefCounted:
+	if not _radio_director:
+		_radio_director = RadioProgramDirectorScript.new()
+	return _radio_director
+
+func get_radio_player() -> Node:
+	if not _radio_player:
+		_radio_player = RadioProgramPlayerScript.new(get_radio_director())
+		add_child(_radio_player)
+	return _radio_player
 
 func _play_reference_stream(stream: AudioStream, slot_id: String, pos: Vector3) -> void:
 	var slot_meta: Dictionary = AudioRegistryScript.get_slot(slot_id)

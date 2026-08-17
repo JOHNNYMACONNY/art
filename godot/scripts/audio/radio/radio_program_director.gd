@@ -1,0 +1,215 @@
+extends RefCounted
+
+const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
+
+const MAX_NON_SONG_GAP := 2
+const SONG_HISTORY_LIMIT := 2
+const DEFAULT_SEED := 1337
+
+var _station_id: String = RadioStationCatalogScript.DEFAULT_STATION_ID
+var _rng := RandomNumberGenerator.new()
+var _current_item: Dictionary = {}
+var _cursor_position_sec: float = 0.0
+var _is_paused: bool = false
+
+var _song_history: Array[String] = []
+var _interstitial_history: Array[String] = []
+var _non_song_gap_counter: int = 0
+var _last_category: int = -1
+
+var _pending_world_events: Array[String] = []
+
+func _init(initial_seed: int = DEFAULT_SEED, station: String = RadioStationCatalogScript.DEFAULT_STATION_ID) -> void:
+	_station_id = station
+	set_seed(initial_seed)
+
+func set_seed(s: int) -> void:
+	_rng.seed = s
+
+func get_seed() -> int:
+	return _rng.seed
+
+func set_station(station: String) -> void:
+	if _station_id != station:
+		_station_id = station
+		reset_programming_state()
+
+func get_station_id() -> String:
+	return _station_id
+
+func reset_programming_state() -> void:
+	_current_item = {}
+	_cursor_position_sec = 0.0
+	_is_paused = false
+	_song_history.clear()
+	_interstitial_history.clear()
+	_non_song_gap_counter = 0
+	_last_category = -1
+	_pending_world_events.clear()
+
+func reset(initial_seed: int = DEFAULT_SEED) -> void:
+	set_seed(initial_seed)
+	reset_programming_state()
+
+func notify_world_event(event_name: String) -> void:
+	if not _pending_world_events.has(event_name):
+		_pending_world_events.append(event_name)
+
+func get_current_item() -> Dictionary:
+	return _current_item
+
+func get_cursor_position() -> float:
+	return _cursor_position_sec
+
+func set_cursor_position(pos: float) -> void:
+	_cursor_position_sec = maxf(0.0, pos)
+
+func is_paused() -> bool:
+	return _is_paused
+
+func set_paused(paused: bool) -> void:
+	_is_paused = paused
+
+func advance_next_item() -> Dictionary:
+	var next_item: Dictionary = {}
+
+	# 1. Check for urgent reactive world events
+	if not _pending_world_events.is_empty():
+		var event_name: String = _pending_world_events.pop_front()
+		var world_items: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(_station_id, RadioStationCatalogScript.Category.WORLD_REACTION)
+		for wi in world_items:
+			if wi.get("trigger_event") == event_name:
+				next_item = wi.duplicate(true)
+				break
+
+	# 2. If no reactive event, select category according to programming rules
+	if next_item.is_empty():
+		var target_category: int = _choose_next_category()
+		next_item = _pick_item_for_category(target_category)
+
+	# Fallback if category selection yielded empty
+	if next_item.is_empty():
+		var songs: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(_station_id, RadioStationCatalogScript.Category.SONG)
+		if not songs.is_empty():
+			next_item = songs[0].duplicate(true)
+
+	# 3. Update state, anti-repeat tracking, and gap counters
+	_current_item = next_item
+	_cursor_position_sec = 0.0
+	var cat: int = next_item.get("category", RadioStationCatalogScript.Category.SONG)
+	_last_category = cat
+
+	if cat == RadioStationCatalogScript.Category.SONG:
+		_non_song_gap_counter = 0
+		_song_history.append(next_item.get("id", ""))
+		while _song_history.size() > SONG_HISTORY_LIMIT:
+			_song_history.pop_front()
+	else:
+		_non_song_gap_counter += 1
+		_interstitial_history.append(next_item.get("id", ""))
+		while _interstitial_history.size() > 4:
+			_interstitial_history.pop_front()
+
+	return _current_item
+
+func _choose_next_category() -> int:
+	# Enforce Max-Gap Rule: Music must return within MAX_NON_SONG_GAP
+	if _non_song_gap_counter >= MAX_NON_SONG_GAP:
+		return RadioStationCatalogScript.Category.SONG
+
+	# If cold start (no previous item), begin with a SONG or STATION_ID
+	if _last_category == -1:
+		var roll: float = _rng.randf()
+		if roll < 0.70:
+			return RadioStationCatalogScript.Category.SONG
+		else:
+			return RadioStationCatalogScript.Category.STATION_ID
+
+	# If last item was a SONG
+	if _last_category == RadioStationCatalogScript.Category.SONG:
+		var roll: float = _rng.randf()
+		if roll < 0.35:
+			return RadioStationCatalogScript.Category.DJ_LINK
+		elif roll < 0.60:
+			return RadioStationCatalogScript.Category.STATION_ID
+		elif roll < 0.80:
+			return RadioStationCatalogScript.Category.ADVERT
+		else:
+			return RadioStationCatalogScript.Category.SONG
+
+	# If last item was non-song, bias strongly towards SONG
+	var roll: float = _rng.randf()
+	if roll < 0.65:
+		return RadioStationCatalogScript.Category.SONG
+	elif roll < 0.85:
+		return RadioStationCatalogScript.Category.DJ_LINK
+	else:
+		return RadioStationCatalogScript.Category.STATION_ID
+
+func _pick_item_for_category(category: int) -> Dictionary:
+	var items: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(_station_id, category as RadioStationCatalogScript.Category)
+	if items.is_empty():
+		return {}
+
+	var candidates: Array[Dictionary] = []
+
+	if category == RadioStationCatalogScript.Category.SONG:
+		# Filter out recently played songs in history
+		for item in items:
+			if not _song_history.has(item.get("id")):
+				candidates.append(item)
+		# If all songs in history (pool depleted), use full items
+		if candidates.is_empty():
+			candidates = items.duplicate()
+	else:
+		# Filter out immediately preceding interstitial
+		for item in items:
+			if _interstitial_history.is_empty() or _interstitial_history.back() != item.get("id"):
+				candidates.append(item)
+		if candidates.is_empty():
+			candidates = items.duplicate()
+
+	var idx: int = _rng.randi_range(0, candidates.size() - 1)
+	return candidates[idx].duplicate(true)
+
+# -----------------------------------------------------------------------------
+# SERIALIZATION & STATE RESTORATION
+# -----------------------------------------------------------------------------
+
+func serialize_state() -> Dictionary:
+	return {
+		"station_id": _station_id,
+		"current_item": _current_item.duplicate(true),
+		"cursor_position_sec": _cursor_position_sec,
+		"is_paused": _is_paused,
+		"song_history": _song_history.duplicate(),
+		"interstitial_history": _interstitial_history.duplicate(),
+		"non_song_gap_counter": _non_song_gap_counter,
+		"last_category": _last_category,
+		"rng_seed": _rng.seed,
+		"rng_state": _rng.state,
+		"pending_world_events": _pending_world_events.duplicate()
+	}
+
+func deserialize_state(data: Dictionary) -> bool:
+	if not (data is Dictionary):
+		return false
+	if not data.has("station_id") or not data.has("cursor_position_sec"):
+		return false
+
+	_station_id = data.get("station_id", RadioStationCatalogScript.DEFAULT_STATION_ID)
+	_current_item = data.get("current_item", {}).duplicate(true)
+	_cursor_position_sec = data.get("cursor_position_sec", 0.0)
+	_is_paused = data.get("is_paused", false)
+	_song_history = Array(data.get("song_history", []), TYPE_STRING, &"", null)
+	_interstitial_history = Array(data.get("interstitial_history", []), TYPE_STRING, &"", null)
+	_non_song_gap_counter = data.get("non_song_gap_counter", 0)
+	_last_category = data.get("last_category", -1)
+	_pending_world_events = Array(data.get("pending_world_events", []), TYPE_STRING, &"", null)
+
+	if data.has("rng_seed"):
+		_rng.seed = data["rng_seed"]
+	if data.has("rng_state"):
+		_rng.state = data["rng_state"]
+
+	return true
