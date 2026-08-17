@@ -30,6 +30,17 @@ jobs:
           chmod +x .godot-bin/Godot_v4.7.1-stable_linux.x86_64
           .godot-bin/Godot_v4.7.1-stable_linux.x86_64 --version
 
+      - name: Prime Godot project metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --headless \
+            --editor \
+            --path godot \
+            --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
       - name: Run deterministic baseline harness
         shell: bash
         run: |
