@@ -2248,10 +2248,12 @@ func _run_v7_ticket03_stress_retest() -> void:
 	assert(touch_ui._is_tuning == true, "FAIL: _is_tuning must be true after touch down")
 	
 	# -------------------------------------------------------------------------
-	# TEST 1: Rapid Horizontal Swipe Bursts (Left and Right)
+	# TEST 1: Rapid Horizontal Swipe Bursts (Extreme Velocities)
 	# -------------------------------------------------------------------------
 	print("--- [TEST 1] Rapid Horizontal Swipe Bursts (Extreme Velocities) ---")
 	signal_tuner.current_frequency = 0.50
+	signal_tuner._drag_start_freq = 0.50
+	touch_ui._tuning_accum_px = 0.0
 	var drag_ev := InputEventScreenDrag.new()
 	drag_ev.index = 0
 	
@@ -2261,24 +2263,29 @@ func _run_v7_ticket03_stress_retest() -> void:
 	var swipe_deltas: Array[float] = [1500.0, -1500.0, 3000.0, -3000.0, 5000.0, -5000.0, 200.0, -200.0, 800.0, -800.0]
 	for idx in range(swipe_deltas.size()):
 		var raw_dx: float = swipe_deltas[idx]
-		var expected_delta := clampf(raw_dx * 0.003, -0.05, 0.05)
-		var pre_freq := signal_tuner.current_frequency
+		var pre_accum: float = touch_ui._tuning_accum_px
+		var post_accum: float = pre_accum + raw_dx
+		var raw: float = post_accum * 0.003
+		var mapped: float = 0.65 * tanh(raw / 0.65)
+		var expected_freq := clampf(0.50 + mapped, 0.0, 1.0)
 		
+		var pre_freq := signal_tuner.current_frequency
 		drag_ev.relative = Vector2(raw_dx, 0.0)
 		touch_ui._gui_input(drag_ev)
 		
 		var post_freq := signal_tuner.current_frequency
-		var actual_delta := post_freq - pre_freq
 		
 		if post_freq < 0.0 or post_freq > 1.0:
 			test1_bounded = false
-		if abs(actual_delta - expected_delta) > 0.0001 and post_freq > 0.0 and post_freq < 1.0:
+		if abs(post_freq - expected_freq) > 0.0001:
 			test1_clamped_correctly = false
 			
-		print("[TEST 1 SWIPE %d] raw_dx=%.1f | expected_delta=%.3f | pre_freq=%.3f -> post_freq=%.3f (actual_delta=%.3f)" % [
-			idx, raw_dx, expected_delta, pre_freq, post_freq, actual_delta
+		print("[TEST 1 SWIPE %d] raw_dx=%.1f | accum=%.1f | expected_freq=%.3f | pre_freq=%.3f -> post_freq=%.3f" % [
+			idx, raw_dx, touch_ui._tuning_accum_px, expected_freq, pre_freq, post_freq
 		])
 	
+	assert(test1_clamped_correctly, "FAIL: Swipe bursts must match accumulated tanh curve")
+	assert(test1_bounded, "FAIL: Swipe bursts must stay bounded in [0, 1]")
 	print("[TEST 1 RESULT] Clamped Correctly = %s | Strictly Bounded [0,1] = %s" % [
 		test1_clamped_correctly, test1_bounded
 	])
@@ -2287,49 +2294,52 @@ func _run_v7_ticket03_stress_retest() -> void:
 	# TEST 2: Micro-adjustments Near Lock Tolerance (Target Frequency 0.72 +/- 0.05)
 	# -------------------------------------------------------------------------
 	print("\n--- [TEST 2] Micro-adjustments Near Lock Tolerance (0.72 +/- 0.05) ---")
-	touch_ui.show_gesture_overlay("TUNE_SIGNAL")
-	var touch_down_ev := InputEventScreenTouch.new()
-	touch_down_ev.index = 0
-	touch_down_ev.pressed = true
-	touch_down_ev.position = touch_ui.gesture_panel.global_position + Vector2(20, 20)
-	touch_ui._gui_input(touch_down_ev)
-	
-	signal_tuner.current_frequency = 0.65 # Just outside lower bound (0.67)
+	signal_tuner.current_frequency = 0.65
+	signal_tuner._drag_start_freq = 0.65
 	signal_tuner._dwell_timer = 0.0
 	signal_tuner.is_powered = true
 	signal_tuner.is_player_in_range = true
-	signal_tuner.current_state = SignalTuner.TunerState.READY
-	signal_tuner.begin_interaction(player.global_position)
+	signal_tuner.current_state = SignalTuner.TunerState.TUNING
 	
-	drag_ev.relative = Vector2(5.0, 0.0) # delta = +0.015 -> 0.665
+	touch_ui._tuning_accum_px = 0.0
+	touch_ui._is_tuning = true
+	touch_ui._interaction_touch_index = 0
+	
+	# Small micro-adjustment: 5px
+	drag_ev.relative = Vector2(5.0, 0.0)
 	touch_ui._gui_input(drag_ev)
-	assert(abs(signal_tuner.current_frequency - 0.665) < 0.001, "FAIL: 0.65 + 0.015 = 0.665")
+	var exp_f1: float = 0.65 + 0.65 * tanh((5.0 * 0.003) / 0.65)
+	assert(abs(signal_tuner.current_frequency - exp_f1) < 0.001, "FAIL: 5px micro-adjustment must match tanh curve")
 	await get_tree().process_frame
 	assert(signal_tuner._dwell_timer == 0.0, "FAIL: Dwell timer must be 0 outside tolerance")
 	
-	drag_ev.relative = Vector2(3.0, 0.0) # delta = +0.009 -> 0.674 (inside lock range!)
+	# Move into lock range: [0.67, 0.77]. Relative = +20px -> total accum = 25px -> freq ≈ 0.7247
+	drag_ev.relative = Vector2(20.0, 0.0)
 	touch_ui._gui_input(drag_ev)
 	print("[TEST 2 LOG] Entered lock tolerance: frequency = %.3f (Target 0.72 +/- 0.05)" % signal_tuner.current_frequency)
+	assert(abs(signal_tuner.current_frequency - signal_tuner.target_frequency) <= signal_tuner.lock_tolerance, "FAIL: Must be inside lock tolerance")
 	
 	await get_tree().create_timer(0.05).timeout
 	var dwell_mid := signal_tuner._dwell_timer
 	assert(dwell_mid > 0.0, "FAIL: Dwell timer must accumulate while in lock range")
 	print("[TEST 2 LOG] Dwell timer accumulating: %.3fs / 0.400s" % dwell_mid)
 	
-	drag_ev.relative = Vector2(35.0, 0.0) # delta = +0.05 clamped
-	touch_ui._gui_input(drag_ev) # 0.674 -> 0.724
-	touch_ui._gui_input(drag_ev) # 0.724 -> 0.774 (past upper bound 0.77!)
-	touch_ui._gui_input(drag_ev) # 0.774 -> 0.824 (well past 0.77!)
+	# Push past upper bound (0.77): relative = +80px -> total accum = 105px -> freq ≈ 0.944
+	drag_ev.relative = Vector2(80.0, 0.0)
+	touch_ui._gui_input(drag_ev)
 	print("[TEST 2 LOG] Nudge past upper bound: frequency = %.3f" % signal_tuner.current_frequency)
+	assert(signal_tuner.current_frequency > 0.77, "FAIL: Frequency must be past upper bound")
 	
 	await get_tree().create_timer(0.05).timeout
 	var dwell_decay := signal_tuner._dwell_timer
 	print("[TEST 2 LOG] Dwell timer decayed from %.3fs to %.3fs outside tolerance" % [dwell_mid, dwell_decay])
 	assert(dwell_decay < dwell_mid, "FAIL: Dwell timer must decay outside tolerance")
 	
-	drag_ev.relative = Vector2(-80.0, 0.0)
+	# Pull back into lock range near center: relative = -82px -> total accum = 23px -> freq ≈ 0.7188
+	drag_ev.relative = Vector2(-82.0, 0.0)
 	touch_ui._gui_input(drag_ev)
 	print("[TEST 2 LOG] Re-entered lock range near center: frequency = %.3f" % signal_tuner.current_frequency)
+	assert(abs(signal_tuner.current_frequency - signal_tuner.target_frequency) <= signal_tuner.lock_tolerance, "FAIL: Must re-enter lock tolerance")
 	
 	await get_tree().create_timer(0.45).timeout
 	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED, "FAIL: Tuner must enter LOCKED state after holding in range")
@@ -2394,60 +2404,72 @@ func _run_v7_ticket03_stress_retest() -> void:
 	])
 	
 	# -------------------------------------------------------------------------
-	# TEST 4: Smooth Frequency Scaling Verification
+	# TEST 4: Accumulated tanh Saturation & Monotonicity Verification
 	# -------------------------------------------------------------------------
-	print("\n--- [TEST 4] Smooth Frequency Scaling Verification (clampf(dx * 0.003, -0.05, 0.05)) ---")
+	print("\n--- [TEST 4] Accumulated tanh Saturation & Monotonicity Verification ---")
 	touch_ui.show_gesture_overlay("TUNE_SIGNAL")
 	signal_tuner.current_state = SignalTuner.TunerState.TUNING
 	signal_tuner.current_frequency = 0.50
+	signal_tuner._drag_start_freq = 0.50
 	
 	touch_down.index = 0
 	touch_down.pressed = true
 	touch_ui._gui_input(touch_down)
 	
 	var scaling_monotonic := true
-	var linear_inputs: Array[float] = [-100.0, -50.0, -20.0, -10.0, -5.0, -1.0, 0.0, 1.0, 5.0, 10.0, 20.0, 50.0, 100.0]
+	var accum_displacements: Array[float] = [-500.0, -200.0, -100.0, -50.0, -10.0, 0.0, 10.0, 50.0, 100.0, 200.0, 500.0]
 	var scale_results: Array[Array] = []
 	
-	for dx in linear_inputs:
+	var last_mapped := -100.0
+	for target_accum in accum_displacements:
+		var delta_to_apply: float = target_accum - touch_ui._tuning_accum_px
 		drag_ev.index = 0
-		drag_ev.relative = Vector2(dx, 0.0)
-		var expected := clampf(dx * 0.003, -0.05, 0.05)
-		var f_before := signal_tuner.current_frequency
+		drag_ev.relative = Vector2(delta_to_apply, 0.0)
 		touch_ui._gui_input(drag_ev)
-		var f_after := signal_tuner.current_frequency
-		var actual := f_after - f_before
-		scale_results.append([dx, expected, actual])
-		if abs(actual - expected) > 0.0001:
+		
+		var raw: float = target_accum * 0.003
+		var expected_mapped: float = 0.65 * tanh(raw / 0.65)
+		var expected_freq: float = clampf(0.50 + expected_mapped, 0.0, 1.0)
+		var actual_freq := signal_tuner.current_frequency
+		
+		scale_results.append([target_accum, expected_freq, actual_freq])
+		if abs(actual_freq - expected_freq) > 0.0001:
 			scaling_monotonic = false
+		if expected_mapped < last_mapped:
+			scaling_monotonic = false
+		last_mapped = expected_mapped
 			
-	print("[TEST 4 LOG] Touch Drag Sensitivity Scaling Table:")
-	print("  dx (px) | Expected Delta | Actual Delta | Match")
-	print("  ------------------------------------------------")
+	print("[TEST 4 LOG] Touch Drag Tanh Saturation Table:")
+	print("  Accum (px) | Expected Freq | Actual Freq | Match")
+	print("  -------------------------------------------------")
 	for r in scale_results:
-		var r_dx: float = float(r[0])
+		var r_acc: float = float(r[0])
 		var r_exp: float = float(r[1])
 		var r_act: float = float(r[2])
-		print("  %7.1f | %14.4f | %12.4f | %s" % [r_dx, r_exp, r_act, abs(r_act - r_exp) <= 0.0001])
+		print("  %10.1f | %13.4f | %11.4f | %s" % [r_acc, r_exp, r_act, abs(r_act - r_exp) <= 0.0001])
 		
+	# Extreme negative saturation: smooth bounding towards 0.50 - 0.65 = -0.15 -> clamped to 0.0
+	touch_ui._tuning_accum_px = 0.0
 	signal_tuner.current_frequency = 0.50
+	signal_tuner._drag_start_freq = 0.50
+	
 	drag_ev.relative = Vector2(-10000.0, 0.0)
 	touch_ui._gui_input(drag_ev)
 	var freq_left_clamp := signal_tuner.current_frequency
-	assert(freq_left_clamp <= 0.45 and freq_left_clamp >= 0.0, "FAIL: -10000px drag clamped smoothly")
+	assert(freq_left_clamp == 0.0, "FAIL: Extreme left drag clamped smoothly to 0.0")
 	
-	for i in range(15):
-		touch_ui._gui_input(drag_ev)
-	var freq_min_bound := signal_tuner.current_frequency
-	assert(freq_min_bound == 0.0, "FAIL: Frequency lower bound must clamp to 0.0")
+	# Extreme positive saturation: 0.50 + 0.65 = 1.15 -> clamped to 1.0
+	touch_ui._tuning_accum_px = 0.0
+	signal_tuner.current_frequency = 0.50
+	signal_tuner._drag_start_freq = 0.50
 	
 	drag_ev.relative = Vector2(10000.0, 0.0)
-	for i in range(25):
-		touch_ui._gui_input(drag_ev)
-	var freq_max_bound := signal_tuner.current_frequency
-	assert(freq_max_bound == 1.0, "FAIL: Frequency upper bound must clamp to 1.0")
+	touch_ui._gui_input(drag_ev)
+	var freq_right_clamp := signal_tuner.current_frequency
+	assert(freq_right_clamp == 1.0, "FAIL: Extreme right drag clamped smoothly to 1.0")
 	
-	print("[TEST 4 RESULT] Linear scaling formula clampf(dx * 0.003, -0.05, 0.05) verified! Monotonic = %s, Boundaries [0.0, 1.0] solid!" % scaling_monotonic)
+	assert(scaling_monotonic, "FAIL: Tanh scaling must be strictly monotonic and match formula")
+	print("[TEST 4 RESULT] Tanh saturation formula mapped = 0.65 * tanh(raw / 0.65) verified! Monotonic = %s, Boundaries [0.0, 1.0] solid!" % scaling_monotonic)
 	
 	print("\n=========================================================================")
 	print("[V7 TICKET 03 ADVERSARIAL STRESS RETEST SUITE COMPLETED]")
@@ -2750,14 +2772,13 @@ func _run_v7_ticket04_2_assertions() -> void:
 	for i in range(15):
 		courier_bike.set_drive_inputs(0.0, 1.0, dt, false)
 		courier_bike._physics_process(dt)
-	var normal_forward: Vector3 = -courier_bike.transform.basis.z
+	var normal_forward: Vector3 = -courier_bike.global_transform.basis.z
 	var normal_slip: float = courier_bike.velocity.cross(normal_forward).length()
 
 	# Steer WITH handbrake over 15 frames from identical initial condition
 	reset_slice()
 	await get_tree().create_timer(0.1).timeout
 	courier_bike.current_state = CourierBike.BikeState.DRIVING
-	courier_bike.global_position = Vector3(0, 0.05, 20.0)
 	courier_bike.current_speed = 12.0
 	courier_bike.velocity = Vector3(0, 0, -12.0)
 	courier_bike.rotation.y = 0.0
@@ -2776,16 +2797,16 @@ func _run_v7_ticket04_2_assertions() -> void:
 	# TEST 4: Handbrake Release Grip Recovery
 	# -------------------------------------------------------------------------
 	print("[TEST 4] Testing Grip Recovery on Handbrake Release...")
-	# Vehicle is sliding; release handbrake and simulate 40 frames of straight tracking
-	for i in range(40):
+	# Vehicle is sliding; release handbrake and simulate 25 frames of straight tracking
+	for i in range(25):
 		courier_bike.set_drive_inputs(1.0, 0.0, dt, false) # Straight gas, handbrake OFF
 		courier_bike._physics_process(dt)
 
-	var recovery_forward: Vector3 = -courier_bike.transform.basis.z
-	var recovery_right: Vector3 = courier_bike.transform.basis.x
+	var recovery_forward: Vector3 = -courier_bike.global_transform.basis.z
+	var recovery_right: Vector3 = courier_bike.global_transform.basis.x
 	var recovered_lateral: float = abs(courier_bike.velocity.dot(recovery_right))
 	print("[TEST 4 LOG] Post-drift recovered lateral speed: %.4f m/s" % recovered_lateral)
-	assert(recovered_lateral < 0.35, "FAIL: Releasing handbrake must recover tire grip and align velocity with forward heading!")
+	assert(recovered_lateral < 0.25, "FAIL: Releasing handbrake must recover tire grip and align velocity with forward heading!")
 	print("[TICKET 04.2 TEST 4 PASSED] Handbrake grip recovery verified!")
 
 	# -------------------------------------------------------------------------

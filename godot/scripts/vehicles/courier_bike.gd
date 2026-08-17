@@ -78,11 +78,11 @@ func _physics_process(delta: float) -> void:
 				visual_root.rotation.z = lerpf(visual_root.rotation.z, target_lean, delta * 10.0)
 				
 			# 2. Arcade Lateral Grip & Drift Slip Model (Decoupled Heading & Velocity)
-			var forward_dir: Vector3 = -transform.basis.z
-			var right_dir: Vector3 = transform.basis.x
+			var forward_dir: Vector3 = -global_transform.basis.z
+			var right_dir: Vector3 = global_transform.basis.x
 			
 			var current_lateral_vel: float = velocity.dot(right_dir)
-			var grip_rate: float = 1.8 if is_handbrake_active else 14.0
+			var grip_rate: float = 1.8 if is_handbrake_active else 10.0
 			var decay_factor: float = 1.0 - exp(-grip_rate * delta)
 			var new_lateral_vel: float = lerpf(current_lateral_vel, 0.0, decay_factor)
 			var new_forward_vel: float = current_speed
