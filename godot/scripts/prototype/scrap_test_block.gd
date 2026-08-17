@@ -2763,7 +2763,6 @@ func _run_v7_ticket04_2_assertions() -> void:
 	reset_slice()
 	await get_tree().create_timer(0.1).timeout
 	courier_bike.current_state = CourierBike.BikeState.DRIVING
-	courier_bike.global_position = Vector3(0, 0.05, 20.0)
 	courier_bike.current_speed = 12.0
 	courier_bike.velocity = Vector3(0, 0, -12.0)
 	courier_bike.rotation.y = 0.0
