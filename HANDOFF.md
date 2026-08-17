@@ -1,5 +1,5 @@
-# HANDOFF.md — V8 M05 / M05A Formal Completion (05.1 - 05.6 Hero Silhouette & Courier Identity)
-**Generated**: 2026-08-17T01:42 PDT  
+# HANDOFF.md — V8 M06 Formal Completion (06.1 - 06.6 Vehicle Class Variety & Escape Choice)
+**Generated**: 2026-08-17T01:56 PDT  
 **Branch**: `main`  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official)  
@@ -8,36 +8,37 @@
 - **V8 M02 (02.1 - 02.4)**: Mobile Safe-Area, Touch Ergonomics & Adversarial Multi-Touch — ✅ CLOSED & VERIFIED (`30f20aa`)
 - **V8 M03 (03.1 - 03.4 + 03.2B)**: Threat Aftermath & World Continuity — ✅ CLOSED & VERIFIED (`a077e2a`)
 - **V8 M04 / M04B (04.1 - 04.6)**: First Memory Echo / Extraction Payoff & Exactly-Once Lifecycle — ✅ CLOSED & VERIFIED (`6c6f27e`)
-- **V8 M05 / M05A (05.1 - 05.6)**: Hero Silhouette & Courier Identity — ✅ 100% COMPLETE & VERIFIED
+- **V8 M05 / M05A (05.1 - 05.6)**: Hero Silhouette & Courier Identity — ✅ CLOSED & VERIFIED (`3f1ebb5`)
+- **V8 M06 (06.1 - 06.6)**: First Full-Size Vehicle (Scrap Hauler) & Escape Choice — ✅ 100% COMPLETE & VERIFIED
 
 ---
 
-## 1. Milestone V8 M05 / M05A Deliverables & Architecture
+## 1. Milestone V8 M06 Deliverables & Architecture
 
 | Ticket | Description | Status | Deliverables |
 |---|---|---|---|
-| **05.1** | Hero Silhouette Proof (Runner Upgrade) | ✅ COMPLETE | Replaced greybox single capsule with modular procedural courier/runner silhouette: dark slate courier jacket (`Color(0.16, 0.22, 0.28)`), slung scrap satchel/harness (`Color(0.65, 0.42, 0.18)`), dark helmet, vibrant glowing cyan visor (`Color(0.15, 0.9, 1.0)`, emission 1.6) establishing crisp 8-way facing direction from 3/4 camera, reinforced cargo pants/boots, dark contour outlines. Dimensions (radius 0.4, height 1.8), speed (8.5 m/s), acceleration (40.0), and collision capsule 100% preserved. |
-| **05.2** | Courier Bike Visual Rebuild | ✅ COMPLETE | Replaced single box with fully articulated scrap courier motorcycle: dark weathered steel tube frame chassis, front steering fork with treaded wheel and rim, wide rear drive wheel, aerodynamic courier orange tank/cowl (`Color(0.92, 0.46, 0.08)`), amber headlight lens (`Color(1.0, 0.9, 0.6)`), transverse handlebars with grips, ergonomic dark saddle, rear cargo rack with glowing cyan signal battery cell (`Color(0.12, 0.85, 1.0)`, emission 1.8), dark contour outlines. Collision box (1.0x1.0x2.2), handling, drift physics, and mount contracts 100% preserved. |
-| **05.3** | Mount / Rider Composition | ✅ COMPLETE | Mounted state transitions seamlessly into dynamic riding posture: seated on bike saddle, forward crouch, hands reaching forward to grips, legs straddling frame (`set_mounted_posture(true)`). Runner remains 100% visible and tracks `RiderSocket` continuously via `to_global(rider_socket.position)`. Dismount restores upright standing posture (`set_mounted_posture(false)`) and safe-position clearance. |
-| **05.4** | Direction & Motion Readability | ✅ COMPLETE | On foot: procedural running stride swing (arms, legs, torso vertical bob) and crisp 8-way directional mesh snapping. On bike: dynamic arcade banking lean into turns (`VisualRoot.rotation.z` tilts up to 12 degrees proportional to speed and steering input). Headlight and front fork define vehicle facing instantly. |
-| **05.5** | Semantic Color Hierarchy Protection | ✅ COMPLETE | Preserved core semantic color language: **Cyan** = player / signal-tech / visor / battery core; **Orange/Amber** = functional / interactable / courier panels / headlight; **Red** = danger / pursuer / alert; **Muted Slate/Grime** = frame, tires, cargo pants, scrap yard environment. |
-| **05.6 / M05A** | Runtime Falsification & 7 Rendered Visual Proofs | ✅ COMPLETE | Fixed both M05A closure blockers: (1) Assertion 7 verifies automatic signal-driven pursuit retargeting between Runner and CourierBike across mount and dismount without direct `activate_pursuit()` overrides; (2) Assertion 10 decelerates the bike via braking friction until speed is <= 1.5 m/s, verifies `request_dismount()` returns true, asserts `occupant == null`, standing posture restored, and bike in `PARKED` state before capturing `m05_07_aftermath_dismounted.png`. 7 distinct rendered 3D Metal viewport captures in `godot/verification/v8/m05/`. |
+| **06.1** | Minimal Vehicle Abstraction | ✅ COMPLETE | Minimal shared driveable interface: duck-typed/contract API supported by both `CourierBike` and `ScrapHauler` (`mount_interactable`, `request_mount(player)`, `request_dismount()`, `force_dismount()`, `set_drive_inputs()`, `occupant`, `current_state`, `current_speed`, `max_speed`, `dismount_speed_limit`). Original bike behavior and all existing V1-V8 regressions 100% locked. |
+| **06.2** | Full-Size Scrap Hauler Prototype | ✅ COMPLETE | Created `scrap_hauler.tscn` and `scrap_hauler.gd`. Human-scale 4-wheel road vehicle with full-size collision footprint (`BoxShape3D(1.8, 1.4, 3.8)`): steel tube frame chassis, 4 rubber tires with rims, driver cabin with roll-cage contours, aerodynamic scrap orange hood/fenders, dual amber headlights (`Color(1.0, 0.92, 0.65)`, emission 1.8), green utility cargo bed with cyan battery core indicator (`Color(0.12, 0.85, 1.0)`), and dark silhouette contour outlines. |
+| **06.3** | Meaningful Handling Contrast | ✅ COMPLETE | Canonical GTA touch control semantics (Gas, Brake/Reverse, Handbrake, Exit). Quantitatively contrasted: **Acceleration**: Bike 6.0 m/s vs Hauler 4.25 m/s (Bike is nimble off line); **Steering agility**: Bike 39.9° vs Hauler 30.9° (Hauler has heavier rotational inertia); **Braking distance**: Bike stopped in 34 frames vs Hauler in 50 frames (Hauler has longer stopping distance & higher max speed 15.5 m/s). |
+| **06.4** | Escape Vehicle Choice | ✅ COMPLETE | Staged both vehicles in scrap yard: Courier Bike at `(-1.5, 0.05, 3.0)` and Scrap Hauler at `(3.5, 0.05, 3.0)`. Entering either vehicle automatically assigns camera target (`camera.set_target(veh)`), touch UI driving mode, engine audio, and pursuer tracking target (`pursuer.target_node = veh`). Exiting returns all responsibilities to the runner on foot. |
+| **06.5** | World / Camera / Collision Compatibility | ✅ COMPLETE | Full-size hauler proportions cleanly clear main yard lanes and security gate. Safe dismount volume search dynamically checks 4 vehicle-relative offsets (left door, right door, tailgate, hood). Elevates tactical class distinction (Bike = narrow agile shortcut; Hauler = high-momentum security gate ramming). |
+| **06.6** | Automated Falsification & 7 Rendered Visual Proofs | ✅ COMPLETE | Added dedicated test suite `--run-v8-m06-vehicle-class-assertions` (Suite 23, 12/12 assertions pass). 7 distinct rendered 3D Metal viewport captures in `godot/verification/v8/m06/` covering scale comparison, entry, acceleration, braking, drift turn, pursuit, and safe exit aftermath. |
 
 ---
 
-## 2. 7 Canonical Hero & Vehicle Visual Proof Artifacts
+## 2. 7 Canonical M06 Visual Proof Artifacts
 
-1. `godot/verification/v8/m05/m05_01_runner_idle.png` (122,698 bytes, SHA `8d856516...`): Runner Idle / Exploration with glowing cyan visor & courier satchel.
-2. `godot/verification/v8/m05/m05_02_runner_extraction.png` (157,104 bytes, SHA `0613cc23...`): Runner interaction at Corroded Panel during Core Extraction.
-3. `godot/verification/v8/m05/m05_03_bike_parked_mount.png` (164,310 bytes, SHA `48eb82d2...`): Courier Bike parked with wheels, orange cowl, headlight, and battery core.
-4. `godot/verification/v8/m05/m05_04_bike_driving.png` (197,060 bytes, SHA `2604f7ec...`): Runner mounted in riding posture driving Courier Bike down straight.
-5. `godot/verification/v8/m05/m05_05_bike_drift_turn.png` (197,195 bytes, SHA `d60c5727...`): Dynamic banking lean and drift turn at high speed.
-6. `godot/verification/v8/m05/m05_06_pursuit_chase.png` (203,483 bytes, SHA `4c2ecd64...`): High-intensity pursuit chase through security gate.
-7. `godot/verification/v8/m05/m05_07_aftermath_dismounted.png` (198,796 bytes, SHA `85210d34...`): Quiet aftermath with dismounted runner and parked bike.
+1. `godot/verification/v8/m06/m06_01_scale_comparison.png` (122,237 bytes, SHA `4e5d75b5...`): Runner + Courier Bike + Scrap Hauler scale comparison in scrap yard.
+2. `godot/verification/v8/m06/m06_02_hauler_parked_entry.png` (126,038 bytes, SHA `f7ff0fd2...`): Runner mounting Scrap Hauler at door socket.
+3. `godot/verification/v8/m06/m06_03_hauler_acceleration.png` (154,511 bytes, SHA `eb481daf...`): Scrap Hauler straight-line acceleration down main yard lane.
+4. `godot/verification/v8/m06/m06_04_hauler_braking.png` (153,578 bytes, SHA `e6c2c36e...`): Scrap Hauler heavy braking with suspension dive.
+5. `godot/verification/v8/m06/m06_05_hauler_drift_turn.png` (149,830 bytes, SHA `957503ef...`): Scrap Hauler handbrake drift turn showing wide lateral slide arc.
+6. `godot/verification/v8/m06/m06_06_hauler_pursuit.png` (154,482 bytes, SHA `59df0cbca...`): Scrap Hauler pursued at high speed through security gate.
+7. `godot/verification/v8/m06/m06_07_hauler_exit_aftermath.png` (135,693 bytes, SHA `d293abec...`): Dismounted runner standing beside parked Scrap Hauler in quiet aftermath.
 
 ---
 
-## 3. Enumerated 22-Suite Regression Matrix (100% Green)
+## 3. Enumerated 23-Suite Regression Matrix (100% Green)
 
 1. `--run-v1-assertions`: PASS (Reaction Loop & Locomotion)
 2. `--run-v2-assertions`: PASS (Micro-Play Loop)
@@ -60,10 +61,11 @@
 19. `--run-v8-m03-aftermath-assertions`: PASS (Dedicated 7-test threat aftermath & decay envelope suite)
 20. `--run-v8-m04-echo-assertions`: PASS (Dedicated 10-test Memory Echo extraction payoff suite)
 21. `--run-v8-m05-hero-identity-assertions`: PASS (Dedicated 10-test Hero Silhouette & Courier Identity suite)
-22. `--run-v8-readability`: PASS (8/8 real gameplay physics routes & landmark framing)
+22. `--run-v8-m06-vehicle-class-assertions`: PASS (Dedicated 12-test Vehicle Class Variety & Escape Choice suite)
+23. `--run-v8-readability`: PASS (8/8 real gameplay physics routes & landmark framing)
 
 ---
 
 ## 4. Hardware Readiness & Evidence Classification
-- **Automated Verification**: Headless and windowed Godot 4.7.1 test execution on macOS Metal GPU (Apple M4). All 22 test suites pass with zero runtime regressions.
+- **Automated Verification**: Headless and windowed Godot 4.7.1 test execution on macOS Metal GPU (Apple M4). All 23 test suites pass with zero runtime regressions.
 - **CI / Build Integration**: Local automated verification with exit code 0. Remote CI remains unconfigured on repository.
