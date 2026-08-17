@@ -346,12 +346,13 @@ func _process_pursuit_loop(delta: float) -> void:
 			else:
 				_contact_broken_timer = move_toward(_contact_broken_timer, 0.0, delta)
 
-func trigger_disturbance_alert() -> void:
-	if current_pursuit_state != PursuitState.CALM:
-		return
+func _begin_disturbance_sequence(expected_source_state: PursuitState) -> bool:
+	if current_pursuit_state != expected_source_state:
+		print("[PURSUIT] Rejected disturbance sequence: source state mismatch (expected %s, got %s)" % [PursuitState.keys()[expected_source_state], PursuitState.keys()[current_pursuit_state]])
+		return false
 		
 	current_pursuit_state = PursuitState.DISTURBANCE_ALERT
-	_last_pursuit_vehicle = _get_active_vehicle()
+	_last_pursuit_vehicle = _get_active_vehicle() if _get_active_vehicle() else _last_pursuit_vehicle
 	print("[PULSE] Disturbance alert triggered! Pursuit sequence initiating...")
 	if audio_mgr:
 		audio_mgr.set_mix_state(AudioManagerScript.MixState.DISTURBANCE)
@@ -372,6 +373,10 @@ func trigger_disturbance_alert() -> void:
 					signal_gate.set_pursuit_active(true)
 				print("[PURSUIT] Pursuer active! Chasing target...")
 	)
+	return true
+
+func trigger_disturbance_alert() -> void:
+	_begin_disturbance_sequence(PursuitState.CALM)
 
 func _end_pursuit_common() -> void:
 	if pursuer:
@@ -464,8 +469,6 @@ func retry_chase() -> void:
 		print("[PURSUIT_RETRY] Rejected retry_chase: CorrodedPanel not EXTRACTED -> zero mutation")
 		return
 		
-	# Immediately transition out of RETRY_READY to consume retry authority so rapid double taps produce one logical restart
-	current_pursuit_state = PursuitState.DISTURBANCE_ALERT
 	print("[PURSUIT_RETRY] Fast pursuit retry initiated! Preserving solved Tuner/Panel/Echo...")
 	
 	_steer_input = 0.0
@@ -539,26 +542,10 @@ func retry_chase() -> void:
 		touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
 		touch_ui.set_route_switch_button_visible(false)
 		
-	if audio_mgr:
-		audio_mgr.set_mix_state(AudioManagerScript.MixState.DISTURBANCE)
-		
-	for actor in ambient_actors:
-		if is_instance_valid(actor) and actor.has_method("trigger_alarm"):
-			actor.trigger_alarm()
-			
-	get_tree().create_timer(0.75).timeout.connect(func():
-		if current_pursuit_state == PursuitState.DISTURBANCE_ALERT:
-			current_pursuit_state = PursuitState.PURSUIT_ACTIVE
-			if audio_mgr:
-				audio_mgr.set_mix_state(AudioManagerScript.MixState.PURSUIT_PRESSURE)
-			if pursuer:
-				var target: Node3D = _get_active_vehicle() if _get_active_vehicle() else player
-				pursuer.activate_pursuit(target)
-				if signal_gate:
-					signal_gate.set_pursuit_active(true)
-				print("[PURSUIT] Pursuer active! Chasing target...")
-	)
-	print("[PURSUIT_RETRY] Fast pursuit retry ready! Disturbance alert re-triggered.")
+	# Canonical disturbance sequence authority
+	var started: bool = _begin_disturbance_sequence(PursuitState.RETRY_READY)
+	if started:
+		print("[PURSUIT_RETRY] Fast pursuit retry ready! Disturbance alert re-triggered.")
 
 func _evaluate_target_selection() -> void:
 	if not player or not touch_ui:
