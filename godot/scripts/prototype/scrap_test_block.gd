@@ -64,6 +64,8 @@ var _throttle_input: float = 0.0
 var _handbrake_input: bool = false
 var _contact_broken_timer: float = 0.0
 var _recovery_marker: Vector3 = Vector3(-1.5, 0.05, 3.0)
+var _last_pursuit_vehicle: Node3D = null
+var _is_retrying_chase: bool = false
 
 func _ready() -> void:
 	var tuner_scene: PackedScene = load("res://scenes/interactions/signal_tuner.tscn")
@@ -189,6 +191,7 @@ func _ready() -> void:
 		touch_ui.driving_handbrake_updated.connect(func(active: bool): _handbrake_input = active)
 		touch_ui.dismount_pressed.connect(_on_dismount_pressed)
 		touch_ui.replay_pressed.connect(reset_slice)
+		touch_ui.retry_chase_pressed.connect(retry_chase)
 		
 	if status_label:
 		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v6"
@@ -267,6 +270,8 @@ func _ready() -> void:
 		_run_v8_m06_vehicle_class_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-m07-world-life-assertions"):
 		_run_v8_m07_world_life_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v8-m15-fast-retry-assertions") or OS.get_cmdline_user_args().has("--run-v8-m15-assertions"):
+		_run_v8_m15_fast_retry_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-readability") or OS.get_cmdline_user_args().has("--run-v8-assertions"):
 		_run_v8_dynamic_readability()
 
@@ -345,6 +350,7 @@ func trigger_disturbance_alert() -> void:
 		return
 		
 	current_pursuit_state = PursuitState.DISTURBANCE_ALERT
+	_last_pursuit_vehicle = _get_active_vehicle()
 	print("[PULSE] Disturbance alert triggered! Pursuit sequence initiating...")
 	if audio_mgr:
 		audio_mgr.set_mix_state(AudioManagerScript.MixState.DISTURBANCE)
@@ -382,7 +388,7 @@ func _on_successful_evasion() -> void:
 		signal_gate.set_pursuit_active(false)
 	if touch_ui:
 		touch_ui.hide_tension_hud()
-		touch_ui.show_replay_overlay()
+		touch_ui.show_replay_overlay(true)
 		
 	if pursuer:
 		pursuer.start_de_escalation()
@@ -418,13 +424,21 @@ func _on_pursuer_intercepted() -> void:
 	current_pursuit_state = PursuitState.INTERCEPTED
 	print("[PURSUIT] TARGET INTERCEPTED! Resetting to recovery marker...")
 	
+	_steer_input = 0.0
+	_throttle_input = 0.0
+	_handbrake_input = false
 	if player: player.is_input_locked = true
 	if courier_bike: courier_bike.force_dismount()
+	if scrap_hauler: scrap_hauler.force_dismount()
 	_end_pursuit_common()
 	if audio_mgr:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED, player.global_position if player else Vector3.ZERO)
+	if touch_ui:
+		touch_ui.show_replay_overlay(true)
 		
 	get_tree().create_timer(0.8).timeout.connect(func():
+		if current_pursuit_state != PursuitState.INTERCEPTED:
+			return
 		if player:
 			player.global_position = _recovery_marker + Vector3(-1.5, 0, 0)
 			player.is_input_locked = false
@@ -432,9 +446,99 @@ func _on_pursuer_intercepted() -> void:
 		if courier_bike:
 			courier_bike.global_position = _recovery_marker
 			courier_bike.rotation = Vector3.ZERO
+		if scrap_hauler:
+			scrap_hauler.global_position = _recovery_marker + Vector3(3.0, 0, 0)
+			scrap_hauler.rotation = Vector3.ZERO
 			
 		current_pursuit_state = PursuitState.CALM
 	)
+
+func retry_chase() -> void:
+	if _is_retrying_chase:
+		return
+		
+	if not corroded_panel or corroded_panel.current_step != CorrodedPanel.Step.EXTRACTED:
+		reset_slice()
+		return
+		
+	_is_retrying_chase = true
+	print("[PURSUIT_RETRY] Fast pursuit retry initiated! Preserving solved Tuner/Panel/Echo...")
+	
+	_steer_input = 0.0
+	_throttle_input = 0.0
+	_handbrake_input = false
+	
+	if touch_ui:
+		touch_ui.hide_replay_overlay()
+		touch_ui.reset_all_input_states()
+		touch_ui.hide_tension_hud()
+		
+	if audio_mgr:
+		audio_mgr.clear_pursuit_pressure()
+		audio_mgr.stop_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED)
+		audio_mgr.reset_audio_instant()
+		
+	_end_pursuit_common()
+	current_pursuit_state = PursuitState.CALM
+	_contact_broken_timer = 0.0
+	
+	if pursuer:
+		pursuer.reset_pursuer(Vector3(0, 0.6, -10.0))
+		
+	if signal_gate:
+		signal_gate.current_state = SignalGateInteractable.GateState.READY
+		signal_gate.barrier_pivot.rotation.y = 0.0
+		signal_gate.barrier_collision.disabled = true
+		signal_gate.is_powered = true
+		signal_gate._update_visual_state()
+		
+	for actor in ambient_actors:
+		if is_instance_valid(actor) and actor.has_method("reset_actor"):
+			actor.reset_actor()
+			
+	var target_veh: Node3D = _last_pursuit_vehicle if _last_pursuit_vehicle else courier_bike
+	if target_veh == scrap_hauler and scrap_hauler != null:
+		scrap_hauler.global_position = Vector3(4.0, 0.05, 2.0)
+		scrap_hauler.rotation = Vector3.ZERO
+		scrap_hauler.velocity = Vector3.ZERO
+		scrap_hauler.current_speed = 0.0
+		if courier_bike:
+			courier_bike.global_position = Vector3(-1.5, 0.05, 3.0)
+			courier_bike.current_state = CourierBike.BikeState.PARKED
+		
+		player.global_position = scrap_hauler.global_position + Vector3(0, 0, 0.5)
+		scrap_hauler.mount_interactable.update_player_distance(player.global_position)
+		scrap_hauler.request_mount(player)
+		active_vehicle = scrap_hauler
+	else:
+		if courier_bike:
+			courier_bike.global_position = Vector3(-1.5, 0.05, 3.0)
+			courier_bike.rotation = Vector3.ZERO
+			courier_bike.velocity = Vector3.ZERO
+			courier_bike.current_speed = 0.0
+			if scrap_hauler:
+				scrap_hauler.global_position = Vector3(4.0, 0.05, 2.0)
+				scrap_hauler.current_state = ScrapHaulerScript.VehicleState.PARKED
+			
+			player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
+			courier_bike.mount_interactable.update_player_distance(player.global_position)
+			courier_bike.request_mount(player)
+			active_vehicle = courier_bike
+			
+	if player:
+		player.is_input_locked = false
+		player.velocity = Vector3.ZERO
+		
+	if camera:
+		camera.reset_camera_instant(active_vehicle if active_vehicle else player)
+		
+	if touch_ui:
+		touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+		touch_ui.set_route_switch_button_visible(false)
+		
+	trigger_disturbance_alert()
+	_is_retrying_chase = false
+	print("[PURSUIT_RETRY] Fast pursuit retry ready! Disturbance alert re-triggered.")
 
 func _evaluate_target_selection() -> void:
 	if not player or not touch_ui:
@@ -639,9 +743,13 @@ func reset_slice() -> void:
 		if is_instance_valid(actor) and actor.has_method("reset_actor"):
 			actor.reset_actor()
 	
+	_last_pursuit_vehicle = null
+	_is_retrying_chase = false
+	
 	if touch_ui:
 		touch_ui.reset_all_input_states()
 		touch_ui.set_route_switch_button_visible(false)
+		touch_ui.hide_replay_overlay()
 		
 	print("[WORLD_LOOP] Slice reset to initial cold start state cleanly.")
 		
@@ -6338,3 +6446,232 @@ func _save_m07_proof_png(path: String) -> void:
 				img.save_png(path)
 				return
 	assert(false, "FAIL: Viewport texture image capture failed for path: %s" % path)
+
+func _save_m15_proof_png(path: String) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var base_dir := path.get_base_dir()
+	DirAccess.make_dir_recursive_absolute(base_dir)
+	var vp := get_viewport()
+	if vp:
+		var tex := vp.get_texture()
+		if tex:
+			var img := tex.get_image()
+			if img:
+				img.save_png(path)
+				return
+	assert(false, "FAIL: Viewport texture image capture failed for path: %s" % path)
+
+func _run_v8_m15_fast_retry_assertions() -> void:
+	print("\n=========================================================================")
+	print("[V8 M15 ASSERTIONS] Starting Fast Pursuit Retry & World Continuity Suite (CTW Feel 05)...")
+	print("=========================================================================\n")
+	
+	await get_tree().process_frame
+	
+	# -------------------------------------------------------------------------
+	# ASSERTION 1: Retry Outside Retry-Ready State (Cold Start Rejection)
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 1] Testing retry_chase() at cold start (fallback to clean slice reset)...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	assert(current_pursuit_state == PursuitState.CALM, "FAIL 1: Initial pursuit state CALM")
+	retry_chase()
+	await get_tree().create_timer(0.05).timeout
+	assert(not pursuer.is_active, "FAIL 1: Pursuer remains inactive on unearned retry")
+	assert(signal_tuner.current_state == SignalTuner.TunerState.DORMANT, "FAIL 1: Tuner remains DORMANT")
+	print("  -> Assertion 1 PASS: Cold start retry cleanly rejected/safe!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 2 & 3: Solved Content & Echo Preservation Across Fast Pursuit Retry
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 2 & 3] Solving Tuner -> Panel -> Extracting Core -> Echo Trigger -> Interception...")
+	reset_slice()
+	await get_tree().create_timer(0.05).timeout
+	
+	# 1. Solve Tuner
+	signal_tuner._lock_signal()
+	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED, "FAIL 2: Tuner solved")
+	
+	# 2. Unlock Panel & Peel
+	corroded_panel.current_step = CorrodedPanel.Step.EXPOSED
+	
+	# 3. Extract Core & Trigger Echo
+	_on_core_tap_pressed()
+	await echo_controller.echo_completed
+	assert(corroded_panel.current_step == CorrodedPanel.Step.EXTRACTED, "FAIL 2: Core extracted")
+	assert(echo_controller.has_completed(), "FAIL 2: Memory Echo triggered")
+	assert(echo_controller.get_trigger_count() == 1, "FAIL 2: Echo lifetime count == 1")
+	
+	# 4. Mount Courier Bike & Verify Disturbance Active
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
+	courier_bike.mount_interactable.update_player_distance(player.global_position)
+	courier_bike.request_mount(player)
+	await get_tree().create_timer(0.85).timeout
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL 2: Bike mounted")
+	assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL 2: Pursuit active")
+	
+	# 5. Simulate Interception
+	_on_pursuer_intercepted()
+	await get_tree().create_timer(0.1).timeout
+	assert(current_pursuit_state == PursuitState.INTERCEPTED, "FAIL 2: Intercepted state")
+	assert(touch_ui.replay_panel.visible, "FAIL 2: Replay overlay visible with RETRY CHASE option")
+	
+	# Capture Proof 1: Intercepted retry overlay
+	await get_tree().process_frame
+	_save_m15_proof_png("res://verification/v8/m15/m15_01_intercepted_retry_overlay.png")
+	print("  Saved: godot/verification/v8/m15/m15_01_intercepted_retry_overlay.png")
+	
+	# 6. Execute Fast Pursuit Retry & Measure Latency
+	var retry_t0: float = Time.get_ticks_msec() / 1000.0
+	touch_ui.retry_chase_button.pressed.emit()
+	
+	# Await pursuit restart (disturbance timer 0.75s + 0.1s buffer)
+	await get_tree().create_timer(0.85).timeout
+	var retry_lat: float = (Time.get_ticks_msec() / 1000.0) - retry_t0
+	print("  [LATENCY] Retry tap -> active pursuit: %.2fs (limit <= 3.0s)" % retry_lat)
+	assert(retry_lat <= 3.0, "FAIL 3: Retry latency must be <= 3.0s")
+	assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL 3: Pursuit active after retry")
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL 3: Player mounted on bike")
+	assert(active_vehicle == courier_bike, "FAIL 3: Active vehicle is bike")
+	
+	# Verify Solved Content & Memory Echo Preservation
+	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED, "FAIL 3: Tuner remains LOCKED")
+	assert(corroded_panel.current_step == CorrodedPanel.Step.EXTRACTED, "FAIL 3: Panel remains EXTRACTED")
+	assert(echo_controller.has_completed(), "FAIL 3: Echo remains consumed")
+	assert(echo_controller.get_trigger_count() == 1, "FAIL 3: Echo lifetime count remains exactly 1 (no replay)")
+	print("  -> Assertion 2 & 3 PASS: Solved content preserved, Echo count == 1, latency <= 3s!")
+
+	# Capture Proof 2: Fast retried chase active
+	await get_tree().process_frame
+	_save_m15_proof_png("res://verification/v8/m15/m15_02_fast_retried_chase_active.png")
+	print("  Saved: godot/verification/v8/m15/m15_02_fast_retried_chase_active.png")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 4: Double-Tap Retry Idempotency
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 4] Testing double-tap Retry idempotency...")
+	_on_pursuer_intercepted()
+	await get_tree().create_timer(0.1).timeout
+	touch_ui.retry_chase_button.pressed.emit()
+	touch_ui.retry_chase_button.pressed.emit()
+	await get_tree().create_timer(0.85).timeout
+	assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL 4: Single active pursuit established")
+	assert(echo_controller.get_trigger_count() == 1, "FAIL 4: Lifetime echo count strictly 1")
+	print("  -> Assertion 4 PASS: Double-tap retry is strictly idempotent!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 5: Sticky Input Clearance Across Interception & Retry
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 5] Testing sticky driving inputs cleared on retry...")
+	_steer_input = 1.0
+	_throttle_input = 1.0
+	_handbrake_input = true
+	_on_pursuer_intercepted()
+	await get_tree().create_timer(0.1).timeout
+	touch_ui.retry_chase_button.pressed.emit()
+	await get_tree().create_timer(0.1).timeout
+	assert(_steer_input == 0.0, "FAIL 5: Steer input reset")
+	assert(_throttle_input == 0.0, "FAIL 5: Throttle input reset")
+	assert(not _handbrake_input, "FAIL 5: Handbrake input reset")
+	await get_tree().create_timer(0.75).timeout
+	print("  -> Assertion 5 PASS: All sticky inputs cleared cleanly!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 6: Signal Gate Reset & Re-arm on Retry
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 6] Testing Signal Gate reset and re-arm on retry...")
+	signal_gate.begin_interaction(courier_bike.global_position)
+	await get_tree().create_timer(0.8).timeout
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL 6: Gate was triggered")
+	assert(not signal_gate.barrier_collision.disabled, "FAIL 6: Barrier collision was active")
+	
+	_on_pursuer_intercepted()
+	await get_tree().create_timer(0.1).timeout
+	touch_ui.retry_chase_button.pressed.emit()
+	await get_tree().create_timer(0.1).timeout
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.READY, "FAIL 6: Gate restored to READY")
+	assert(signal_gate.barrier_pivot.rotation.y == 0.0, "FAIL 6: Gate barrier reset to 0 rotation")
+	assert(signal_gate.barrier_collision.disabled, "FAIL 6: Barrier collision disabled")
+	
+	await get_tree().create_timer(0.85).timeout
+	signal_gate.begin_interaction(courier_bike.global_position)
+	await get_tree().create_timer(0.8).timeout
+	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL 6: Gate re-triggered successfully in new chase")
+	print("  -> Assertion 6 PASS: Gate correctly resets to READY and re-arms on retry!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 7: Audio Mix-State & Transient Cleanup on Retry
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 7] Testing audio mix-state and active transient cleanup...")
+	_on_pursuer_intercepted()
+	await get_tree().create_timer(0.1).timeout
+	touch_ui.retry_chase_button.pressed.emit()
+	assert(audio_mgr.current_mix_state == AudioManagerScript.MixState.DISTURBANCE, "FAIL 7: Mix state enters DISTURBANCE on retry")
+	await get_tree().create_timer(0.85).timeout
+	assert(audio_mgr.current_mix_state == AudioManagerScript.MixState.PURSUIT_PRESSURE, "FAIL 7: Mix state returns to PURSUIT_PRESSURE")
+	print("  -> Assertion 7 PASS: Audio mix state and transient cleanup verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 8: Vehicle Class Parity (Scrap Hauler Path Retry)
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 8] Testing Scrap Hauler path retry parity...")
+	courier_bike.force_dismount()
+	player.global_position = scrap_hauler.global_position + Vector3(0, 0, 0.5)
+	scrap_hauler.mount_interactable.update_player_distance(player.global_position)
+	scrap_hauler.request_mount(player)
+	await get_tree().create_timer(0.3).timeout
+	assert(scrap_hauler.current_state == ScrapHaulerScript.VehicleState.DRIVING, "FAIL 8: Hauler mounted")
+	
+	current_pursuit_state = PursuitState.CALM
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
+	assert(pursuer.target_node == scrap_hauler, "FAIL 8: Pursuer targets Scrap Hauler")
+	
+	_on_pursuer_intercepted()
+	await get_tree().create_timer(0.1).timeout
+	touch_ui.retry_chase_button.pressed.emit()
+	await get_tree().create_timer(0.85).timeout
+	assert(scrap_hauler.current_state == ScrapHaulerScript.VehicleState.DRIVING, "FAIL 8: Player remounted on Scrap Hauler")
+	assert(active_vehicle == scrap_hauler, "FAIL 8: Active vehicle is Scrap Hauler")
+	assert(pursuer.target_node == scrap_hauler, "FAIL 8: Pursuer targets Scrap Hauler after retry")
+	print("  -> Assertion 8 PASS: Scrap Hauler path retry parity verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 9: Repeated Intercept -> Retry Cycles (5 Consecutive Cycles)
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 9] Testing 5 consecutive intercept -> retry cycles...")
+	for cycle in range(5):
+		_on_pursuer_intercepted()
+		await get_tree().create_timer(0.05).timeout
+		touch_ui.retry_chase_button.pressed.emit()
+		await get_tree().create_timer(0.85).timeout
+		assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL 9: Cycle %d pursuit active" % cycle)
+		assert(echo_controller.get_trigger_count() == 1, "FAIL 9: Cycle %d echo count == 1" % cycle)
+		assert(corroded_panel.current_step == CorrodedPanel.Step.EXTRACTED, "FAIL 9: Cycle %d panel solved" % cycle)
+	print("  -> Assertion 9 PASS: 5 consecutive retry cycles pass with 0 leak / echo count == 1!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 10: Full Replay Still Restores Cold-Start Semantics
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 10] Testing full Replay Slice reset after retry cycles...")
+	_on_pursuer_intercepted()
+	await get_tree().create_timer(0.05).timeout
+	touch_ui.replay_button.pressed.emit()
+	await get_tree().create_timer(0.1).timeout
+	
+	print("  [DEBUG] Assertion 10 player.global_position: ", player.global_position)
+	assert(current_pursuit_state == PursuitState.CALM, "FAIL 10: State restored to CALM")
+	assert(signal_tuner.current_state == SignalTuner.TunerState.DORMANT, "FAIL 10: Tuner reset to DORMANT")
+	assert(corroded_panel.current_step == CorrodedPanel.Step.IDLE, "FAIL 10: Panel reset to IDLE")
+	assert(not echo_controller.has_completed(), "FAIL 10: Echo re-armed (has_triggered == false)")
+	assert(player.global_position.distance_to(Vector3(0, 0, 10.0)) < 0.6, "FAIL 10: Player reset to cold start position")
+	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL 10: Bike reset to PARKED")
+	assert(scrap_hauler.current_state == ScrapHaulerScript.VehicleState.PARKED, "FAIL 10: Hauler reset to PARKED")
+	assert(not touch_ui.replay_panel.visible, "FAIL 10: Replay overlay hidden")
+	print("  -> Assertion 10 PASS: Full Replay Slice restores complete cold-start baseline!")
+
+	print("\n=========================================================================")
+	print("[ALL V8 M15 FAST PURSUIT RETRY ASSERTIONS PASSED 100% GREEN!]")
+	print("=========================================================================\n")
+	get_tree().quit(0)

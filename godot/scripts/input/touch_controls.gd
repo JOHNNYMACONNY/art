@@ -17,6 +17,7 @@ signal driving_throttle_updated(throttle: float)
 signal driving_handbrake_updated(active: bool)
 signal dismount_pressed
 signal replay_pressed
+signal retry_chase_pressed
 signal safe_area_updated(resolved_canvas_rect: Rect2)
 
 enum UIMode {
@@ -54,6 +55,7 @@ var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 
 @onready var replay_panel: Control = _find_node_recursive("ReplayOverlayPanel")
 @onready var replay_button: Button = _find_node_recursive("ReplayButton")
+@onready var retry_chase_button: Button = _find_node_recursive("RetryChaseButton")
 
 var _joystick_active: bool = false
 var _joystick_touch_index: int = -1
@@ -123,6 +125,7 @@ func reset_driving_inputs() -> void:
 	_is_handbrake_pressed = false
 	_handbrake_touch_index = -1
 	_emit_net_throttle()
+	driving_steer_updated.emit(0.0)
 	driving_handbrake_updated.emit(false)
 
 func reset_all_input_states() -> void:
@@ -251,6 +254,8 @@ func _ready() -> void:
 		core_tap_button.pressed.connect(func(): core_tap_pressed.emit())
 	if replay_button:
 		replay_button.pressed.connect(func(): replay_pressed.emit())
+	if retry_chase_button:
+		retry_chase_button.pressed.connect(func(): retry_chase_pressed.emit())
 		
 	_apply_golden_slice_design_tokens()
 	set_mode(UIMode.FOOT_TRAVERSAL)
@@ -597,9 +602,11 @@ func _stop_joystick() -> void:
 	elif current_mode == UIMode.VEHICLE_DRIVING:
 		driving_steer_updated.emit(0.0)
 
-func show_replay_overlay() -> void:
+func show_replay_overlay(can_retry_chase: bool = true) -> void:
 	if replay_panel:
 		replay_panel.visible = true
+	if retry_chase_button:
+		retry_chase_button.visible = can_retry_chase
 
 func hide_replay_overlay() -> void:
 	if replay_panel:

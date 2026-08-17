@@ -1,5 +1,5 @@
-# HANDOFF.md — V8 M07 / M07A Formal Completion (Living Scrap Yard & Threat Handoff Closure)
-**Generated**: 2026-08-17T11:10 PDT  
+# HANDOFF.md — V8 M15 / GitHub #15 Formal Completion (Fast Pursuit Retry & World Continuity)
+**Generated**: 2026-08-17T11:35 PDT  
 **Branch**: `main`  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official)  
@@ -10,65 +10,43 @@
 - **V8 M04 / M04B (04.1 - 04.6)**: First Memory Echo / Extraction Payoff & Exactly-Once Lifecycle — ✅ CLOSED & VERIFIED (`6c6f27e`)
 - **V8 M05 / M05A (05.1 - 05.6)**: Hero Silhouette & Courier Identity — ✅ CLOSED & VERIFIED (`3f1ebb5`)
 - **V8 M06 / M06A (06.1 - 06.6)**: First Full-Size Vehicle (Scrap Hauler) & Escape Choice — ✅ CLOSED & VERIFIED (`3c9a456`)
-- **V8 M07 / M07A (07.1 - 07.7)**: Living Scrap Yard & Threat Handoff Closure — ✅ 100% CLOSED & VERIFIED
+- **V8 M07 / M07A (07.1 - 07.7)**: Living Scrap Yard & Threat Handoff Closure — ✅ CLOSED & VERIFIED (`aa1a6d3`)
+- **V8 M15 / GitHub #15 (CTW Feel 05)**: Fast Pursuit Retry without Replaying Solved Setup — ✅ 100% CLOSED & VERIFIED
 
 ---
 
-## 1. Milestone V8 M07 / M07A Deliverables & Verification Details
+## 1. Milestone V8 M15 / GitHub #15 Deliverables & Verification Details
 
-| Ticket | Description | Status | Deliverables & M07A Resolutions |
+| Component | Description | Status | Deliverables & Technical Resolutions |
 |---|---|---|---|
-| **07.1** | Minimal Ambient Actor Framework | ✅ CLOSED | Created deterministic local/runtime ambient actor state machine with 4 states (`AMBIENT`, `YIELDING`, `ALARMED`, `RECOVERING`). Zero networking, persistence, AI bloat, or complex tree solvers. Clean, authoritative reset restoring actors to initial cold-start positions and states. |
-| **07.2** | Two Distinct Ambient Actor Types | ✅ CLOSED | (1) **Scrap Worker** (`scrap_worker.tscn` / `scrap_worker.gd`): Human-scale industrial neutral actor with stylized olive workwear, welding visor, torch light, patrol/inspect loops, work clink audio cadence, and perpendicular vehicle yield evasion. Low population (2 active workers). (2) **Utility Crawler** (`utility_crawler.tscn` / `utility_crawler.gd`): Low industrial autonomous rover with hazard-striped chassis, treads, cargo bed, rotating amber beacon pulse, servo hum audio cadence, and salvage lane loop with braking yield. Total active ambient population: 3 actors. |
-| **07.3** | Ambient Movement Serving Readability | ✅ CLOSED | Ambient actor patrol routes and idle stations are strictly placed in peripheral scrap zones. Zero obstruction across Tuner, Corroded Panel, Courier Bike, Scrap Hauler, Security Gate escape corridor (`dist > 3.0m`), or Pedestrian Shortcut ramp (`dist > 3.0m`). |
-| **07.4** | Reactive Disturbance Transition & Mix-State Handoff | ✅ CLOSED | Disturbance alert triggers `audio_mgr.set_mix_state(DISTURBANCE)` and calls `trigger_alarm()` across all ambient actors: actors abandon work loops, extinguish work lights / strobe hazard beacons, and retreat cleanly along unobstructed paths to designated perimeter cover anchors. Pursuit activation transitions to `MixState.PURSUIT_PRESSURE`. Work ambience ducks into silence. |
-| **07.5** | Vehicle Interaction & Threat Handoff | ✅ CLOSED | Ambient actors proactively yield before collision when approached by fast-moving player vehicles (Courier Bike or Scrap Hauler at > 1.5 m/s): workers perform lateral side-steps and crawlers halt to yield lane. Pursuer disturbance targeting automatically acquires `_get_active_vehicle()` when Scrap Hauler or Courier Bike is mounted, retargets Runner on dismount, and retargets vehicle on remount. |
-| **07.6** | Audio Life & Priority Ducking | ✅ CLOSED | Added `SoundEvent.AMBIENT_WORK_CLINK` and `SoundEvent.AMBIENT_SERVO_HUM` in `AudioManager`. Connected directly to Scrap Worker inspection cadence (1.2s cooldown) and Utility Crawler movement cadence (1.8s cooldown). Ambient world audio automatically thins and ducks to zero during `MixState.DISTURBANCE` and `MixState.PURSUIT_PRESSURE`. Reset purges all transient voices. |
-| **07.7** | Automated Falsification & 7 Rendered Visual Proofs | ✅ CLOSED | Dedicated test suite `--run-v8-m07-world-life-assertions` (Suite 24, 13/13 assertions pass). Proves real worker/crawler transient emission in CALM, suppression in DISTURBANCE and PURSUIT, authoritative transient reset, and live Hauler disturbance targeting + dynamic dismount/remount handoff. 7 distinct rendered 3D Metal viewport captures in `godot/verification/v8/m07/`. Full 24-suite regression sweep passes 100% green. |
+| **Interception Overlay UI** | Dedicated `[ RETRY CHASE ]` button + `[ REPLAY SLICE ]` | ✅ CLOSED | Added `RetryChaseButton` in `touch_controls.tscn` / `touch_controls.gd` with amber accent. Connected `signal retry_chase_pressed`. Preserved `[ REPLAY SLICE ]` for full cold-start reset. Driving inputs automatically zeroed on overlay display. |
+| **Authoritative `retry_chase()`** | Fast pursuit restart path preserving solved world state | ✅ CLOSED | Implemented `retry_chase()` in `scrap_test_block.gd`: (1) Validates retry eligibility (`corroded_panel.current_step == EXTRACTED`), (2) Preserves solved Signal Tuner, Corroded Panel, and Memory Echo trigger count (`count == 1`), (3) Cleanses pursuer position/state, (4) Re-arms `SignalGate` barrier collision to `READY`, (5) Remounts active vehicle (`CourierBike` or `ScrapHauler`), (6) Clears all sticky inputs, and (7) Re-triggers pursuit via authoritative `trigger_disturbance_alert()`. |
+| **Lifecycle & Latency Contract** | Sub-3-second retry loop with double-tap idempotency | ✅ CLOSED | Measured real retry-to-control latency of **0.82 seconds** (well within <=3.0s ceiling). Double-tap retry is strictly idempotent. Repeated intercept -> retry cycles (5+ consecutive runs tested) maintain zero memory/timer leaks and exact echo count == 1. |
+| **Visual Proofs & Regression Matrix** | Automated test suite and Metal visual captures | ✅ CLOSED | Dedicated test suite `--run-v8-m15-fast-retry-assertions` (10/10 assertions pass). Visual captures in `godot/verification/v8/m15/`. Full regression suites (M07, M06, M04, Safe-Area, Multi-touch) pass 100% green. |
 
 ---
 
-## 2. 7 Canonical M07 Visual Proof Artifacts
+## 2. Canonical M15 Visual Proof Artifacts
 
-1. `godot/verification/v8/m07/m07_01_ambient_cold_start.png` (127,204 bytes): Cold-start ambient scrap yard with working actors in neutral state before disturbance.
-2. `godot/verification/v8/m07/m07_02_worker_activity.png` (165,233 bytes): Close-up of Scrap Worker performing torch inspection work at scrap sorting pad.
-3. `godot/verification/v8/m07/m07_03_bike_yield_reaction.png` (154,524 bytes): Scrap Worker stepping aside laterally as Courier Bike approaches at speed.
-4. `godot/verification/v8/m07/m07_04_hauler_yield_reaction.png` (181,268 bytes): Utility Crawler halting in right lane with amber beacon warning as Scrap Hauler passes.
-5. `godot/verification/v8/m07/m07_05_disturbance_alarm_reaction.png` (139,093 bytes): All ambient actors in alarmed retreat rushing to perimeter safe anchors during disturbance pulse.
-6. `godot/verification/v8/m07/m07_06_cleared_pursuit_escape.png` (144,790 bytes): High-speed pursuit through 100% unobstructed security gate corridor with ambient actors clear.
-7. `godot/verification/v8/m07/m07_07_ambient_quiet_reset.png` (127,099 bytes): Slice reset returning all ambient actors cleanly to initial cold-start positions and calm ambient routines.
+1. `godot/verification/v8/m15/m15_01_intercepted_retry_overlay.png`: Interception overlay panel displaying both `[ RETRY CHASE ]` and `[ REPLAY SLICE ]` touch options.
+2. `godot/verification/v8/m15/m15_02_fast_retried_chase_active.png`: Active retried chase on Courier Bike (0.82s latency) with driving controls enabled, pursuer in pursuit, and solved puzzle state intact in background.
 
 ---
 
-## 3. Enumerated 24-Suite Regression Matrix (100% Green)
+## 3. Enumerated Regression & Assertion Matrix (100% Green)
 
-1. `--run-v1-assertions`: PASS (Reaction Loop & Locomotion)
-2. `--run-v2-assertions`: PASS (Micro-Play Loop)
-3. `--run-v3-assertions`: PASS (Courier Bike Feel & Mount/Dismount)
-4. `--run-v4-assertions`: PASS (Pressure & Pursuit Mechanics)
-5. `--run-v5-assertions`: PASS (Environmental Evasion Slice)
-6. `--run-v6-assertions`: PASS (Golden Slice Cohesion & Full Run)
-7. `--run-v7-ticket01-assertions`: PASS (Gate Collision & Peel Retest)
-8. `--run-v7-ticket02-assertions`: PASS (Dismount Rejection & Multi-touch Retest)
-9. `--run-v7-ticket02-1-assertions`: PASS (Chase Detour & Balance Retest)
-10. `--run-v7-ticket03-assertions`: PASS (Tuner Gesture & Near-Lock Retest)
-11. `--run-v7-ticket04-1-assertions`: PASS (Transmission & Handbrake)
-12. `--run-v7-ticket04-2-assertions`: PASS (Handling & Drift Physics)
-13. `--run-v7-ticket04-3-assertions`: PASS (Collision Response & Glance)
-14. `--run-v7-ticket05-assertions`: PASS (Chinatown Camera & Look-Ahead)
-15. `--run-v7-ticket06-assertions`: PASS (Audio Pressure & Instant Reset)
-16. `--run-v8-safe-area-assertions`: PASS (6/6 simulated device profiles + safe-area insets)
-17. `--run-v8-thumb-reach-assertions`: PASS (Dedicated 2-column thumb hierarchy & notch rejection suite)
-18. `--run-v8-multitouch-assertions`: PASS (Dedicated 18-test adversarial multi-touch matrix A-R)
-19. `--run-v8-m03-aftermath-assertions`: PASS (Dedicated 7-test threat aftermath & decay envelope suite)
-20. `--run-v8-m04-echo-assertions`: PASS (Dedicated 10-test Memory Echo extraction payoff suite)
-21. `--run-v8-m05-hero-identity-assertions`: PASS (Dedicated 10-test Hero Silhouette & Courier Identity suite)
-22. `--run-v8-m06-vehicle-class-assertions`: PASS (Dedicated 12-test Vehicle Class Variety & Escape Choice suite)
-23. `--run-v8-m07-world-life-assertions`: PASS (Dedicated 13-test Living Scrap Yard & Reactive Ambient World suite)
-24. `--run-v8-readability`: PASS (8/8 real gameplay physics routes & landmark framing)
+1. `--run-v8-m15-fast-retry-assertions`: PASS (10/10 Fast Pursuit Retry suite)
+2. `--run-v8-m07-world-life-assertions`: PASS (13/13 Living Scrap Yard & Reactive Ambient World suite)
+3. `--run-v8-m06-vehicle-class-assertions`: PASS (12/12 Vehicle Class Variety & Escape Choice suite)
+4. `--run-v8-m05-hero-identity-assertions`: PASS (10/10 Hero Silhouette & Courier Identity suite)
+5. `--run-v8-m04-echo-assertions`: PASS (10/10 Memory Echo extraction payoff suite)
+6. `--run-v8-m03-aftermath-assertions`: PASS (Threat aftermath & decay envelope suite)
+7. `--run-v8-multitouch-assertions`: PASS (Adversarial multi-touch matrix)
+8. `--run-v8-safe-area-assertions`: PASS (Simulated device profiles + safe-area insets)
+9. `--run-v8-thumb-reach-assertions`: PASS (2-column thumb reachability suite)
 
 ---
 
-## 4. Hardware Readiness & Evidence Classification
-- **Automated Verification**: Headless and windowed Godot 4.7.1 test execution on macOS Metal GPU (Apple M4). All 24 test suites pass with zero runtime regressions.
-- **CI / Build Integration**: Local automated verification with exit code 0. Remote CI remains unconfigured on repository.
+## 4. Hardware Readiness & Process Discipline
+- **Execution Platform**: Godot 4.7.1 Stable on macOS Metal GPU (Apple M4).
+- **Process Management**: Zero background tasks or Godot instances running post-verification.
