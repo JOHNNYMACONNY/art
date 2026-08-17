@@ -27,7 +27,8 @@ enum PursuitState {
 	PURSUIT_ACTIVE,
 	CONTACT_BROKEN,
 	EVADED,
-	INTERCEPTED
+	INTERCEPTED,
+	RETRY_READY
 }
 
 @onready var player: PlayerRunner = $Runner
@@ -387,7 +388,7 @@ func _on_successful_evasion() -> void:
 		signal_gate.set_pursuit_active(false)
 	if touch_ui:
 		touch_ui.hide_tension_hud()
-		touch_ui.show_replay_overlay(true)
+		touch_ui.show_replay_overlay(false)
 		
 	if pursuer:
 		pursuer.start_de_escalation()
@@ -417,12 +418,13 @@ func _on_signal_gate_triggered() -> void:
 		pursuer.set_detour_path(waypoints)
 
 func _on_pursuer_intercepted() -> void:
-	if current_pursuit_state == PursuitState.INTERCEPTED:
+	if current_pursuit_state == PursuitState.INTERCEPTED or current_pursuit_state == PursuitState.RETRY_READY:
 		return
 		
 	current_pursuit_state = PursuitState.INTERCEPTED
 	print("[PURSUIT] TARGET INTERCEPTED! Resetting to recovery marker...")
 	
+	_last_pursuit_vehicle = _get_active_vehicle() if _get_active_vehicle() else _last_pursuit_vehicle
 	_steer_input = 0.0
 	_throttle_input = 0.0
 	_handbrake_input = false
@@ -449,18 +451,21 @@ func _on_pursuer_intercepted() -> void:
 			scrap_hauler.global_position = _recovery_marker + Vector3(3.0, 0, 0)
 			scrap_hauler.rotation = Vector3.ZERO
 			
-		current_pursuit_state = PursuitState.CALM
+		current_pursuit_state = PursuitState.RETRY_READY
+		print("[PURSUIT] Recovery complete. Transitioned to RETRY_READY.")
 	)
 
 func retry_chase() -> void:
-	if _is_retrying_chase:
+	if current_pursuit_state != PursuitState.RETRY_READY:
+		print("[PURSUIT_RETRY] Rejected retry_chase: not in RETRY_READY state (current: %s) -> zero mutation" % PursuitState.keys()[current_pursuit_state])
 		return
 		
 	if not corroded_panel or corroded_panel.current_step != CorrodedPanel.Step.EXTRACTED:
-		reset_slice()
+		print("[PURSUIT_RETRY] Rejected retry_chase: CorrodedPanel not EXTRACTED -> zero mutation")
 		return
 		
-	_is_retrying_chase = true
+	# Immediately transition out of RETRY_READY to consume retry authority so rapid double taps produce one logical restart
+	current_pursuit_state = PursuitState.DISTURBANCE_ALERT
 	print("[PURSUIT_RETRY] Fast pursuit retry initiated! Preserving solved Tuner/Panel/Echo...")
 	
 	_steer_input = 0.0
@@ -478,7 +483,6 @@ func retry_chase() -> void:
 		audio_mgr.reset_audio_instant()
 		
 	_end_pursuit_common()
-	current_pursuit_state = PursuitState.CALM
 	_contact_broken_timer = 0.0
 	
 	if pursuer:
@@ -535,8 +539,25 @@ func retry_chase() -> void:
 		touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
 		touch_ui.set_route_switch_button_visible(false)
 		
-	trigger_disturbance_alert()
-	_is_retrying_chase = false
+	if audio_mgr:
+		audio_mgr.set_mix_state(AudioManagerScript.MixState.DISTURBANCE)
+		
+	for actor in ambient_actors:
+		if is_instance_valid(actor) and actor.has_method("trigger_alarm"):
+			actor.trigger_alarm()
+			
+	get_tree().create_timer(0.75).timeout.connect(func():
+		if current_pursuit_state == PursuitState.DISTURBANCE_ALERT:
+			current_pursuit_state = PursuitState.PURSUIT_ACTIVE
+			if audio_mgr:
+				audio_mgr.set_mix_state(AudioManagerScript.MixState.PURSUIT_PRESSURE)
+			if pursuer:
+				var target: Node3D = _get_active_vehicle() if _get_active_vehicle() else player
+				pursuer.activate_pursuit(target)
+				if signal_gate:
+					signal_gate.set_pursuit_active(true)
+				print("[PURSUIT] Pursuer active! Chasing target...")
+	)
 	print("[PURSUIT_RETRY] Fast pursuit retry ready! Disturbance alert re-triggered.")
 
 func _evaluate_target_selection() -> void:
@@ -1131,7 +1152,7 @@ func _run_v4_assertions() -> void:
 	assert(not player.is_input_locked, "FAIL: Player input must unlock after interception")
 	assert(touch_ui.current_mode == TouchControlsUI.UIMode.FOOT_TRAVERSAL, "FAIL: Touch UI must reset to FOOT_TRAVERSAL")
 	assert(camera.target_node == player, "FAIL: Camera target must reset to player")
-	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit state must reset to CALM")
+	assert(current_pursuit_state == PursuitState.RETRY_READY or current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit state must reach RETRY_READY/CALM after recovery")
 	
 	print("[V4_ASSERTIONS] PASSED! ALL V4 PRESSURE & PURSUIT SLICE ASSERTIONS GREEN.")
 	get_tree().quit()
@@ -6474,59 +6495,92 @@ func _run_v8_m15_fast_retry_assertions() -> void:
 	await get_tree().process_frame
 	
 	# -------------------------------------------------------------------------
-	# ASSERTION 1: Retry Outside Retry-Ready State (Cold Start Rejection)
+	# ASSERTION 1: Strict Zero-Mutation Contract on Invalid Retry Attempts
 	# -------------------------------------------------------------------------
-	print("[ASSERTION 1] Testing retry_chase() at cold start (fallback to clean slice reset)...")
+	print("[ASSERTION 1] Testing retry_chase() zero-mutation contract across CALM, PURSUIT_ACTIVE, EVADED, and INTERCEPTED...")
 	reset_slice()
-	await get_tree().create_timer(0.05).timeout
+	await get_tree().create_timer(0.5).timeout
 	assert(current_pursuit_state == PursuitState.CALM, "FAIL 1: Initial pursuit state CALM")
+	
+	# 1A: Invalid retry from CALM / Cold Start
+	var snap_pos_1a: Vector3 = player.global_position
+	var snap_state_1a: PursuitState = current_pursuit_state
+	var snap_tuner_1a: int = signal_tuner.current_state
+	var snap_panel_1a: int = corroded_panel.current_step
+	var snap_echo_1a: int = echo_controller.get_trigger_count() if echo_controller else 0
+	var snap_pursuer_1a: bool = pursuer.is_active if pursuer else false
+	var snap_audio_1a: int = int(audio_mgr.current_mix_state) if audio_mgr else 0
 	retry_chase()
 	await get_tree().create_timer(0.05).timeout
-	assert(not pursuer.is_active, "FAIL 1: Pursuer remains inactive on unearned retry")
-	assert(signal_tuner.current_state == SignalTuner.TunerState.DORMANT, "FAIL 1: Tuner remains DORMANT")
-	print("  -> Assertion 1 PASS: Cold start retry cleanly rejected/safe!")
+	assert(player.global_position.distance_to(snap_pos_1a) < 0.05, "FAIL 1A: Player position unchanged")
+	assert(current_pursuit_state == snap_state_1a, "FAIL 1A: State remains CALM")
+	assert(signal_tuner.current_state == snap_tuner_1a, "FAIL 1A: Tuner remains DORMANT")
+	assert(corroded_panel.current_step == snap_panel_1a, "FAIL 1A: Panel remains IDLE")
+	assert((echo_controller.get_trigger_count() if echo_controller else 0) == snap_echo_1a, "FAIL 1A: Echo count unchanged")
+	assert((pursuer.is_active if pursuer else false) == snap_pursuer_1a, "FAIL 1A: Pursuer remains inactive")
+	assert(int(audio_mgr.current_mix_state) == snap_audio_1a, "FAIL 1A: Audio mix unchanged")
+	print("  -> 1A PASS: Cold start retry rejected with zero mutation")
 
-	# -------------------------------------------------------------------------
-	# ASSERTION 2 & 3: Solved Content & Echo Preservation Across Fast Pursuit Retry
-	# -------------------------------------------------------------------------
-	print("[ASSERTION 2 & 3] Solving Tuner -> Panel -> Extracting Core -> Echo Trigger -> Interception...")
-	reset_slice()
-	await get_tree().create_timer(0.05).timeout
-	
-	# 1. Solve Tuner
+	# 1B: Solve Slice to PURSUIT_ACTIVE -> test invalid retry while pursuit is running
 	signal_tuner._lock_signal()
-	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED, "FAIL 2: Tuner solved")
-	
-	# 2. Unlock Panel & Peel
 	corroded_panel.current_step = CorrodedPanel.Step.EXPOSED
-	
-	# 3. Extract Core & Trigger Echo
 	_on_core_tap_pressed()
 	await echo_controller.echo_completed
-	assert(corroded_panel.current_step == CorrodedPanel.Step.EXTRACTED, "FAIL 2: Core extracted")
-	assert(echo_controller.has_completed(), "FAIL 2: Memory Echo triggered")
-	assert(echo_controller.get_trigger_count() == 1, "FAIL 2: Echo lifetime count == 1")
-	
-	# 4. Mount Courier Bike & Verify Disturbance Active
 	player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
 	courier_bike.mount_interactable.update_player_distance(player.global_position)
 	courier_bike.request_mount(player)
 	await get_tree().create_timer(0.85).timeout
-	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL 2: Bike mounted")
-	assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL 2: Pursuit active")
+	assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL 1B: Pursuit active")
 	
-	# 5. Simulate Interception
+	var snap_pursuit_state_1b: PursuitState = current_pursuit_state
+	var snap_target_1b: Node3D = pursuer.target_node if pursuer else null
+	var snap_veh_state_1b: int = courier_bike.current_state if courier_bike else 0
+	retry_chase()
+	await get_tree().create_timer(0.05).timeout
+	assert(current_pursuit_state == snap_pursuit_state_1b, "FAIL 1B: Pursuit remains PURSUIT_ACTIVE")
+	assert(pursuer.target_node == snap_target_1b, "FAIL 1B: Pursuer target unchanged")
+	assert(courier_bike.current_state == snap_veh_state_1b, "FAIL 1B: Bike driving unchanged")
+	print("  -> 1B PASS: Active pursuit retry rejected with zero mutation")
+
+	# 1C: Successful Evasion -> verify [ RETRY CHASE ] is HIDDEN and retry_chase() is rejected
+	_on_successful_evasion()
+	assert(current_pursuit_state == PursuitState.EVADED, "FAIL 1C: State is EVADED")
+	assert(touch_ui.replay_panel.visible, "FAIL 1C: Replay overlay visible on evasion")
+	assert(not touch_ui.retry_chase_button.visible, "FAIL 1C: RETRY CHASE button must be HIDDEN on successful evasion")
+	retry_chase()
+	await get_tree().create_timer(0.05).timeout
+	assert(current_pursuit_state == PursuitState.EVADED, "FAIL 1C: State remains EVADED with zero mutation")
+	print("  -> 1C PASS: Evasion exposes Replay only and rejects retry with zero mutation")
+
+	# 1D: Interception in-flight (INTERCEPTED before 0.8s recovery timeout) -> test rejection
+	current_pursuit_state = PursuitState.CALM
+	trigger_disturbance_alert()
+	await get_tree().create_timer(0.85).timeout
 	_on_pursuer_intercepted()
-	await get_tree().create_timer(0.1).timeout
-	assert(current_pursuit_state == PursuitState.INTERCEPTED, "FAIL 2: Intercepted state")
+	await get_tree().create_timer(0.05).timeout
+	assert(current_pursuit_state == PursuitState.INTERCEPTED, "FAIL 1D: State is INTERCEPTED")
+	retry_chase()
+	await get_tree().create_timer(0.05).timeout
+	assert(current_pursuit_state == PursuitState.INTERCEPTED, "FAIL 1D: Retry rejected while recovery is in-flight")
+	print("  -> 1D PASS: In-flight interception retry rejected with zero mutation")
+	print("  -> Assertion 1 PASS: Complete zero-mutation contract proven across all invalid states!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 2 & 3: Solved Content & Echo Preservation Across Fast Pursuit Retry
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 2 & 3] Waiting for recovery to RETRY_READY -> Fast Retry -> Latency & Content Preservation...")
+	# Await recovery callback (0.8s timeout from _on_pursuer_intercepted)
+	await get_tree().create_timer(0.85).timeout
+	assert(current_pursuit_state == PursuitState.RETRY_READY, "FAIL 2: Interception recovered to RETRY_READY")
 	assert(touch_ui.replay_panel.visible, "FAIL 2: Replay overlay visible with RETRY CHASE option")
+	assert(touch_ui.retry_chase_button.visible, "FAIL 2: RETRY CHASE button is visible in RETRY_READY")
 	
 	# Capture Proof 1: Intercepted retry overlay
 	await get_tree().process_frame
 	_save_m15_proof_png("res://verification/v8/m15/m15_01_intercepted_retry_overlay.png")
 	print("  Saved: godot/verification/v8/m15/m15_01_intercepted_retry_overlay.png")
 	
-	# 6. Execute Fast Pursuit Retry & Measure Latency
+	# Execute Fast Pursuit Retry & Measure Latency
 	var retry_t0: float = Time.get_ticks_msec() / 1000.0
 	touch_ui.retry_chase_button.pressed.emit()
 	
@@ -6552,27 +6606,37 @@ func _run_v8_m15_fast_retry_assertions() -> void:
 	print("  Saved: godot/verification/v8/m15/m15_02_fast_retried_chase_active.png")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 4: Double-Tap Retry Idempotency
+	# ASSERTION 4: Double-Tap Retry Authority Consumption & Exact Single Onset
 	# -------------------------------------------------------------------------
-	print("[ASSERTION 4] Testing double-tap Retry idempotency...")
+	print("\n[ASSERTION 4] Testing double-tap Retry authority consumption & exact single onset...")
 	_on_pursuer_intercepted()
-	await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.85).timeout
+	assert(current_pursuit_state == PursuitState.RETRY_READY, "FAIL 4: Reached RETRY_READY")
+	
+	audio_mgr.reset_event_counts()
+	assert(audio_mgr.get_event_count(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT) == 0, "FAIL 4: Disturbance count reset to 0")
+	
+	# Rapid double-tap
 	touch_ui.retry_chase_button.pressed.emit()
-	touch_ui.retry_chase_button.pressed.emit()
+	assert(current_pursuit_state == PursuitState.DISTURBANCE_ALERT, "FAIL 4: Tap 1 immediately consumed RETRY_READY authority")
+	touch_ui.retry_chase_button.pressed.emit() # Tap 2 should be rejected from DISTURBANCE_ALERT
+	
 	await get_tree().create_timer(0.85).timeout
 	assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL 4: Single active pursuit established")
+	assert(audio_mgr.get_event_count(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT) == 1, "FAIL 4: Exactly one DISTURBANCE_ALERT onset emitted across double-tap")
 	assert(echo_controller.get_trigger_count() == 1, "FAIL 4: Lifetime echo count strictly 1")
-	print("  -> Assertion 4 PASS: Double-tap retry is strictly idempotent!")
+	print("  -> Assertion 4 PASS: First tap immediately consumed authority, exactly 1 onset, double tap is strictly idempotent!")
 
 	# -------------------------------------------------------------------------
 	# ASSERTION 5: Sticky Input Clearance Across Interception & Retry
 	# -------------------------------------------------------------------------
-	print("[ASSERTION 5] Testing sticky driving inputs cleared on retry...")
+	print("\n[ASSERTION 5] Testing sticky driving inputs cleared on retry...")
 	_steer_input = 1.0
 	_throttle_input = 1.0
 	_handbrake_input = true
 	_on_pursuer_intercepted()
-	await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.85).timeout
+	assert(current_pursuit_state == PursuitState.RETRY_READY, "FAIL 5: Reached RETRY_READY")
 	touch_ui.retry_chase_button.pressed.emit()
 	await get_tree().create_timer(0.1).timeout
 	assert(_steer_input == 0.0, "FAIL 5: Steer input reset")
@@ -6584,14 +6648,15 @@ func _run_v8_m15_fast_retry_assertions() -> void:
 	# -------------------------------------------------------------------------
 	# ASSERTION 6: Signal Gate Reset & Re-arm on Retry
 	# -------------------------------------------------------------------------
-	print("[ASSERTION 6] Testing Signal Gate reset and re-arm on retry...")
+	print("\n[ASSERTION 6] Testing Signal Gate reset and re-arm on retry...")
 	signal_gate.begin_interaction(courier_bike.global_position)
 	await get_tree().create_timer(0.8).timeout
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL 6: Gate was triggered")
 	assert(not signal_gate.barrier_collision.disabled, "FAIL 6: Barrier collision was active")
 	
 	_on_pursuer_intercepted()
-	await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.85).timeout
+	assert(current_pursuit_state == PursuitState.RETRY_READY, "FAIL 6: Reached RETRY_READY")
 	touch_ui.retry_chase_button.pressed.emit()
 	await get_tree().create_timer(0.1).timeout
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.READY, "FAIL 6: Gate restored to READY")
@@ -6607,9 +6672,10 @@ func _run_v8_m15_fast_retry_assertions() -> void:
 	# -------------------------------------------------------------------------
 	# ASSERTION 7: Audio Mix-State & Transient Cleanup on Retry
 	# -------------------------------------------------------------------------
-	print("[ASSERTION 7] Testing audio mix-state and active transient cleanup...")
+	print("\n[ASSERTION 7] Testing audio mix-state and active transient cleanup...")
 	_on_pursuer_intercepted()
-	await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.85).timeout
+	assert(current_pursuit_state == PursuitState.RETRY_READY, "FAIL 7: Reached RETRY_READY")
 	touch_ui.retry_chase_button.pressed.emit()
 	assert(audio_mgr.current_mix_state == AudioManagerScript.MixState.DISTURBANCE, "FAIL 7: Mix state enters DISTURBANCE on retry")
 	await get_tree().create_timer(0.85).timeout
@@ -6619,7 +6685,7 @@ func _run_v8_m15_fast_retry_assertions() -> void:
 	# -------------------------------------------------------------------------
 	# ASSERTION 8: Vehicle Class Parity (Scrap Hauler Path Retry)
 	# -------------------------------------------------------------------------
-	print("[ASSERTION 8] Testing Scrap Hauler path retry parity...")
+	print("\n[ASSERTION 8] Testing Scrap Hauler path retry parity...")
 	courier_bike.force_dismount()
 	player.global_position = scrap_hauler.global_position + Vector3(0, 0, 0.5)
 	scrap_hauler.mount_interactable.update_player_distance(player.global_position)
@@ -6633,7 +6699,8 @@ func _run_v8_m15_fast_retry_assertions() -> void:
 	assert(pursuer.target_node == scrap_hauler, "FAIL 8: Pursuer targets Scrap Hauler")
 	
 	_on_pursuer_intercepted()
-	await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.85).timeout
+	assert(current_pursuit_state == PursuitState.RETRY_READY, "FAIL 8: Reached RETRY_READY")
 	touch_ui.retry_chase_button.pressed.emit()
 	await get_tree().create_timer(0.85).timeout
 	assert(scrap_hauler.current_state == ScrapHaulerScript.VehicleState.DRIVING, "FAIL 8: Player remounted on Scrap Hauler")
@@ -6644,10 +6711,11 @@ func _run_v8_m15_fast_retry_assertions() -> void:
 	# -------------------------------------------------------------------------
 	# ASSERTION 9: Repeated Intercept -> Retry Cycles (5 Consecutive Cycles)
 	# -------------------------------------------------------------------------
-	print("[ASSERTION 9] Testing 5 consecutive intercept -> retry cycles...")
+	print("\n[ASSERTION 9] Testing 5 consecutive intercept -> retry cycles...")
 	for cycle in range(5):
 		_on_pursuer_intercepted()
-		await get_tree().create_timer(0.05).timeout
+		await get_tree().create_timer(0.85).timeout
+		assert(current_pursuit_state == PursuitState.RETRY_READY, "FAIL 9: Cycle %d reached RETRY_READY" % cycle)
 		touch_ui.retry_chase_button.pressed.emit()
 		await get_tree().create_timer(0.85).timeout
 		assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL 9: Cycle %d pursuit active" % cycle)
@@ -6658,9 +6726,10 @@ func _run_v8_m15_fast_retry_assertions() -> void:
 	# -------------------------------------------------------------------------
 	# ASSERTION 10: Full Replay Still Restores Cold-Start Semantics
 	# -------------------------------------------------------------------------
-	print("[ASSERTION 10] Testing full Replay Slice reset after retry cycles...")
+	print("\n[ASSERTION 10] Testing full Replay Slice reset after retry cycles...")
 	_on_pursuer_intercepted()
-	await get_tree().create_timer(0.05).timeout
+	await get_tree().create_timer(0.85).timeout
+	assert(current_pursuit_state == PursuitState.RETRY_READY, "FAIL 10: Reached RETRY_READY")
 	touch_ui.replay_button.pressed.emit()
 	await get_tree().create_timer(0.1).timeout
 	
