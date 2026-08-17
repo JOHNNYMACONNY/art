@@ -1,6 +1,7 @@
 # HANDOFF.md — V8 M02 Mobile Safe-Area, Touch Ergonomics & Multi-Touch Falsification
-**Generated**: 2026-08-16T20:18 PDT  
+**Generated**: 2026-08-16T20:25 PDT  
 **Branch**: `main`  
+**HEAD**: `90b679a8932313a78e4c73e6da3711d3d121e3d3`  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official)  
 **Current Milestone**: V8 M02 — Mobile Safe-Area, Touch Ergonomics & Device Readiness  
