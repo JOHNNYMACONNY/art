@@ -5203,14 +5203,21 @@ func _run_v8_m05_hero_identity_assertions() -> void:
 		pursuer.activate_pursuit(player)
 		assert(pursuer.target_node == player, "FAIL A7: Pursuer target must be player on foot")
 		
-		# Mount bike -> target switches to courier_bike
+		# Mount bike -> target automatically switches to courier_bike via _on_bike_mounted signal
 		player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
 		courier_bike.mount_interactable.update_player_distance(player.global_position)
 		var mount_ok7: bool = courier_bike.request_mount(player)
 		assert(mount_ok7, "FAIL A7: Mount must succeed")
 		await get_tree().create_timer(0.3).timeout
-		pursuer.activate_pursuit(courier_bike)
-		assert(pursuer.target_node == courier_bike, "FAIL A7: Pursuer target must switch to courier_bike when mounted")
+		await get_tree().process_frame
+		assert(pursuer.target_node == courier_bike, "FAIL A7: Pursuer target must automatically switch to courier_bike upon mounted signal")
+		
+		# Dismount -> target automatically switches back to player via _on_bike_dismounted signal
+		var dismount_ok7: bool = courier_bike.request_dismount()
+		assert(dismount_ok7, "FAIL A7: Dismount must succeed at stationary speed")
+		await get_tree().create_timer(0.25).timeout
+		await get_tree().process_frame
+		assert(pursuer.target_node == player, "FAIL A7: Pursuer target must automatically switch back to player upon dismounted signal")
 	print("  -> Assertion 7 PASS: Pursuit target switching between runner and bike verified")
 
 	# ─────────────────────────────────────────────────────────────────────────
@@ -5309,12 +5316,28 @@ func _run_v8_m05_hero_identity_assertions() -> void:
 	_save_m05_proof_png("res://verification/v8/m05/m05_06_pursuit_chase.png")
 	print("  -> Visual proof saved: m05_06_pursuit_chase.png")
 
-	# Evasion & Dismount into Aftermath
+	# Evasion & Safe Dismount into Aftermath
 	_on_successful_evasion()
-	courier_bike.request_dismount()
+	
+	# Decelerate bike through braking friction until speed is <= dismount_speed_limit
+	while abs(courier_bike.current_speed) > courier_bike.dismount_speed_limit:
+		courier_bike.current_speed = move_toward(courier_bike.current_speed, 0.0, courier_bike.braking_friction * (1.0 / 60.0))
+		courier_bike._physics_process(1.0 / 60.0)
+		await get_tree().process_frame
+		
+	var dismount_ok10: bool = courier_bike.request_dismount()
+	assert(dismount_ok10, "FAIL A10: request_dismount must succeed when decelerated below dismount limit")
 	await get_tree().create_timer(0.3).timeout
 	for _i in range(6):
 		await get_tree().process_frame
+
+	# Verify genuine dismounted aftermath state before capturing proof
+	assert(courier_bike.occupant == null, "FAIL A10: courier_bike occupant must be null after dismount")
+	assert(not player.is_mounted, "FAIL A10: player.is_mounted must be false after dismount")
+	assert(player.visible, "FAIL A10: player must be visible in aftermath")
+	if player.torso_node:
+		assert(is_equal_approx(player.torso_node.position.y, 1.15), "FAIL A10: player standing posture must be restored")
+	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL A10: bike must be in PARKED state in aftermath")
 
 	# Proof 7: Aftermath / Dismounted
 	_save_m05_proof_png("res://verification/v8/m05/m05_07_aftermath_dismounted.png")

@@ -1,5 +1,5 @@
-# HANDOFF.md — V8 M05 Formal Completion (05.1 - 05.6 Hero Silhouette & Courier Identity)
-**Generated**: 2026-08-17T01:36 PDT  
+# HANDOFF.md — V8 M05 / M05A Formal Completion (05.1 - 05.6 Hero Silhouette & Courier Identity)
+**Generated**: 2026-08-17T01:42 PDT  
 **Branch**: `main`  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official)  
@@ -8,11 +8,11 @@
 - **V8 M02 (02.1 - 02.4)**: Mobile Safe-Area, Touch Ergonomics & Adversarial Multi-Touch — ✅ CLOSED & VERIFIED (`30f20aa`)
 - **V8 M03 (03.1 - 03.4 + 03.2B)**: Threat Aftermath & World Continuity — ✅ CLOSED & VERIFIED (`a077e2a`)
 - **V8 M04 / M04B (04.1 - 04.6)**: First Memory Echo / Extraction Payoff & Exactly-Once Lifecycle — ✅ CLOSED & VERIFIED (`6c6f27e`)
-- **V8 M05 (05.1 - 05.6)**: Hero Silhouette & Courier Identity — ✅ 100% COMPLETE & VERIFIED
+- **V8 M05 / M05A (05.1 - 05.6)**: Hero Silhouette & Courier Identity — ✅ 100% COMPLETE & VERIFIED
 
 ---
 
-## 1. Milestone V8 M05 Deliverables & Architecture
+## 1. Milestone V8 M05 / M05A Deliverables & Architecture
 
 | Ticket | Description | Status | Deliverables |
 |---|---|---|---|
@@ -21,19 +21,19 @@
 | **05.3** | Mount / Rider Composition | ✅ COMPLETE | Mounted state transitions seamlessly into dynamic riding posture: seated on bike saddle, forward crouch, hands reaching forward to grips, legs straddling frame (`set_mounted_posture(true)`). Runner remains 100% visible and tracks `RiderSocket` continuously via `to_global(rider_socket.position)`. Dismount restores upright standing posture (`set_mounted_posture(false)`) and safe-position clearance. |
 | **05.4** | Direction & Motion Readability | ✅ COMPLETE | On foot: procedural running stride swing (arms, legs, torso vertical bob) and crisp 8-way directional mesh snapping. On bike: dynamic arcade banking lean into turns (`VisualRoot.rotation.z` tilts up to 12 degrees proportional to speed and steering input). Headlight and front fork define vehicle facing instantly. |
 | **05.5** | Semantic Color Hierarchy Protection | ✅ COMPLETE | Preserved core semantic color language: **Cyan** = player / signal-tech / visor / battery core; **Orange/Amber** = functional / interactable / courier panels / headlight; **Red** = danger / pursuer / alert; **Muted Slate/Grime** = frame, tires, cargo pants, scrap yard environment. |
-| **05.6** | Runtime Falsification & 7 Rendered Visual Proofs | ✅ COMPLETE | Created dedicated automated test suite `--run-v8-m05-hero-identity-assertions` (10/10 assertions pass). 7 distinct rendered 3D Metal viewport captures in `godot/verification/v8/m05/` covering all gameplay states. |
+| **05.6 / M05A** | Runtime Falsification & 7 Rendered Visual Proofs | ✅ COMPLETE | Fixed both M05A closure blockers: (1) Assertion 7 verifies automatic signal-driven pursuit retargeting between Runner and CourierBike across mount and dismount without direct `activate_pursuit()` overrides; (2) Assertion 10 decelerates the bike via braking friction until speed is <= 1.5 m/s, verifies `request_dismount()` returns true, asserts `occupant == null`, standing posture restored, and bike in `PARKED` state before capturing `m05_07_aftermath_dismounted.png`. 7 distinct rendered 3D Metal viewport captures in `godot/verification/v8/m05/`. |
 
 ---
 
 ## 2. 7 Canonical Hero & Vehicle Visual Proof Artifacts
 
-1. `godot/verification/v8/m05/m05_01_runner_idle.png` (122,698 bytes, SHA `6f618c74...`): Runner Idle / Exploration with glowing cyan visor & courier satchel.
-2. `godot/verification/v8/m05/m05_02_runner_extraction.png` (157,104 bytes, SHA `b2e3f99b...`): Runner interaction at Corroded Panel during Core Extraction.
-3. `godot/verification/v8/m05/m05_03_bike_parked_mount.png` (164,310 bytes, SHA `f9be8a2e...`): Courier Bike parked with wheels, orange cowl, headlight, and battery core.
-4. `godot/verification/v8/m05/m05_04_bike_driving.png` (197,060 bytes, SHA `f56d296f...`): Runner mounted in riding posture driving Courier Bike down straight.
-5. `godot/verification/v8/m05/m05_05_bike_drift_turn.png` (197,195 bytes, SHA `81dbd7fe...`): Dynamic banking lean and drift turn at high speed.
-6. `godot/verification/v8/m05/m05_06_pursuit_chase.png` (203,483 bytes, SHA `16b14871...`): High-intensity pursuit chase through security gate.
-7. `godot/verification/v8/m05/m05_07_aftermath_dismounted.png` (198,796 bytes, SHA `2d6575a6...`): Quiet aftermath with dismounted runner and parked bike.
+1. `godot/verification/v8/m05/m05_01_runner_idle.png` (122,698 bytes, SHA `8d856516...`): Runner Idle / Exploration with glowing cyan visor & courier satchel.
+2. `godot/verification/v8/m05/m05_02_runner_extraction.png` (157,104 bytes, SHA `0613cc23...`): Runner interaction at Corroded Panel during Core Extraction.
+3. `godot/verification/v8/m05/m05_03_bike_parked_mount.png` (164,310 bytes, SHA `48eb82d2...`): Courier Bike parked with wheels, orange cowl, headlight, and battery core.
+4. `godot/verification/v8/m05/m05_04_bike_driving.png` (197,060 bytes, SHA `2604f7ec...`): Runner mounted in riding posture driving Courier Bike down straight.
+5. `godot/verification/v8/m05/m05_05_bike_drift_turn.png` (197,195 bytes, SHA `d60c5727...`): Dynamic banking lean and drift turn at high speed.
+6. `godot/verification/v8/m05/m05_06_pursuit_chase.png` (203,483 bytes, SHA `4c2ecd64...`): High-intensity pursuit chase through security gate.
+7. `godot/verification/v8/m05/m05_07_aftermath_dismounted.png` (198,796 bytes, SHA `85210d34...`): Quiet aftermath with dismounted runner and parked bike.
 
 ---
 
