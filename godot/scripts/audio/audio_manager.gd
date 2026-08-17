@@ -63,6 +63,9 @@ var _last_event_timestamps: Dictionary = {} # SoundEvent -> int (ticks_msec)
 # Pursuit pressure tracking
 var _current_pursuit_pressure: float = 0.0
 var _tension_layer_active: bool = false
+var _is_decaying_pursuit_pressure: bool = false
+var _decay_rate_per_sec: float = 1.0
+var _decay_initial_pressure: float = 0.0
 
 # Minimum interval between duplicate transient events (throttling)
 const EVENT_COOLDOWNS_MSEC: Dictionary = {
@@ -225,9 +228,26 @@ func set_tuning_audio(accuracy: float) -> void:
 			if _static_player.playing:
 				_static_player.stop()
 
+func _process(delta: float) -> void:
+	if _is_decaying_pursuit_pressure:
+		if _current_pursuit_pressure > 0.0:
+			_current_pursuit_pressure = maxf(0.0, _current_pursuit_pressure - _decay_rate_per_sec * delta)
+			var p: float = _current_pursuit_pressure
+			if _siren_player and _siren_player.playing:
+				_siren_player.pitch_scale = lerpf(1.0, 1.45, p)
+				_siren_player.volume_db = lerpf(-24.0, 3.0, p)
+			if _tension_player and _tension_player.playing:
+				_tension_player.volume_db = lerpf(-40.0, -6.0, p)
+				
+			if _current_pursuit_pressure <= 0.0:
+				clear_pursuit_pressure()
+		else:
+			clear_pursuit_pressure()
+
 ## Continuous pursuit pressure API
 ## Maps distance into continuous siren pitch escalation and harmonic tension drone
 func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
+	_is_decaying_pursuit_pressure = false # Cancel any active decay envelope when active pursuit updates
 	# Normalized pressure P: 0.0 at >= 20m, smoothly rising to 1.0 at <= 5m
 	var p: float = clampf((20.0 - distance) / 15.0, 0.0, 1.0)
 	_current_pursuit_pressure = p
@@ -254,8 +274,22 @@ func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
 		# Low-mid tension layer volume scales smoothly from -24dB to -6dB
 		_tension_player.volume_db = lerpf(-24.0, -6.0, p)
 
+## Frame-rate independent pursuit release decay envelope (03.2A)
+func start_pursuit_release_decay(duration: float = 1.0) -> void:
+	if _current_pursuit_pressure <= 0.0:
+		_current_pursuit_pressure = 0.4
+		if _tension_player and not _tension_player.playing:
+			_tension_player.play()
+			_tension_player.volume_db = lerpf(-40.0, -6.0, 0.4)
+			
+	_decay_initial_pressure = _current_pursuit_pressure
+	_decay_rate_per_sec = _current_pursuit_pressure / maxf(duration, 0.1)
+	_is_decaying_pursuit_pressure = true
+	print("[AUDIO] Smooth pursuit pressure decay started (duration: %.1fs, initial: %.2f)..." % [duration, _decay_initial_pressure])
+
 ## Clear and halt all pursuit pressure audio layers
 func clear_pursuit_pressure() -> void:
+	_is_decaying_pursuit_pressure = false
 	set_siren_audio(false, Vector3.ZERO)
 	if _tension_player and _tension_player.playing:
 		_tension_player.stop()
@@ -300,6 +334,7 @@ func reset_audio_instant() -> void:
 		_tension_player.stop()
 		_tension_player.volume_db = -80.0
 
+	_is_decaying_pursuit_pressure = false
 	_current_pursuit_pressure = 0.0
 	_tension_layer_active = false
 	_last_event_timestamps.clear()
