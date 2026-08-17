@@ -354,7 +354,6 @@ func trigger_disturbance_alert() -> void:
 	print("[PULSE] Disturbance alert triggered! Pursuit sequence initiating...")
 	if audio_mgr:
 		audio_mgr.set_mix_state(AudioManagerScript.MixState.DISTURBANCE)
-		audio_mgr.play_event(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT, global_position)
 		
 	for actor in ambient_actors:
 		if is_instance_valid(actor) and actor.has_method("trigger_alarm"):
@@ -6181,7 +6180,12 @@ func _run_v8_m07_world_life_assertions() -> void:
 	print("\n--- Assertion 6: Disturbance alert transitions all active actors to safe reaction ---")
 	reset_slice()
 	await get_tree().process_frame
+	assert(audio_mgr.get_event_count(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT) == 0, "FAIL A6: Event count starts at 0")
 	trigger_disturbance_alert()
+	assert(audio_mgr.get_event_count(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT) == 1, "FAIL A6: Exactly one DISTURBANCE_ALERT onset emitted")
+	# Re-triggering during disturbance alert must be rejected with zero additional emissions
+	trigger_disturbance_alert()
+	assert(audio_mgr.get_event_count(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT) == 1, "FAIL A6: Re-trigger must not duplicate DISTURBANCE_ALERT onset")
 	assert(scrap_worker_1.current_state == ScrapWorkerScript.WorkerState.ALARMED, "FAIL A6: Worker 1 must enter ALARMED state upon disturbance")
 	assert(scrap_worker_2.current_state == ScrapWorkerScript.WorkerState.ALARMED, "FAIL A6: Worker 2 must enter ALARMED state upon disturbance")
 	assert(utility_crawler.current_state == UtilityCrawlerScript.CrawlerState.ALARMED, "FAIL A6: Crawler must enter ALARMED state upon disturbance")

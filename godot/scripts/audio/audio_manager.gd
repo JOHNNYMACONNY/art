@@ -70,6 +70,7 @@ var _tension_stream: AudioStreamWAV = null
 const MAX_CONCURRENT_TRANSIENTS: int = 8
 var _active_transients: Array[AudioStreamPlayer3D] = []
 var _last_event_timestamps: Dictionary = {} # SoundEvent -> int (ticks_msec)
+var event_counts: Dictionary = {} # SoundEvent -> int
 
 # Pursuit pressure tracking
 var _current_pursuit_pressure: float = 0.0
@@ -152,6 +153,7 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			if now - int(_last_event_timestamps[event]) < cd:
 				return # Throttled
 	_last_event_timestamps[event] = now
+	event_counts[event] = event_counts.get(event, 0) + 1
 
 	match event:
 		SoundEvent.FOOTSTEP:
@@ -221,6 +223,12 @@ func stop_event(event: SoundEvent) -> void:
 		_engine_player.stop()
 	elif event == SoundEvent.SIREN_ALARM and _siren_player:
 		_siren_player.stop()
+
+func get_event_count(event: SoundEvent) -> int:
+	return event_counts.get(event, 0)
+
+func reset_event_counts() -> void:
+	event_counts.clear()
 
 func set_siren_audio(active: bool, pos: Vector3) -> void:
 	if _siren_player:
@@ -371,6 +379,7 @@ func reset_audio_instant() -> void:
 	_current_pursuit_pressure = 0.0
 	_tension_layer_active = false
 	_last_event_timestamps.clear()
+	event_counts.clear()
 	current_mix_state = MixState.CALM
 
 func set_mix_state(state: MixState) -> void:
