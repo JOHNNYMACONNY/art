@@ -87,6 +87,10 @@ func _ready() -> void:
 		pursuer.position = Vector3(0, 0.6, -10.0)
 		add_child(pursuer)
 		pursuer.intercepted_target.connect(_on_pursuer_intercepted)
+		pursuer.de_escalation_completed.connect(func():
+			if current_pursuit_state == PursuitState.EVADED:
+				current_pursuit_state = PursuitState.CALM
+		)
 		
 	var gate_scene: PackedScene = load("res://scenes/interactions/signal_gate.tscn")
 	if gate_scene:
@@ -187,6 +191,10 @@ func _ready() -> void:
 		_run_v8_thumb_reach_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-multitouch-assertions"):
 		_run_v8_multitouch_assertions()
+	elif OS.get_cmdline_user_args().has("--export-v8-aftermath-proof"):
+		_export_v8_aftermath_proof()
+	elif OS.get_cmdline_user_args().has("--run-v8-m03-aftermath-assertions"):
+		_run_v8_m03_aftermath_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-readability") or OS.get_cmdline_user_args().has("--run-v8-assertions"):
 		_run_v8_dynamic_readability()
 
@@ -259,7 +267,7 @@ func trigger_disturbance_alert() -> void:
 
 func _end_pursuit_common() -> void:
 	if pursuer:
-		pursuer.deactivate_pursuit()
+		pursuer.reset_pursuer()
 	if signal_gate:
 		signal_gate.set_pursuit_active(false)
 	if audio_mgr:
@@ -268,15 +276,24 @@ func _end_pursuit_common() -> void:
 		touch_ui.hide_tension_hud()
 
 func _on_successful_evasion() -> void:
-	_end_pursuit_common()
-	if audio_mgr:
-		audio_mgr.set_mix_state(AudioManagerScript.MixState.EVASION_RELEASE)
+	if signal_gate:
+		signal_gate.set_pursuit_active(false)
 	if touch_ui:
+		touch_ui.hide_tension_hud()
 		touch_ui.show_replay_overlay()
+		
+	if pursuer:
+		pursuer.start_de_escalation()
+		
+	if audio_mgr:
+		audio_mgr.clear_pursuit_pressure()
+		audio_mgr.set_mix_state(AudioManagerScript.MixState.EVASION_RELEASE)
+		
 	if world_env and world_env.environment:
 		world_env.environment.ambient_light_color = Color(0.3, 0.26, 0.2, 1.0)
-	current_pursuit_state = PursuitState.CALM
-	print("[PURSUIT] Contact evaded. Quiet aftermath reached. Replay button enabled.")
+		
+	current_pursuit_state = PursuitState.EVADED
+	print("[PURSUIT] Contact evaded. Pursuer transitioning to de-escalation retreat. Quiet aftermath reached.")
 
 func _on_signal_gate_triggered() -> void:
 	print("[GATE] Signal Gate Triggered! Slamming scrap barrier...")
@@ -468,11 +485,7 @@ func reset_slice() -> void:
 		signal_gate._update_visual_state()
 		
 	if pursuer:
-		pursuer.global_position = Vector3(0, 0.6, -10.0)
-		pursuer.is_active = false
-		pursuer.current_speed = 0.0
-		pursuer.detour_waypoints.clear()
-		pursuer.current_detour_index = -1
+		pursuer.reset_pursuer(Vector3(0, 0.6, -10.0))
 		
 	if audio_mgr:
 		audio_mgr.reset_audio_instant()
@@ -818,8 +831,8 @@ func _run_v4_assertions() -> void:
 	assert(current_pursuit_state == PursuitState.CONTACT_BROKEN or current_pursuit_state == PursuitState.EVADED or current_pursuit_state == PursuitState.CALM, "FAIL: Contact must break when distance > 18m")
 	
 	await get_tree().create_timer(1.2).timeout
-	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit must return to CALM after evasion")
-	assert(not pursuer.is_active, "FAIL: Pursuer must deactivate after evasion")
+	assert(current_pursuit_state == PursuitState.CALM or current_pursuit_state == PursuitState.EVADED, "FAIL: Pursuit must return to CALM/EVADED after evasion")
+	assert(not pursuer.is_active or pursuer.current_state == PursuerPrototype.PursuerState.DE_ESCALATING or pursuer.current_state == PursuerPrototype.PursuerState.EVADED_DISENGAGED, "FAIL: Pursuer must de-escalate or deactivate after evasion")
 	
 	# Gate 0 Proof 3: Mounted Interception Force Dismount Recovery
 	player.global_position = courier_bike.global_position + Vector3(0, 0, 1.5)
@@ -886,7 +899,7 @@ func _run_v5_assertions() -> void:
 	await get_tree().create_timer(2.2).timeout
 	assert(current_pursuit_state == PursuitState.CONTACT_BROKEN or current_pursuit_state == PursuitState.EVADED or current_pursuit_state == PursuitState.CALM, "FAIL: Contact must break naturally after detour reroute")
 	await get_tree().create_timer(1.2).timeout
-	assert(current_pursuit_state == PursuitState.CALM, "FAIL: Pursuit must return to CALM after evasion")
+	assert(current_pursuit_state == PursuitState.CALM or current_pursuit_state == PursuitState.EVADED, "FAIL: Pursuit must return to CALM/EVADED after evasion")
 	assert(signal_gate.current_state == SignalGateInteractable.GateState.TRIGGERED, "FAIL: Triggered gate remains spent TRIGGERED after pursuit ends")
 	
 	print("[V5_ASSERTIONS] PASSED! ALL V5 ENVIRONMENTAL EVASION SLICE ASSERTIONS GREEN.")
@@ -4457,6 +4470,176 @@ func _run_v8_multitouch_assertions() -> void:
 
 	print("\n=========================================================================")
 	print("[ALL V8 02.3 ADVERSARIAL MULTI-TOUCH ASSERTIONS (A-R) PASSED 100% GREEN!]")
+	print("=========================================================================\n")
+	get_tree().quit(0)
+
+func _export_v8_aftermath_proof() -> void:
+	print("\n[V8 AFTERMATH PROOF] Exporting 4 aftermath transition screenshots...")
+	
+	# Frame 1: Pursuit Active
+	reset_slice()
+	await get_tree().create_timer(0.2).timeout
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
+	courier_bike.request_mount(player)
+	await get_tree().create_timer(0.35).timeout
+	pursuer.activate_pursuit(courier_bike)
+	pursuer.global_position = courier_bike.global_position - Vector3(0, 0, 8.0)
+	current_pursuit_state = PursuitState.PURSUIT_ACTIVE
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	touch_ui.set_route_switch_button_visible(true)
+	touch_ui.show_tension_hud("[ ALERT: PURSUIT ACTIVE ]")
+	touch_ui.update_tension_proximity(8.0, true)
+	await get_tree().create_timer(0.25).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_aftermath_01_pursuit_active.png")
+	print("  Saved: v8_aftermath_01_pursuit_active.png")
+
+	# Frame 2: Contact Broken (Distance > 18m)
+	current_pursuit_state = PursuitState.CONTACT_BROKEN
+	pursuer.global_position = courier_bike.global_position - Vector3(0, 0, 22.0)
+	touch_ui.update_tension_proximity(22.0, false)
+	touch_ui.show_tension_hud("[ DISTURBANCE: TRACKING LOST ]")
+	await get_tree().create_timer(0.25).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_aftermath_02_contact_broken.png")
+	print("  Saved: v8_aftermath_02_contact_broken.png")
+
+	# Frame 3: De-escalating Retreat (Pursuer visible, amber search, slowing down, Replay available)
+	_on_successful_evasion()
+	await get_tree().create_timer(0.5).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_aftermath_03_de_escalating_retreat.png")
+	print("  Saved: v8_aftermath_03_de_escalating_retreat.png")
+
+	# Frame 4: Quiet Settled Aftermath (De-escalation finished, world settled)
+	await get_tree().create_timer(2.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_aftermath_04_quiet_settled.png")
+	print("  Saved: v8_aftermath_04_quiet_settled.png")
+
+	print("\n[ALL 4 AFTERMATH PROOFS EXPORTED SUCCESSFULLY!]\n")
+	get_tree().quit(0)
+
+func _run_v8_m03_aftermath_assertions() -> void:
+	print("\n=========================================================================")
+	print("[V8 M03] Starting Threat Aftermath & World Continuity Assertions Suite...")
+	print("=========================================================================\n")
+
+	await get_tree().process_frame
+
+	# -------------------------------------------------------------------------
+	# TEST 1: PURSUER DE-ESCALATION STATE TRANSITION
+	# -------------------------------------------------------------------------
+	print("[TEST 1] Evasion triggers graceful de-escalation rather than instant disappearance...")
+	reset_slice()
+	await get_tree().create_timer(0.1).timeout
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
+	courier_bike.request_mount(player)
+	await get_tree().create_timer(0.2).timeout
+	
+	pursuer.activate_pursuit(courier_bike)
+	assert(pursuer.is_active and pursuer.current_state == PursuerPrototype.PursuerState.CHASING, "FAIL 1: Pursuer is CHASING")
+	assert(pursuer.visible == true, "FAIL 1: Pursuer is visible")
+	
+	# Trigger evasion
+	_on_successful_evasion()
+	assert(pursuer.is_active == true, "FAIL 1: Pursuer MUST remain active during de-escalation (not hard killed)")
+	assert(pursuer.visible == true, "FAIL 1: Pursuer MUST remain visible during retreat")
+	assert(pursuer.current_state == PursuerPrototype.PursuerState.DE_ESCALATING, "FAIL 1: State must be DE_ESCALATING")
+	assert(pursuer.target_node == null, "FAIL 1: Target decoupled during retreat")
+	assert(current_pursuit_state == PursuitState.EVADED, "FAIL 1: Game state is EVADED")
+	assert(touch_ui.replay_panel.visible == true, "FAIL 1: Replay overlay accessible during aftermath")
+	print("  -> Test 1 PASS: Evasion triggers graceful DE_ESCALATING state!")
+
+	# -------------------------------------------------------------------------
+	# TEST 2: GUARANTEED NON-INTERCEPTION DURING DE-ESCALATION
+	# -------------------------------------------------------------------------
+	print("[TEST 2] Player proximity during de-escalation cannot trigger interception...")
+	# Place player directly in front of de-escalating pursuer
+	courier_bike.global_position = pursuer.global_position + Vector3(0, 0, 0.5)
+	var intercepted_fired := [false]
+	var intercept_cb := func(): intercepted_fired[0] = true
+	pursuer.intercepted_target.connect(intercept_cb)
+	
+	# Simulate 0.6 seconds of physics steps
+	for i in range(36):
+		pursuer._physics_process(1.0 / 60.0)
+		
+	assert(not intercepted_fired[0], "FAIL 2: Interception must NEVER fire once in DE_ESCALATING state")
+	assert(current_pursuit_state == PursuitState.EVADED, "FAIL 2: Game state remains EVADED")
+	pursuer.intercepted_target.disconnect(intercept_cb)
+	print("  -> Test 2 PASS: Guaranteed non-hostile safety during de-escalation confirmed!")
+
+	# -------------------------------------------------------------------------
+	# TEST 3: PHYSICAL DECELERATION & AMBER LIGHT SEARCH TRANSITION
+	# -------------------------------------------------------------------------
+	print("[TEST 3] Physical speed decays smoothly toward search pace & amber light dims...")
+	pursuer.current_speed = 15.0
+	for i in range(30):
+		pursuer._physics_process(1.0 / 60.0)
+	assert(pursuer.current_speed < 13.0, "FAIL 3: Pursuer speed decelerated")
+	assert(pursuer.siren_light.light_color == Color(1.0, 0.65, 0.2), "FAIL 3: Siren light transitioned to amber")
+	print("  -> Test 3 PASS: Smooth physical deceleration and visual search mode verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 4: DE-ESCALATION COMPLETION & SAFE DISENGAGEMENT
+	# -------------------------------------------------------------------------
+	print("[TEST 4] De-escalation timer completion gracefully disengages pursuer...")
+	# Advance remaining duration past 2.5s threshold
+	for i in range(150):
+		pursuer._physics_process(1.0 / 60.0)
+		
+	assert(pursuer.current_state == PursuerPrototype.PursuerState.EVADED_DISENGAGED, "FAIL 4: Pursuer reached EVADED_DISENGAGED")
+	assert(pursuer.is_active == false and pursuer.visible == false, "FAIL 4: Pursuer safely hidden after disengagement")
+	assert(pursuer.current_speed == 0.0 and pursuer.velocity == Vector3.ZERO, "FAIL 4: Motion halted")
+	print("  -> Test 4 PASS: Disengagement completed cleanly!")
+
+	# -------------------------------------------------------------------------
+	# TEST 5: AUDIO DECAY & EVASION RELEASE MIX
+	# -------------------------------------------------------------------------
+	print("[TEST 5] Audio pressure decays and EVASION_RELEASE mix active...")
+	assert(audio_mgr.current_mix_state == AudioManagerScript.MixState.EVASION_RELEASE, "FAIL 5: MixState is EVASION_RELEASE")
+	assert(audio_mgr._current_pursuit_pressure == 0.0, "FAIL 5: Pursuit pressure zeroed")
+	assert(not audio_mgr._tension_player.playing, "FAIL 5: Tension drone stopped")
+	print("  -> Test 5 PASS: Audio aftermath release decay verified!")
+
+	# -------------------------------------------------------------------------
+	# TEST 6: REPLAY / RESET DETERMINISTIC LIFECYCLE
+	# -------------------------------------------------------------------------
+	print("[TEST 6] Replay / slice reset immediately restores clean INACTIVE state...")
+	# Activate pursuit again
+	pursuer.activate_pursuit(courier_bike)
+	pursuer.global_position = Vector3(10.0, 0.6, 25.0)
+	pursuer.velocity = Vector3(5.0, 0.0, -10.0)
+	
+	# Execute Replay reset
+	touch_ui.replay_button.pressed.emit()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	
+	assert(pursuer.current_state == PursuerPrototype.PursuerState.INACTIVE, "FAIL 6: State reset to INACTIVE")
+	assert(pursuer.is_active == false, "FAIL 6: is_active is false")
+	assert(pursuer.visible == false, "FAIL 6: visible is false")
+	assert(pursuer.global_position == Vector3(0, 0.6, -10.0), "FAIL 6: Restored initial spawn coordinates")
+	assert(pursuer.velocity == Vector3.ZERO, "FAIL 6: Velocity is zero")
+	assert(pursuer.detour_waypoints.size() == 0, "FAIL 6: Detour waypoints purged")
+	assert(pursuer.target_node == null, "FAIL 6: Target decoupled")
+	print("  -> Test 6 PASS: Full deterministic reset verified across all state variables!")
+
+	# -------------------------------------------------------------------------
+	# TEST 7: SUBSEQUENT PURSUIT RE-TRIGGERING AFTER RESET
+	# -------------------------------------------------------------------------
+	print("[TEST 7] Subsequent disturbance alert after reset cleanly re-arms and chases...")
+	trigger_disturbance_alert()
+	assert(current_pursuit_state == PursuitState.DISTURBANCE_ALERT, "FAIL 7: Disturbance alert armed")
+	await get_tree().create_timer(0.85).timeout
+	
+	assert(current_pursuit_state == PursuitState.PURSUIT_ACTIVE, "FAIL 7: Pursuit activated")
+	assert(pursuer.is_active == true and pursuer.visible == true, "FAIL 7: Pursuer active & visible")
+	assert(pursuer.current_state == PursuerPrototype.PursuerState.CHASING, "FAIL 7: State is CHASING")
+	assert(pursuer.target_node != null, "FAIL 7: Target acquired")
+	print("  -> Test 7 PASS: Clean re-triggering after reset confirmed!")
+
+	# Cleanup
+	reset_slice()
+	print("\n=========================================================================")
+	print("[ALL V8 M03 THREAT AFTERMATH ASSERTIONS PASSED 100% GREEN!]")
 	print("=========================================================================\n")
 	get_tree().quit(0)
 
