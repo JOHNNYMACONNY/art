@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://c_player_runner_001"]
+[gd_scene load_steps=19 format=3 uid="uid://c_player_runner_001"]
 
 [ext_resource type="Script" path="res://scripts/player/runner.gd" id="1_runner"]
 
@@ -6,22 +6,77 @@
 radius = 0.4
 height = 1.8
 
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
-radius = 0.4
-height = 1.8
+[sub_resource type="StandardMaterial3D" id="Mat_Jacket"]
+albedo_color = Color(0.16, 0.22, 0.28, 1)
+roughness = 0.6
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
-albedo_color = Color(0.15, 0.75, 0.85, 1)
-roughness = 0.3
+[sub_resource type="BoxMesh" id="Mesh_Torso"]
+material = SubResource("Mat_Jacket")
+size = Vector3(0.48, 0.55, 0.32)
 
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_outline"]
-radius = 0.43
-height = 1.86
+[sub_resource type="StandardMaterial3D" id="Mat_Harness"]
+albedo_color = Color(0.12, 0.78, 0.9, 1)
+emission_enabled = true
+emission = Color(0.1, 0.65, 0.8, 1)
+emission_energy_multiplier = 0.5
+roughness = 0.4
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_outline"]
+[sub_resource type="BoxMesh" id="Mesh_ChestRig"]
+material = SubResource("Mat_Harness")
+size = Vector3(0.36, 0.32, 0.36)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Satchel"]
+albedo_color = Color(0.65, 0.42, 0.18, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="Mesh_Satchel"]
+material = SubResource("Mat_Satchel")
+size = Vector3(0.24, 0.28, 0.14)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Helmet"]
+albedo_color = Color(0.12, 0.14, 0.18, 1)
+roughness = 0.5
+
+[sub_resource type="SphereMesh" id="Mesh_Head"]
+material = SubResource("Mat_Helmet")
+radius = 0.2
+height = 0.4
+
+[sub_resource type="StandardMaterial3D" id="Mat_Visor"]
+albedo_color = Color(0.15, 0.9, 1, 1)
+emission_enabled = true
+emission = Color(0.15, 0.9, 1, 1)
+emission_energy_multiplier = 1.6
+roughness = 0.1
+
+[sub_resource type="BoxMesh" id="Mesh_Visor"]
+material = SubResource("Mat_Visor")
+size = Vector3(0.26, 0.1, 0.16)
+
+[sub_resource type="BoxMesh" id="Mesh_Arm"]
+material = SubResource("Mat_Jacket")
+size = Vector3(0.12, 0.48, 0.14)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Pants"]
+albedo_color = Color(0.12, 0.13, 0.16, 1)
+roughness = 0.7
+
+[sub_resource type="BoxMesh" id="Mesh_Leg"]
+material = SubResource("Mat_Pants")
+size = Vector3(0.16, 0.62, 0.18)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Outline"]
 cull_mode = 1
 shading_mode = 0
-albedo_color = Color(0.04, 0.04, 0.05, 1)
+albedo_color = Color(0.04, 0.04, 0.06, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_TorsoOutline"]
+material = SubResource("Mat_Outline")
+size = Vector3(0.52, 0.59, 0.36)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_Compat"]
+radius = 0.01
+height = 0.02
 
 [node name="Runner" type="CharacterBody3D"]
 script = ExtResource("1_runner")
@@ -32,12 +87,65 @@ shape = SubResource("CapsuleShape3D_1")
 
 [node name="MeshPivot" type="Node3D" parent="."]
 
+[node name="Torso" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
+
+[node name="TorsoMesh" type="MeshInstance3D" parent="MeshPivot/Torso"]
+mesh = SubResource("Mesh_Torso")
+
+[node name="TorsoOutline" type="MeshInstance3D" parent="MeshPivot/Torso"]
+mesh = SubResource("Mesh_TorsoOutline")
+
+[node name="ChestRig" type="MeshInstance3D" parent="MeshPivot/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.02)
+mesh = SubResource("Mesh_ChestRig")
+
+[node name="Satchel" type="MeshInstance3D" parent="MeshPivot/Torso"]
+transform = Transform3D(0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 0, 0, 1, 0.22, -0.15, 0.08)
+mesh = SubResource("Mesh_Satchel")
+
+[node name="Head" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, 0)
+
+[node name="HeadMesh" type="MeshInstance3D" parent="MeshPivot/Head"]
+mesh = SubResource("Mesh_Head")
+
+[node name="Visor" type="MeshInstance3D" parent="MeshPivot/Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.14)
+mesh = SubResource("Mesh_Visor")
+
+[node name="LeftArm" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.32, 1.18, 0)
+
+[node name="LeftArmMesh" type="MeshInstance3D" parent="MeshPivot/LeftArm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.18, 0)
+mesh = SubResource("Mesh_Arm")
+
+[node name="RightArm" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 1.18, 0)
+
+[node name="RightArmMesh" type="MeshInstance3D" parent="MeshPivot/RightArm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.18, 0)
+mesh = SubResource("Mesh_Arm")
+
+[node name="LeftLeg" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, 0.85, 0)
+
+[node name="LeftLegMesh" type="MeshInstance3D" parent="MeshPivot/LeftLeg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.26, 0)
+mesh = SubResource("Mesh_Leg")
+
+[node name="RightLeg" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, 0.85, 0)
+
+[node name="RightLegMesh" type="MeshInstance3D" parent="MeshPivot/RightLeg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.26, 0)
+mesh = SubResource("Mesh_Leg")
+
 [node name="OutlineMesh" type="MeshInstance3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-mesh = SubResource("CapsuleMesh_outline")
-surface_material_override/0 = SubResource("StandardMaterial3D_outline")
+visible = false
+mesh = SubResource("CapsuleMesh_Compat")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-mesh = SubResource("CapsuleMesh_1")
-surface_material_override/0 = SubResource("StandardMaterial3D_1")
+visible = false
+mesh = SubResource("CapsuleMesh_Compat")

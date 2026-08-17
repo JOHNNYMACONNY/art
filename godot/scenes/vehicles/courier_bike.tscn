@@ -1,26 +1,93 @@
-[gd_scene load_steps=10 format=3 uid="uid://c_courier_bike_001"]
+[gd_scene load_steps=25 format=3 uid="uid://c_courier_bike_001"]
 
 [ext_resource type="Script" path="res://scripts/vehicles/courier_bike.gd" id="1_bike"]
-
 [ext_resource type="Script" path="res://scripts/interactions/mount_interactable.gd" id="2_mount"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_bike"]
 size = Vector3(1.0, 1.0, 2.2)
 
-[sub_resource type="BoxMesh" id="BoxMesh_body"]
-size = Vector3(0.7, 0.8, 2.0)
+[sub_resource type="StandardMaterial3D" id="Mat_Frame"]
+albedo_color = Color(0.12, 0.14, 0.16, 1)
+metallic = 0.5
+roughness = 0.6
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_paint"]
-albedo_color = Color(0.85, 0.4, 0.1, 1)
-roughness = 0.4
+[sub_resource type="BoxMesh" id="Mesh_Frame"]
+material = SubResource("Mat_Frame")
+size = Vector3(0.36, 0.45, 1.4)
 
-[sub_resource type="BoxMesh" id="BoxMesh_outline"]
-size = Vector3(0.76, 0.86, 2.06)
+[sub_resource type="StandardMaterial3D" id="Mat_OrangeBody"]
+albedo_color = Color(0.92, 0.46, 0.08, 1)
+roughness = 0.35
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_outline"]
+[sub_resource type="BoxMesh" id="Mesh_Tank"]
+material = SubResource("Mat_OrangeBody")
+size = Vector3(0.42, 0.32, 0.75)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Tire"]
+albedo_color = Color(0.08, 0.09, 0.1, 1)
+roughness = 0.9
+
+[sub_resource type="CylinderMesh" id="Mesh_WheelFront"]
+material = SubResource("Mat_Tire")
+top_radius = 0.35
+bottom_radius = 0.35
+height = 0.16
+radial_segments = 16
+
+[sub_resource type="CylinderMesh" id="Mesh_WheelRear"]
+material = SubResource("Mat_Tire")
+top_radius = 0.35
+bottom_radius = 0.35
+height = 0.22
+radial_segments = 16
+
+[sub_resource type="StandardMaterial3D" id="Mat_Headlight"]
+albedo_color = Color(1, 0.9, 0.6, 1)
+emission_enabled = true
+emission = Color(1, 0.85, 0.5, 1)
+emission_energy_multiplier = 1.5
+
+[sub_resource type="BoxMesh" id="Mesh_Headlight"]
+material = SubResource("Mat_Headlight")
+size = Vector3(0.24, 0.14, 0.12)
+
+[sub_resource type="BoxMesh" id="Mesh_Handlebars"]
+material = SubResource("Mat_Frame")
+size = Vector3(0.72, 0.06, 0.06)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Seat"]
+albedo_color = Color(0.06, 0.06, 0.08, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="Mesh_Seat"]
+material = SubResource("Mat_Seat")
+size = Vector3(0.34, 0.12, 0.48)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Battery"]
+albedo_color = Color(0.12, 0.85, 1, 1)
+emission_enabled = true
+emission = Color(0.1, 0.8, 1, 1)
+emission_energy_multiplier = 1.8
+
+[sub_resource type="BoxMesh" id="Mesh_Battery"]
+material = SubResource("Mat_Battery")
+size = Vector3(0.28, 0.22, 0.38)
+
+[sub_resource type="BoxMesh" id="Mesh_CargoRack"]
+material = SubResource("Mat_Frame")
+size = Vector3(0.44, 0.08, 0.52)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Outline"]
 cull_mode = 1
 shading_mode = 0
-albedo_color = Color(0.05, 0.05, 0.08, 1)
+albedo_color = Color(0.04, 0.04, 0.06, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_TankOutline"]
+material = SubResource("Mat_Outline")
+size = Vector3(0.46, 0.36, 0.79)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Compat"]
+size = Vector3(0.01, 0.01, 0.01)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_mount"]
 radius = 2.5
@@ -34,18 +101,57 @@ shape = SubResource("BoxShape3D_bike")
 
 [node name="VisualRoot" type="Node3D" parent="."]
 
+[node name="MainChassis" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.44, 0)
+mesh = SubResource("Mesh_Frame")
+
+[node name="FrontWheel" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0.35, -0.85)
+mesh = SubResource("Mesh_WheelFront")
+
+[node name="RearWheel" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0.35, 0.85)
+mesh = SubResource("Mesh_WheelRear")
+
+[node name="FrontTank" type="Node3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.68, -0.32)
+
+[node name="TankMesh" type="MeshInstance3D" parent="VisualRoot/FrontTank"]
+mesh = SubResource("Mesh_Tank")
+
+[node name="TankOutline" type="MeshInstance3D" parent="VisualRoot/FrontTank"]
+mesh = SubResource("Mesh_TankOutline")
+
+[node name="Headlight" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, -0.74)
+mesh = SubResource("Mesh_Headlight")
+
+[node name="Handlebars" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.86, -0.52)
+mesh = SubResource("Mesh_Handlebars")
+
+[node name="Saddle" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 0.12)
+mesh = SubResource("Mesh_Seat")
+
+[node name="CargoRack" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62, 0.68)
+mesh = SubResource("Mesh_CargoRack")
+
+[node name="BatteryCell" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, 0.68)
+mesh = SubResource("Mesh_Battery")
+
 [node name="BikeMesh" type="MeshInstance3D" parent="VisualRoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
-mesh = SubResource("BoxMesh_body")
-surface_material_override/0 = SubResource("StandardMaterial3D_paint")
+visible = false
+mesh = SubResource("BoxMesh_Compat")
 
 [node name="OutlineMesh" type="MeshInstance3D" parent="VisualRoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
-mesh = SubResource("BoxMesh_outline")
-surface_material_override/0 = SubResource("StandardMaterial3D_outline")
+visible = false
+mesh = SubResource("BoxMesh_Compat")
 
 [node name="RiderSocket" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0.08)
 
 [node name="MountInteractable" type="Area3D" parent="."]
 script = ExtResource("2_mount")
