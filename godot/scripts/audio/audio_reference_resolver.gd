@@ -1,91 +1,82 @@
 class_name AudioReferenceResolver
 extends RefCounted
 
+## Sandboxed Local Reference Audio Resolver for ECHOES
+## Loads dev-opt-in replacement audio streams from a sandboxed relative directory.
+## Strictly fail-closed: requires OS.is_debug_build() and developer opt-in.
+## Uses AudioStreamWAV.load_from_file() with bounded diagnostic reason codes.
+
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 
-## Safe Local Reference Audio Resolver for ECHOES
-## Enables dev-only local reference playback with fail-closed security,
-## clean-clone procedural independence, strict path containment, and WAV-only ingestion.
+const ENV_ALLOW_REFERENCE := "ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO"
+const ENV_MANIFEST_PATH := "ECHOES_REFERENCE_AUDIO_MANIFEST"
+const CMDLINE_ALLOW_FLAG := "--allow-local-reference-audio"
+const CMDLINE_MANIFEST_ARG := "--reference-audio-manifest="
+const DEFAULT_MANIFEST_PATH := "res://local_reference_audio/manifest.json"
+const ALLOWED_EXTENSION := "wav"
 
-const ALLOWED_EXTENSION: String = "wav"
+# Reason Codes for Diagnostics
+const REASON_MANIFEST_MALFORMED := "REFERENCE_MANIFEST_MALFORMED"
+const REASON_MANIFEST_INVALID_SCHEMA := "REFERENCE_MANIFEST_INVALID_SCHEMA"
+const REASON_MANIFEST_VERSION_UNSUPPORTED := "REFERENCE_MANIFEST_VERSION_UNSUPPORTED"
+const REASON_SLOT_UNKNOWN := "REFERENCE_SLOT_UNKNOWN"
+const REASON_PATH_ABSOLUTE := "REFERENCE_PATH_ABSOLUTE"
+const REASON_PATH_TRAVERSAL := "REFERENCE_PATH_TRAVERSAL"
+const REASON_PATH_OUTSIDE_ROOT := "REFERENCE_PATH_OUTSIDE_ROOT"
+const REASON_PATH_INVALID_EXTENSION := "REFERENCE_PATH_INVALID_EXTENSION"
+const REASON_FILE_MISSING := "REFERENCE_FILE_MISSING"
+const REASON_WAV_INVALID := "REFERENCE_WAV_INVALID"
+const REASON_STATUS_FINAL := "REFERENCE_STATUS_FINAL"
 
 static var _cached_manifest: Dictionary = {}
 static var _manifest_loaded: bool = false
 static var _sandbox_root: String = ""
-static var _stream_cache: Dictionary = {} # slot_id -> AudioStreamWAV
+static var _cached_streams: Dictionary = {}
 
-## Returns true if local reference audio is explicitly enabled by developer in debug builds
 static func is_reference_enabled() -> bool:
-	# Release builds are strictly fail-closed
 	if not OS.is_debug_build():
 		return false
-		
-	if OS.get_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO") == "1":
+	if OS.get_environment(ENV_ALLOW_REFERENCE) == "1":
 		return true
-		
-	for arg in OS.get_cmdline_user_args():
-		if arg == "--allow-local-reference-audio":
-			return true
-			
+	if OS.get_cmdline_user_args().has(CMDLINE_ALLOW_FLAG):
+		return true
 	return false
 
-## Resets cached manifest, sandbox root, and stream memory (for tests and teardown)
-static func reset() -> void:
-	_cached_manifest.clear()
-	_manifest_loaded = false
-	_sandbox_root = ""
-	_stream_cache.clear()
-
-## Get manifest file path from explicit CLI argument or explicit environment variable
 static func get_manifest_path() -> String:
-	var env_path := OS.get_environment("ECHOES_REFERENCE_AUDIO_MANIFEST")
+	var env_path := OS.get_environment(ENV_MANIFEST_PATH)
 	if not env_path.is_empty():
 		return env_path
 	for arg in OS.get_cmdline_user_args():
-		if arg.begins_with("--reference-audio-manifest="):
-			return arg.trim_prefix("--reference-audio-manifest=").strip_edges()
-	return ""
+		if arg.begins_with(CMDLINE_MANIFEST_ARG):
+			return arg.substr(CMDLINE_MANIFEST_ARG.length())
+	return DEFAULT_MANIFEST_PATH
 
-## Normalizes directory path to ensure trailing slash and clean separators
+static func is_valid_relative_path(path: String) -> bool:
+	if path.is_empty():
+		return false
+	if path.begins_with("/") or path.begins_with("\\") or path.contains(":"):
+		return false
+	if path.contains(".."):
+		return false
+	if path.get_extension().to_lower() != ALLOWED_EXTENSION:
+		return false
+	return true
+
 static func _normalize_dir_path(path: String) -> String:
-	var norm := path.replace("\\", "/")
+	var norm := path.replace("\\", "/").simplify_path()
 	if not norm.ends_with("/"):
 		norm += "/"
 	return norm
 
-## Validates relative file path against directory traversal, absolute prefixes, and extension constraints
-static func is_valid_relative_path(rel_path: String) -> bool:
-	if rel_path.is_empty():
-		return false
-	# Reject absolute paths (OS absolute or URI schemes)
-	if rel_path.begins_with("/") or rel_path.begins_with("\\") or ":" in rel_path:
-		push_warning("[AudioReferenceResolver] Absolute path rejected: %s" % rel_path)
-		return false
-	# Reject directory traversal
-	if ".." in rel_path or rel_path.contains("../") or rel_path.contains("..\\"):
-		push_warning("[AudioReferenceResolver] Path traversal rejected: %s" % rel_path)
-		return false
-	# Enforce .wav only for #21 tracer
-	var ext := rel_path.get_extension().to_lower()
-	if ext != ALLOWED_EXTENSION:
-		push_warning("[AudioReferenceResolver] Non-WAV extension '%s' rejected: %s" % [ext, rel_path])
-		return false
-	return true
-
-## Enforces that the resolved full path is strictly contained within the sandbox root directory
 static func is_contained_in_sandbox(full_path: String, sandbox_dir: String) -> bool:
+	var norm_sandbox := _normalize_dir_path(sandbox_dir)
 	var norm_full := full_path.replace("\\", "/").simplify_path()
-	var norm_sandbox := _normalize_dir_path(sandbox_dir.replace("\\", "/").simplify_path())
-	
-	# Strict prefix check with trailing directory boundary (prevents sibling-prefix escape)
 	if not norm_full.begins_with(norm_sandbox):
-		push_warning("[AudioReferenceResolver] Sandbox escape rejected: '%s' outside '%s'" % [norm_full, norm_sandbox])
 		return false
 	return true
 
-## Load and parse manifest JSON safely. Returns empty dict on any failure or schema mismatch.
-static func load_manifest(custom_path: String = "") -> Dictionary:
-	var path := custom_path if not custom_path.is_empty() else get_manifest_path()
+static func load_manifest(manifest_path: String = "") -> Dictionary:
+	var path := manifest_path if not manifest_path.is_empty() else get_manifest_path()
 	if path.is_empty() or not FileAccess.file_exists(path):
 		return {}
 
@@ -93,102 +84,113 @@ static func load_manifest(custom_path: String = "") -> Dictionary:
 	if not file:
 		return {}
 
-	var json_text := file.get_as_text()
+	var json_str := file.get_as_text()
+	file.close()
+
 	var json := JSON.new()
-	var err := json.parse(json_text)
+	var err := json.parse(json_str)
 	if err != OK:
-		push_warning("[AudioReferenceResolver] Malformed manifest JSON at %s: error %d" % [path, err])
+		push_warning("[AudioReferenceResolver] %s" % REASON_MANIFEST_MALFORMED)
 		return {}
 
 	var data = json.get_data()
 	if not (data is Dictionary):
-		push_warning("[AudioReferenceResolver] Manifest root must be a Dictionary")
+		push_warning("[AudioReferenceResolver] %s" % REASON_MANIFEST_INVALID_SCHEMA)
 		return {}
 
-	# Record sandbox root as the directory containing the manifest
-	_sandbox_root = _normalize_dir_path(path.get_base_dir())
+	if not data.has("version") or not (data["version"] is int or data["version"] is float):
+		push_warning("[AudioReferenceResolver] %s" % REASON_MANIFEST_INVALID_SCHEMA)
+		return {}
+	if int(data["version"]) != 1:
+		push_warning("[AudioReferenceResolver] %s" % REASON_MANIFEST_VERSION_UNSUPPORTED)
+		return {}
 
-	var dict_data: Dictionary = data
-	var raw_slots: Dictionary = {}
-	if dict_data.has("slots") and dict_data["slots"] is Dictionary:
-		raw_slots = dict_data["slots"]
-	else:
-		raw_slots = dict_data
+	if not data.has("slots") or not (data["slots"] is Dictionary):
+		push_warning("[AudioReferenceResolver] %s" % REASON_MANIFEST_INVALID_SCHEMA)
+		return {}
 
-	# Strict schema validation: slot_id (String) -> relative_path (String)
-	var validated_slots: Dictionary = {}
-	for slot_key in raw_slots.keys():
-		if not (slot_key is String):
+	var raw_slots: Dictionary = data["slots"]
+	# Validate all entries have String keys and String values
+	for k in raw_slots.keys():
+		if not (k is String) or not (raw_slots[k] is String):
+			push_warning("[AudioReferenceResolver] %s" % REASON_MANIFEST_INVALID_SCHEMA)
+			return {}
+
+	var base_dir := path.get_base_dir()
+	if base_dir.is_empty():
+		base_dir = "."
+	_sandbox_root = _normalize_dir_path(base_dir)
+
+	var valid_slots: Dictionary = {}
+	for slot_id in raw_slots.keys():
+		var rel_path: String = raw_slots[slot_id]
+		if not AudioRegistryScript.has_slot(slot_id):
+			push_warning("[AudioReferenceResolver] %s: %s" % [slot_id, REASON_SLOT_UNKNOWN])
 			continue
-		var val = raw_slots[slot_key]
-		if not (val is String):
-			push_warning("[AudioReferenceResolver] Manifest entry for slot '%s' must be a String" % slot_key)
+
+		if rel_path.begins_with("/") or rel_path.begins_with("\\") or rel_path.contains(":"):
+			push_warning("[AudioReferenceResolver] %s: %s" % [slot_id, REASON_PATH_ABSOLUTE])
 			continue
-		var rel_path: String = val
-		if is_valid_relative_path(rel_path):
-			validated_slots[slot_key] = rel_path
 
-	return validated_slots
+		if rel_path.contains(".."):
+			push_warning("[AudioReferenceResolver] %s: %s" % [slot_id, REASON_PATH_TRAVERSAL])
+			continue
 
-## Attempt to resolve an AudioStreamWAV for a given semantic slot ID
-## Returns null if disabled, missing, precedence denied, or load failed.
-static func resolve_stream(slot_id: String, custom_manifest_path: String = "") -> AudioStreamWAV:
+		if rel_path.get_extension().to_lower() != ALLOWED_EXTENSION:
+			push_warning("[AudioReferenceResolver] %s: %s" % [slot_id, REASON_PATH_INVALID_EXTENSION])
+			continue
+
+		var full_path := _sandbox_root + rel_path
+		if not is_contained_in_sandbox(full_path, _sandbox_root):
+			push_warning("[AudioReferenceResolver] %s: %s" % [slot_id, REASON_PATH_OUTSIDE_ROOT])
+			continue
+
+		valid_slots[slot_id] = rel_path
+
+	return valid_slots
+
+static func resolve_stream(slot_id: String, override_manifest_path: String = "") -> AudioStreamWAV:
 	if not is_reference_enabled():
 		return null
 
-	if _stream_cache.has(slot_id):
-		return _stream_cache[slot_id]
+	if _cached_streams.has(slot_id):
+		return _cached_streams[slot_id]
 
-	# Check asset status precedence in AudioRegistry: ORIGINAL_FINAL and LICENSED_FINAL are immutable
-	var slot_meta: Dictionary = AudioRegistryScript.get_slot(slot_id)
-	if not slot_meta.is_empty():
-		var status = slot_meta.get("asset_status", AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK)
-		if status == AudioRegistryScript.AssetStatus.ORIGINAL_FINAL or status == AudioRegistryScript.AssetStatus.LICENSED_FINAL:
-			return null
-
-	if not _manifest_loaded or not custom_manifest_path.is_empty():
-		_cached_manifest = load_manifest(custom_manifest_path)
-		if custom_manifest_path.is_empty():
-			_manifest_loaded = true
+	if not _manifest_loaded or not override_manifest_path.is_empty():
+		_cached_manifest = load_manifest(override_manifest_path)
+		_manifest_loaded = true
 
 	if not _cached_manifest.has(slot_id):
 		return null
+
+	var slot_def: Dictionary = AudioRegistryScript.get_slot(slot_id)
+	if not slot_def.is_empty():
+		var status: int = slot_def.get("asset_status", -1)
+		if not AudioRegistryScript.is_reference_allowed_for_status(status):
+			push_warning("[AudioReferenceResolver] %s: %s" % [slot_id, REASON_STATUS_FINAL])
+			return null
 
 	var rel_path: String = _cached_manifest[slot_id]
 	var full_path := _sandbox_root + rel_path
 
 	if not is_contained_in_sandbox(full_path, _sandbox_root):
+		push_warning("[AudioReferenceResolver] %s: %s" % [slot_id, REASON_PATH_OUTSIDE_ROOT])
 		return null
 
 	if not FileAccess.file_exists(full_path):
-		push_warning("[AudioReferenceResolver] Reference file not found: %s" % full_path)
+		push_warning("[AudioReferenceResolver] %s: %s" % [slot_id, REASON_FILE_MISSING])
 		return null
 
-	var stream := _load_wav_file(full_path)
-	if stream:
-		_stream_cache[slot_id] = stream
-		return stream
-
-	return null
-
-## Internal WAV loader safely reading 8-bit or 16-bit PCM WAV data
-static func _load_wav_file(file_path: String) -> AudioStreamWAV:
-	var file := FileAccess.open(file_path, FileAccess.READ)
-	if not file:
-		return null
-	var bytes := file.get_buffer(file.get_length())
-	if bytes.is_empty():
+	var stream := AudioStreamWAV.load_from_file(full_path)
+	if stream == null or stream.data == null or stream.data.is_empty():
+		push_warning("[AudioReferenceResolver] %s: %s" % [slot_id, REASON_WAV_INVALID])
 		return null
 
-	var wav := AudioStreamWAV.new()
-	# Check RIFF WAV header
-	if bytes.size() >= 44 and bytes.slice(0, 4).get_string_from_ascii() == "RIFF" and bytes.slice(8, 12).get_string_from_ascii() == "WAVE":
-		wav.format = AudioStreamWAV.FORMAT_8_BITS # Safe fallback format
-		wav.mix_rate = 22050
-		wav.data = bytes.slice(44)
-	else:
-		wav.format = AudioStreamWAV.FORMAT_8_BITS
-		wav.mix_rate = 22050
-		wav.data = bytes
-		
-	return wav
+	_cached_streams[slot_id] = stream
+	return stream
+
+static func reset() -> void:
+	_cached_manifest.clear()
+	_manifest_loaded = false
+	_sandbox_root = ""
+	_cached_streams.clear()

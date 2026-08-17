@@ -72,6 +72,7 @@ var _tension_stream: AudioStreamWAV = null
 # Transient voice budget & registry
 const MAX_CONCURRENT_TRANSIENTS: int = 8
 var _active_transients: Array[AudioStreamPlayer3D] = []
+var _active_2d_transients: Array[AudioStreamPlayer] = []
 var _last_event_timestamps: Dictionary = {} # SoundEvent -> int (ticks_msec)
 var event_counts: Dictionary = {} # SoundEvent -> int
 
@@ -92,14 +93,23 @@ const EVENT_COOLDOWNS_MSEC: Dictionary = {
 	SoundEvent.BRAKE_SCREECH: 150
 }
 
-## Narrow playback migration tracer events for #21 validation
+## Narrow playback migration tracer events for #21 validation (asset-only events)
 const MIGRATED_TRACER_EVENTS: Array[SoundEvent] = [
 	SoundEvent.FOOTSTEP,
 	SoundEvent.BRAKE_SCREECH,
 	SoundEvent.PANEL_PEEL,
-	SoundEvent.COLLISION_GLANCE,
-	SoundEvent.DISTURBANCE_ALERT
+	SoundEvent.COLLISION_GLANCE
 ]
+
+const EVENT_TO_SLOT_MAP: Dictionary = {
+	SoundEvent.FOOTSTEP: "player.footstep",
+	SoundEvent.BRAKE_SCREECH: "vehicle.brake_screech",
+	SoundEvent.PANEL_PEEL: "interaction.panel_peel",
+	SoundEvent.COLLISION_GLANCE: "vehicle.collision_glance"
+}
+
+static func event_to_slot_id(event: SoundEvent) -> String:
+	return EVENT_TO_SLOT_MAP.get(event, "")
 
 func _ready() -> void:
 	_engine_stream = _create_noise_wav(0.5, 0.4)
@@ -169,7 +179,7 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 
 	# Dev-only reference override seam for narrow tracer events (clean procedural fallback by default)
 	if AudioReferenceResolverScript.is_reference_enabled() and MIGRATED_TRACER_EVENTS.has(event):
-		var slot_id: String = AudioRegistryScript.event_to_slot_id(event)
+		var slot_id: String = event_to_slot_id(event)
 		if not slot_id.is_empty():
 			var ref_stream: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream(slot_id)
 			if ref_stream:
@@ -396,6 +406,13 @@ func reset_audio_instant() -> void:
 		_echo_voice.stop()
 		_echo_voice.volume_db = 0.0
 
+	# Kill and free all active 2D reference transients
+	for p2d in _active_2d_transients:
+		if is_instance_valid(p2d):
+			p2d.stop()
+			p2d.queue_free()
+	_active_2d_transients.clear()
+
 	_is_decaying_pursuit_pressure = false
 	_current_pursuit_pressure = 0.0
 	_tension_layer_active = false
@@ -407,19 +424,28 @@ func reset_audio_instant() -> void:
 func _play_reference_stream(stream: AudioStream, slot_id: String, pos: Vector3) -> void:
 	var slot_meta: Dictionary = AudioRegistryScript.get_slot(slot_id)
 	var spatial = slot_meta.get("spatial_type", AudioRegistryScript.SpatialType.DIEGETIC_3D)
+	var stream_len: float = stream.get_length() if stream else 1.0
+	var cleanup_duration: float = maxf(0.5, stream_len + 0.1)
+
 	if spatial == AudioRegistryScript.SpatialType.NON_DIEGETIC_2D:
 		var p2d := AudioStreamPlayer.new()
 		p2d.stream = stream
 		p2d.bus = &"Master"
+		_active_2d_transients.append(p2d)
 		add_child(p2d)
 		p2d.play()
-		p2d.finished.connect(p2d.queue_free)
+		var cleanup := func():
+			if is_instance_valid(p2d):
+				_active_2d_transients.erase(p2d)
+				p2d.queue_free()
+		p2d.finished.connect(cleanup)
+		get_tree().create_timer(cleanup_duration).timeout.connect(cleanup)
 	else:
 		var p3d := AudioStreamPlayer3D.new()
 		p3d.stream = stream
 		p3d.bus = &"Master"
 		p3d.unit_size = 10.0
-		_register_and_play_transient(p3d, pos, 1.0)
+		_register_and_play_transient(p3d, pos, cleanup_duration)
 
 func set_mix_state(state: MixState) -> void:
 	current_mix_state = state

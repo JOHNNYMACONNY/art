@@ -54,7 +54,6 @@ enum AssetStatus {
 const SLOTS: Dictionary = {
 	"player.footstep": {
 		"slot_id": "player.footstep",
-		"sound_event": 0, # SoundEvent.FOOTSTEP
 		"domain": Domain.PLAYER,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
@@ -71,7 +70,6 @@ const SLOTS: Dictionary = {
 	},
 	"player.bike_mount": {
 		"slot_id": "player.bike_mount",
-		"sound_event": 10, # SoundEvent.BIKE_MOUNT
 		"domain": Domain.PLAYER,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
@@ -88,7 +86,6 @@ const SLOTS: Dictionary = {
 	},
 	"player.bike_dismount": {
 		"slot_id": "player.bike_dismount",
-		"sound_event": 11, # SoundEvent.BIKE_DISMOUNT
 		"domain": Domain.PLAYER,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
@@ -101,79 +98,42 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 2,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Courier dismounting bike chassis unlatch"
+		"description": "Courier dismounting bike release click"
 	},
-	"player.dismount_rejected": {
-		"slot_id": "player.dismount_rejected",
-		"sound_event": 14, # SoundEvent.DISMOUNT_REJECTED
+	"player.signal_lock_pulse": {
+		"slot_id": "player.signal_lock_pulse",
 		"domain": Domain.PLAYER,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.HYBRID,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
-		"mix_group": MixGroup.INCIDENTAL_UI,
+		"mix_group": MixGroup.SIGNATURE_ECHO,
 		"playback_type": PlaybackType.TRANSIENT,
 		"is_looping": false,
 		"loop_start_sec": 0.0,
 		"loop_end_sec": 0.0,
-		"cooldown_msec": 150,
+		"cooldown_msec": 100,
 		"max_concurrency": 2,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": false,
-		"description": "High-speed dismount denial warning buzz"
+		"replacement_required": true,
+		"description": "Signal tuner homing ping / alignment chirp"
 	},
-	"interaction.proximity_hum": {
-		"slot_id": "interaction.proximity_hum",
-		"sound_event": 1, # SoundEvent.PROXIMITY_HUM
+	"interaction.panel_pry": {
+		"slot_id": "interaction.panel_pry",
 		"domain": Domain.INTERACTION,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
-		"mix_group": MixGroup.AMBIENT_TEXTURE,
-		"playback_type": PlaybackType.CONTINUOUS_LOOP,
-		"is_looping": true,
+		"mix_group": MixGroup.INCIDENTAL_UI,
+		"playback_type": PlaybackType.TRANSIENT,
+		"is_looping": false,
 		"loop_start_sec": 0.0,
-		"loop_end_sec": 0.5,
-		"cooldown_msec": 0,
-		"max_concurrency": 1,
+		"loop_end_sec": 0.0,
+		"cooldown_msec": 100,
+		"max_concurrency": 2,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Electromagnetic proximity hum near scrap core"
+		"description": "Corroded panel initial pry stress crack"
 	},
 	"interaction.panel_peel": {
 		"slot_id": "interaction.panel_peel",
-		"sound_event": 2, # SoundEvent.PANEL_PEEL
-		"domain": Domain.INTERACTION,
-		"diegesis": Diegesis.DIEGETIC,
-		"spatial_type": SpatialType.DIEGETIC_3D,
-		"mix_group": MixGroup.INCIDENTAL_UI,
-		"playback_type": PlaybackType.TRANSIENT,
-		"is_looping": false,
-		"loop_start_sec": 0.0,
-		"loop_end_sec": 0.0,
-		"cooldown_msec": 0,
-		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Metal panel tearing / pry bar lever sound"
-	},
-	"interaction.core_pull": {
-		"slot_id": "interaction.core_pull",
-		"sound_event": 3, # SoundEvent.CORE_PULL
-		"domain": Domain.INTERACTION,
-		"diegesis": Diegesis.DIEGETIC,
-		"spatial_type": SpatialType.DIEGETIC_3D,
-		"mix_group": MixGroup.INCIDENTAL_UI,
-		"playback_type": PlaybackType.TRANSIENT,
-		"is_looping": false,
-		"loop_start_sec": 0.0,
-		"loop_end_sec": 0.0,
-		"cooldown_msec": 0,
-		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Scrap core extraction friction and unseat"
-	},
-	"interaction.spark": {
-		"slot_id": "interaction.spark",
-		"sound_event": 4, # SoundEvent.SPARK
 		"domain": Domain.INTERACTION,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
@@ -183,48 +143,45 @@ const SLOTS: Dictionary = {
 		"loop_start_sec": 0.0,
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 80,
-		"max_concurrency": 4,
+		"max_concurrency": 3,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Electrical short discharge during salvage"
+		"description": "Panel peeling metal groan and shear"
 	},
-	"interaction.completion": {
-		"slot_id": "interaction.completion",
-		"sound_event": 5, # SoundEvent.COMPLETION
+	"interaction.wire_clip": {
+		"slot_id": "interaction.wire_clip",
 		"domain": Domain.INTERACTION,
-		"diegesis": Diegesis.HYBRID,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
 		"mix_group": MixGroup.INCIDENTAL_UI,
 		"playback_type": PlaybackType.TRANSIENT,
 		"is_looping": false,
 		"loop_start_sec": 0.0,
 		"loop_end_sec": 0.0,
-		"cooldown_msec": 0,
+		"cooldown_msec": 100,
 		"max_concurrency": 2,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Core extraction sequence success confirmation"
+		"description": "Wire snip snap transient"
 	},
-	"interaction.signal_lock": {
-		"slot_id": "interaction.signal_lock",
-		"sound_event": 6, # SoundEvent.SIGNAL_LOCK
+	"interaction.wire_spark": {
+		"slot_id": "interaction.wire_spark",
 		"domain": Domain.INTERACTION,
-		"diegesis": Diegesis.HYBRID,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
 		"mix_group": MixGroup.INCIDENTAL_UI,
 		"playback_type": PlaybackType.TRANSIENT,
 		"is_looping": false,
 		"loop_start_sec": 0.0,
 		"loop_end_sec": 0.0,
-		"cooldown_msec": 0,
-		"max_concurrency": 2,
+		"cooldown_msec": 100,
+		"max_concurrency": 3,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Signal acquisition sweep lock confirmation"
+		"description": "Exposed wire electrical crackle / spark"
 	},
-	"interaction.panel_powered": {
-		"slot_id": "interaction.panel_powered",
-		"sound_event": 7, # SoundEvent.PANEL_POWERED
+	"interaction.battery_insert": {
+		"slot_id": "interaction.battery_insert",
 		"domain": Domain.INTERACTION,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
@@ -237,28 +194,58 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 2,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Capacitor surge and power rail energize"
+		"description": "Power cell locking into junction slot"
+	},
+	"interaction.core_extracted": {
+		"slot_id": "interaction.core_extracted",
+		"domain": Domain.INTERACTION,
+		"diegesis": Diegesis.DIEGETIC,
+		"spatial_type": SpatialType.DIEGETIC_3D,
+		"mix_group": MixGroup.SIGNATURE_ECHO,
+		"playback_type": PlaybackType.TRANSIENT,
+		"is_looping": false,
+		"loop_start_sec": 0.0,
+		"loop_end_sec": 0.0,
+		"cooldown_msec": 0,
+		"max_concurrency": 2,
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"description": "Memory core release pneumatic hiss and lock release"
+	},
+	"interaction.gate_triggered": {
+		"slot_id": "interaction.gate_triggered",
+		"domain": Domain.INTERACTION,
+		"diegesis": Diegesis.DIEGETIC,
+		"spatial_type": SpatialType.DIEGETIC_3D,
+		"mix_group": MixGroup.CRITICAL_THREAT,
+		"playback_type": PlaybackType.TRANSIENT,
+		"is_looping": false,
+		"loop_start_sec": 0.0,
+		"loop_end_sec": 0.0,
+		"cooldown_msec": 200,
+		"max_concurrency": 2,
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"description": "Signal gate barrier arm swing mechanical clank"
 	},
 	"vehicle.engine_rev": {
 		"slot_id": "vehicle.engine_rev",
-		"sound_event": 8, # SoundEvent.ENGINE_REV
 		"domain": Domain.VEHICLE,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
 		"mix_group": MixGroup.VEHICLE_FEEDBACK,
 		"playback_type": PlaybackType.CONTINUOUS_LOOP,
 		"is_looping": true,
-		"loop_start_sec": 0.0,
-		"loop_end_sec": 0.5,
+		"loop_start_sec": 0.1,
+		"loop_end_sec": 1.9,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Continuous vehicle engine drone with speed-scaled pitch"
+		"description": "Courier bike high-rpm electric turbine whine / hauler rumble"
 	},
 	"vehicle.brake_screech": {
 		"slot_id": "vehicle.brake_screech",
-		"sound_event": 9, # SoundEvent.BRAKE_SCREECH
 		"domain": Domain.VEHICLE,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
@@ -271,11 +258,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 3,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Tire slip friction / handbrake skid screech"
+		"description": "Pneumatic / disc brake skid screech"
 	},
 	"vehicle.collision_glance": {
 		"slot_id": "vehicle.collision_glance",
-		"sound_event": 18, # SoundEvent.COLLISION_GLANCE
 		"domain": Domain.VEHICLE,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
@@ -284,15 +270,14 @@ const SLOTS: Dictionary = {
 		"is_looping": false,
 		"loop_start_sec": 0.0,
 		"loop_end_sec": 0.0,
-		"cooldown_msec": 120,
+		"cooldown_msec": 100,
 		"max_concurrency": 3,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Glancing side scrape against junk/wall"
+		"description": "Low-speed scraper / glance collision against barrier"
 	},
-	"vehicle.collision_head_on": {
-		"slot_id": "vehicle.collision_head_on",
-		"sound_event": 19, # SoundEvent.COLLISION_HEAD_ON
+	"vehicle.collision_hard": {
+		"slot_id": "vehicle.collision_hard",
 		"domain": Domain.VEHICLE,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
@@ -301,15 +286,30 @@ const SLOTS: Dictionary = {
 		"is_looping": false,
 		"loop_start_sec": 0.0,
 		"loop_end_sec": 0.0,
-		"cooldown_msec": 200,
+		"cooldown_msec": 100,
 		"max_concurrency": 2,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Heavy frontal collision impact crunch"
+		"description": "High-speed metal crunch collision"
+	},
+	"pursuit.disturbance_alert": {
+		"slot_id": "pursuit.disturbance_alert",
+		"domain": Domain.PURSUIT,
+		"diegesis": Diegesis.NON_DIEGETIC,
+		"spatial_type": SpatialType.NON_DIEGETIC_2D,
+		"mix_group": MixGroup.CRITICAL_THREAT,
+		"playback_type": PlaybackType.TRANSIENT,
+		"is_looping": false,
+		"loop_start_sec": 0.0,
+		"loop_end_sec": 0.0,
+		"cooldown_msec": 0,
+		"max_concurrency": 1,
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"description": "Disturbance alert sweep / alarm trigger stinger"
 	},
 	"pursuit.siren_alarm": {
 		"slot_id": "pursuit.siren_alarm",
-		"sound_event": 12, # SoundEvent.SIREN_ALARM
 		"domain": Domain.PURSUIT,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
@@ -317,50 +317,47 @@ const SLOTS: Dictionary = {
 		"playback_type": PlaybackType.CONTINUOUS_LOOP,
 		"is_looping": true,
 		"loop_start_sec": 0.0,
-		"loop_end_sec": 0.6,
+		"loop_end_sec": 1.2,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Security scout spatial alarm siren"
+		"description": "Pursuer drone siren oscillation loop"
 	},
-	"pursuit.disturbance_alert": {
-		"slot_id": "pursuit.disturbance_alert",
-		"sound_event": 15, # SoundEvent.DISTURBANCE_ALERT
+	"pursuit.pursuer_sweep": {
+		"slot_id": "pursuit.pursuer_sweep",
 		"domain": Domain.PURSUIT,
-		"diegesis": Diegesis.HYBRID,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
 		"mix_group": MixGroup.CRITICAL_THREAT,
+		"playback_type": PlaybackType.CONTINUOUS_LOOP,
+		"is_looping": true,
+		"loop_start_sec": 0.0,
+		"loop_end_sec": 0.8,
+		"cooldown_msec": 0,
+		"max_concurrency": 2,
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"description": "Pursuer scanner radar sweep tone"
+	},
+	"pursuit.evaded_stinger": {
+		"slot_id": "pursuit.evaded_stinger",
+		"domain": Domain.PURSUIT,
+		"diegesis": Diegesis.NON_DIEGETIC,
+		"spatial_type": SpatialType.NON_DIEGETIC_2D,
+		"mix_group": MixGroup.SIGNATURE_ECHO,
 		"playback_type": PlaybackType.TRANSIENT,
 		"is_looping": false,
 		"loop_start_sec": 0.0,
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
-		"max_concurrency": 2,
+		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Initial scrap yard disturbance detection stinger"
+		"description": "Clean evasion resolution stinger"
 	},
-	"pursuit.intercepted": {
-		"slot_id": "pursuit.intercepted",
-		"sound_event": 16, # SoundEvent.PURSUIT_INTERCEPTED
-		"domain": Domain.PURSUIT,
-		"diegesis": Diegesis.HYBRID,
-		"spatial_type": SpatialType.DIEGETIC_3D,
-		"mix_group": MixGroup.CRITICAL_THREAT,
-		"playback_type": PlaybackType.TRANSIENT,
-		"is_looping": false,
-		"loop_start_sec": 0.0,
-		"loop_end_sec": 0.0,
-		"cooldown_msec": 0,
-		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Security interceptor ramming or boxing stinger"
-	},
-	"pursuit.gate_slam": {
-		"slot_id": "pursuit.gate_slam",
-		"sound_event": 13, # SoundEvent.GATE_SLAM
+	"pursuit.intercepted_impact": {
+		"slot_id": "pursuit.intercepted_impact",
 		"domain": Domain.PURSUIT,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
@@ -370,31 +367,13 @@ const SLOTS: Dictionary = {
 		"loop_start_sec": 0.0,
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
-		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Gate breach or shortcut closure impact"
-	},
-	"pursuit.evasion_release": {
-		"slot_id": "pursuit.evasion_release",
-		"sound_event": 17, # SoundEvent.EVASION_RELEASE
-		"domain": Domain.PURSUIT,
-		"diegesis": Diegesis.NON_DIEGETIC,
-		"spatial_type": SpatialType.NON_DIEGETIC_2D,
-		"mix_group": MixGroup.CRITICAL_THREAT,
-		"playback_type": PlaybackType.TRANSIENT,
-		"is_looping": false,
-		"loop_start_sec": 0.0,
-		"loop_end_sec": 0.0,
-		"cooldown_msec": 0,
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Pursuit evasion release rising relief sweep"
+		"description": "Pursuer intercept slam and EMP pulse"
 	},
 	"echo.onset": {
 		"slot_id": "echo.onset",
-		"sound_event": 20, # SoundEvent.ECHO_ONSET
 		"domain": Domain.ECHO,
 		"diegesis": Diegesis.NON_DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
@@ -406,12 +385,27 @@ const SLOTS: Dictionary = {
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": false,
-		"description": "Memory Echo onset crackle opening perception window"
+		"replacement_required": true,
+		"description": "Memory echo sequence onset drone"
 	},
-	"echo.peak": {
-		"slot_id": "echo.peak",
-		"sound_event": 21, # SoundEvent.ECHO_PEAK
+	"echo.bed_loop": {
+		"slot_id": "echo.bed_loop",
+		"domain": Domain.ECHO,
+		"diegesis": Diegesis.NON_DIEGETIC,
+		"spatial_type": SpatialType.NON_DIEGETIC_2D,
+		"mix_group": MixGroup.SIGNATURE_ECHO,
+		"playback_type": PlaybackType.CONTINUOUS_LOOP,
+		"is_looping": true,
+		"loop_start_sec": 0.0,
+		"loop_end_sec": 4.0,
+		"cooldown_msec": 0,
+		"max_concurrency": 1,
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"description": "Memory echo ambient shimmer and harmonic bed"
+	},
+	"echo.completion": {
+		"slot_id": "echo.completion",
 		"domain": Domain.ECHO,
 		"diegesis": Diegesis.NON_DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
@@ -423,80 +417,57 @@ const SLOTS: Dictionary = {
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": false,
-		"description": "Memory Echo fractured harmonic core payload"
+		"replacement_required": true,
+		"description": "Memory echo resolution stinger and chord decay"
 	},
-	"echo.tail": {
-		"slot_id": "echo.tail",
-		"sound_event": 22, # SoundEvent.ECHO_TAIL
-		"domain": Domain.ECHO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+	"world.ambient_wind": {
+		"slot_id": "world.ambient_wind",
+		"domain": Domain.WORLD,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
-		"mix_group": MixGroup.SIGNATURE_ECHO,
-		"playback_type": PlaybackType.TRANSIENT,
-		"is_looping": false,
+		"mix_group": MixGroup.AMBIENT_TEXTURE,
+		"playback_type": PlaybackType.CONTINUOUS_LOOP,
+		"is_looping": true,
 		"loop_start_sec": 0.0,
-		"loop_end_sec": 0.0,
+		"loop_end_sec": 5.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": false,
-		"description": "Memory Echo electrical shimmer tail into quiet"
+		"replacement_required": true,
+		"description": "Dry scrap valley ambient wind loop"
 	},
-	"world.ambient_work_clink": {
-		"slot_id": "world.ambient_work_clink",
-		"sound_event": 23, # SoundEvent.AMBIENT_WORK_CLINK
+	"world.radio_chatter": {
+		"slot_id": "world.radio_chatter",
 		"domain": Domain.WORLD,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.DIEGETIC_3D,
-		"mix_group": MixGroup.AMBIENT_TEXTURE,
+		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
 		"is_looping": false,
 		"loop_start_sec": 0.0,
 		"loop_end_sec": 0.0,
-		"cooldown_msec": 0,
-		"max_concurrency": 3,
+		"cooldown_msec": 3000,
+		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Distant yard scrap sorting and tool clinks"
-	},
-	"world.ambient_servo_hum": {
-		"slot_id": "world.ambient_servo_hum",
-		"sound_event": 24, # SoundEvent.AMBIENT_SERVO_HUM
-		"domain": Domain.WORLD,
-		"diegesis": Diegesis.DIEGETIC,
-		"spatial_type": SpatialType.DIEGETIC_3D,
-		"mix_group": MixGroup.AMBIENT_TEXTURE,
-		"playback_type": PlaybackType.TRANSIENT,
-		"is_looping": false,
-		"loop_start_sec": 0.0,
-		"loop_end_sec": 0.0,
-		"cooldown_msec": 0,
-		"max_concurrency": 3,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Overhead crane / automated sorting servo sweep"
+		"description": "Corrupted courier transmission burst"
 	}
 }
 
-# Reverse lookup table: int (sound_event) -> String (slot_id)
-static var _EVENT_TO_SLOT_CACHE: Dictionary = {}
-
-static func _static_init() -> void:
-	_build_reverse_lookup()
-
-static func _build_reverse_lookup() -> void:
-	_EVENT_TO_SLOT_CACHE.clear()
-	for slot_id in SLOTS.keys():
-		var slot_def: Dictionary = SLOTS[slot_id]
-		var ev: int = slot_def.get("sound_event", -1)
-		if ev >= 0:
-			_EVENT_TO_SLOT_CACHE[ev] = slot_id
-
-static func event_to_slot_id(event: int) -> String:
-	if _EVENT_TO_SLOT_CACHE.is_empty():
-		_build_reverse_lookup()
-	return _EVENT_TO_SLOT_CACHE.get(event, "")
+static func is_reference_allowed_for_status(status: int) -> bool:
+	match status:
+		AssetStatus.PROCEDURAL_FALLBACK:
+			return true
+		AssetStatus.REFERENCE_ONLY:
+			return true
+		AssetStatus.ORIGINAL_WIP:
+			return true
+		AssetStatus.ORIGINAL_FINAL:
+			return false
+		AssetStatus.LICENSED_FINAL:
+			return false
+		_:
+			return false
 
 static func has_slot(slot_id: String) -> bool:
 	return SLOTS.has(slot_id)
