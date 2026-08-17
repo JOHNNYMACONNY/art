@@ -1,0 +1,99 @@
+[gd_scene format=3 uid="uid://dsworker01live"]
+
+[ext_resource type="Script" uid="uid://c6scrapwork01" path="res://scripts/entities/scrap_worker.gd" id="1_script"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_worker"]
+radius = 0.35
+height = 1.7
+
+[sub_resource type="StandardMaterial3D" id="Material_Workwear"]
+albedo_color = Color(0.24, 0.28, 0.22, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_Torso"]
+material = SubResource("Material_Workwear")
+size = Vector3(0.48, 0.6, 0.28)
+
+[sub_resource type="StandardMaterial3D" id="Material_Helmet"]
+albedo_color = Color(0.85, 0.55, 0.15, 1)
+roughness = 0.4
+
+[sub_resource type="SphereMesh" id="SphereMesh_Helmet"]
+material = SubResource("Material_Helmet")
+radius = 0.22
+height = 0.44
+
+[sub_resource type="StandardMaterial3D" id="Material_Visor"]
+albedo_color = Color(0.1, 0.12, 0.15, 1)
+metallic = 0.8
+roughness = 0.2
+
+[sub_resource type="BoxMesh" id="BoxMesh_Visor"]
+material = SubResource("Material_Visor")
+size = Vector3(0.25, 0.16, 0.12)
+
+[sub_resource type="StandardMaterial3D" id="Material_Pants"]
+albedo_color = Color(0.16, 0.18, 0.16, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_Limb"]
+material = SubResource("Material_Pants")
+size = Vector3(0.14, 0.55, 0.14)
+
+[node name="ScrapWorker" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+shape = SubResource("CapsuleShape3D_worker")
+
+[node name="MeshPivot" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+
+[node name="Torso" type="MeshInstance3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("BoxMesh_Torso")
+
+[node name="Helmet" type="MeshInstance3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.48, 0)
+mesh = SubResource("SphereMesh_Helmet")
+
+[node name="Visor" type="MeshInstance3D" parent="MeshPivot/Helmet"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.16)
+mesh = SubResource("BoxMesh_Visor")
+
+[node name="LeftArm" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.32, 0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="MeshPivot/LeftArm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, 0)
+mesh = SubResource("BoxMesh_Limb")
+
+[node name="RightArm" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="MeshPivot/RightArm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, 0)
+mesh = SubResource("BoxMesh_Limb")
+
+[node name="LeftLeg" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, -0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="MeshPivot/LeftLeg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+mesh = SubResource("BoxMesh_Limb")
+
+[node name="RightLeg" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, -0.25, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="MeshPivot/RightLeg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
+mesh = SubResource("BoxMesh_Limb")
+
+[node name="TorchLight" type="OmniLight3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, -0.1, -0.4)
+light_color = Color(0.65, 0.85, 1, 1)
+light_energy = 1.2
+omni_range = 3.0

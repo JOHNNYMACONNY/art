@@ -1,5 +1,5 @@
-# HANDOFF.md — V8 M06 / M06A Formal Completion (06.1 - 06.6 Vehicle Class Variety & Escape Choice)
-**Generated**: 2026-08-17T02:05 PDT  
+# HANDOFF.md — V8 M07 Formal Completion (07.1 - 07.7 Living Scrap Yard & Reactive Ambient World)
+**Generated**: 2026-08-17T02:54 PDT  
 **Branch**: `main`  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official)  
@@ -9,36 +9,38 @@
 - **V8 M03 (03.1 - 03.4 + 03.2B)**: Threat Aftermath & World Continuity — ✅ CLOSED & VERIFIED (`a077e2a`)
 - **V8 M04 / M04B (04.1 - 04.6)**: First Memory Echo / Extraction Payoff & Exactly-Once Lifecycle — ✅ CLOSED & VERIFIED (`6c6f27e`)
 - **V8 M05 / M05A (05.1 - 05.6)**: Hero Silhouette & Courier Identity — ✅ CLOSED & VERIFIED (`3f1ebb5`)
-- **V8 M06 / M06A (06.1 - 06.6)**: First Full-Size Vehicle (Scrap Hauler) & Escape Choice — ✅ 100% COMPLETE & VERIFIED
+- **V8 M06 / M06A (06.1 - 06.6)**: First Full-Size Vehicle (Scrap Hauler) & Escape Choice — ✅ CLOSED & VERIFIED (`3c9a456`)
+- **V8 M07 (07.1 - 07.7)**: Living Scrap Yard & Reactive Ambient World — ✅ 100% COMPLETE & VERIFIED
 
 ---
 
-## 1. Milestone V8 M06A Deliverables & Verification Details
+## 1. Milestone V8 M07 Deliverables & Verification Details
 
-| Ticket | Description | Status | Deliverables & M06A Resolutions |
+| Ticket | Description | Status | Deliverables & M07 Resolutions |
 |---|---|---|---|
-| **06.1** | Minimal Vehicle Abstraction | ✅ CLOSED | Minimal shared driveable interface: duck-typed/contract API supported by both `CourierBike` and `ScrapHauler` (`mount_interactable`, `request_mount(player)`, `request_dismount()`, `force_dismount()`, `set_drive_inputs()`, `occupant`, `current_state`, `current_speed`, `max_speed`, `dismount_speed_limit`). Original bike behavior and all existing V1-V8 regressions 100% locked. |
-| **06.2** | Full-Size Scrap Hauler Prototype | ✅ CLOSED | Created `scrap_hauler.tscn` and `scrap_hauler.gd`. Human-scale 4-wheel road vehicle with full-size collision footprint (`BoxShape3D(1.8, 1.4, 3.8)`): steel tube frame chassis, 4 rubber tires with rims, driver cabin with roll-cage contours, aerodynamic scrap orange hood/fenders, dual amber headlights (`Color(1.0, 0.92, 0.65)`, emission 1.8), green utility cargo bed with cyan battery core indicator (`Color(0.12, 0.85, 1.0)`), and dark silhouette contour outlines. |
-| **06.3** | Meaningful Handling Contrast | ✅ CLOSED | Canonical GTA touch control semantics (Gas, Brake/Reverse, Handbrake, Exit). **M06A Resolution**: (1) Assertion 4 verifies full forward -> brake -> zero -> reverse -> brake -> zero -> forward cycle with gear state and velocity signs; (2) Assertion 6 measures real physics planar displacement stopping distance from 10 m/s (Bike 2.73m vs Hauler 3.71m); (3) Steering agility contrast measured at cruising speed (Bike 44.6° vs Hauler 33.4°); (4) Acceleration contrast verified (Bike 6.00 m/s vs Hauler 4.25 m/s). |
-| **06.4** | Escape Vehicle Choice | ✅ CLOSED | Staged both vehicles in scrap yard: Courier Bike at `(-1.5, 0.05, 3.0)` and Scrap Hauler at `(3.5, 0.05, 3.0)`. Entering either vehicle automatically assigns camera target (`camera.set_target(veh)`), touch UI driving mode, engine audio, and pursuer tracking target (`pursuer.target_node = veh`). Exiting returns all responsibilities to the runner on foot. |
-| **06.5** | World / Camera / Collision Compatibility | ✅ CLOSED | **M06A Resolution**: Scrap Hauler physically drives from yard lane `Vector3(-1.5, 0.05, 6.0)` through the Security Gate corridor (`Z = 12.0m`) to `Z = 21.06m` under live `move_and_slide()` physics with zero prop snagging, passing the post-gate plane (`Z > 14.0m`). Safe dismount volume search dynamically checks 4 vehicle-relative offsets (left door, right door, tailgate, hood). |
-| **06.6** | Automated Falsification & 7 Rendered Visual Proofs | ✅ CLOSED | Dedicated test suite `--run-v8-m06-vehicle-class-assertions` (Suite 23, 12/12 assertions pass). 7 distinct rendered 3D Metal viewport captures in `godot/verification/v8/m06/` generated from the verified physical execution flow. |
+| **07.1** | Minimal Ambient Actor Framework | ✅ CLOSED | Created deterministic local/runtime ambient actor state machine with 4 states (`AMBIENT`, `YIELDING`, `ALARMED`, `RECOVERING`). Zero networking, persistence, AI bloat, or complex tree solvers. Clean, authoritative reset restoring actors to initial cold-start positions and states. |
+| **07.2** | Two Distinct Ambient Actor Types | ✅ CLOSED | (1) **Scrap Worker** (`scrap_worker.tscn` / `scrap_worker.gd`): Human-scale industrial neutral actor with stylized olive workwear, welding visor, torch light, patrol/inspect loops, and perpendicular vehicle yield evasion. Low population (2 active workers). (2) **Utility Crawler** (`utility_crawler.tscn` / `utility_crawler.gd`): Low industrial autonomous rover with hazard-striped chassis, treads, cargo bed, rotating amber beacon pulse, and salvage lane loop with braking yield. Total active ambient population: 3 actors. |
+| **07.3** | Ambient Movement Serving Readability | ✅ CLOSED | Ambient actor patrol routes and idle stations are strictly placed in peripheral scrap zones. Zero obstruction across Tuner, Corroded Panel, Courier Bike, Scrap Hauler, Security Gate escape corridor (`dist > 3.0m`), or Pedestrian Shortcut ramp (`dist > 3.0m`). |
+| **07.4** | Reactive Disturbance Transition | ✅ CLOSED | Disturbance alert immediately triggers `trigger_alarm()` across all ambient actors: actors abandon work loops, extinguish work lights / strobe hazard beacons, and retreat cleanly along unobstructed paths to designated perimeter cover anchors. Work ambience ducks into silence. |
+| **07.5** | Vehicle Interaction | ✅ CLOSED | Ambient actors proactively yield before collision when approached by fast-moving player vehicles (Courier Bike or Scrap Hauler at > 1.5 m/s): workers perform lateral side-steps and crawlers halt to yield lane. Zero rigid physics wedge disruptions or snagging. |
+| **07.6** | Audio Life | ✅ CLOSED | Added `SoundEvent.AMBIENT_WORK_CLINK` and `SoundEvent.AMBIENT_SERVO_HUM` in `AudioManager`. Ambient world audio automatically thins and ducks to zero during `MixState.DISTURBANCE` and `MixState.PURSUIT_PRESSURE`. |
+| **07.7** | Automated Falsification & 7 Rendered Visual Proofs | ✅ CLOSED | Dedicated test suite `--run-v8-m07-world-life-assertions` (Suite 24, 13/13 assertions pass). 7 distinct rendered 3D Metal viewport captures in `godot/verification/v8/m07/` generated from the verified physical execution flow. Full 24-suite regression sweep passes 100% green. |
 
 ---
 
-## 2. 7 Canonical M06 Visual Proof Artifacts
+## 2. 7 Canonical M07 Visual Proof Artifacts
 
-1. `godot/verification/v8/m06/m06_01_scale_comparison.png` (122,237 bytes, SHA `4d0adc2c...`): Runner + Courier Bike + Scrap Hauler scale comparison in scrap yard.
-2. `godot/verification/v8/m06/m06_02_hauler_parked_entry.png` (126,038 bytes, SHA `22e7a82b...`): Runner mounting Scrap Hauler at driver door.
-3. `godot/verification/v8/m06/m06_03_hauler_acceleration.png` (154,511 bytes, SHA `d2b34ab4...`): Scrap Hauler straight-line acceleration down main yard lane.
-4. `godot/verification/v8/m06/m06_04_hauler_braking.png` (153,578 bytes, SHA `d6692e07...`): Scrap Hauler heavy braking.
-5. `godot/verification/v8/m06/m06_05_hauler_drift_turn.png` (149,830 bytes, SHA `cdd5661c...`): Scrap Hauler handbrake drift turn showing wide lateral slide arc.
-6. `godot/verification/v8/m06/m06_06_hauler_pursuit.png` (154,482 bytes, SHA `359240f2...`): Scrap Hauler high-speed pursuit chase actively traversing through security gate.
-7. `godot/verification/v8/m06/m06_07_hauler_exit_aftermath.png` (135,693 bytes, SHA `eda381ba...`): Dismounted runner standing beside parked Scrap Hauler in quiet aftermath.
+1. `godot/verification/v8/m07/m07_01_ambient_cold_start.png` (127,204 bytes): Cold-start ambient scrap yard with working actors in neutral state before disturbance.
+2. `godot/verification/v8/m07/m07_02_worker_activity.png` (165,233 bytes): Close-up of Scrap Worker performing torch inspection work at scrap sorting pad.
+3. `godot/verification/v8/m07/m07_03_bike_yield_reaction.png` (154,524 bytes): Scrap Worker stepping aside laterally as Courier Bike approaches at speed.
+4. `godot/verification/v8/m07/m07_04_hauler_yield_reaction.png` (181,268 bytes): Utility Crawler halting in right lane with amber beacon warning as Scrap Hauler passes.
+5. `godot/verification/v8/m07/m07_05_disturbance_alarm_reaction.png` (139,093 bytes): All ambient actors in alarmed retreat rushing to perimeter safe anchors during disturbance pulse.
+6. `godot/verification/v8/m07/m07_06_cleared_pursuit_escape.png` (144,790 bytes): High-speed pursuit through 100% unobstructed security gate corridor with ambient actors clear.
+7. `godot/verification/v8/m07/m07_07_ambient_quiet_reset.png` (127,099 bytes): Slice reset returning all ambient actors cleanly to initial cold-start positions and calm ambient routines.
 
 ---
 
-## 3. Enumerated 23-Suite Regression Matrix (100% Green)
+## 3. Enumerated 24-Suite Regression Matrix (100% Green)
 
 1. `--run-v1-assertions`: PASS (Reaction Loop & Locomotion)
 2. `--run-v2-assertions`: PASS (Micro-Play Loop)
@@ -62,10 +64,11 @@
 20. `--run-v8-m04-echo-assertions`: PASS (Dedicated 10-test Memory Echo extraction payoff suite)
 21. `--run-v8-m05-hero-identity-assertions`: PASS (Dedicated 10-test Hero Silhouette & Courier Identity suite)
 22. `--run-v8-m06-vehicle-class-assertions`: PASS (Dedicated 12-test Vehicle Class Variety & Escape Choice suite)
-23. `--run-v8-readability`: PASS (8/8 real gameplay physics routes & landmark framing)
+23. `--run-v8-m07-world-life-assertions`: PASS (Dedicated 13-test Living Scrap Yard & Reactive Ambient World suite)
+24. `--run-v8-readability`: PASS (8/8 real gameplay physics routes & landmark framing)
 
 ---
 
 ## 4. Hardware Readiness & Evidence Classification
-- **Automated Verification**: Headless and windowed Godot 4.7.1 test execution on macOS Metal GPU (Apple M4). All 23 test suites pass with zero runtime regressions.
+- **Automated Verification**: Headless and windowed Godot 4.7.1 test execution on macOS Metal GPU (Apple M4). All 24 test suites pass with zero runtime regressions.
 - **CI / Build Integration**: Local automated verification with exit code 0. Remote CI remains unconfigured on repository.

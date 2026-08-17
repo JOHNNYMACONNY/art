@@ -29,7 +29,10 @@ enum SoundEvent {
 	## M04 — Memory Echo signature events
 	ECHO_ONSET,
 	ECHO_PEAK,
-	ECHO_TAIL
+	ECHO_TAIL,
+	## M07 — Living Scrap Yard ambient life events
+	AMBIENT_WORK_CLINK,
+	AMBIENT_SERVO_HUM
 }
 
 enum MixState {
@@ -203,6 +206,13 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			_play_echo_peak()
 		SoundEvent.ECHO_TAIL:
 			_play_echo_tail()
+		## M07 — Ambient world work life (ducked automatically during disturbance/pursuit)
+		SoundEvent.AMBIENT_WORK_CLINK:
+			if current_mix_state != MixState.DISTURBANCE and current_mix_state != MixState.PURSUIT_PRESSURE:
+				_play_synth_click(pos, 720.0, 0.06, 0.25)
+		SoundEvent.AMBIENT_SERVO_HUM:
+			if current_mix_state != MixState.DISTURBANCE and current_mix_state != MixState.PURSUIT_PRESSURE:
+				_play_synth_sweep(pos, 220.0, 310.0, 0.25, 0.2)
 
 func stop_event(event: SoundEvent) -> void:
 	if event == SoundEvent.PROXIMITY_HUM and _hum_player:
