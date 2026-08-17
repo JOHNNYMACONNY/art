@@ -65,7 +65,7 @@ jobs:
           from pathlib import Path
 
           summary = json.loads(Path('godot/verification/feel/baseline_summary.json').read_text())
-          assert summary['schema_version'] == 2
+          assert summary['schema_version'] == 3
           assert summary['ticket'] == 11
           assert summary['metadata']['behavior_commit']
           assert summary['repeatability']['passed'] is True
