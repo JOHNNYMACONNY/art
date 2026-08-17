@@ -9,9 +9,9 @@ permissions:
   contents: read
 
 jobs:
-  headless-baseline:
+  verify-ticket-11:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
 
     steps:
       - name: Checkout
@@ -53,7 +53,7 @@ jobs:
             --run-ctw-feel-baseline \
             --feel-build-commit="${GITHUB_SHA}"
 
-      - name: Validate generated evidence
+      - name: Validate generated baseline evidence
         shell: bash
         run: |
           set -euo pipefail
@@ -81,14 +81,85 @@ jobs:
           print(json.dumps(summary, indent=2))
           PY
 
-      - name: Upload baseline evidence
+      - name: Run current 24-suite regression matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT=.godot-bin/Godot_v4.7.1-stable_linux.x86_64
+          suites=(
+            --run-v1-assertions
+            --run-v2-assertions
+            --run-v3-assertions
+            --run-v4-assertions
+            --run-v5-assertions
+            --run-v6-assertions
+            --run-v7-ticket01-assertions
+            --run-v7-ticket02-assertions
+            --run-v7-ticket02-1-assertions
+            --run-v7-ticket03-assertions
+            --run-v7-ticket04-1-assertions
+            --run-v7-ticket04-2-assertions
+            --run-v7-ticket04-3-assertions
+            --run-v7-ticket05-assertions
+            --run-v7-ticket06-assertions
+            --run-v8-safe-area-assertions
+            --run-v8-thumb-reach-assertions
+            --run-v8-multitouch-assertions
+            --run-v8-m03-aftermath-assertions
+            --run-v8-m04-echo-assertions
+            --run-v8-m05-hero-identity-assertions
+            --run-v8-m06-vehicle-class-assertions
+            --run-v8-m07-world-life-assertions
+            --run-v8-readability
+          )
+
+          : > regression_matrix.log
+          for suite in "${suites[@]}"; do
+            echo "===== ${suite} =====" | tee -a regression_matrix.log
+            timeout 120s "$GODOT" --headless --path godot -- "$suite" 2>&1 | tee -a regression_matrix.log
+          done
+          echo "24/24 regression commands exited 0" | tee -a regression_matrix.log
+
+      - name: Run windowed rendered sanity
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT=.godot-bin/Godot_v4.7.1-stable_linux.x86_64
+          command -v xvfb-run >/dev/null
+
+          # Force fresh proof so this job cannot pass on PNGs already committed in main.
+          rm -f godot/verification/v8/m07/*.png
+          xvfb-run -a -s "-screen 0 1280x720x24" \
+            timeout 180s "$GODOT" --path godot -- --run-v8-m07-world-life-assertions
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          proof = Path('godot/verification/v8/m07')
+          files = sorted(proof.glob('m07_*.png'))
+          assert len(files) == 7, [p.name for p in files]
+          required = {
+              'm07_03_bike_yield_reaction.png',
+              'm07_06_cleared_pursuit_escape.png',
+          }
+          assert required.issubset({p.name for p in files})
+          for path in files:
+              data = path.read_bytes()
+              assert len(data) > 20_000, (path.name, len(data))
+              assert data[:8] == b'\x89PNG\r\n\x1a\n', path.name
+          print('fresh rendered M07 proof:', [(p.name, p.stat().st_size) for p in files])
+          PY
+
+      - name: Upload Ticket 11 evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ctw-feel-baseline-${{ github.sha }}
+          name: ctw-feel-ticket-11-${{ github.sha }}
           path: |
             godot/verification/feel/baseline_summary.json
             godot/verification/feel/baseline_*_trace.json
             godot/verification/feel/baseline_verification.log
+            regression_matrix.log
+            godot/verification/v8/m07/m07_*.png
           if-no-files-found: warn
           retention-days: 14
