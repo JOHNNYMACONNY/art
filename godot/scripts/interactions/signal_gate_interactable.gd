@@ -22,8 +22,10 @@ enum GateState {
 @onready var barrier_pivot: Node3D = $BarrierPivot
 @onready var barrier_body: StaticBody3D = $BarrierPivot/BarrierBody
 @onready var barrier_collision: CollisionShape3D = $BarrierPivot/BarrierBody/CollisionShape3D
+@onready var sweep_area: Area3D = $BarrierPivot/SweepArea
 
 var current_state: GateState = GateState.DORMANT
+var _barrier_tween: Tween = null
 
 func _ready() -> void:
 	interaction_radius = 15.0
@@ -47,6 +49,23 @@ func set_pursuit_active(active: bool) -> void:
 		gate_state_changed.emit("DORMANT")
 	_update_visual_state()
 
+## CTW Feel Wave 1 / Ticket #15 — chase-local reset only.
+## Restores the authored gate to the post-Echo, pre-pursuit state without
+## rewinding Tuner/Panel/Echo progression. Any in-flight barrier tween is killed
+## first so a stale completion callback cannot re-enable collision after reset.
+func reset_for_pursuit_retry() -> void:
+	if _barrier_tween and is_instance_valid(_barrier_tween):
+		_barrier_tween.kill()
+	_barrier_tween = null
+	current_state = GateState.DORMANT
+	is_powered = false
+	if barrier_pivot:
+		barrier_pivot.rotation.y = 0.0
+	if barrier_collision:
+		barrier_collision.disabled = true
+	gate_state_changed.emit("DORMANT")
+	_update_visual_state()
+
 func can_interact(player_pos: Vector3) -> bool:
 	return current_state == GateState.READY and is_powered and global_position.distance_to(player_pos) <= interaction_radius
 
@@ -64,8 +83,6 @@ func begin_interaction(_player_pos: Vector3) -> bool:
 			trigger_gate()
 	)
 	return true
-
-@onready var sweep_area: Area3D = $BarrierPivot/SweepArea
 
 func is_sweep_occupied() -> bool:
 	if not sweep_area:
@@ -85,11 +102,17 @@ func trigger_gate() -> void:
 	if barrier_collision:
 		barrier_collision.disabled = true
 		
-	# Animate physical barrier swinging 90 deg across main scrap lane over 0.3s
+	# Animate physical barrier swinging 90 deg across main scrap lane over 0.3s.
+	# Keep one authoritative tween so Retry Chase can invalidate it safely.
 	if barrier_pivot:
-		var tween := create_tween()
-		tween.tween_property(barrier_pivot, "rotation:y", deg_to_rad(90.0), 0.3)
-		tween.finished.connect(func():
+		if _barrier_tween and is_instance_valid(_barrier_tween):
+			_barrier_tween.kill()
+		_barrier_tween = create_tween()
+		_barrier_tween.tween_property(barrier_pivot, "rotation:y", deg_to_rad(90.0), 0.3)
+		_barrier_tween.finished.connect(func():
+			_barrier_tween = null
+			if current_state != GateState.TRIGGERED:
+				return
 			print("[GATE] Physical scrap barrier arm swing completed! Solid collision active.")
 			if barrier_collision:
 				barrier_collision.disabled = false
