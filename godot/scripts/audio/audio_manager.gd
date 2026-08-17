@@ -271,13 +271,13 @@ func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
 		# Low-mid tension layer volume scales smoothly from -24dB to -6dB
 		_tension_player.volume_db = lerpf(-24.0, -6.0, p)
 
-## Frame-rate independent pursuit release decay envelope (03.2A)
+## Frame-rate independent pursuit release decay envelope (03.2B)
 func start_pursuit_release_decay(duration: float = 1.0) -> void:
 	if _current_pursuit_pressure <= 0.0:
-		_current_pursuit_pressure = 0.4
-		if _tension_player and not _tension_player.playing:
-			_tension_player.play()
-			_tension_player.volume_db = lerpf(-40.0, -6.0, 0.4)
+		# If starting pressure is zero (long-distance evasion), remain quiet without synthesizing tension
+		_is_decaying_pursuit_pressure = false
+		clear_pursuit_pressure()
+		return
 			
 	_decay_initial_pressure = _current_pursuit_pressure
 	_decay_rate_per_sec = _current_pursuit_pressure / maxf(duration, 0.1)

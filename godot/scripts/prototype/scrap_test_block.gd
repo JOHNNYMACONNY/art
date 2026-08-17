@@ -4591,21 +4591,21 @@ func _run_v8_m03_aftermath_assertions() -> void:
 	print("  -> Test 4 PASS: Disengagement completed cleanly!")
 
 	# -------------------------------------------------------------------------
-	# TEST 5: FRAME-RATE INDEPENDENT PURSUIT RELEASE ENVELOPE (03.2A)
+	# TEST 5: FRAME-RATE INDEPENDENT PURSUIT RELEASE ENVELOPE (03.2B INTEGRATION)
 	# -------------------------------------------------------------------------
-	print("[TEST 5] Audio pursuit pressure monotonic decay (03.2A)...")
-	# Trigger active pursuit pressure
+	print("[TEST 5] Audio pursuit pressure monotonic decay & evasion integration (03.2B)...")
+	# 5.1: Real-pressure evasion path
 	audio_mgr.set_pursuit_pressure(8.0, pursuer.global_position)
 	assert(audio_mgr._current_pursuit_pressure > 0.6, "FAIL 5A: Pursuit pressure armed at high level")
 	assert(audio_mgr._tension_layer_active and audio_mgr._tension_player.playing, "FAIL 5A: Tension layer active")
 	var initial_p: float = audio_mgr._current_pursuit_pressure
 	
-	# Start pursuit release decay envelope (1.0s) layered with EVASION_RELEASE chime
-	audio_mgr.start_pursuit_release_decay(1.0)
-	audio_mgr.set_mix_state(AudioManagerScript.MixState.EVASION_RELEASE)
-	assert(audio_mgr.current_mix_state == AudioManagerScript.MixState.EVASION_RELEASE, "FAIL 5B1: MixState is EVASION_RELEASE")
-	assert(audio_mgr._is_decaying_pursuit_pressure == true, "FAIL 5B2: Decay envelope remains active during EVASION_RELEASE")
-	assert(audio_mgr._tension_player.playing, "FAIL 5B3: Tension drone continues playing and decaying during EVASION_RELEASE")
+	# Execute actual controller successful evasion sequence
+	_on_successful_evasion()
+	assert(current_pursuit_state == PursuitState.EVADED, "FAIL 5B1: Controller state EVADED")
+	assert(audio_mgr.current_mix_state == AudioManagerScript.MixState.EVASION_RELEASE, "FAIL 5B2: MixState is EVASION_RELEASE")
+	assert(audio_mgr._is_decaying_pursuit_pressure == true, "FAIL 5B3: Decay envelope active immediately after evasion")
+	assert(audio_mgr._tension_player.playing, "FAIL 5B4: Tension drone remains playing during early envelope (not hard cut)")
 	
 	# Sample beginning (t=0)
 	var p_start: float = audio_mgr._current_pursuit_pressure
@@ -4627,11 +4627,28 @@ func _run_v8_m03_aftermath_assertions() -> void:
 		audio_mgr._process(1.0 / 60.0)
 		
 	# Sample end (t >= 0.8s) -> Total silence
-	assert(audio_mgr._current_pursuit_pressure == 0.0, "FAIL 5F: Pressure reached zero")
-	assert(audio_mgr._is_decaying_pursuit_pressure == false, "FAIL 5F: Decay completed")
-	assert(not audio_mgr._tension_player.playing, "FAIL 5F: Tension drone halted at end of decay")
-	assert(not audio_mgr._siren_player.playing, "FAIL 5F: Siren halted at end of decay")
-	print("  -> Test 5 PASS: Frame-rate independent pursuit release envelope (03.2A) verified!")
+	assert(audio_mgr._current_pursuit_pressure == 0.0, "FAIL 5F1: Pressure reached zero")
+	assert(audio_mgr._is_decaying_pursuit_pressure == false, "FAIL 5F2: Decay completed")
+	assert(not audio_mgr._tension_player.playing, "FAIL 5F3: Tension drone halted at end of decay")
+	assert(not audio_mgr._siren_player.playing, "FAIL 5F4: Siren halted at end of decay")
+	
+	# 5.2: Zero-pressure evasion path (long-distance escape never synthesizes new tension)
+	audio_mgr.clear_pursuit_pressure()
+	assert(audio_mgr._current_pursuit_pressure == 0.0, "FAIL 5G1: Starting pressure is 0")
+	_on_successful_evasion()
+	assert(audio_mgr._current_pursuit_pressure == 0.0, "FAIL 5G2: Zero-pressure evasion never synthesizes new pressure")
+	assert(audio_mgr._is_decaying_pursuit_pressure == false, "FAIL 5G3: Decay envelope inactive when zero pressure")
+	assert(not audio_mgr._tension_player.playing, "FAIL 5G4: Tension player remains stopped")
+	
+	# 5.3: Instant reset authoritative override during active decay
+	audio_mgr.set_pursuit_pressure(8.0, pursuer.global_position)
+	audio_mgr.start_pursuit_release_decay(1.0)
+	assert(audio_mgr._is_decaying_pursuit_pressure == true, "FAIL 5H1: Decay armed before reset")
+	audio_mgr.reset_audio_instant()
+	assert(audio_mgr._is_decaying_pursuit_pressure == false, "FAIL 5H2: Instant reset immediately killed decay envelope")
+	assert(audio_mgr._current_pursuit_pressure == 0.0, "FAIL 5H3: Instant reset zeroed pressure")
+	
+	print("  -> Test 5 PASS: Frame-rate independent pursuit release envelope (03.2B) verified!")
 
 	# -------------------------------------------------------------------------
 	# TEST 6: REPLAY / RESET DETERMINISTIC LIFECYCLE
