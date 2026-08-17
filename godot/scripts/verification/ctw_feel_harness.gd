@@ -1,12 +1,7 @@
 extends SceneTree
 
 # CTW Feel Translation Wave 1 — Ticket #11.
-# Standalone verification only: no gameplay tuning or production dispatch hook.
-#
-# Headless:
-#   godot --headless --path godot \
-#     --script res://scripts/verification/ctw_feel_harness.gd -- \
-#     --run-ctw-feel-baseline --feel-build-commit=<sha>
+# Standalone verification only. This file does not alter gameplay tuning.
 
 const CourierBikeScript = preload("res://scripts/vehicles/courier_bike.gd")
 
@@ -51,8 +46,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	if not OS.get_cmdline_user_args().has("--run-ctw-feel-baseline"):
-		push_error("[CTW_FEEL] Missing --run-ctw-feel-baseline user argument.")
-		quit(2)
+		_fail("Missing --run-ctw-feel-baseline user argument.", 2)
 		return
 
 	print("=========================================================================\n")
@@ -92,7 +86,7 @@ func _run() -> void:
 
 	var repeatability: Dictionary = _compare_repeatability(pass_a, pass_b)
 	var summary: Dictionary = {
-		"schema_version": 2,
+		"schema_version": 3,
 		"ticket": 11,
 		"mode": "CTW_FEEL_BASELINE",
 		"metadata": {
@@ -127,15 +121,16 @@ func _run() -> void:
 	for scenario in pass_a.keys():
 		print("  %s: %s" % [scenario, JSON.stringify(pass_a[scenario])])
 	print("[CTW_FEEL] Repeatability: %s" % ("PASS" if bool(repeatability["passed"]) else "FAIL"))
+
 	if not bool(repeatability["passed"]):
 		for failure in repeatability["failures"]:
 			print("  REPEATABILITY FAILURE: %s" % failure)
 		push_error("[CTW_FEEL] Determinism contract failed; artifacts retained for diagnosis.")
-		quit(1)
+		_finish(1)
 		return
 
 	print("[CTW_FEEL] PASS — deterministic baseline captured without feel retuning.")
-	quit(0)
+	_finish(0)
 
 
 func _bind_live_systems() -> bool:
@@ -471,30 +466,37 @@ func _run_collision_case(label: String, start_yaw: float, start_pos: Vector3) ->
 		return {}
 
 	var impact_time: float = _scenario_time - start_time
-	var contact_clear_time: float = -1.0
-	var quiet_steps: int = 0
 	var speed_after_025: float = absf(float(_bike.current_speed))
-	for i in range(30):
+	for i in range(15):
 		_step_bike(0.0, 0.0, false)
 		if i == 14:
 			speed_after_025 = absf(float(_bike.current_speed))
-		if _last_collision_step == _scenario_step:
-			quiet_steps = 0
-		else:
-			quiet_steps += 1
-		if contact_clear_time < 0.0 and quiet_steps >= 6:
-			contact_clear_time = _scenario_time - (start_time + impact_time)
 
+	var collision_event_count_025: int = _collision_events.size()
 	var retained_ratio: float = speed_after_025 / maxf(impact_speed, 0.001)
+
+	# Recovery is measured after the contact fixture is removed. This produces a
+	# controlled, comparable "how quickly can the vehicle become useful again"
+	# metric instead of waiting for a coasting vehicle to unstick from a wall.
+	_clear_fixtures()
+	_scenario_phase = "%s_recovery" % label
+	var recovery_start: float = _scenario_time
+	var recovery_to_half: float = -1.0
+	for _i in range(180):
+		_step_bike(1.0, 0.0, false)
+		if absf(float(_bike.current_speed)) >= float(_bike.max_speed) * 0.5:
+			recovery_to_half = _scenario_time - recovery_start
+			break
+
 	return {
 		"impact_time_s": impact_time,
 		"impact_head_on_ratio": impact_ratio,
 		"pre_impact_speed_mps": impact_speed,
 		"speed_after_0_25s_mps": speed_after_025,
 		"retained_speed_ratio_0_25s": retained_ratio,
-		"contact_clear_time_s": contact_clear_time,
-		"post_impact_yaw_deg": rad_to_deg(float(_bike.rotation.y)),
-		"collision_event_count": _collision_events.size(),
+		"collision_events_first_0_25s": collision_event_count_025,
+		"recovery_to_50pct_max_s": recovery_to_half,
+		"post_recovery_yaw_deg": rad_to_deg(float(_bike.rotation.y)),
 		"endpoint_position": _v3(_bike.global_position)
 	}
 
@@ -559,7 +561,12 @@ func _run_e7_pursuit_route() -> Dictionary:
 	_scenario_phase = "pursuit"
 	_reset_bike(Vector3(-1.5, 0.05, 3.0), PI)
 	_bike.current_speed = 0.0
+
+	# PursuerPrototype.reset_pursuer() resets lifecycle and position but does not
+	# reset transform rotation. For a repeatable harness, explicitly restore the
+	# same initial heading on every pass before activating the real pursuer logic.
 	_pursuer.reset_pursuer(Vector3(0.0, 0.6, -10.0))
+	_pursuer.rotation = Vector3.ZERO
 	_pursuer.activate_pursuit(_bike)
 	_pursuer.set_physics_process(false)
 	_gate.set_pursuit_active(true)
@@ -631,6 +638,7 @@ func _begin_scenario(id: String) -> void:
 	_reset_collision_step_state()
 	_clear_fixtures()
 	_pursuer.reset_pursuer(Vector3(900.0, 0.6, 900.0))
+	_pursuer.rotation = Vector3.ZERO
 	_pursuer.set_physics_process(false)
 	_gate.set_pursuit_active(false)
 	if _trace_enabled:
@@ -886,7 +894,7 @@ func _write_trace_artifacts() -> bool:
 	for scenario in _traces.keys():
 		var path: String = "%s/%s_%s_trace.json" % [OUTPUT_DIR, TRACE_PREFIX, scenario]
 		var payload: Dictionary = {
-			"schema_version": 2,
+			"schema_version": 3,
 			"behavior_commit": _resolve_build_commit(),
 			"fixed_hz": FIXED_HZ,
 			"scenario": scenario,
@@ -917,7 +925,14 @@ func _write_verification_log(summary: Dictionary) -> bool:
 	return true
 
 
-func _fail(message: String) -> void:
+func _finish(exit_code: int) -> void:
+	_clear_fixtures()
+	if is_instance_valid(_host):
+		_host.free()
+	quit(exit_code)
+
+
+func _fail(message: String, exit_code: int = 1) -> void:
 	_run_error = message
 	push_error("[CTW_FEEL] %s" % message)
-	quit(1)
+	_finish(exit_code)
