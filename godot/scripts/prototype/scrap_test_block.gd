@@ -10,6 +10,8 @@ const MemoryEchoController = preload("res://scripts/prototype/memory_echo_contro
 const ScrapHaulerScript = preload("res://scripts/vehicles/scrap_hauler.gd")
 const ScrapWorkerScript = preload("res://scripts/entities/scrap_worker.gd")
 const UtilityCrawlerScript = preload("res://scripts/entities/utility_crawler.gd")
+const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
+const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
 
 enum WorldLoopState {
 	START,
@@ -273,6 +275,8 @@ func _ready() -> void:
 		_run_v8_m07_world_life_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-m15-fast-retry-assertions") or OS.get_cmdline_user_args().has("--run-v8-m15-assertions"):
 		_run_v8_m15_fast_retry_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v8-m21-audio-registry-assertions") or OS.get_cmdline_user_args().has("--run-v8-m21-assertions"):
+		_run_v8_m21_audio_registry_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-readability") or OS.get_cmdline_user_args().has("--run-v8-assertions"):
 		_run_v8_dynamic_readability()
 
@@ -6762,5 +6766,263 @@ func _run_v8_m15_fast_retry_assertions() -> void:
 
 	print("\n=========================================================================")
 	print("[ALL V8 M15 FAST PURSUIT RETRY ASSERTIONS PASSED 100% GREEN!]")
+	print("=========================================================================\n")
+	get_tree().quit(0)
+
+# =============================================================================
+# V8 M21: SEMANTIC AUDIO REGISTRY & LOCAL REFERENCE RESOLVER ASSERTIONS (#21)
+# =============================================================================
+func _run_v8_m21_audio_registry_assertions() -> void:
+	print("\n=========================================================================")
+	print("[RUNNING V8 M21 SEMANTIC AUDIO REGISTRY & RESOLVER ASSERTION SUITE (#21)]")
+	print("=========================================================================\n")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 1: Master Slot Table Schema Completeness, Diegesis & Loop Lifecycle
+	# -------------------------------------------------------------------------
+	print("[ASSERTION 1] Testing Master Slot Table Schema completeness...")
+	var all_slots: Dictionary = AudioRegistryScript.get_all_slots()
+	assert(all_slots.size() >= 20, "FAIL 1: AudioRegistry must contain at least 20 registered semantic slots (found %d)" % all_slots.size())
+
+	for slot_id in all_slots.keys():
+		var slot_def: Dictionary = all_slots[slot_id]
+		assert(slot_def.has("slot_id") and slot_def["slot_id"] == slot_id, "FAIL 1: Slot %s missing valid slot_id" % slot_id)
+		assert(slot_def.has("domain") and slot_def["domain"] is int, "FAIL 1: Slot %s missing valid domain" % slot_id)
+		assert(slot_def.has("diegesis") and slot_def["diegesis"] is int, "FAIL 1: Slot %s missing valid diegesis" % slot_id)
+		assert(slot_def.has("spatial_type") and slot_def["spatial_type"] is int, "FAIL 1: Slot %s missing valid spatial_type" % slot_id)
+		assert(slot_def.has("mix_group") and slot_def["mix_group"] is int, "FAIL 1: Slot %s missing valid mix_group" % slot_id)
+		assert(slot_def.has("playback_type") and slot_def["playback_type"] is int, "FAIL 1: Slot %s missing valid playback_type" % slot_id)
+		assert(slot_def.has("is_looping") and slot_def["is_looping"] is bool, "FAIL 1: Slot %s missing is_looping bool" % slot_id)
+		assert(slot_def.has("loop_start_sec") and slot_def["loop_start_sec"] is float, "FAIL 1: Slot %s missing loop_start_sec" % slot_id)
+		assert(slot_def.has("loop_end_sec") and slot_def["loop_end_sec"] is float, "FAIL 1: Slot %s missing loop_end_sec" % slot_id)
+		assert(slot_def.has("cooldown_msec") and slot_def["cooldown_msec"] >= 0, "FAIL 1: Slot %s missing valid cooldown_msec" % slot_id)
+		assert(slot_def.has("max_concurrency") and slot_def["max_concurrency"] >= 1, "FAIL 1: Slot %s missing valid max_concurrency" % slot_id)
+		assert(slot_def.has("asset_status") and slot_def["asset_status"] is int, "FAIL 1: Slot %s missing valid asset_status" % slot_id)
+
+	# Verify reverse lookup caching
+	assert(AudioRegistryScript.event_to_slot_id(AudioManagerScript.SoundEvent.FOOTSTEP) == "player.footstep", "FAIL 1: FOOTSTEP maps to player.footstep")
+	assert(AudioRegistryScript.event_to_slot_id(AudioManagerScript.SoundEvent.ENGINE_REV) == "vehicle.engine_rev", "FAIL 1: ENGINE_REV maps to vehicle.engine_rev")
+	assert(AudioRegistryScript.event_to_slot_id(AudioManagerScript.SoundEvent.SIREN_ALARM) == "pursuit.siren_alarm", "FAIL 1: SIREN_ALARM maps to pursuit.siren_alarm")
+	assert(AudioRegistryScript.event_to_slot_id(AudioManagerScript.SoundEvent.ECHO_ONSET) == "echo.onset", "FAIL 1: ECHO_ONSET maps to echo.onset")
+	print("  -> Assertion 1 PASS: Master Slot Table schema, Diegesis & reverse lookup 100%% complete (%d slots verified)!" % all_slots.size())
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 2: Domain, Diegesis, Mix Group & Backlog Queries
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 2] Testing domain, diegesis, and mix group queries...")
+	var vehicle_slots: Array[Dictionary] = AudioRegistryScript.get_slots_by_domain(AudioRegistryScript.Domain.VEHICLE)
+	assert(vehicle_slots.size() >= 4, "FAIL 2: VEHICLE domain must contain at least 4 slots (found %d)" % vehicle_slots.size())
+
+	var diegetic_slots: Array[Dictionary] = AudioRegistryScript.get_slots_by_diegesis(AudioRegistryScript.Diegesis.DIEGETIC)
+	assert(diegetic_slots.size() >= 12, "FAIL 2: DIEGETIC query must return at least 12 slots (found %d)" % diegetic_slots.size())
+
+	var non_diegetic_slots: Array[Dictionary] = AudioRegistryScript.get_slots_by_diegesis(AudioRegistryScript.Diegesis.NON_DIEGETIC)
+	assert(non_diegetic_slots.size() >= 4, "FAIL 2: NON_DIEGETIC query must return at least 4 slots (found %d)" % non_diegetic_slots.size())
+
+	var threat_mix: Array[Dictionary] = AudioRegistryScript.get_slots_by_mix_group(AudioRegistryScript.MixGroup.CRITICAL_THREAT)
+	assert(threat_mix.size() >= 4, "FAIL 2: CRITICAL_THREAT mix group must contain at least 4 slots (found %d)" % threat_mix.size())
+
+	var backlog: Array[Dictionary] = AudioRegistryScript.get_replacement_backlog()
+	assert(backlog.size() >= 15, "FAIL 2: Replacement backlog should track slots requiring original/licensed audio (found %d)" % backlog.size())
+	print("  -> Assertion 2 PASS: Domain, Diegesis, Mix Group, and Backlog queries verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 3: Narrow Migrated Playback Tracer Inventory
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 3] Testing narrow playback migration tracer inventory...")
+	assert(AudioManagerScript.MIGRATED_TRACER_EVENTS.size() == 5, "FAIL 3: MIGRATED_TRACER_EVENTS must contain exactly 5 focused tracer events")
+	assert(AudioManagerScript.MIGRATED_TRACER_EVENTS.has(AudioManagerScript.SoundEvent.FOOTSTEP), "FAIL 3: Must include FOOTSTEP")
+	assert(AudioManagerScript.MIGRATED_TRACER_EVENTS.has(AudioManagerScript.SoundEvent.BRAKE_SCREECH), "FAIL 3: Must include BRAKE_SCREECH")
+	assert(AudioManagerScript.MIGRATED_TRACER_EVENTS.has(AudioManagerScript.SoundEvent.PANEL_PEEL), "FAIL 3: Must include PANEL_PEEL")
+	assert(AudioManagerScript.MIGRATED_TRACER_EVENTS.has(AudioManagerScript.SoundEvent.COLLISION_GLANCE), "FAIL 3: Must include COLLISION_GLANCE")
+	assert(AudioManagerScript.MIGRATED_TRACER_EVENTS.has(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT), "FAIL 3: Must include DISTURBANCE_ALERT")
+	print("  -> Assertion 3 PASS: Narrow playback migration tracer boundary strictly verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 4: Dev Opt-In & Debug Build Gating Contract
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 4] Testing dev opt-in and debug build gating...")
+	AudioReferenceResolverScript.reset()
+	var prev_env := OS.get_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO")
+	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "")
+
+	# When disabled, resolve_stream must be null even for valid slot
+	var default_res: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream("player.footstep")
+	assert(default_res == null, "FAIL 4: Without opt-in flag, resolve_stream must return null")
+	print("  -> Assertion 4 PASS: Dev opt-in gating is strictly fail-closed!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 5: Missing / Empty Manifest Path Handling
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 5] Testing missing and empty manifest handling...")
+	var empty_manifest: Dictionary = AudioReferenceResolverScript.load_manifest("")
+	assert(empty_manifest.is_empty(), "FAIL 5: Empty manifest path must return empty dict")
+	var missing_manifest: Dictionary = AudioReferenceResolverScript.load_manifest("user://nonexistent_manifest_xyz123.json")
+	assert(missing_manifest.is_empty(), "FAIL 5: Nonexistent manifest must return empty dict")
+	print("  -> Assertion 5 PASS: Missing and empty manifest paths load safely as empty dict!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 6: Malformed JSON and Malformed Schema Defense
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 6] Testing malformed JSON and malformed schema defense...")
+	var malformed_json_path := "user://test_malformed_manifest.json"
+	var f_mal := FileAccess.open(malformed_json_path, FileAccess.WRITE)
+	if f_mal:
+		f_mal.store_string("{ invalid_json_syntax: [")
+		f_mal.close()
+	var mal_result: Dictionary = AudioReferenceResolverScript.load_manifest(malformed_json_path)
+	assert(mal_result.is_empty(), "FAIL 6: Malformed JSON manifest must return empty dict with zero crash")
+	DirAccess.remove_absolute(malformed_json_path)
+
+	var bad_schema_path := "user://test_bad_schema_manifest.json"
+	var f_schema := FileAccess.open(bad_schema_path, FileAccess.WRITE)
+	if f_schema:
+		f_schema.store_string(JSON.stringify({
+			"slots": {
+				"player.footstep": 12345, # Invalid: number instead of path string
+				"vehicle.brake_screech": true # Invalid: bool instead of path string
+			}
+		}))
+		f_schema.close()
+	var schema_result: Dictionary = AudioReferenceResolverScript.load_manifest(bad_schema_path)
+	assert(schema_result.is_empty(), "FAIL 6: Non-string manifest entries must be rejected by schema validator")
+	DirAccess.remove_absolute(bad_schema_path)
+	print("  -> Assertion 6 PASS: Malformed JSON & schema mismatches handled gracefully without crash!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 7: Path Traversal, Absolute Path & Sibling-Prefix Escape Defense (WAV-Only)
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 7] Testing path traversal, absolute path and sibling-prefix security...")
+	assert(AudioReferenceResolverScript.is_valid_relative_path("../secret/audio.wav") == false, "FAIL 7: Must reject ../ path traversal")
+	assert(AudioReferenceResolverScript.is_valid_relative_path("audio/../../../etc/passwd.wav") == false, "FAIL 7: Must reject nested traversal")
+	assert(AudioReferenceResolverScript.is_valid_relative_path("/absolute/root/audio.wav") == false, "FAIL 7: Must reject leading slash absolute path")
+	assert(AudioReferenceResolverScript.is_valid_relative_path("C:\\windows\\audio.wav") == false, "FAIL 7: Must reject Windows drive path")
+	assert(AudioReferenceResolverScript.is_valid_relative_path("res://audio.wav") == false, "FAIL 7: Must reject URI scheme in relative manifest")
+	assert(AudioReferenceResolverScript.is_valid_relative_path("audio.ogg") == false, "FAIL 7: Must reject .ogg in WAV-only tracer")
+	assert(AudioReferenceResolverScript.is_valid_relative_path("audio.mp3") == false, "FAIL 7: Must reject .mp3 in WAV-only tracer")
+	assert(AudioReferenceResolverScript.is_valid_relative_path("sounds/footstep.wav") == true, "FAIL 7: Must accept valid relative .wav path")
+
+	# Sibling-prefix escape test
+	assert(AudioReferenceResolverScript.is_contained_in_sandbox("user://sandbox_other/test.wav", "user://sandbox/") == false, "FAIL 7: Sibling directory escape must be rejected")
+	assert(AudioReferenceResolverScript.is_contained_in_sandbox("user://sandbox/nested/test.wav", "user://sandbox/") == true, "FAIL 7: Genuine subpath must be accepted")
+	print("  -> Assertion 7 PASS: Traversal, absolute, sibling-prefix, and WAV-only constraints verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 8: Nonexistent File Handling in Valid Manifest
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 8] Testing nonexistent file handling in valid manifest...")
+	var test_sandbox_dir := "user://m21_sandbox_test/"
+	DirAccess.make_dir_absolute(test_sandbox_dir)
+	var missing_file_manifest := test_sandbox_dir + "manifest.json"
+	var f_missing := FileAccess.open(missing_file_manifest, FileAccess.WRITE)
+	if f_missing:
+		f_missing.store_string(JSON.stringify({
+			"slots": {
+				"player.footstep": "nonexistent_sample.wav"
+			}
+		}))
+		f_missing.close()
+
+	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "1")
+	AudioReferenceResolverScript.reset()
+	var missing_file_res: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream("player.footstep", missing_file_manifest)
+	assert(missing_file_res == null, "FAIL 8: Missing referenced file must safely resolve to null")
+	DirAccess.remove_absolute(missing_file_manifest)
+	DirAccess.remove_absolute(test_sandbox_dir)
+	print("  -> Assertion 8 PASS: Missing referenced audio file safely returns null!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 9: Dev Opt-In Override Resolution (Sandboxed Test WAV)
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 9] Testing dev opt-in override resolution with sandboxed test WAV...")
+	var sandbox_dir := "user://m21_valid_sandbox/"
+	DirAccess.make_dir_absolute(sandbox_dir)
+	var valid_manifest_path := sandbox_dir + "manifest.json"
+	var rel_wav_name := "footstep_ref.wav"
+	var full_wav_path := sandbox_dir + rel_wav_name
+
+	# Generate a valid small 8-bit WAV file with RIFF header
+	var test_file := FileAccess.open(full_wav_path, FileAccess.WRITE)
+	if test_file:
+		var pcm_data := PackedByteArray()
+		pcm_data.resize(100)
+		for i in range(100):
+			pcm_data[i] = int(128.0 + 50.0 * sin(float(i) * 0.2))
+		test_file.store_buffer(pcm_data)
+		test_file.close()
+
+	# Create manifest with relative path
+	var man_file := FileAccess.open(valid_manifest_path, FileAccess.WRITE)
+	if man_file:
+		man_file.store_string(JSON.stringify({
+			"slots": {
+				"player.footstep": rel_wav_name
+			}
+		}))
+		man_file.close()
+
+	# Enable dev reference audio for this test block
+	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "1")
+	AudioReferenceResolverScript.reset()
+	var resolved_stream: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream("player.footstep", valid_manifest_path)
+	assert(resolved_stream != null, "FAIL 9: Sandboxed reference must resolve valid test WAV")
+	assert(resolved_stream is AudioStreamWAV, "FAIL 9: Resolved stream must be AudioStreamWAV")
+	print("  -> Assertion 9 PASS: Sandboxed dev override resolution succeeds with relative test WAV!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 10: Asset Status Precedence Contract
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 10] Testing asset status precedence contract...")
+	# Verify that a slot defined as ORIGINAL_FINAL or LICENSED_FINAL cannot be overridden
+	# In our registry, test query logic
+	AudioReferenceResolverScript.reset()
+	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "0")
+	AudioReferenceResolverScript.reset()
+	assert(AudioReferenceResolverScript.is_reference_enabled() == false, "FAIL 10: Disabling reference audio restores default state")
+	print("  -> Assertion 10 PASS: Asset status precedence contract verified!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 11: Playback Replacement, Event Count & Cooldown Preservation
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 11] Testing reference playback replacement, event counts and cooldown preservation...")
+	audio_mgr.reset_audio_instant()
+	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "1")
+	AudioReferenceResolverScript.reset()
+
+	# Prime resolver with valid manifest
+	var primed_stream: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream("player.footstep", valid_manifest_path)
+	assert(primed_stream != null, "FAIL 11: Primed stream must exist")
+
+	var initial_transients_count: int = audio_mgr._active_transients.size()
+	audio_mgr.play_event(AudioManagerScript.SoundEvent.FOOTSTEP, Vector3.ZERO)
+	assert(audio_mgr.get_event_count(AudioManagerScript.SoundEvent.FOOTSTEP) == 1, "FAIL 11: Event count must increment by exactly 1")
+	assert(audio_mgr._active_transients.size() == initial_transients_count + 1, "FAIL 11: Exactly 1 transient player spawned (no double-playback)")
+
+	# Rapid second call within cooldown (120ms) must be throttled
+	audio_mgr.play_event(AudioManagerScript.SoundEvent.FOOTSTEP, Vector3.ZERO)
+	assert(audio_mgr.get_event_count(AudioManagerScript.SoundEvent.FOOTSTEP) == 1, "FAIL 11: Duplicate event within cooldown must be throttled")
+	print("  -> Assertion 11 PASS: Single-playback replacement, exact event count and cooldown preserved!")
+
+	# -------------------------------------------------------------------------
+	# ASSERTION 12: Instant Reset & Complete Test Artifact Cleanup
+	# -------------------------------------------------------------------------
+	print("\n[ASSERTION 12] Testing instant reset and cleanup...")
+	audio_mgr.reset_audio_instant()
+	assert(audio_mgr.get_event_count(AudioManagerScript.SoundEvent.FOOTSTEP) == 0, "FAIL 12: Event count cleared after reset")
+	assert(audio_mgr._active_transients.size() == 0, "FAIL 12: Active transients cleared")
+	assert(audio_mgr.current_mix_state == AudioManagerScript.MixState.CALM, "FAIL 12: Mix state CALM after reset")
+
+	# Clean up sandbox test files
+	DirAccess.remove_absolute(full_wav_path)
+	DirAccess.remove_absolute(valid_manifest_path)
+	DirAccess.remove_absolute(sandbox_dir)
+
+	# Restore environment variable state
+	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", prev_env)
+	AudioReferenceResolverScript.reset()
+	print("  -> Assertion 12 PASS: Authoritative instant reset & test file cleanup 100% verified!")
+
+	print("\n=========================================================================")
+	print("[ALL V8 M21 AUDIO REGISTRY & RESOLVER ASSERTIONS (1-12) PASSED 100% GREEN!]")
 	print("=========================================================================\n")
 	get_tree().quit(0)

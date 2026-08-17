@@ -6,3 +6,8 @@
 .DS_Store
 node_modules/
 godot/.godot/
+
+# Audio local reference overrides & manifests (untracked dev reference only)
+user_reference_audio_manifest.json
+reference_audio_manifest.json
+godot/local_reference_audio/

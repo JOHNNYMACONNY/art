@@ -1,6 +1,9 @@
 class_name AudioManager
 extends Node
 
+const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
+const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
+
 # Echos in the Scrap - Audio Engine & Sound Synthesis Manager
 # Features procedural AudioStreamWAV synthesis, transient voice throttling,
 # 3-tier perceptual mix hierarchy, and authoritative leak-proof instant reset.
@@ -89,6 +92,15 @@ const EVENT_COOLDOWNS_MSEC: Dictionary = {
 	SoundEvent.BRAKE_SCREECH: 150
 }
 
+## Narrow playback migration tracer events for #21 validation
+const MIGRATED_TRACER_EVENTS: Array[SoundEvent] = [
+	SoundEvent.FOOTSTEP,
+	SoundEvent.BRAKE_SCREECH,
+	SoundEvent.PANEL_PEEL,
+	SoundEvent.COLLISION_GLANCE,
+	SoundEvent.DISTURBANCE_ALERT
+]
+
 func _ready() -> void:
 	_engine_stream = _create_noise_wav(0.5, 0.4)
 	_engine_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
@@ -154,6 +166,15 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 				return # Throttled
 	_last_event_timestamps[event] = now
 	event_counts[event] = event_counts.get(event, 0) + 1
+
+	# Dev-only reference override seam for narrow tracer events (clean procedural fallback by default)
+	if AudioReferenceResolverScript.is_reference_enabled() and MIGRATED_TRACER_EVENTS.has(event):
+		var slot_id: String = AudioRegistryScript.event_to_slot_id(event)
+		if not slot_id.is_empty():
+			var ref_stream: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream(slot_id)
+			if ref_stream:
+				_play_reference_stream(ref_stream, slot_id, pos)
+				return
 
 	match event:
 		SoundEvent.FOOTSTEP:
@@ -381,6 +402,24 @@ func reset_audio_instant() -> void:
 	_last_event_timestamps.clear()
 	event_counts.clear()
 	current_mix_state = MixState.CALM
+	AudioReferenceResolverScript.reset()
+
+func _play_reference_stream(stream: AudioStream, slot_id: String, pos: Vector3) -> void:
+	var slot_meta: Dictionary = AudioRegistryScript.get_slot(slot_id)
+	var spatial = slot_meta.get("spatial_type", AudioRegistryScript.SpatialType.DIEGETIC_3D)
+	if spatial == AudioRegistryScript.SpatialType.NON_DIEGETIC_2D:
+		var p2d := AudioStreamPlayer.new()
+		p2d.stream = stream
+		p2d.bus = &"Master"
+		add_child(p2d)
+		p2d.play()
+		p2d.finished.connect(p2d.queue_free)
+	else:
+		var p3d := AudioStreamPlayer3D.new()
+		p3d.stream = stream
+		p3d.bus = &"Master"
+		p3d.unit_size = 10.0
+		_register_and_play_transient(p3d, pos, 1.0)
 
 func set_mix_state(state: MixState) -> void:
 	current_mix_state = state
