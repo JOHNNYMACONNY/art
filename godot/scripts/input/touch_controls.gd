@@ -198,6 +198,24 @@ func _update_safe_area_layout() -> void:
 func _on_viewport_size_changed() -> void:
 	_update_safe_area_layout()
 
+func _on_action_button_clicked() -> void:
+	action_button_pressed.emit()
+
+func _on_dismount_button_clicked() -> void:
+	dismount_pressed.emit()
+
+func _on_route_switch_button_clicked() -> void:
+	action_button_pressed.emit()
+
+func trigger_route_switch() -> void:
+	_on_route_switch_button_clicked()
+
+func trigger_dismount() -> void:
+	_on_dismount_button_clicked()
+
+func trigger_action() -> void:
+	_on_action_button_clicked()
+
 # ==============================================================================
 # LIFECYCLE & INITIALIZATION
 # ==============================================================================
@@ -211,13 +229,30 @@ func _ready() -> void:
 		debug_hud_enabled = true
 		
 	if action_button:
-		action_button.pressed.connect(func(): action_button_pressed.emit())
+		action_button.pressed.connect(_on_action_button_clicked)
+		action_button.gui_input.connect(func(ev: InputEvent):
+			if (ev is InputEventScreenTouch and (ev as InputEventScreenTouch).pressed) or ev.is_pressed():
+				_on_action_button_clicked()
+		)
 	if dismount_button:
-		dismount_button.pressed.connect(func(): dismount_pressed.emit())
+		dismount_button.pressed.connect(_on_dismount_button_clicked)
+		dismount_button.gui_input.connect(func(ev: InputEvent):
+			if (ev is InputEventScreenTouch and (ev as InputEventScreenTouch).pressed) or ev.is_pressed():
+				_on_dismount_button_clicked()
+		)
 	if route_switch_button:
-		route_switch_button.pressed.connect(func(): action_button_pressed.emit())
+		route_switch_button.button_down.connect(_on_route_switch_button_clicked)
+		route_switch_button.pressed.connect(_on_route_switch_button_clicked)
+		route_switch_button.gui_input.connect(func(ev: InputEvent):
+			if (ev is InputEventScreenTouch and (ev as InputEventScreenTouch).pressed) or ev.is_pressed():
+				_on_route_switch_button_clicked()
+		)
 	if core_tap_button:
 		core_tap_button.pressed.connect(func(): core_tap_pressed.emit())
+		core_tap_button.gui_input.connect(func(ev: InputEvent):
+			if (ev is InputEventScreenTouch and (ev as InputEventScreenTouch).pressed) or ev.is_pressed():
+				core_tap_pressed.emit()
+		)
 	if replay_button:
 		replay_button.pressed.connect(func(): replay_pressed.emit())
 		
@@ -435,11 +470,12 @@ func _gui_input(event: InputEvent) -> void:
 				_handle_touch_up_anywhere(touch_ev.index)
 		else:
 			var safe_rect := get_resolved_safe_rect()
-			if touch_ev.position.x < safe_rect.position.x + (safe_rect.size.x * 0.5):
-				if touch_ev.pressed and not _joystick_active:
+			var left_safe_bounds := Rect2(safe_rect.position.x, safe_rect.position.y, safe_rect.size.x * 0.5, safe_rect.size.y)
+			if touch_ev.pressed:
+				if not _joystick_active and left_safe_bounds.has_point(touch_ev.position):
 					_start_joystick(touch_ev.index, touch_ev.position)
-				elif not touch_ev.pressed and touch_ev.index == _joystick_touch_index:
-					_stop_joystick()
+			elif not touch_ev.pressed and touch_ev.index == _joystick_touch_index:
+				_stop_joystick()
 				
 	elif event is InputEventScreenDrag:
 		var drag_ev := event as InputEventScreenDrag
