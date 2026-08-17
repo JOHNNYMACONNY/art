@@ -12,7 +12,6 @@ const ENV_ALLOW_REFERENCE := "ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO"
 const ENV_MANIFEST_PATH := "ECHOES_REFERENCE_AUDIO_MANIFEST"
 const CMDLINE_ALLOW_FLAG := "--allow-local-reference-audio"
 const CMDLINE_MANIFEST_ARG := "--reference-audio-manifest="
-const DEFAULT_MANIFEST_PATH := "res://local_reference_audio/manifest.json"
 const ALLOWED_EXTENSION := "wav"
 
 # Reason Codes for Diagnostics
@@ -49,7 +48,7 @@ static func get_manifest_path() -> String:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with(CMDLINE_MANIFEST_ARG):
 			return arg.substr(CMDLINE_MANIFEST_ARG.length())
-	return DEFAULT_MANIFEST_PATH
+	return ""
 
 static func is_valid_relative_path(path: String) -> bool:
 	if path.is_empty():
@@ -101,8 +100,8 @@ static func load_manifest(manifest_path: String = "") -> Dictionary:
 	if not data.has("version") or not (data["version"] is int or data["version"] is float):
 		push_warning("[AudioReferenceResolver] %s" % REASON_MANIFEST_INVALID_SCHEMA)
 		return {}
-	if int(data["version"]) != 1:
-		push_warning("[AudioReferenceResolver] %s" % REASON_MANIFEST_VERSION_UNSUPPORTED)
+	if data["version"] is String or floor(data["version"]) != data["version"] or int(data["version"]) != 1:
+		push_warning("[AudioReferenceResolver] %s" % REASON_MANIFEST_INVALID_SCHEMA)
 		return {}
 
 	if not data.has("slots") or not (data["slots"] is Dictionary):

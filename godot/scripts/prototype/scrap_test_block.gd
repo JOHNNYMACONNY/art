@@ -6864,19 +6864,27 @@ func _run_v8_m21_audio_registry_assertions() -> void:
 	print("  -> Assertion 3 PASS: Narrow asset-only playback migration tracer boundary strictly verified!")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 4: Dev Opt-In & Debug Build Gating Contract
+	# ASSERTION 4: Dev Opt-In & Explicit Manifest Path Gating (Zero Auto-Discovery)
 	# -------------------------------------------------------------------------
-	print("\n[ASSERTION 4] Testing dev opt-in and debug build gating...")
+	print("\n[ASSERTION 4] Testing dev opt-in and zero auto-discovery contract...")
 	AudioReferenceResolverScript.reset()
 	var prev_env := OS.get_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO")
+	var prev_man_env := OS.get_environment("ECHOES_REFERENCE_AUDIO_MANIFEST")
 	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "")
+	OS.set_environment("ECHOES_REFERENCE_AUDIO_MANIFEST", "")
 
 	var default_res: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream("player.footstep")
 	assert(default_res == null, "FAIL 4: Without opt-in flag, resolve_stream must return null")
-	print("  -> Assertion 4 PASS: Dev opt-in gating is strictly fail-closed!")
+
+	# Test that with opt-in enabled but no manifest path provided, resolver does NOT auto-discover
+	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "1")
+	AudioReferenceResolverScript.reset()
+	assert(AudioReferenceResolverScript.get_manifest_path() == "", "FAIL 4: Manifest path must default to empty string (no implicit auto-discovery)")
+	assert(AudioReferenceResolverScript.resolve_stream("player.footstep") == null, "FAIL 4: Without explicit manifest path, resolve_stream must return null")
+	print("  -> Assertion 4 PASS: Dev opt-in and zero auto-discovery contract strictly verified!")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 5: Strict Versioned Manifest Schema Validation
+	# ASSERTION 5: Strict Versioned Manifest Schema Validation (Exact int 1)
 	# -------------------------------------------------------------------------
 	print("\n[ASSERTION 5] Testing strict versioned manifest schema validation...")
 	var malformed_json_path := "user://test_malformed_manifest.json"
@@ -6897,7 +6905,34 @@ func _run_v8_m21_audio_registry_assertions() -> void:
 	assert(AudioReferenceResolverScript.load_manifest(no_ver_path).is_empty(), "FAIL 5: Manifest without version must be rejected")
 	DirAccess.remove_absolute(no_ver_path)
 
-	# Test unsupported version
+	# Test float version (1.5)
+	var float_ver_path := "user://test_float_ver_manifest.json"
+	var f_fv := FileAccess.open(float_ver_path, FileAccess.WRITE)
+	if f_fv:
+		f_fv.store_string(JSON.stringify({"version": 1.5, "slots": {"player.footstep": "footstep.wav"}}))
+		f_fv.close()
+	assert(AudioReferenceResolverScript.load_manifest(float_ver_path).is_empty(), "FAIL 5: Float version (1.5) must be rejected")
+	DirAccess.remove_absolute(float_ver_path)
+
+	# Test string version ("1")
+	var str_ver_path := "user://test_str_ver_manifest.json"
+	var f_sv := FileAccess.open(str_ver_path, FileAccess.WRITE)
+	if f_sv:
+		f_sv.store_string(JSON.stringify({"version": "1", "slots": {"player.footstep": "footstep.wav"}}))
+		f_sv.close()
+	assert(AudioReferenceResolverScript.load_manifest(str_ver_path).is_empty(), "FAIL 5: String version ('1') must be rejected")
+	DirAccess.remove_absolute(str_ver_path)
+
+	# Test version 0
+	var zero_ver_path := "user://test_zero_ver_manifest.json"
+	var f_zv := FileAccess.open(zero_ver_path, FileAccess.WRITE)
+	if f_zv:
+		f_zv.store_string(JSON.stringify({"version": 0, "slots": {"player.footstep": "footstep.wav"}}))
+		f_zv.close()
+	assert(AudioReferenceResolverScript.load_manifest(zero_ver_path).is_empty(), "FAIL 5: Version 0 must be rejected")
+	DirAccess.remove_absolute(zero_ver_path)
+
+	# Test unsupported version (99)
 	var bad_ver_path := "user://test_bad_ver_manifest.json"
 	var f_bv := FileAccess.open(bad_ver_path, FileAccess.WRITE)
 	if f_bv:
@@ -6920,7 +6955,7 @@ func _run_v8_m21_audio_registry_assertions() -> void:
 	var schema_result: Dictionary = AudioReferenceResolverScript.load_manifest(bad_schema_path)
 	assert(schema_result.is_empty(), "FAIL 5: Non-string manifest entries must be rejected")
 	DirAccess.remove_absolute(bad_schema_path)
-	print("  -> Assertion 5 PASS: Strict Version 1 manifest schema enforcement verified!")
+	print("  -> Assertion 5 PASS: Strict Version 1 exact integer manifest schema enforcement verified!")
 
 	# -------------------------------------------------------------------------
 	# ASSERTION 6: Path Traversal, Absolute Path & Sibling-Prefix Escape Defense
