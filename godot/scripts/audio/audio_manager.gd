@@ -489,6 +489,8 @@ func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> Audi
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
 	wav.mix_rate = 22050
 	var sample_count := int(22050 * duration)
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
 	var data := PackedByteArray()
 	data.resize(sample_count)
 	for i in range(sample_count):
@@ -554,6 +556,8 @@ func _create_harmonic_drone_wav(f1: float, f2: float, duration: float, volume: f
 	wav.mix_rate = 22050
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	var sample_count := int(22050 * duration)
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
 	var data := PackedByteArray()
 	data.resize(sample_count)
 	for i in range(sample_count):
@@ -569,6 +573,8 @@ func _create_noise_wav(duration: float, volume: float = 0.3) -> AudioStreamWAV:
 	wav.mix_rate = 22050
 	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	var sample_count := int(22050 * duration)
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
 	var data := PackedByteArray()
 	data.resize(sample_count)
 	for i in range(sample_count):

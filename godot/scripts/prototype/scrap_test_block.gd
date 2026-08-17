@@ -609,10 +609,13 @@ func _on_extraction_completed() -> void:
 	if touch_ui:
 		touch_ui.close_interaction_overlay()
 
-## M04: start echo sequence; disturbance fires only after echo_completed
+## M04B: start echo sequence; disturbance fires only after echo_completed
 func _trigger_echo_sequence() -> bool:
 	if current_world_state != WorldLoopState.CORE_EXTRACTED:
 		print("[WORLD_LOOP] Rejecting echo sequence: world state is not CORE_EXTRACTED (current: %s)" % WorldLoopState.keys()[current_world_state])
+		return false
+	if echo_controller and (echo_controller.has_completed() or echo_controller.current_phase != MemoryEchoController.EchoPhase.IDLE):
+		print("[WORLD_LOOP] Rejecting echo sequence: echo already active or completed (phase: %s)" % MemoryEchoController.EchoPhase.keys()[echo_controller.current_phase])
 		return false
 		
 	print("[WORLD_LOOP] Entering Memory Echo sequence...")
@@ -4785,11 +4788,10 @@ func _run_v8_m04_echo_assertions() -> void:
 	print("  -> Assertion 1 PASS: Pre-extraction trigger attempts strictly fail closed with zero side effects")
 
 	# ─────────────────────────────────────────────────────────────────────────
-	# ASSERTION 2: Extraction triggers echo exactly once
+	# ASSERTION 2: Extraction triggers echo exactly once (M04B lifecycle verified)
 	# ─────────────────────────────────────────────────────────────────────────
 	print("\n--- Assertion 2: Extraction triggers echo exactly once ---")
 	# Advance world to CORE_EXTRACTED state via _on_extraction_completed path
-	# Simulate extraction by calling internal handler directly
 	_on_extraction_completed()
 	await get_tree().process_frame
 
@@ -4800,11 +4802,31 @@ func _run_v8_m04_echo_assertions() -> void:
 	assert(echo_controller._canvas_layer != null and echo_controller._canvas_layer.visible,
 		"FAIL A2: Echo visual overlay must be visible upon extraction")
 	
-	# Duplicate trigger during active echo must fail closed:
-	var dup_res: bool = _trigger_echo_sequence()
-	assert(dup_res == false, "FAIL A2: Duplicate trigger during active echo must return false")
-	assert(echo_controller.get_trigger_count() == 1, "FAIL A2: Duplicate trigger must not increment count")
-	print("  -> Assertion 2 PASS: Echo triggered exactly once by extraction (duplicates rejected)")
+	# M04B Check 1: Duplicate triggers during active echo must fail closed and invalidate arming:
+	var dup_active_seq: bool = _trigger_echo_sequence()
+	assert(dup_active_seq == false, "FAIL A2: Duplicate _trigger_echo_sequence during active echo must return false")
+	var dup_active_direct: bool = echo_controller.trigger_echo()
+	assert(dup_active_direct == false, "FAIL A2: Direct trigger_echo during active echo must return false")
+	assert(echo_controller.get_trigger_count() == 1, "FAIL A2: Trigger count must remain 1 during active duplicates")
+	assert(not echo_controller.is_armed_for_extraction, "FAIL A2: Arming token must be consumed/invalidated")
+
+	# Step echo to completion (DONE phase)
+	var max_steps2: int = 150
+	while echo_controller.current_phase != MemoryEchoController.EchoPhase.DONE and max_steps2 > 0:
+		echo_controller._process(1.0 / 60.0)
+		await get_tree().process_frame
+		max_steps2 -= 1
+	assert(echo_controller.current_phase == MemoryEchoController.EchoPhase.DONE, "FAIL A2: Echo must reach DONE")
+
+	# M04B Check 2: Second calls after completion (DONE) without Replay/reset must fail closed:
+	var post_done_direct: bool = echo_controller.trigger_echo()
+	assert(post_done_direct == false, "FAIL A2: Direct trigger_echo after DONE must return false")
+	var post_done_seq: bool = _trigger_echo_sequence()
+	assert(post_done_seq == false, "FAIL A2: _trigger_echo_sequence after DONE must return false")
+	assert(echo_controller.get_trigger_count() == 1, "FAIL A2: Trigger count must strictly remain 1 after completion")
+	assert(not echo_controller._canvas_layer.visible, "FAIL A2: Visual overlay must remain hidden after rejected post-DONE calls")
+
+	print("  -> Assertion 2 PASS: Exactly-once lifecycle strictly enforced across active and post-completion states")
 
 	# ─────────────────────────────────────────────────────────────────────────
 	# ASSERTION 3: Echo does not permanently lock player input

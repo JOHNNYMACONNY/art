@@ -1,7 +1,7 @@
 class_name MemoryEchoController
 extends Node
 
-## Echos in the Scrap — M04A Memory Echo Controller
+## Echos in the Scrap — M04B Memory Echo Controller
 ## State machine for the extraction Echo reveal sequence.
 ## Arc: IDLE → ONSET → PEAK → RELEASE → DONE
 ## Total window: ~1.83s. Player retains movement control throughout.
@@ -144,17 +144,18 @@ func arm_for_extraction() -> void:
 	is_armed_for_extraction = true
 
 ## Trigger the echo sequence. Strictly requires extraction arming (fails closed if un-armed).
-## Returns false if un-armed or not in IDLE/DONE state.
+## M04B: Consumes/invalidates arm token on EVERY invocation (even rejected ones) and allows ONLY IDLE.
 func trigger_echo() -> bool:
-	if not is_armed_for_extraction:
+	var was_armed := is_armed_for_extraction
+	is_armed_for_extraction = false # Strictly invalidate arm token on every call
+	
+	if not was_armed:
 		print("[ECHO] trigger_echo rejected: controller not armed for extraction")
 		return false
-	if current_phase != EchoPhase.IDLE and current_phase != EchoPhase.DONE:
-		print("[ECHO] trigger_echo rejected: phase is %s (not IDLE/DONE)" % EchoPhase.keys()[current_phase])
+	if current_phase != EchoPhase.IDLE:
+		print("[ECHO] trigger_echo rejected: phase is %s (must be IDLE)" % EchoPhase.keys()[current_phase])
 		return false
 		
-	# Consume arming token immediately to prevent duplicate triggering
-	is_armed_for_extraction = false
 	_echo_data = _build_first_echo()
 	_triggered_count += 1
 	print("[ECHO] Memory Echo triggered (count: %d, id: %s)" % [_triggered_count, _echo_data.echo_id])
