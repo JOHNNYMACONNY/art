@@ -219,13 +219,9 @@ func _run_suite(pass_name: String) -> Dictionary:
 	return result
 
 
-# -----------------------------------------------------------------------------
-# E1 — launch / coast / brake
-# -----------------------------------------------------------------------------
 func _run_e1_launch_coast_brake() -> Dictionary:
 	_begin_scenario("E1_launch_coast_brake")
 	_reset_bike(Vector3(120.0, 0.05, 120.0), 0.0)
-
 	_scenario_phase = "launch"
 	var t_motion := -1.0
 	var t_50 := -1.0
@@ -264,7 +260,6 @@ func _run_e1_launch_coast_brake() -> Dictionary:
 	_scenario_phase = "brake"
 	_reset_bike(Vector3(160.0, 0.05, 120.0), 0.0)
 	_bike.current_speed = float(_bike.max_speed)
-	# Give speed framing one deterministic frame at high speed before braking.
 	_manual_camera_step()
 	_advance_clock(0.0, 0.0, false)
 	var brake_start: Vector3 = _bike.global_position
@@ -305,16 +300,9 @@ func _run_e1_launch_coast_brake() -> Dictionary:
 	}
 
 
-# -----------------------------------------------------------------------------
-# E2 — low / medium / high speed constant-input 90 degree turn
-# -----------------------------------------------------------------------------
 func _run_e2_constant_turns() -> Dictionary:
 	_begin_scenario("E2_constant_90_turn")
-	var bands := {
-		"low": float(_bike.max_speed) * 0.30,
-		"medium": float(_bike.max_speed) * 0.60,
-		"high": float(_bike.max_speed) * 0.90
-	}
+	var bands := {"low": float(_bike.max_speed) * 0.30, "medium": float(_bike.max_speed) * 0.60, "high": float(_bike.max_speed) * 0.90}
 	var out := {}
 	var offset_x := 180.0
 	for label in bands.keys():
@@ -330,15 +318,13 @@ func _run_e2_constant_turns() -> Dictionary:
 		var previous_pos: Vector3 = _bike.global_position
 		var previous_yaw: float = start_yaw
 		for _i in range(360):
-			# Hold longitudinal speed constant so E2 isolates steering authority.
 			_step_bike_held_speed(target_speed, 1.0, false)
 			path_distance += previous_pos.distance_to(_bike.global_position)
 			var yaw_step: float = abs(_angle_delta(previous_yaw, float(_bike.rotation.y)))
 			peak_yaw_rate = maxf(peak_yaw_rate, rad_to_deg(yaw_step) / FIXED_DT)
 			previous_pos = _bike.global_position
 			previous_yaw = float(_bike.rotation.y)
-			var total_turn: float = abs(_angle_delta(start_yaw, float(_bike.rotation.y)))
-			if total_turn >= PI * 0.5:
+			if abs(_angle_delta(start_yaw, float(_bike.rotation.y))) >= PI * 0.5:
 				break
 		var elapsed := _scenario_time - start_time
 		out[label] = {
@@ -356,9 +342,6 @@ func _run_e2_constant_turns() -> Dictionary:
 	return out
 
 
-# -----------------------------------------------------------------------------
-# E3 — full-left to full-right reversal
-# -----------------------------------------------------------------------------
 func _run_e3_reversal() -> Dictionary:
 	_begin_scenario("E3_steering_reversal")
 	_reset_bike(Vector3(220.0, 0.05, 200.0), 0.0)
@@ -367,21 +350,18 @@ func _run_e3_reversal() -> Dictionary:
 	var initial_yaw: float = float(_bike.rotation.y)
 	var previous_yaw := initial_yaw
 	var peak_left_rate := 0.0
-
 	_scenario_phase = "left_hold"
 	for _i in range(36):
 		_step_bike_held_speed(held_speed, -1.0, false)
 		var yaw_step := _angle_delta(previous_yaw, float(_bike.rotation.y))
 		peak_left_rate = maxf(peak_left_rate, abs(rad_to_deg(yaw_step) / FIXED_DT))
 		previous_yaw = float(_bike.rotation.y)
-
 	var reversal_yaw: float = float(_bike.rotation.y)
 	var reversal_start_time := _scenario_time
 	var opposite_response_time := -1.0
 	var heading_recovery_time := -1.0
 	var peak_right_rate := 0.0
 	var previous_delta_sign := signf(_angle_delta(initial_yaw, reversal_yaw))
-
 	_scenario_phase = "right_reversal"
 	for _i in range(180):
 		var before_yaw: float = float(_bike.rotation.y)
@@ -394,7 +374,6 @@ func _run_e3_reversal() -> Dictionary:
 		if heading_recovery_time < 0.0 and abs(_angle_delta(initial_yaw, float(_bike.rotation.y))) <= deg_to_rad(5.0):
 			heading_recovery_time = _scenario_time - reversal_start_time
 			break
-
 	return {
 		"held_speed_mps": held_speed,
 		"left_hold_time_s": 36.0 * FIXED_DT,
@@ -409,9 +388,6 @@ func _run_e3_reversal() -> Dictionary:
 	}
 
 
-# -----------------------------------------------------------------------------
-# E4 — handbrake high-slip turn then release / recovery
-# -----------------------------------------------------------------------------
 func _run_e4_handbrake_recovery() -> Dictionary:
 	_begin_scenario("E4_handbrake_recovery")
 	_reset_bike(Vector3(260.0, 0.05, 220.0), 0.0)
@@ -420,7 +396,6 @@ func _run_e4_handbrake_recovery() -> Dictionary:
 	var peak_slip := 0.0
 	var peak_yaw_rate := 0.0
 	var previous_yaw: float = float(_bike.rotation.y)
-
 	_scenario_phase = "handbrake_slide"
 	for _i in range(42):
 		_step_bike_held_speed(held_speed, 1.0, true)
@@ -428,7 +403,6 @@ func _run_e4_handbrake_recovery() -> Dictionary:
 		var yaw_step := abs(_angle_delta(previous_yaw, float(_bike.rotation.y)))
 		peak_yaw_rate = maxf(peak_yaw_rate, rad_to_deg(yaw_step) / FIXED_DT)
 		previous_yaw = float(_bike.rotation.y)
-
 	var release_time := _scenario_time
 	var release_slip := _lateral_slip_speed()
 	var recovery_time := -1.0
@@ -438,7 +412,6 @@ func _run_e4_handbrake_recovery() -> Dictionary:
 		if _lateral_slip_speed() <= 0.25:
 			recovery_time = _scenario_time - release_time
 			break
-
 	return {
 		"held_speed_mps": held_speed,
 		"handbrake_hold_s": 42.0 * FIXED_DT,
@@ -451,9 +424,6 @@ func _run_e4_handbrake_recovery() -> Dictionary:
 	}
 
 
-# -----------------------------------------------------------------------------
-# E5 — physical collision pair using a temporary StaticBody3D fixture
-# -----------------------------------------------------------------------------
 func _run_e5_collision_pair() -> Dictionary:
 	_begin_scenario("E5_collision_pair")
 	var head_on := await _run_collision_case("head_on", 0.0, Vector3(340.0, 0.05, 308.0))
@@ -461,11 +431,7 @@ func _run_e5_collision_pair() -> Dictionary:
 		return {}
 	var glance := await _run_collision_case("glance", deg_to_rad(-72.0), Vector3(315.0, 0.05, 308.0))
 	_clear_fixtures()
-	return {
-		"head_on": head_on,
-		"glance": glance,
-		"camera_peak_follow_error_m": _peak_camera_follow_error
-	}
+	return {"head_on": head_on, "glance": glance, "camera_peak_follow_error_m": _peak_camera_follow_error}
 
 
 func _run_collision_case(label: String, start_yaw: float, start_pos: Vector3) -> Dictionary:
@@ -476,29 +442,22 @@ func _run_collision_case(label: String, start_yaw: float, start_pos: Vector3) ->
 	_reset_bike(start_pos, start_yaw)
 	_bike.current_speed = 10.0
 	_spawn_wall_fixture(Vector3(340.0, 1.0, 300.0), Vector3(90.0, 2.0, 0.6), 0.0)
-	# Let the PhysicsServer register the new static body. Measured actors remain
-	# disabled from autonomous processing during this frame.
 	await physics_frame
 	_bike.set_physics_process(false)
-
 	var impact_step := -1
 	var impact_speed := -1.0
 	var impact_ratio := -1.0
 	var start_time := _scenario_time
 	for i in range(360):
-		# Hold the approach at a matched 10 m/s so the pair isolates collision
-		# angle/response rather than different coast-down distances.
 		_step_bike_held_speed(10.0, 0.0, false)
 		if not _collision_events.is_empty():
 			impact_step = i
 			impact_speed = float(_collision_events[0]["impact_speed"])
 			impact_ratio = float(_collision_events[0]["head_on_ratio"])
 			break
-
 	if impact_step < 0:
 		_fail("E5 %s fixture produced no collision within 360 fixed steps" % label)
 		return {}
-
 	var impact_time := _scenario_time - start_time
 	var contact_clear_time := -1.0
 	var quiet_steps := 0
@@ -513,7 +472,6 @@ func _run_collision_case(label: String, start_yaw: float, start_pos: Vector3) ->
 			quiet_steps += 1
 		if contact_clear_time < 0.0 and quiet_steps >= 6:
 			contact_clear_time = _scenario_time - (start_time + impact_time)
-
 	var retained_ratio := speed_after_025 / maxf(impact_speed, 0.001)
 	return {
 		"impact_time_s": impact_time,
@@ -528,19 +486,14 @@ func _run_collision_case(label: String, start_yaw: float, start_pos: Vector3) ->
 	}
 
 
-# -----------------------------------------------------------------------------
-# E6 — forward -> brake -> reverse -> forward
-# -----------------------------------------------------------------------------
 func _run_e6_forward_reverse() -> Dictionary:
 	_begin_scenario("E6_forward_reverse")
 	_reset_bike(Vector3(420.0, 0.05, 360.0), 0.0)
-
 	_scenario_phase = "forward_accel"
 	for _i in range(75):
 		_step_bike(1.0, 0.0, false)
 	var forward_peak := float(_bike.current_speed)
 	var forward_look: Vector3 = _camera_lookahead_vec()
-
 	_scenario_phase = "brake_to_reverse"
 	var brake_start := _scenario_time
 	var reverse_entry := -1.0
@@ -559,7 +512,6 @@ func _run_e6_forward_reverse() -> Dictionary:
 		if float(_bike.current_speed) <= -3.0:
 			reverse_target = _scenario_time - brake_start
 			break
-
 	_scenario_phase = "reverse_to_forward"
 	var forward_return_start := _scenario_time
 	var forward_gear_return := -1.0
@@ -571,7 +523,6 @@ func _run_e6_forward_reverse() -> Dictionary:
 		if float(_bike.current_speed) >= 2.0:
 			forward_motion_return = _scenario_time - forward_return_start
 			break
-
 	return {
 		"forward_peak_mps": forward_peak,
 		"time_to_reverse_gear_s": reverse_entry,
@@ -586,9 +537,6 @@ func _run_e6_forward_reverse() -> Dictionary:
 	}
 
 
-# -----------------------------------------------------------------------------
-# E7 — deterministic pursuit route / correction pressure using real pursuer
-# -----------------------------------------------------------------------------
 func _run_e7_pursuit_route() -> Dictionary:
 	_begin_scenario("E7_pursuit_route")
 	_scenario_phase = "pursuit"
@@ -598,7 +546,6 @@ func _run_e7_pursuit_route() -> Dictionary:
 	_pursuer.activate_pursuit(_bike)
 	_pursuer.set_physics_process(false)
 	_gate.set_pursuit_active(true)
-
 	var min_distance := INF
 	var max_distance := 0.0
 	var collisions_at_start := _collision_events.size()
@@ -608,37 +555,30 @@ func _run_e7_pursuit_route() -> Dictionary:
 	var path_distance := 0.0
 	var previous_pos: Vector3 = _bike.global_position
 	var start_time := _scenario_time
-
 	for i in range(300):
 		var steer := 0.0
 		if i >= 72 and i < 102:
 			steer = 0.35
 		elif i >= 102 and i < 132:
 			steer = -0.35
-
 		_bike.set_drive_inputs(1.0, steer, FIXED_DT, false)
 		_bike._physics_process(FIXED_DT)
 		_pursuer._physics_process(FIXED_DT)
 		_manual_camera_step()
 		_advance_clock(1.0, steer, false)
-
 		path_distance += previous_pos.distance_to(_bike.global_position)
 		previous_pos = _bike.global_position
 		var dist: float = _bike.global_position.distance_to(_pursuer.global_position)
 		min_distance = minf(min_distance, dist)
 		max_distance = maxf(max_distance, dist)
-
 		if i == route_switch_step:
 			_scenario_phase = "route_switch_detour"
-			# Exercise the same authored detour authority used by Signal Gate without
-			# waiting on a presentation Tween in the synthetic fixed-step clock.
 			_host._on_signal_gate_triggered()
 		if int(_pursuer.current_detour_index) >= 0:
 			detour_seen = true
 		if dist <= float(_pursuer.intercept_distance):
 			intercepted = true
 			break
-
 	var final_distance: float = _bike.global_position.distance_to(_pursuer.global_position)
 	var route_outcome := "INTERCEPTED" if intercepted else ("CONTACT_BREAK_CANDIDATE" if final_distance > 18.0 else "ACTIVE_PRESSURE")
 	return {
@@ -657,9 +597,6 @@ func _run_e7_pursuit_route() -> Dictionary:
 	}
 
 
-# -----------------------------------------------------------------------------
-# Fixed-step helpers / trace capture
-# -----------------------------------------------------------------------------
 func _begin_scenario(id: String) -> void:
 	_scenario_id = id
 	_scenario_phase = ""
@@ -690,7 +627,7 @@ func _reset_bike(pos: Vector3, yaw: float) -> void:
 		_camera.set_process(false)
 		_camera.reset_camera_instant(_bike)
 		_camera.set_process(false)
-		_peak_camera_fov = float(_camera.fov)
+		_peak_camera_fov = maxf(_peak_camera_fov, float(_camera.fov))
 
 
 func _step_bike(throttle: float, steer: float, handbrake: bool) -> void:
@@ -743,7 +680,6 @@ func _record_trace(throttle: float, steer: float, handbrake: bool) -> void:
 		pursuer_pos = _pursuer.global_position
 		pursuer_distance = _bike.global_position.distance_to(_pursuer.global_position)
 	var collision_this_step := _last_collision_step == _scenario_step
-
 	_traces[_scenario_id].append({
 		"step": _scenario_step,
 		"time_s": _scenario_time,
@@ -774,15 +710,12 @@ func _record_trace(throttle: float, steer: float, handbrake: bool) -> void:
 
 
 func _lateral_slip_speed() -> float:
-	var right_dir: Vector3 = _bike.global_transform.basis.x
-	return abs(float(_bike.velocity.dot(right_dir)))
+	return abs(float(_bike.velocity.dot(_bike.global_transform.basis.x)))
 
 
 func _camera_lookahead_vec() -> Vector3:
 	var value = _camera.get("_smoothed_look_ahead")
-	if value is Vector3:
-		return value
-	return Vector3.ZERO
+	return value if value is Vector3 else Vector3.ZERO
 
 
 func _camera_lookahead_length() -> float:
@@ -797,9 +730,6 @@ func _v3(value: Vector3) -> Array:
 	return [value.x, value.y, value.z]
 
 
-# -----------------------------------------------------------------------------
-# Collision fixture / telemetry
-# -----------------------------------------------------------------------------
 func _spawn_wall_fixture(pos: Vector3, size: Vector3, yaw: float) -> void:
 	var body := StaticBody3D.new()
 	body.name = "CTWFeelCollisionFixture"
@@ -815,9 +745,6 @@ func _spawn_wall_fixture(pos: Vector3, size: Vector3, yaw: float) -> void:
 
 
 func _clear_fixtures() -> void:
-	# The harness controls this lifecycle outside physics callbacks. Freeing
-	# immediately prevents the second E5 subcase from briefly overlapping the
-	# first wall for one deferred queue_free frame.
 	for fixture in _fixtures:
 		if is_instance_valid(fixture):
 			fixture.free()
@@ -832,8 +759,6 @@ func _reset_collision_step_state() -> void:
 
 
 func _on_collision_contact(head_on_ratio: float, impact_speed: float, collision_pos: Vector3) -> void:
-	# Signal is emitted inside the bike physics call before _advance_clock(). The
-	# corresponding trace row is therefore the next synthetic step number.
 	_last_collision_step = _scenario_step + 1
 	_last_collision_head_on_ratio = head_on_ratio
 	_last_collision_impact_speed = impact_speed
@@ -849,9 +774,6 @@ func _on_collision_contact(head_on_ratio: float, impact_speed: float, collision_
 	})
 
 
-# -----------------------------------------------------------------------------
-# Repeatability falsification
-# -----------------------------------------------------------------------------
 func _compare_repeatability(pass_a: Dictionary, pass_b: Dictionary) -> Dictionary:
 	var failures: Array[String] = []
 	_compare_variant("scenarios", pass_a, pass_b, failures)
@@ -866,7 +788,6 @@ func _compare_variant(path: String, a, b, failures: Array[String]) -> void:
 	if typeof(a) != typeof(b):
 		failures.append("%s type mismatch: %s vs %s" % [path, typeof(a), typeof(b)])
 		return
-
 	if a is Dictionary:
 		var a_dict: Dictionary = a
 		var b_dict: Dictionary = b
@@ -876,7 +797,6 @@ func _compare_variant(path: String, a, b, failures: Array[String]) -> void:
 				continue
 			_compare_variant("%s.%s" % [path, key], a_dict[key], b_dict[key], failures)
 		return
-
 	if a is Array:
 		var aa: Array = a
 		var bb: Array = b
@@ -886,7 +806,6 @@ func _compare_variant(path: String, a, b, failures: Array[String]) -> void:
 		for i in range(aa.size()):
 			_compare_variant("%s[%d]" % [path, i], aa[i], bb[i], failures)
 		return
-
 	if a is float or a is int:
 		var af := float(a)
 		var bf := float(b)
@@ -899,14 +818,10 @@ func _compare_variant(path: String, a, b, failures: Array[String]) -> void:
 		if absf(af - bf) > tolerance:
 			failures.append("%s drift %.9f exceeds tolerance %.9f (A=%.9f B=%.9f)" % [path, absf(af - bf), tolerance, af, bf])
 		return
-
 	if a != b:
 		failures.append("%s mismatch: %s vs %s" % [path, str(a), str(b)])
 
 
-# -----------------------------------------------------------------------------
-# Artifact / provenance helpers
-# -----------------------------------------------------------------------------
 func _resolve_build_commit() -> String:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--feel-build-commit="):
@@ -914,9 +829,7 @@ func _resolve_build_commit() -> String:
 			if not value.is_empty():
 				return value
 	var env_value := OS.get_environment("EITS_BUILD_COMMIT").strip_edges()
-	if not env_value.is_empty():
-		return env_value
-	return BASELINE_BEHAVIOR_SHA
+	return env_value if not env_value.is_empty() else BASELINE_BEHAVIOR_SHA
 
 
 func _ensure_output_dir() -> bool:
