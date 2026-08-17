@@ -224,7 +224,15 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_ui")
 
-[node name="TensionHUDPanel" type="Control" parent="CanvasLayer/TouchControlsUI"]
+[node name="SafeAreaRoot" type="Control" parent="CanvasLayer/TouchControlsUI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TensionHUDPanel" type="Control" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot"]
 visible = false
 layout_mode = 1
 anchors_preset = 10
@@ -233,7 +241,7 @@ offset_top = 20.0
 offset_bottom = 80.0
 grow_horizontal = 2
 
-[node name="AlertLabel" type="Label" parent="CanvasLayer/TouchControlsUI/TensionHUDPanel"]
+[node name="AlertLabel" type="Label" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot/TensionHUDPanel"]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -246,7 +254,7 @@ grow_horizontal = 2
 text = "[ ALERT: PURSUIT ACTIVE ]"
 horizontal_alignment = 1
 
-[node name="ProximityLabel" type="Label" parent="CanvasLayer/TouchControlsUI/TensionHUDPanel"]
+[node name="ProximityLabel" type="Label" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot/TensionHUDPanel"]
 visible = false
 layout_mode = 1
 anchors_preset = 5
@@ -260,21 +268,21 @@ grow_horizontal = 2
 text = "PURSUER: 12.4m"
 horizontal_alignment = 1
 
-[node name="LeftTouchArea" type="Control" parent="CanvasLayer/TouchControlsUI"]
+[node name="LeftTouchArea" type="Control" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot"]
 layout_mode = 1
 anchors_preset = 9
 anchor_bottom = 1.0
 offset_right = 480.0
 grow_vertical = 2
 
-[node name="JoystickBase" type="ColorRect" parent="CanvasLayer/TouchControlsUI/LeftTouchArea"]
+[node name="JoystickBase" type="ColorRect" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot/LeftTouchArea"]
 visible = false
 layout_mode = 0
 offset_right = 120.0
 offset_bottom = 120.0
 color = Color(0.2, 0.2, 0.25, 0.5)
 
-[node name="JoystickKnob" type="ColorRect" parent="CanvasLayer/TouchControlsUI/LeftTouchArea/JoystickBase"]
+[node name="JoystickKnob" type="ColorRect" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot/LeftTouchArea/JoystickBase"]
 layout_mode = 0
 offset_left = 35.0
 offset_top = 35.0
@@ -282,7 +290,7 @@ offset_right = 85.0
 offset_bottom = 85.0
 color = Color(0.3, 0.8, 1, 0.8)
 
-[node name="RightTouchArea" type="Control" parent="CanvasLayer/TouchControlsUI"]
+[node name="RightTouchArea" type="Control" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot"]
 layout_mode = 1
 anchors_preset = 11
 anchor_left = 1.0
@@ -292,7 +300,7 @@ offset_left = -480.0
 grow_horizontal = 0
 grow_vertical = 2
 
-[node name="ActionButton" type="Button" parent="CanvasLayer/TouchControlsUI/RightTouchArea"]
+[node name="ActionButton" type="Button" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot/RightTouchArea"]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -306,6 +314,88 @@ offset_bottom = -30.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "ACTION"
+
+[node name="DrivingOverlayPanel" type="Control" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ThrottleButton" type="Button" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot/DrivingOverlayPanel"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -160.0
+offset_top = -140.0
+offset_right = -30.0
+offset_bottom = -30.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "GAS"
+
+[node name="BrakeButton" type="Button" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot/DrivingOverlayPanel"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -310.0
+offset_top = -140.0
+offset_right = -180.0
+offset_bottom = -30.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "BRAKE"
+
+[node name="HandbrakeButton" type="Button" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot/DrivingOverlayPanel"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -310.0
+offset_top = -220.0
+offset_right = -30.0
+offset_bottom = -160.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "[ E-BRAKE ]"
+
+[node name="DismountButton" type="Button" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot/DrivingOverlayPanel"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -180.0
+offset_top = 30.0
+offset_right = -30.0
+offset_bottom = 90.0
+grow_horizontal = 0
+text = "[ DISMOUNT ]"
+
+[node name="RouteSwitchButton" type="Button" parent="CanvasLayer/TouchControlsUI/SafeAreaRoot/DrivingOverlayPanel"]
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -310.0
+offset_top = -300.0
+offset_right = -30.0
+offset_bottom = -240.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "[ ROUTE SWITCH ]"
 
 [node name="GestureOverlayPanel" type="Panel" parent="CanvasLayer/TouchControlsUI"]
 visible = false
@@ -347,88 +437,6 @@ offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 0
 text = "[ EXTRACT CORE ]"
-
-[node name="DrivingOverlayPanel" type="Control" parent="CanvasLayer/TouchControlsUI"]
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="ThrottleButton" type="Button" parent="CanvasLayer/TouchControlsUI/DrivingOverlayPanel"]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -160.0
-offset_top = -140.0
-offset_right = -30.0
-offset_bottom = -30.0
-grow_horizontal = 0
-grow_vertical = 0
-text = "GAS"
-
-[node name="BrakeButton" type="Button" parent="CanvasLayer/TouchControlsUI/DrivingOverlayPanel"]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -310.0
-offset_top = -140.0
-offset_right = -180.0
-offset_bottom = -30.0
-grow_horizontal = 0
-grow_vertical = 0
-text = "BRAKE"
-
-[node name="HandbrakeButton" type="Button" parent="CanvasLayer/TouchControlsUI/DrivingOverlayPanel"]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -310.0
-offset_top = -220.0
-offset_right = -30.0
-offset_bottom = -160.0
-grow_horizontal = 0
-grow_vertical = 0
-text = "[ E-BRAKE ]"
-
-[node name="DismountButton" type="Button" parent="CanvasLayer/TouchControlsUI/DrivingOverlayPanel"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -180.0
-offset_top = 30.0
-offset_right = -30.0
-offset_bottom = 90.0
-grow_horizontal = 0
-text = "[ DISMOUNT ]"
-
-[node name="RouteSwitchButton" type="Button" parent="CanvasLayer/TouchControlsUI/DrivingOverlayPanel"]
-visible = false
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -310.0
-offset_top = -300.0
-offset_right = -30.0
-offset_bottom = -240.0
-grow_horizontal = 0
-grow_vertical = 0
-text = "[ ROUTE SWITCH ]"
 
 [node name="ReplayOverlayPanel" type="Control" parent="CanvasLayer/TouchControlsUI"]
 visible = false

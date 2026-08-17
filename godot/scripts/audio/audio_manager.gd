@@ -76,9 +76,11 @@ const EVENT_COOLDOWNS_MSEC: Dictionary = {
 
 func _ready() -> void:
 	_engine_stream = _create_noise_wav(0.5, 0.4)
+	_engine_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_hum_stream = _create_tone_wav(120.0, 0.5, 0.3)
 	_hum_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_static_stream = _create_noise_wav(0.5, 0.25)
+	_static_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_siren_stream = _create_tone_wav(440.0, 0.6, 0.4)
 	_siren_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_tension_stream = _create_harmonic_drone_wav(110.0, 220.0, 1.0, 0.35)

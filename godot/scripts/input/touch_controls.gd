@@ -1,8 +1,9 @@
 class_name TouchControlsUI
 extends Control
 
-# Echos in the Scrap - Dual-Thumb Touch Controls UI (V5.1 Gate Counterplay)
-# Features Foot Traversal, Vehicle Driving, Driving Route Switch UI, and Pointer Isolation
+# Echos in the Scrap - Dual-Thumb Touch Controls UI (V8 M02 Mobile Safe-Area & Touch Ergonomics)
+# Features SafeAreaRoot Boundary, Coordinate-Safe DisplayServer Integration,
+# Deterministic Simulator API, Floating Joystick Clamping, and Stale Touch Purging.
 
 signal joystick_vector_updated(vec: Vector2)
 signal action_button_pressed
@@ -16,6 +17,7 @@ signal driving_throttle_updated(throttle: float)
 signal driving_handbrake_updated(active: bool)
 signal dismount_pressed
 signal replay_pressed
+signal safe_area_updated(resolved_canvas_rect: Rect2)
 
 enum UIMode {
 	FOOT_TRAVERSAL,
@@ -27,27 +29,31 @@ enum UIMode {
 
 var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 
-@onready var joystick_base: Control = $LeftTouchArea/JoystickBase
-@onready var joystick_handle: Control = $LeftTouchArea/JoystickBase/JoystickKnob
-@onready var action_button: Button = $RightTouchArea/ActionButton
+# SafeAreaRoot hierarchy references (with automatic fallback to direct child if not nested)
+@onready var safe_area_root: Control = _find_or_self("SafeAreaRoot")
+@onready var left_touch_area: Control = _find_node_recursive("LeftTouchArea")
+@onready var right_touch_area: Control = _find_node_recursive("RightTouchArea")
+@onready var joystick_base: Control = _find_node_recursive("JoystickBase")
+@onready var joystick_handle: Control = _find_node_recursive("JoystickKnob")
+@onready var action_button: Button = _find_node_recursive("ActionButton")
 
-@onready var driving_panel: Control = $DrivingOverlayPanel
-@onready var gas_button: Button = $DrivingOverlayPanel/ThrottleButton
-@onready var brake_button: Button = $DrivingOverlayPanel/BrakeButton
-@onready var handbrake_button: Button = $DrivingOverlayPanel/HandbrakeButton
-@onready var dismount_button: Button = $DrivingOverlayPanel/DismountButton
-@onready var route_switch_button: Button = $DrivingOverlayPanel/RouteSwitchButton
+@onready var driving_panel: Control = _find_node_recursive("DrivingOverlayPanel")
+@onready var gas_button: Button = _find_node_recursive("ThrottleButton")
+@onready var brake_button: Button = _find_node_recursive("BrakeButton")
+@onready var handbrake_button: Button = _find_node_recursive("HandbrakeButton")
+@onready var dismount_button: Button = _find_node_recursive("DismountButton")
+@onready var route_switch_button: Button = _find_node_recursive("RouteSwitchButton")
 
-@onready var gesture_panel: Control = $GestureOverlayPanel
-@onready var gesture_hint_label: Label = $GestureOverlayPanel/GestureLabel
-@onready var core_tap_button: Button = $GestureOverlayPanel/CorePullButton
+@onready var gesture_panel: Control = _find_node_recursive("GestureOverlayPanel")
+@onready var gesture_hint_label: Label = _find_node_recursive("GestureLabel")
+@onready var core_tap_button: Button = _find_node_recursive("CorePullButton")
 
-@onready var tension_panel: Control = $TensionHUDPanel
-@onready var alert_label: Label = $TensionHUDPanel/AlertLabel
-@onready var proximity_label: Label = $TensionHUDPanel/ProximityLabel
+@onready var tension_panel: Control = _find_node_recursive("TensionHUDPanel")
+@onready var alert_label: Label = _find_node_recursive("AlertLabel")
+@onready var proximity_label: Label = _find_node_recursive("ProximityLabel")
 
-@onready var replay_panel: Control = $ReplayOverlayPanel
-@onready var replay_button: Button = $ReplayOverlayPanel/ReplayButton
+@onready var replay_panel: Control = _find_node_recursive("ReplayOverlayPanel")
+@onready var replay_button: Button = _find_node_recursive("ReplayButton")
 
 var _joystick_active: bool = false
 var _joystick_touch_index: int = -1
@@ -65,6 +71,28 @@ var _tuning_accum_px: float = 0.0
 var _is_gas_pressed: bool = false
 var _is_brake_pressed: bool = false
 var _is_handbrake_pressed: bool = false
+
+# Safe-Area simulation override storage
+var _simulated_safe_area: Rect2i = Rect2i()
+var _simulated_screen_size: Vector2i = Vector2i()
+
+func _find_or_self(node_name: String) -> Control:
+	var n: Node = get_node_or_null(node_name)
+	if n is Control:
+		return n as Control
+	return self
+
+func _find_node_recursive(target_name: String) -> Control:
+	return _search_node(self, target_name)
+
+func _search_node(current: Node, target_name: String) -> Control:
+	if current.name == target_name and current is Control:
+		return current as Control
+	for child in current.get_children():
+		var found := _search_node(child, target_name)
+		if found:
+			return found
+	return null
 
 func _emit_net_throttle() -> void:
 	var throttle := 0.0
@@ -90,6 +118,80 @@ func reset_all_input_states() -> void:
 	close_interaction_overlay()
 	hide_replay_overlay()
 	hide_tension_hud()
+
+# ==============================================================================
+# SAFE-AREA COMPUTATION & SIMULATOR API
+# ==============================================================================
+
+func set_simulated_safe_area(safe_rect: Rect2i, screen_size: Vector2i = Vector2i.ZERO) -> void:
+	_simulated_safe_area = safe_rect
+	_simulated_screen_size = screen_size
+	_update_safe_area_layout()
+
+func clear_simulated_safe_area() -> void:
+	_simulated_safe_area = Rect2i()
+	_simulated_screen_size = Vector2i()
+	_update_safe_area_layout()
+
+func get_resolved_safe_rect() -> Rect2:
+	var vp_rect := get_viewport_rect()
+	var safe_pixels: Rect2i
+	var screen_sz: Vector2i
+
+	if _simulated_safe_area.has_area():
+		safe_pixels = _simulated_safe_area
+		screen_sz = _simulated_screen_size if _simulated_screen_size != Vector2i.ZERO else DisplayServer.window_get_size()
+		if screen_sz == Vector2i.ZERO:
+			screen_sz = Vector2i(int(vp_rect.size.x), int(vp_rect.size.y))
+	else:
+		safe_pixels = DisplayServer.get_display_safe_area()
+		screen_sz = DisplayServer.window_get_size()
+		if screen_sz == Vector2i.ZERO:
+			screen_sz = Vector2i(int(vp_rect.size.x), int(vp_rect.size.y))
+
+	# If safe_pixels is empty/zero (desktop standard), return full viewport
+	if safe_pixels.size.x <= 0 or safe_pixels.size.y <= 0:
+		return vp_rect
+
+	# Map screen pixel coordinates to canvas coordinate space using viewport size
+	var scale_x: float = vp_rect.size.x / float(screen_sz.x)
+	var scale_y: float = vp_rect.size.y / float(screen_sz.y)
+
+	var canvas_x: float = float(safe_pixels.position.x) * scale_x
+	var canvas_y: float = float(safe_pixels.position.y) * scale_y
+	var canvas_w: float = float(safe_pixels.size.x) * scale_x
+	var canvas_h: float = float(safe_pixels.size.y) * scale_y
+
+	var resolved := Rect2(canvas_x, canvas_y, canvas_w, canvas_h)
+	var clamped_pos := Vector2(maxf(resolved.position.x, 0.0), maxf(resolved.position.y, 0.0))
+	var clamped_size := Vector2(minf(resolved.size.x, vp_rect.size.x - clamped_pos.x), minf(resolved.size.y, vp_rect.size.y - clamped_pos.y))
+	return Rect2(clamped_pos, clamped_size)
+
+func _update_safe_area_layout() -> void:
+	# Crucial invariant: purge all active touches when layout changes to avoid sticky pointers
+	reset_all_input_states()
+
+	var safe_rect := get_resolved_safe_rect()
+	var vp_rect := get_viewport_rect()
+
+	if safe_area_root and safe_area_root != self:
+		safe_area_root.anchor_left = 0.0
+		safe_area_root.anchor_top = 0.0
+		safe_area_root.anchor_right = 1.0
+		safe_area_root.anchor_bottom = 1.0
+		safe_area_root.offset_left = safe_rect.position.x
+		safe_area_root.offset_top = safe_rect.position.y
+		safe_area_root.offset_right = -(vp_rect.size.x - (safe_rect.position.x + safe_rect.size.x))
+		safe_area_root.offset_bottom = -(vp_rect.size.y - (safe_rect.position.y + safe_rect.size.y))
+
+	safe_area_updated.emit(safe_rect)
+
+func _on_viewport_size_changed() -> void:
+	_update_safe_area_layout()
+
+# ==============================================================================
+# LIFECYCLE & INITIALIZATION
+# ==============================================================================
 
 func _ready() -> void:
 	if joystick_handle and joystick_base:
@@ -164,6 +266,10 @@ func _ready() -> void:
 				_is_handbrake_pressed = true
 				driving_handbrake_updated.emit(true)
 		)
+
+	if get_viewport():
+		get_viewport().size_changed.connect(_on_viewport_size_changed)
+	_update_safe_area_layout()
 
 func _apply_golden_slice_design_tokens() -> void:
 	if alert_label:
@@ -319,7 +425,8 @@ func _gui_input(event: InputEvent) -> void:
 			elif not touch_ev.pressed and touch_ev.index == _interaction_touch_index:
 				_handle_touch_up_anywhere(touch_ev.index)
 		else:
-			if touch_ev.position.x < get_viewport_rect().size.x * 0.5:
+			var safe_rect := get_resolved_safe_rect()
+			if touch_ev.position.x < safe_rect.position.x + (safe_rect.size.x * 0.5):
 				if touch_ev.pressed and not _joystick_active:
 					_start_joystick(touch_ev.index, touch_ev.position)
 				elif not touch_ev.pressed and touch_ev.index == _joystick_touch_index:
@@ -341,12 +448,26 @@ func _gui_input(event: InputEvent) -> void:
 func _start_joystick(touch_idx: int, pos: Vector2) -> void:
 	_joystick_active = true
 	_joystick_touch_index = touch_idx
-	_joystick_center_pos = pos
+	
+	var safe_rect := get_resolved_safe_rect()
+	var base_half: Vector2 = (joystick_base.size * 0.5) if joystick_base else Vector2(60, 60)
+	
+	# Clamp initial spawn center so the entire 120x120 base is enclosed in safe-area
+	var min_x := safe_rect.position.x + base_half.x
+	var max_x := safe_rect.position.x + (safe_rect.size.x * 0.5) - base_half.x
+	var min_y := safe_rect.position.y + base_half.y
+	var max_y := safe_rect.position.y + safe_rect.size.y - base_half.y
+	
+	_joystick_center_pos = Vector2(
+		clampf(pos.x, min_x, maxf(min_x, max_x)),
+		clampf(pos.y, min_y, maxf(min_y, max_y))
+	)
+	
 	if joystick_handle:
 		joystick_handle.position = _joystick_handle_rest_pos
 	if joystick_base:
 		joystick_base.visible = true
-		joystick_base.global_position = pos - (joystick_base.size * 0.5)
+		joystick_base.global_position = _joystick_center_pos - base_half
 
 func _update_joystick(pos: Vector2) -> void:
 	var delta_pos := pos - _joystick_center_pos
@@ -355,8 +476,21 @@ func _update_joystick(pos: Vector2) -> void:
 		# Anchor-follow: slide center towards current touch position to remove reversal deadband!
 		var excess := dist - max_joystick_radius
 		_joystick_center_pos += delta_pos.normalized() * excess
+		
+		# Clamp dynamic anchor within safe bounds
+		var safe_rect := get_resolved_safe_rect()
+		var base_half: Vector2 = (joystick_base.size * 0.5) if joystick_base else Vector2(60, 60)
+		var min_x := safe_rect.position.x + base_half.x
+		var max_x := safe_rect.position.x + (safe_rect.size.x * 0.5) - base_half.x
+		var min_y := safe_rect.position.y + base_half.y
+		var max_y := safe_rect.position.y + safe_rect.size.y - base_half.y
+		_joystick_center_pos = Vector2(
+			clampf(_joystick_center_pos.x, min_x, maxf(min_x, max_x)),
+			clampf(_joystick_center_pos.y, min_y, maxf(min_y, max_y))
+		)
+		
 		if joystick_base:
-			joystick_base.global_position = _joystick_center_pos - (joystick_base.size * 0.5)
+			joystick_base.global_position = _joystick_center_pos - base_half
 		delta_pos = delta_pos.normalized() * max_joystick_radius
 	if joystick_handle:
 		joystick_handle.position = _joystick_handle_rest_pos + delta_pos
