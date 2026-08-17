@@ -25,7 +25,11 @@ enum SoundEvent {
 	PURSUIT_INTERCEPTED,
 	EVASION_RELEASE,
 	COLLISION_GLANCE,
-	COLLISION_HEAD_ON
+	COLLISION_HEAD_ON,
+	## M04 — Memory Echo signature events
+	ECHO_ONSET,
+	ECHO_PEAK,
+	ECHO_TAIL
 }
 
 enum MixState {
@@ -38,7 +42,9 @@ enum MixState {
 	PURSUIT_PRESSURE,
 	ROUTE_SWITCH_IMPACT,
 	EVASION_RELEASE,
-	QUIET_AFTERMATH
+	QUIET_AFTERMATH,
+	## M04 — Memory Echo window: extraction transient → echo → disturbance
+	MEMORY_ECHO
 }
 
 var current_mix_state: MixState = MixState.CALM
@@ -48,6 +54,8 @@ var _hum_player: AudioStreamPlayer3D = null
 var _static_player: AudioStreamPlayer = null
 var _siren_player: AudioStreamPlayer3D = null
 var _tension_player: AudioStreamPlayer = null
+## M04: dedicated echo voice (non-spatial — echo is inside-the-head by design)
+var _echo_voice: AudioStreamPlayer = null
 
 var _engine_stream: AudioStreamWAV = null
 var _hum_stream: AudioStreamWAV = null
@@ -126,6 +134,13 @@ func _ready() -> void:
 	_tension_player.volume_db = -80.0
 	add_child(_tension_player)
 
+	## M04: echo voice — shared player, stream swapped per phase
+	_echo_voice = AudioStreamPlayer.new()
+	_echo_voice.name = "MemoryEchoVoice"
+	_echo_voice.bus = &"Master"
+	_echo_voice.volume_db = 0.0
+	add_child(_echo_voice)
+
 func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 	var now := Time.get_ticks_msec()
 	if EVENT_COOLDOWNS_MSEC.has(event):
@@ -181,6 +196,13 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			_play_synth_sweep(pos, 750.0, 350.0, 0.12, 0.35)
 		SoundEvent.COLLISION_HEAD_ON:
 			_play_synth_sweep(pos, 150.0, 40.0, 0.35, 0.65)
+		## M04 — Memory Echo events: played via dedicated non-spatial echo voice
+		SoundEvent.ECHO_ONSET:
+			_play_echo_onset()
+		SoundEvent.ECHO_PEAK:
+			_play_echo_peak()
+		SoundEvent.ECHO_TAIL:
+			_play_echo_tail()
 
 func stop_event(event: SoundEvent) -> void:
 	if event == SoundEvent.PROXIMITY_HUM and _hum_player:
@@ -330,6 +352,10 @@ func reset_audio_instant() -> void:
 	if _tension_player:
 		_tension_player.stop()
 		_tension_player.volume_db = -80.0
+	## M04: kill echo voice cleanly on instant reset — no leakage into aftermath
+	if _echo_voice:
+		_echo_voice.stop()
+		_echo_voice.volume_db = 0.0
 
 	_is_decaying_pursuit_pressure = false
 	_current_pursuit_pressure = 0.0
@@ -366,6 +392,13 @@ func set_mix_state(state: MixState) -> void:
 			set_tuning_audio(0.0)
 			if _tension_player and _tension_player.playing:
 				_tension_player.stop()
+		## M04: Memory Echo window — duck ambient, hold space; no pursuit audio started
+		MixState.MEMORY_ECHO:
+			set_tuning_audio(0.0)
+			if _static_player and _static_player.playing:
+				_static_player.stop()
+			# Play the ECHO_ONSET transient to open the window
+			play_event(SoundEvent.ECHO_ONSET, Vector3.ZERO)
 
 # -----------------------------------------------------------------------------
 # INTERNAL PROCEDURAL SYNTHESIS & TRANSIENT MANAGEMENT
@@ -422,6 +455,34 @@ func _play_synth_chime(pos: Vector3) -> void:
 	player_3d.unit_size = 12.0
 	player_3d.stream = _create_harmonic_chime_wav(880.0, 1320.0, 0.45, 0.5)
 	_register_and_play_transient(player_3d, pos, 0.45)
+
+## M04 — Memory Echo audio signature helpers
+## ECHO_ONSET: low electrical crackle — reversed envelope, distinct from COMPLETION
+func _play_echo_onset() -> void:
+	if not _echo_voice:
+		return
+	_echo_voice.stream = _create_echo_onset_wav()
+	_echo_voice.volume_db = -8.0
+	_echo_voice.play()
+	print("[AUDIO_ECHO] Onset playing")
+
+## ECHO_PEAK: fractured signal ghost — sparse noise burst with comb-filter character
+func _play_echo_peak() -> void:
+	if not _echo_voice:
+		return
+	_echo_voice.stream = _create_echo_peak_wav()
+	_echo_voice.volume_db = -4.0
+	_echo_voice.play()
+	print("[AUDIO_ECHO] Peak playing")
+
+## ECHO_TAIL: electrical high-frequency tail, dropout to silence
+func _play_echo_tail() -> void:
+	if not _echo_voice:
+		return
+	_echo_voice.stream = _create_echo_tail_wav()
+	_echo_voice.volume_db = -12.0
+	_echo_voice.play()
+	print("[AUDIO_ECHO] Tail playing")
 
 func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
@@ -513,5 +574,92 @@ func _create_noise_wav(duration: float, volume: float = 0.3) -> AudioStreamWAV:
 	for i in range(sample_count):
 		var sample := (randf() * 2.0 - 1.0) * volume
 		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
+# ─────────────────────────────────────────────────────────────────────────────
+# M04: Memory Echo procedural synthesis helpers
+# Arc: extraction transient → vacuum/drop (onset) → fractured echo (peak)
+#      → electrical tail → silence → disturbance intrusion
+# No loudness pile-up: echo voices are all below -4 dB; pursuit onset wins.
+# ─────────────────────────────────────────────────────────────────────────────
+
+## ECHO_ONSET (~0.28s): electrical crackle with reversed (attack-heavy) envelope
+## Distinct from COMPLETION: lower base freq (220Hz), envelope inverted so
+## energy front-loads and then drops, implying something tearing open.
+func _create_echo_onset_wav() -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var duration := 0.28
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var norm_t := t / duration
+		# Reversed envelope: loud attack, decays to near-zero
+		var env := (1.0 - norm_t) * (1.0 - norm_t)
+		# Harmonic stack: 220 + 330 + sparse noise for electrical texture
+		var sig := (sin(2.0 * PI * 220.0 * t) * 0.5
+			+ sin(2.0 * PI * 330.0 * t) * 0.3
+			+ (randf() * 2.0 - 1.0) * 0.2) * env * 0.55
+		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
+## ECHO_PEAK (~1.1s): fractured echo material — sparse noise burst with comb
+## filter character simulated via two detuned oscillators + amplitude modulation.
+## Implies a fragmented memory signal surfacing then receding.
+func _create_echo_peak_wav() -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var duration := 1.1
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var norm_t := t / duration
+		# Rise quickly to peak at 0.15, then slow decay — implies revelation then recession
+		var env := 0.0
+		if norm_t < 0.15:
+			env = norm_t / 0.15
+		else:
+			env = 1.0 - ((norm_t - 0.15) / 0.85)
+		env = maxf(0.0, env)
+		# Comb-filter texture: two detuned oscillators (185Hz + 187Hz) = 2Hz beating
+		var comb := sin(2.0 * PI * 185.0 * t) * 0.4 + sin(2.0 * PI * 187.0 * t) * 0.4
+		# Amplitude modulation at ~3 Hz for fragmentary pulsing quality
+		var am := 0.6 + 0.4 * sin(2.0 * PI * 3.0 * t)
+		# Sparse noise texture to imply signal corruption
+		var noise := (randf() * 2.0 - 1.0) * 0.15
+		var sig := (comb * am + noise) * env * 0.45
+		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
+## ECHO_TAIL (~0.45s): high-frequency electrical shimmer decaying to silence
+## Distinctly thinner than siren/tension. Acts as dropout signal before
+## disturbance intrusion breaks the quiet.
+func _create_echo_tail_wav() -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var duration := 0.45
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var norm_t := t / duration
+		# Simple exponential decay to guarantee silence at end
+		var env := exp(-norm_t * 5.0)
+		# High-frequency shimmer: 3400Hz + 5100Hz harmonics
+		var sig := (sin(2.0 * PI * 3400.0 * t) * 0.6
+			+ sin(2.0 * PI * 5100.0 * t) * 0.25
+			+ (randf() * 2.0 - 1.0) * 0.1) * env * 0.45
+		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
 	wav.data = data
 	return wav

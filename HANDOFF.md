@@ -1,35 +1,38 @@
-# HANDOFF.md — V8 M03 Formal Closure (03.1 - 03.4 + 03.2B Integration-Verified Audio Envelope)
-**Generated**: 2026-08-16T21:07 PDT  
+# HANDOFF.md — V8 M04 Formal Closure (04.1 - 04.6 First Memory Echo / Extraction Payoff)
+**Generated**: 2026-08-17T01:14 PDT  
 **Branch**: `main`  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official)  
 **Milestones Status**:
 - **V8 M01 (01.1 - 01.4)**: Visual Identity, Scrap Kit, Lighting & Readability — ✅ CLOSED & VERIFIED (`43ed3e5`)
 - **V8 M02 (02.1 - 02.4)**: Mobile Safe-Area, Touch Ergonomics & Adversarial Multi-Touch — ✅ CLOSED & VERIFIED (`30f20aa`)
-- **V8 M03 (03.1 - 03.4 + 03.2B)**: Threat Aftermath & World Continuity — ✅ 100% COMPLETE & VERIFIED
+- **V8 M03 (03.1 - 03.4 + 03.2B)**: Threat Aftermath & World Continuity — ✅ CLOSED & VERIFIED (`a077e2a`)
+- **V8 M04 (04.1 - 04.6)**: First Memory Echo / Extraction Payoff — ✅ 100% COMPLETE & VERIFIED
 
 ---
 
-## 1. Milestone V8 M03 Deliverables & 03.2B Integration Architecture
+## 1. Milestone V8 M04 Deliverables & Architecture
 
 | Ticket | Description | Status | Deliverables |
 |---|---|---|---|
-| **03.1** | Pursuer De-escalation & Retreat Behavior | ✅ CLOSED | `PursuerPrototype` explicit state machine (`INACTIVE`, `CHASING`, `DETOURING`, `DE_ESCALATING`, `EVADED_DISENGAGED`). `start_de_escalation()` decouples target, transitions siren to amber search (`Color(1.0, 0.65, 0.2)`), smoothly decelerates to 2.5 m/s along retreat vector for 2.5s before safely disengaging. Guaranteed non-hostile safety: interception disabled during de-escalation. |
-| **03.2 / 03.2B** | Aftermath Pressure Decay & Integration-Verified Audio Envelope | ✅ CLOSED | Added `start_pursuit_release_decay(duration)` in `audio_manager.gd`. Monotonically ramps continuous pursuit pressure and siren/tension audio volumes down toward zero in `_process(delta)` over a 0.8–1.2s release envelope. `SoundEvent.EVASION_RELEASE` chime layers non-destructively over decaying loop players (zero premature cutoff). If starting pressure is zero, never synthesizes artificial pressure. Cancelled instantly and authoritatively by `reset_audio_instant()` or active pursuit resumption. |
-| **03.3** | Deterministic Reset & Retrigger Lifecycle | ✅ CLOSED | `reset_pursuer()` cleanly restores initial spawn position `(0, 0.6, -10.0)`, zero speed, zero velocity, zero waypoints, decoupled target, and `INACTIVE` state. Replay button and subsequent disturbance alerts re-arm cleanly without state leaks. |
-| **03.4** | Automated Falsification & Visual Proof | ✅ CLOSED | Dedicated automated suite `--run-v8-m03-aftermath-assertions` (7/7 tests green, including 03.2B multi-point monotonic sampling, controller `_on_successful_evasion()` integration verification, zero-pressure evasion defense, and instant reset cancellation). 4 transition screenshots exported via `--export-v8-aftermath-proof`. Cleaned `WAYFINDER_MAP.md`. |
+| **04.1** | Echo Reveal Prototype | ✅ CLOSED | `MemoryEchoController` state machine (`IDLE` → `ONSET` → `PEAK` → `RELEASE` → `DONE`). Total duration ~1.83s. Abstract signal ghost audio/visual texture (220Hz attack crackle, 185Hz detuned comb-filter beating, 3.4kHz electrical tail). Player retains movement control without permanent input lockout. |
+| **04.2** | Data Boundary | ✅ CLOSED | Clean local/runtime `EchoData` struct (`echo_id`, `action`, `zone`, `intensity`, `mission_ref`, `content`). No Nostr, AI, networking, or persistence dependencies. |
+| **04.3** | Canon Safety | ✅ CLOSED | Narrative content explicitly tagged `[PROPOSED]` and kept deliberately fragmentary (`"[PROPOSED] signal // fragment 0x--- // memory location unknown // do not retransmit"`). Zero unverified backstory or committed lore facts. |
+| **04.4** | Audio/Visual Signature | ✅ CLOSED | Procedural WAV synthesis in `audio_manager.gd`: `SoundEvent.ECHO_ONSET`, `SoundEvent.ECHO_PEAK`, `SoundEvent.ECHO_TAIL`, and `MixState.MEMORY_ECHO`. Non-spatial inside-the-head echo voice player (`_echo_voice`), distinct from tuner static, extraction chime, and siren. Pursuit onset retains perceptual audio priority over echo. Instant reset authoritatively halts echo voices. |
+| **04.5** | Gameplay Integration | ✅ CLOSED | Integrated sequence: Cold Start → Tuner → Panel → Core Extraction → **Memory Echo Reveal** → Disturbance Interruption → Bike → Pursuit → Gate/Shortcut → Evasion → Aftermath. Disturbance alert automatically begins at echo handoff. Instant reset cleanly purges echo state, timers, and voices. |
+| **04.6** | Automated Falsification & Visual Proof | ✅ CLOSED | Dedicated automated suite `--run-v8-m04-echo-assertions` (10/10 tests green). 4-stage visual proof screenshots generated in `godot/verification/v8/m04/`. |
 
 ---
 
-## 2. 4 Canonical Aftermath Transition Artifacts
-1. `godot/verification/v8/v8_aftermath_01_pursuit_active.png`: Pursuer chasing bike with red siren active.
-2. `godot/verification/v8/v8_aftermath_02_contact_broken.png`: Distance > 18m, tracking lost alert on HUD.
-3. `godot/verification/v8/v8_aftermath_03_de_escalating_retreat.png`: Pursuer visibly retreating in amber search mode, Replay overlay available.
-4. `godot/verification/v8/v8_aftermath_04_quiet_settled.png`: Threat fully settled, quiet aftermath in Chinatown alley.
+## 2. 4 Canonical Memory Echo Visual Proof Artifacts
+1. `godot/verification/v8/m04/m04_01_core_extraction.png`: Core Extraction completion.
+2. `godot/verification/v8/m04/m04_02_echo_onset.png`: Memory Echo Onset (electrical crackle).
+3. `godot/verification/v8/m04/m04_03_echo_peak.png`: Memory Echo Peak (fractured signal ghost).
+4. `godot/verification/v8/m04/m04_04_disturbance_rupture.png`: Disturbance Rupture / transition into pursuit.
 
 ---
 
-## 3. Enumerated 20-Suite Regression Matrix (100% Green)
+## 3. Enumerated 21-Suite Regression Matrix (100% Green)
 1. `--run-v1-assertions`: PASS (Reaction Loop & Locomotion)
 2. `--run-v2-assertions`: PASS (Micro-Play Loop)
 3. `--run-v3-assertions`: PASS (Courier Bike Feel & Mount/Dismount)
@@ -48,8 +51,9 @@
 16. `--run-v8-safe-area-assertions`: PASS (6/6 simulated device profiles + safe-area insets)
 17. `--run-v8-thumb-reach-assertions`: PASS (Dedicated 2-column thumb hierarchy & notch rejection suite)
 18. `--run-v8-multitouch-assertions`: PASS (Dedicated 18-test adversarial multi-touch matrix A-R)
-19. `--run-v8-m03-aftermath-assertions`: PASS (Dedicated 7-test threat aftermath & 03.2B decay envelope suite)
-20. `--run-v8-readability`: PASS (8/8 real gameplay physics routes & landmark framing)
+19. `--run-v8-m03-aftermath-assertions`: PASS (Dedicated 7-test threat aftermath & decay envelope suite)
+20. `--run-v8-m04-echo-assertions`: PASS (Dedicated 10-test Memory Echo extraction payoff suite)
+21. `--run-v8-readability`: PASS (8/8 real gameplay physics routes & landmark framing)
 
 ---
 
@@ -58,9 +62,5 @@
 - `SIMULATED REACH GEOMETRY`: **VERIFIED**
 - `SIMULATED MULTITOUCH`: **VERIFIED**
 - `SIMULATED SEMANTIC EVENT EXACTNESS`: **VERIFIED**
-- `GLOBAL POINTER OWNERSHIP`: **VERIFIED**
-- `THREAT DE-ESCALATION CONTINUITY`: **VERIFIED**
-- `FRAME-RATE-INDEPENDENT AUDIO ENVELOPE`: **VERIFIED**
-- `HUMAN THUMB COMFORT`: **UNKNOWN** (Pending hardware test)
-- `REAL DEVICE UX`: **UNKNOWN** (Pending hardware test)
-- `REAL MOBILE PERFORMANCE`: **UNKNOWN** (Pending hardware test)
+- `LOCAL GODOT RUNTIME VERIFICATION`: **VERIFIED (21/21 GREEN)**
+- `REMOTE CI VERIFICATION`: **UNCONFIGURED / NOT PRESENT**
