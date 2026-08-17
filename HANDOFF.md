@@ -1,10 +1,10 @@
-# HANDOFF.md — V8 M07A / #19 & #15 Formal Closure & Audio #21 Authorization
-**Generated**: 2026-08-17T14:33 PDT  
+# HANDOFF.md — Audio 01 (#21) Formal Closure & Audio 02 (#22) Execution Authorization
+**Generated**: 2026-08-17T16:00 PDT  
 **Branch**: `main`  
-**Commit**: `d9b62ad9260b92f5cd07bb7aa0c82a144c0e46b9` (`origin/main`)  
+**Commit**: `d48e479db96764526f0b98edf43ed4872ce9341e` (`origin/main`)  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official) on macOS Metal GPU (Apple M4)  
-**Active ChatGPT Relay URL**: https://chatgpt.com/g/g-p-699d1f9e9c188191a392e1cc0783af99/c/6a821260-f250-83e8-9579-f172d0dfda0c  
+**Active ChatGPT Relay URL**: https://chatgpt.com/g/g-p-699d1f9e9c188191a392e1cc0783af99-fb-13-hs-7/c/6a8387e3-3afc-83e8-b08d-f869b9948de1  
 
 ---
 
@@ -20,33 +20,36 @@
 | **V8 M06 / M06A** | First Full-Size Vehicle (Scrap Hauler) & Escape Choice | ✅ CLOSED & VERIFIED | `3c9a456` |
 | **V8 M07 / M07A (#19)** | Living Scrap Yard & Threat Handoff Closure | ✅ CLOSED & VERIFIED | `d9b62ad` |
 | **V8 M15 / GitHub #15** | Fast Pursuit Retry without Replaying Solved Setup | ✅ CLOSED & VERIFIED | `d9b62ad` |
-| **Audio 01 / GitHub #21** | Semantic Audio Registry, Local Reference Resolver & Archaeology Ledger | 🟢 **EXECUTION AUTHORIZED** | Next Target |
+| **Audio 01 / GitHub #21** | Semantic Audio Registry, Local Reference Resolver & Archaeology Ledger | ✅ CLOSED & VERIFIED | `d48e479` |
+| **Audio 02 / GitHub #22** | Reactive Radio Runtime & One-Station Program Director | 🟢 **EXECUTION AUTHORIZED** | Next Target (`review/audio-02-22`) |
 
 ---
 
-## 2. Scope-Integrity Repairs & Resolutions Completed
+## 2. Audio 01 (#21) Resolutions Completed
 
-1. **Courier Bike Physics Restored (`godot/scripts/vehicles/courier_bike.gd`)**:
-   - Restored pre-M07A `global_transform` direction basis (`-global_transform.basis.z`, `global_transform.basis.x`).
-   - Restored normal grip rate to **`10.0`** (and drift grip `1.8`).
-2. **Scrap Hauler Physics Restored (`godot/scripts/vehicles/scrap_hauler.gd`)**:
-   - Restored pre-M07A `global_transform` direction basis (`-global_transform.basis.z`, `global_transform.basis.x`).
-3. **V7 Ticket 04.2 Test Oracle Restored (`godot/scripts/prototype/scrap_test_block.gd`)**:
-   - Restored 25-frame recovery window, global basis lateral measurement, and `< 0.25 m/s` threshold.
-   - Fixed Test 3 & Test 7 stale fixture overrides (`Vector3(0, 0.05, 20.0)` which collided with `ShortcutRightWall`), ensuring clean yard baseline initial conditions for both normal and handbrake legs.
-   - **Measured Metrics**:
-     - Test 3 normal slip cross: `1.6997` vs handbrake slip cross: `6.6599` (nearly 4x enlarged slip angle).
-     - Test 4 recovered lateral speed in 25 frames: **`0.1220 m/s`** (well below `< 0.25 m/s`).
-     - Test 7 peak drift velocity: **`14.00 m/s`** (`max_speed = 14.00 m/s`, 0 speed injection).
-4. **V7 Ticket 03 Stress Retest Repaired (`godot/scripts/prototype/scrap_test_block.gd`)**:
-   - Aligned test assertions and table outputs with live accumulated `tanh` saturation formula:
-     $$\Delta \text{freq} = 0.65 \times \tanh\left(\frac{\text{accum\_px} \times 0.003}{0.65}\right)$$
-5. **Full Matrix Verification**:
-   - All 25 test suites executed and verified 100% green on `main@d9b62ad`.
+1. **Semantic Audio Registry (`godot/scripts/audio/audio_registry.gd`)**:
+   - 25 semantic slots across 6 domains (`PLAYER`, `WORLD`, `VEHICLE`, `INTERACTION`, `PURSUIT`, `ECHO`).
+   - Clean typed enums without raw integer mappings.
+   - Deterministic precedence helper `is_reference_allowed_for_status(status)` returning `false` for `ORIGINAL_FINAL` / `LICENSED_FINAL`.
+2. **Local Reference Resolver (`godot/scripts/audio/audio_reference_resolver.gd`)**:
+   - Native engine loader `AudioStreamWAV.load_from_file()`.
+   - Strict version 1 schema validation (`{"version": 1, "slots": {...}}`) rejecting non-integral or unsupported versions.
+   - Fail-closed security sandbox with path traversal and sibling-prefix defense.
+   - Zero implicit auto-discovery (defaults to `""` without explicit env/CLI manifest path).
+   - Sanitized diagnostic warnings using bounded reason codes without exposing local paths.
+3. **Audio Manager Seam (`godot/scripts/audio/audio_manager.gd`)**:
+   - Focused 4-event tracer inventory (`FOOTSTEP`, `BRAKE_SCREECH`, `PANEL_PEEL`, `COLLISION_GLANCE`).
+   - `DISTURBANCE_ALERT` preserved in legacy procedural path to trigger siren alarm side-effects.
+   - `EVENT_TO_SLOT_MAP` symbolic enum mapping.
+   - Active 2D transient tracking and instant reset cleanup.
+4. **Archaeology Ledger (`docs/audio_archaeology_ledger.md`)**:
+   - 10 candidate families with `PROPOSED` status and Diegesis column. Zero proprietary assets.
+5. **Gitignore**:
+   - Narrow anchored rule `/godot/local_reference_audio/` only.
 
 ---
 
-## 3. Enumerated 25-Suite Regression Matrix (100% Green on `main@d9b62ad`)
+## 3. Enumerated 26-Suite Regression Matrix (100% Green on `main@d48e479`)
 
 1. `--run-v1-assertions`: PASS (Core loop reaction)
 2. `--run-v2-assertions`: PASS (Signal lock & world state)
@@ -73,36 +76,30 @@
 23. `--run-v8-safe-area-assertions`: PASS (Mobile safe-area insets & transforms)
 24. `--run-v8-thumb-reach-assertions`: PASS (Mobile 2-column ergonomics)
 25. `--run-v8-multitouch-assertions`: PASS (Adversarial multi-touch matrix)
+26. `--run-v8-m21-audio-registry-assertions`: PASS (Semantic audio registry & reference resolver)
 
 ---
 
-## 4. Next Implementation Target: Audio 01 (#21)
+## 4. Next Implementation Target: Audio 02 (#22)
 
-### Technical Blueprint & Scope
-1. **Semantic Audio Registry (`godot/scripts/audio/audio_registry.gd`)**:
-   - Stable semantic slot IDs (`player.footstep`, `vehicle.engine_rev`, `pursuit.siren_alarm`, `echo.onset`, `world.ambient_work_clink`, etc.).
-   - Domains: `PLAYER`, `WORLD`, `VEHICLE`, `INTERACTION`, `PURSUIT`, `ECHO`, `UI`, `RADIO`.
-   - Spatial categories: `DIEGETIC_3D`, `NON_DIEGETIC_2D`, `HYBRID`.
-   - Mix groups: `CRITICAL_THREAT`, `SIGNATURE_ECHO`, `VEHICLE_FEEDBACK`, `RADIO_MUSIC`, `AMBIENT_TEXTURE`, `INCIDENTAL_UI`.
-   - Asset status: `PROCEDURAL_FALLBACK`, `REFERENCE_ONLY`, `ORIGINAL_WIP`, `ORIGINAL_FINAL`, `LICENSED_FINAL`.
-   - `replacement_required` flag and procedural generator bindings.
-2. **Local Reference Resolver (`godot/scripts/audio/audio_reference_resolver.gd`)**:
-   - Dev opt-in requirement: `--allow-local-reference-audio` or `ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO=1`.
-   - Untracked local manifest discovery (`ECHOES_REFERENCE_AUDIO_MANIFEST`, fallback `user://reference_audio_manifest.json`).
-   - Clean clone guarantee: missing/malformed manifest or disabled flag falls back safely to procedural synthesis without error.
-   - Sandbox / path traversal defense (`../` escaping rejected).
-   - Asset precedence: `ORIGINAL_FINAL` / `LICENSED_FINAL` wins over overrides.
-3. **Archaeology Ledger (`docs/audio_archaeology_ledger.md`)**:
-   - Durable schema: `REFERENCE_CATEGORY | IMPLIED_EVENT | IMPLIED_SYSTEM | PLAYER_VALUE | ECHOES_INTERPRETATION | COST | RISK | STATUS`.
-   - Seeded with 10 candidate families from public San Andreas research (all marked `PROPOSED`).
-   - Zero proprietary filenames, paths, or media referenced.
-4. **Verification Matrix**:
-   - Dedicated suite `--run-v8-m21-audio-registry-assertions` (10/10 assertions covering registry lookup, safe fallback, malformed JSON handling, path escape defense, opt-in gating, owned test WAV playback, precedence, and instant reset).
-   - Full 25-suite regression run.
+### Scope & Constraints
+- **Core Objective**: Prove `RADIO != PLAYLIST` with one deterministic reactive program director (`RadioProgramDirector`) and one experimental station definition.
+- **Content Categories**: `SONG`, `DJ_LINK`, `STATION_ID`, `ADVERT`, `WORLD_REACTION`, `ECHO_INTRUSION` (inactive stub).
+- **Rules**:
+  - Deterministic PRNG seed / test seam.
+  - Bounded category weighting and anti-repeat constraints.
+  - Max-gap rule (guarantees music returns within $N$ non-song inserts).
+  - In-memory serializable playback cursor / state (pause / resume without restarting).
+  - Owned / procedural fallback clips only in repository.
+- **Strictly Out of Scope**:
+  - Vehicle mounting & station controls (#23).
+  - Pursuit ducking & resume (#24).
+  - Memory Echo corruption & radio interference (#25).
+  - Multiple stations or final music catalog / DJ voice assets.
 
 ---
 
 ## 5. Environment & Process Cleanliness
-- **Running Processes**: Zero background tasks or Godot instances active.
-- **Git Status**: Working directory completely clean (`main` at `d9b62ad9260b92f5cd07bb7aa0c82a144c0e46b9`).
-- **Implementation Plan**: Ready at `implementation_plan.md`.
+- **Running Processes**: Zero background tasks active.
+- **Git Status**: Working directory completely clean (`main` at `d48e479db96764526f0b98edf43ed4872ce9341e`).
+- **Target Branch**: `review/audio-02-22`.
