@@ -177,9 +177,6 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			_play_synth_sweep(pos, 400.0, 100.0, 0.5, 0.7)
 		SoundEvent.EVASION_RELEASE:
 			_play_synth_sweep(pos, 500.0, 1000.0, 0.5, 0.5)
-			set_siren_audio(false, Vector3.ZERO)
-			if _tension_player and _tension_player.playing:
-				_tension_player.stop()
 		SoundEvent.COLLISION_GLANCE:
 			_play_synth_sweep(pos, 750.0, 350.0, 0.12, 0.35)
 		SoundEvent.COLLISION_HEAD_ON:

@@ -4600,9 +4600,12 @@ func _run_v8_m03_aftermath_assertions() -> void:
 	assert(audio_mgr._tension_layer_active and audio_mgr._tension_player.playing, "FAIL 5A: Tension layer active")
 	var initial_p: float = audio_mgr._current_pursuit_pressure
 	
-	# Start pursuit release decay envelope (1.0s)
+	# Start pursuit release decay envelope (1.0s) layered with EVASION_RELEASE chime
 	audio_mgr.start_pursuit_release_decay(1.0)
-	assert(audio_mgr._is_decaying_pursuit_pressure == true, "FAIL 5B: Decay envelope active")
+	audio_mgr.set_mix_state(AudioManagerScript.MixState.EVASION_RELEASE)
+	assert(audio_mgr.current_mix_state == AudioManagerScript.MixState.EVASION_RELEASE, "FAIL 5B1: MixState is EVASION_RELEASE")
+	assert(audio_mgr._is_decaying_pursuit_pressure == true, "FAIL 5B2: Decay envelope remains active during EVASION_RELEASE")
+	assert(audio_mgr._tension_player.playing, "FAIL 5B3: Tension drone continues playing and decaying during EVASION_RELEASE")
 	
 	# Sample beginning (t=0)
 	var p_start: float = audio_mgr._current_pursuit_pressure
