@@ -179,6 +179,8 @@ func _ready() -> void:
 		_run_v8_telemetry()
 	elif OS.get_cmdline_user_args().has("--export-v8-safe-area-proof"):
 		_export_v8_safe_area_proof()
+	elif OS.get_cmdline_user_args().has("--export-v8-mobile-gameplay-states"):
+		_export_v8_mobile_gameplay_states()
 	elif OS.get_cmdline_user_args().has("--run-v8-safe-area-assertions"):
 		_run_v8_safe_area_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-thumb-reach-assertions"):
@@ -3872,6 +3874,109 @@ func _export_v8_safe_area_proof() -> void:
 	print("\n[ALL 6 SAFE AREA PROOFS EXPORTED SUCCESSFULLY!]")
 	get_tree().quit(0)
 
+func _export_v8_mobile_gameplay_states() -> void:
+	print("\n[V8 MOBILE GAMEPLAY STATES] Exporting 8 gameplay states under mobile UI...")
+	
+	# State 1: Cold Start / Foot Action
+	reset_slice()
+	await get_tree().create_timer(0.2).timeout
+	touch_ui.set_mode(TouchControlsUI.UIMode.FOOT_TRAVERSAL)
+	touch_ui.close_interaction_overlay()
+	touch_ui.hide_tension_hud()
+	await get_tree().create_timer(0.15).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_mobile_01_cold_start.png")
+	print("  Saved: v8_mobile_01_cold_start.png (Cold Start / Foot Action)")
+
+	# State 2: Tuner Approach / Overlay Active
+	reset_slice()
+	player.global_position = signal_tuner.global_position + Vector3(0, 0, 1.2)
+	signal_tuner.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	touch_ui.show_gesture_overlay("TUNE_SIGNAL")
+	camera.set_interaction_mode(true, signal_tuner)
+	await get_tree().create_timer(0.25).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_mobile_02_tuner_active.png")
+	print("  Saved: v8_mobile_02_tuner_active.png (Tuner Overlay Active)")
+
+	# State 3: Corroded Panel / Peel & Core Extraction
+	reset_slice()
+	player.global_position = corroded_panel.global_position + Vector3(0, 0, 1.2)
+	corroded_panel.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+	touch_ui.show_gesture_overlay("EXPOSE_CORE")
+	camera.set_interaction_mode(true, corroded_panel)
+	await get_tree().create_timer(0.25).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_mobile_03_peel_extract.png")
+	print("  Saved: v8_mobile_03_peel_extract.png (Peel & Core Extract Active)")
+
+	# State 4: Bike Mounted / Staging
+	reset_slice()
+	touch_ui.close_interaction_overlay()
+	camera.set_interaction_mode(false)
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
+	courier_bike.mount_interactable.is_player_in_range = true
+	courier_bike.request_mount(player)
+	await get_tree().create_timer(0.35).timeout
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	await get_tree().create_timer(0.15).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_mobile_04_bike_mounted.png")
+	print("  Saved: v8_mobile_04_bike_mounted.png (Bike Mounted & Staged)")
+
+	# State 5: Normal Driving / 2-Column Controls
+	reset_slice()
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
+	courier_bike.request_mount(player)
+	await get_tree().create_timer(0.35).timeout
+	courier_bike.global_position = Vector3(0.0, 0.0, -8.0)
+	courier_bike.current_speed = 10.0
+	_throttle_input = 1.0
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	touch_ui.set_route_switch_button_visible(false)
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_mobile_05_driving_2col.png")
+	print("  Saved: v8_mobile_05_driving_2col.png (Normal Driving 2-Column)")
+
+	# State 6: Pursuit Active / Route Switch Contextual
+	reset_slice()
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
+	courier_bike.request_mount(player)
+	await get_tree().create_timer(0.35).timeout
+	pursuer.activate_pursuit(courier_bike)
+	current_pursuit_state = PursuitState.PURSUIT_ACTIVE
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	touch_ui.set_route_switch_button_visible(true)
+	touch_ui.show_tension_hud("[ ALERT: PURSUIT ACTIVE ]")
+	touch_ui.update_tension_proximity(12.5, true)
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_mobile_06_pursuit_route.png")
+	print("  Saved: v8_mobile_06_pursuit_route.png (Pursuit & Route Switch Active)")
+
+	# State 7: Gate / Shortcut Decision at Speed
+	reset_slice()
+	player.global_position = courier_bike.global_position + Vector3(0, 0, 0.5)
+	courier_bike.request_mount(player)
+	await get_tree().create_timer(0.35).timeout
+	courier_bike.global_position = Vector3(0.0, 0.0, -18.0)
+	courier_bike.current_speed = 13.5
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	touch_ui.set_route_switch_button_visible(true)
+	touch_ui.show_tension_hud("[ ALERT: PURSUIT ACTIVE ]")
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_mobile_07_gate_shortcut.png")
+	print("  Saved: v8_mobile_07_gate_shortcut.png (Gate / Shortcut Decision at Speed)")
+
+	# State 8: Quiet Aftermath / Replay Overlay Visible
+	reset_slice()
+	current_pursuit_state = PursuitState.EVADED
+	touch_ui.hide_tension_hud()
+	touch_ui.show_replay_overlay()
+	await get_tree().create_timer(0.2).timeout
+	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_mobile_08_aftermath_replay.png")
+	print("  Saved: v8_mobile_08_aftermath_replay.png (Quiet Aftermath & Replay)")
+
+	print("\n[ALL 8 MOBILE GAMEPLAY STATES EXPORTED SUCCESSFULLY!]\n")
+	get_tree().quit(0)
+
 func _run_v8_thumb_reach_assertions() -> void:
 	print("\n=========================================================================")
 	print("[V8 02.2A] Starting Dedicated Thumb Reach & Control Hierarchy Suite...")
@@ -4275,28 +4380,33 @@ func _run_v8_multitouch_assertions() -> void:
 	var core_cb := func(): core_tapped[0] = true
 	touch_ui.core_tap_pressed.connect(core_cb)
 	
-	touch_ui.core_tap_pressed.emit()
-	assert(core_tapped[0], "FAIL O: Core tap fired")
+	# Tap real button path
+	touch_ui.core_tap_button.pressed.emit()
+	assert(core_tapped[0], "FAIL O: Core tap fired via canonical pressed path")
 	assert(not touch_ui._is_peeling and not touch_ui._is_tuning, "FAIL O: Core tap did not trigger drag gestures")
+	assert(touch_ui._interaction_touch_index == -1, "FAIL O: Core tap did not claim drag pointer")
 	touch_ui.core_tap_pressed.disconnect(core_cb)
 	touch_ui.close_interaction_overlay()
-	print("  -> Test O PASS: Core tap completely isolated!")
+	print("  -> Test O PASS: Core tap completely isolated on single canonical path!")
 
 	# -------------------------------------------------------------------------
-	# TEST P: REPLAY FULL RESET
+	# TEST P: REPLAY FULL RESET VIA CONTROLLER SIGNAL LIFECYCLE
 	# -------------------------------------------------------------------------
-	print("[TEST P] Replay Full Reset with Active Simulated Pointers...")
+	print("[TEST P] Replay Full Reset via Controller Signal Lifecycle...")
 	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
 	touch_ui._start_joystick(0, Vector2(150.0, 350.0))
 	touch_ui.gas_button.gui_input.emit(touch_gas)
 	touch_ui.handbrake_button.gui_input.emit(touch_hb)
 	
-	touch_ui.reset_all_input_states()
+	# Fire canonical replay_button pressed -> triggers touch_ui.replay_pressed -> reset_slice
+	touch_ui.replay_button.pressed.emit()
+	await get_tree().process_frame
+	
 	assert(not touch_ui._joystick_active and touch_ui._joystick_touch_index == -1, "FAIL P: Joystick reset")
 	assert(not touch_ui._is_gas_pressed and touch_ui._gas_touch_index == -1, "FAIL P: Gas reset")
 	assert(not touch_ui._is_handbrake_pressed and touch_ui._handbrake_touch_index == -1, "FAIL P: Handbrake reset")
 	assert(_throttle_input == 0.0 and _handbrake_input == false, "FAIL P: Outputs reset")
-	print("  -> Test P PASS: Full state reset verified!")
+	print("  -> Test P PASS: Full state reset verified via controller replay_pressed lifecycle!")
 
 	# -------------------------------------------------------------------------
 	# TEST Q: SAFE-AREA CHANGE MID-TOUCH
@@ -4311,20 +4421,35 @@ func _run_v8_multitouch_assertions() -> void:
 	print("  -> Test Q PASS: Layout recomputation immediately clears active inputs!")
 
 	# -------------------------------------------------------------------------
-	# TEST R: DUPLICATE INDEX DEFENSE
+	# TEST R: DUPLICATE INDEX DEFENSE & GLOBAL POINTER REJECTION
 	# -------------------------------------------------------------------------
 	print("[TEST R] Duplicate Index Defense (One finger cannot own two driving buttons)...")
 	touch_ui.reset_all_input_states()
-	touch_ui.gas_button.gui_input.emit(touch_gas) # idx 1 owns gas
+	touch_ui.gas_button.gui_input.emit(touch_gas) # idx 1 claims Gas
+	assert(touch_ui._gas_touch_index == 1 and touch_ui._is_gas_pressed, "FAIL R: Gas owned by index 1")
 	
-	# Now attempt to send idx 1 to handbrake button while gas already owned by 1
+	# 1. Attempt to send duplicate idx 1 to Handbrake -> Must be REJECTED
 	var dup_hb := InputEventScreenTouch.new()
 	dup_hb.index = 1
 	dup_hb.pressed = true
-	# Release index 1 globally
+	touch_ui.handbrake_button.gui_input.emit(dup_hb)
+	assert(touch_ui._handbrake_touch_index == -1 and not touch_ui._is_handbrake_pressed, "FAIL R: Handbrake must reject duplicate index 1")
+	
+	# 2. Attempt to send duplicate idx 1 to Brake -> Must be REJECTED
+	var dup_brk := InputEventScreenTouch.new()
+	dup_brk.index = 1
+	dup_brk.pressed = true
+	touch_ui.brake_button.gui_input.emit(dup_brk)
+	assert(touch_ui._brake_touch_index == -1 and not touch_ui._is_brake_pressed, "FAIL R: Brake must reject duplicate index 1")
+	
+	# 3. Attempt to spawn joystick with duplicate idx 1 -> Must be REJECTED
+	touch_ui._start_joystick(1, Vector2(150.0, 350.0))
+	assert(not touch_ui._joystick_active or touch_ui._joystick_touch_index != 1, "FAIL R: Joystick must reject duplicate index 1")
+	
+	# 4. Release index 1 globally -> Clears Gas cleanly
 	touch_ui._handle_touch_up_anywhere(1)
-	assert(not touch_ui._is_gas_pressed and not touch_ui._is_handbrake_pressed, "FAIL R: Index 1 released from all owners")
-	print("  -> Test R PASS: Index defense verified!")
+	assert(not touch_ui._is_gas_pressed and touch_ui._gas_touch_index == -1, "FAIL R: Index 1 released from Gas")
+	print("  -> Test R PASS: Global duplicate pointer defense verified across all controls!")
 
 	# Clean up
 	touch_ui.clear_simulated_safe_area()

@@ -72,6 +72,19 @@ var _is_gas_pressed: bool = false
 var _is_brake_pressed: bool = false
 var _is_handbrake_pressed: bool = false
 
+const MOUSE_POINTER_INDEX: int = -999
+
+func is_pointer_index_claimed(index: int) -> bool:
+	if index == -1 or index == MOUSE_POINTER_INDEX:
+		return false
+	return (
+		(_joystick_active and _joystick_touch_index == index) or
+		(_is_gas_pressed and _gas_touch_index == index) or
+		(_is_brake_pressed and _brake_touch_index == index) or
+		(_is_handbrake_pressed and _handbrake_touch_index == index) or
+		((_is_peeling or _is_tuning) and _interaction_touch_index == index)
+	)
+
 # Safe-Area simulation override storage
 var _simulated_safe_area: Rect2i = Rect2i()
 var _simulated_screen_size: Vector2i = Vector2i()
@@ -245,16 +258,16 @@ func _ready() -> void:
 	hide_tension_hud()
 	set_route_switch_button_visible(false)
 
-	# Continuous driving controls use single, deterministic pointer ownership
+	# Continuous driving controls enforce global single-pointer ownership
 	if gas_button:
 		gas_button.button_down.connect(func():
 			if _gas_touch_index == -1:
-				_gas_touch_index = 0
+				_gas_touch_index = MOUSE_POINTER_INDEX
 				_is_gas_pressed = true
 				_emit_net_throttle()
 		)
 		gas_button.button_up.connect(func():
-			if _gas_touch_index == 0:
+			if _gas_touch_index == MOUSE_POINTER_INDEX:
 				_is_gas_pressed = false
 				_gas_touch_index = -1
 				_emit_net_throttle()
@@ -262,10 +275,11 @@ func _ready() -> void:
 		gas_button.gui_input.connect(func(ev: InputEvent):
 			if ev is InputEventScreenTouch:
 				var st := ev as InputEventScreenTouch
-				if st.pressed and _gas_touch_index == -1:
-					_gas_touch_index = st.index
-					_is_gas_pressed = true
-					_emit_net_throttle()
+				if st.pressed:
+					if _gas_touch_index == -1 and not is_pointer_index_claimed(st.index):
+						_gas_touch_index = st.index
+						_is_gas_pressed = true
+						_emit_net_throttle()
 				elif not st.pressed and st.index == _gas_touch_index:
 					_is_gas_pressed = false
 					_gas_touch_index = -1
@@ -274,12 +288,12 @@ func _ready() -> void:
 	if brake_button:
 		brake_button.button_down.connect(func():
 			if _brake_touch_index == -1:
-				_brake_touch_index = 0
+				_brake_touch_index = MOUSE_POINTER_INDEX
 				_is_brake_pressed = true
 				_emit_net_throttle()
 		)
 		brake_button.button_up.connect(func():
-			if _brake_touch_index == 0:
+			if _brake_touch_index == MOUSE_POINTER_INDEX:
 				_is_brake_pressed = false
 				_brake_touch_index = -1
 				_emit_net_throttle()
@@ -287,10 +301,11 @@ func _ready() -> void:
 		brake_button.gui_input.connect(func(ev: InputEvent):
 			if ev is InputEventScreenTouch:
 				var st := ev as InputEventScreenTouch
-				if st.pressed and _brake_touch_index == -1:
-					_brake_touch_index = st.index
-					_is_brake_pressed = true
-					_emit_net_throttle()
+				if st.pressed:
+					if _brake_touch_index == -1 and not is_pointer_index_claimed(st.index):
+						_brake_touch_index = st.index
+						_is_brake_pressed = true
+						_emit_net_throttle()
 				elif not st.pressed and st.index == _brake_touch_index:
 					_is_brake_pressed = false
 					_brake_touch_index = -1
@@ -299,12 +314,12 @@ func _ready() -> void:
 	if handbrake_button:
 		handbrake_button.button_down.connect(func():
 			if _handbrake_touch_index == -1:
-				_handbrake_touch_index = 0
+				_handbrake_touch_index = MOUSE_POINTER_INDEX
 				_is_handbrake_pressed = true
 				driving_handbrake_updated.emit(true)
 		)
 		handbrake_button.button_up.connect(func():
-			if _handbrake_touch_index == 0:
+			if _handbrake_touch_index == MOUSE_POINTER_INDEX:
 				_is_handbrake_pressed = false
 				_handbrake_touch_index = -1
 				driving_handbrake_updated.emit(false)
@@ -312,10 +327,11 @@ func _ready() -> void:
 		handbrake_button.gui_input.connect(func(ev: InputEvent):
 			if ev is InputEventScreenTouch:
 				var st := ev as InputEventScreenTouch
-				if st.pressed and _handbrake_touch_index == -1:
-					_handbrake_touch_index = st.index
-					_is_handbrake_pressed = true
-					driving_handbrake_updated.emit(true)
+				if st.pressed:
+					if _handbrake_touch_index == -1 and not is_pointer_index_claimed(st.index):
+						_handbrake_touch_index = st.index
+						_is_handbrake_pressed = true
+						driving_handbrake_updated.emit(true)
 				elif not st.pressed and st.index == _handbrake_touch_index:
 					_is_handbrake_pressed = false
 					_handbrake_touch_index = -1
@@ -390,6 +406,14 @@ func update_pursuer_proximity(distance: float) -> void:
 	if proximity_label:
 		proximity_label.visible = debug_hud_enabled
 		proximity_label.text = "PURSUER: %.1fm" % distance
+
+func update_tension_proximity(distance: float, in_danger: bool = false) -> void:
+	if proximity_label:
+		proximity_label.visible = true
+		if in_danger:
+			proximity_label.text = "PROXIMITY: CRITICAL (%.1fm)" % distance
+		else:
+			proximity_label.text = "PROXIMITY: %.1fm" % distance
 
 func hide_tension_hud() -> void:
 	if tension_panel:
@@ -469,7 +493,7 @@ func _gui_input(event: InputEvent) -> void:
 		var touch_ev := event as InputEventScreenTouch
 		if gesture_panel and gesture_panel.visible:
 			if touch_ev.pressed:
-				if _interaction_touch_index == -1:
+				if _interaction_touch_index == -1 and not is_pointer_index_claimed(touch_ev.index):
 					_interaction_touch_index = touch_ev.index
 					if _current_gesture_type == "PEEL_PANEL":
 						_is_peeling = true
@@ -483,7 +507,7 @@ func _gui_input(event: InputEvent) -> void:
 			var safe_rect := get_resolved_safe_rect()
 			var left_safe_bounds := Rect2(safe_rect.position.x, safe_rect.position.y, safe_rect.size.x * 0.5, safe_rect.size.y)
 			if touch_ev.pressed:
-				if not _joystick_active and left_safe_bounds.has_point(touch_ev.position):
+				if not _joystick_active and not is_pointer_index_claimed(touch_ev.index) and left_safe_bounds.has_point(touch_ev.position):
 					_start_joystick(touch_ev.index, touch_ev.position)
 			elif not touch_ev.pressed and touch_ev.index == _joystick_touch_index:
 				_stop_joystick()
@@ -502,6 +526,8 @@ func _gui_input(event: InputEvent) -> void:
 				tuner_dragged.emit(_tuning_accum_px)
 
 func _start_joystick(touch_idx: int, pos: Vector2) -> void:
+	if is_pointer_index_claimed(touch_idx):
+		return
 	_joystick_active = true
 	_joystick_touch_index = touch_idx
 	
