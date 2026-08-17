@@ -8,6 +8,9 @@ config/name="Echos in the Scrap - Golden Slice"
 config/features=PackedStringArray("4.7", "Forward Plus")
 run/main_scene="res://scenes/prototype/scrap_test_block.tscn"
 
+[autoload]
+PursuitRetryController="*res://scripts/prototype/pursuit_retry_controller.gd"
+
 [display]
 window/size/viewport_width=960
 window/size/viewport_height=540
