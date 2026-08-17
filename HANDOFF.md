@@ -1,5 +1,5 @@
-# HANDOFF.md — V8 M04 Formal Closure (04.1 - 04.6 First Memory Echo / Extraction Payoff)
-**Generated**: 2026-08-17T01:14 PDT  
+# HANDOFF.md — V8 M04 / M04A Formal Closure (04.1 - 04.6 First Memory Echo / Extraction Payoff)
+**Generated**: 2026-08-17T01:20 PDT  
 **Branch**: `main`  
 **Repo**: https://github.com/JOHNNYMACONNY/art  
 **Engine**: Godot 4.7.1 Stable (Official)  
@@ -7,28 +7,28 @@
 - **V8 M01 (01.1 - 01.4)**: Visual Identity, Scrap Kit, Lighting & Readability — ✅ CLOSED & VERIFIED (`43ed3e5`)
 - **V8 M02 (02.1 - 02.4)**: Mobile Safe-Area, Touch Ergonomics & Adversarial Multi-Touch — ✅ CLOSED & VERIFIED (`30f20aa`)
 - **V8 M03 (03.1 - 03.4 + 03.2B)**: Threat Aftermath & World Continuity — ✅ CLOSED & VERIFIED (`a077e2a`)
-- **V8 M04 (04.1 - 04.6)**: First Memory Echo / Extraction Payoff — ✅ 100% COMPLETE & VERIFIED
+- **V8 M04 / M04A (04.1 - 04.6)**: First Memory Echo / Extraction Payoff & Visual Overlay — ✅ 100% COMPLETE & VERIFIED
 
 ---
 
-## 1. Milestone V8 M04 Deliverables & Architecture
+## 1. Milestone V8 M04 / M04A Deliverables & Architecture
 
 | Ticket | Description | Status | Deliverables |
 |---|---|---|---|
-| **04.1** | Echo Reveal Prototype | ✅ CLOSED | `MemoryEchoController` state machine (`IDLE` → `ONSET` → `PEAK` → `RELEASE` → `DONE`). Total duration ~1.83s. Abstract signal ghost audio/visual texture (220Hz attack crackle, 185Hz detuned comb-filter beating, 3.4kHz electrical tail). Player retains movement control without permanent input lockout. |
-| **04.2** | Data Boundary | ✅ CLOSED | Clean local/runtime `EchoData` struct (`echo_id`, `action`, `zone`, `intensity`, `mission_ref`, `content`). No Nostr, AI, networking, or persistence dependencies. |
+| **04.1 / M04A** | Echo Reveal Prototype & Phase Visual Treatment | ✅ CLOSED | `MemoryEchoController` state machine (`IDLE` → `ONSET` → `PEAK` → `RELEASE` → `DONE`). Total duration ~1.83s. Full procedural visual overlay with CanvasLayer 12: `ONSET` (electrical crackle exposure flash `Color(0.15, 0.85, 1.0, 0.4)`), `PEAK` (subtle cyan scanlines `Color(0.05, 0.25, 0.5, 0.2)` + glowing terminal fragment text in HUD safe area), `RELEASE` (continuous alpha dissolution fade to 0.0), and `DONE` (overlay cleanly hidden before disturbance). Player retains full locomotion control throughout. |
+| **04.2** | Data Boundary | ✅ CLOSED | Clean local/runtime `EchoData` struct (`echo_id`, `action`, `zone`, `intensity`, `mission_ref`, `content`). Zero Nostr, AI, networking, or persistence dependencies. |
 | **04.3** | Canon Safety | ✅ CLOSED | Narrative content explicitly tagged `[PROPOSED]` and kept deliberately fragmentary (`"[PROPOSED] signal // fragment 0x--- // memory location unknown // do not retransmit"`). Zero unverified backstory or committed lore facts. |
-| **04.4** | Audio/Visual Signature | ✅ CLOSED | Procedural WAV synthesis in `audio_manager.gd`: `SoundEvent.ECHO_ONSET`, `SoundEvent.ECHO_PEAK`, `SoundEvent.ECHO_TAIL`, and `MixState.MEMORY_ECHO`. Non-spatial inside-the-head echo voice player (`_echo_voice`), distinct from tuner static, extraction chime, and siren. Pursuit onset retains perceptual audio priority over echo. Instant reset authoritatively halts echo voices. |
-| **04.5** | Gameplay Integration | ✅ CLOSED | Integrated sequence: Cold Start → Tuner → Panel → Core Extraction → **Memory Echo Reveal** → Disturbance Interruption → Bike → Pursuit → Gate/Shortcut → Evasion → Aftermath. Disturbance alert automatically begins at echo handoff. Instant reset cleanly purges echo state, timers, and voices. |
-| **04.6** | Automated Falsification & Visual Proof | ✅ CLOSED | Dedicated automated suite `--run-v8-m04-echo-assertions` (10/10 tests green). 4-stage visual proof screenshots generated in `godot/verification/v8/m04/`. |
+| **04.4** | Audio/Visual Signature | ✅ CLOSED | Procedural WAV synthesis in `audio_manager.gd`: `SoundEvent.ECHO_ONSET`, `SoundEvent.ECHO_PEAK`, `SoundEvent.ECHO_TAIL`, and `MixState.MEMORY_ECHO`. Non-spatial inside-the-head echo voice player (`_echo_voice`). Pursuit onset retains perceptual audio priority over echo. Instant reset authoritatively halts echo voices and purges visual overlay. |
+| **04.5 / M04A** | Gameplay Integration & Extraction Arming Gate | ✅ CLOSED | Integrated sequence: Cold Start → Tuner → Panel → Core Extraction → **Memory Echo Reveal** → Disturbance Interruption → Bike → Pursuit → Gate/Shortcut → Evasion → Aftermath. Hardened extraction gate: `arm_for_extraction()` and world state check (`CORE_EXTRACTED`) fail closed if un-armed or called early. Duplicate triggers during active echo are rejected. Replay/reset cleans state, disarms controller, and purges overlay. |
+| **04.6 / M04A** | Automated Falsification & 4-Stage Rendered Visual Proof | ✅ CLOSED | Strengthened automated suite `--run-v8-m04-echo-assertions` (10/10 tests green). Actively falsifies early un-armed triggers, proves zero side-effects on rejected calls, duplicate rejection, phase transitions, and visual overlay lifecycle. 4 genuine Metal Forward+ rendered 3D visual proof PNGs in `godot/verification/v8/m04/`: 118.8KB, 98.7KB, 117.9KB, 119.5KB with distinct SHA hashes. |
 
 ---
 
-## 2. 4 Canonical Memory Echo Visual Proof Artifacts
-1. `godot/verification/v8/m04/m04_01_core_extraction.png`: Core Extraction completion.
-2. `godot/verification/v8/m04/m04_02_echo_onset.png`: Memory Echo Onset (electrical crackle).
-3. `godot/verification/v8/m04/m04_03_echo_peak.png`: Memory Echo Peak (fractured signal ghost).
-4. `godot/verification/v8/m04/m04_04_disturbance_rupture.png`: Disturbance Rupture / transition into pursuit.
+## 2. 4 Canonical Memory Echo Visual Proof Artifacts (Metal 4.0 Rendered)
+1. `godot/verification/v8/m04/m04_01_core_extraction.png` (118,841 bytes, SHA `f2abc026...`): Core Extraction completion.
+2. `godot/verification/v8/m04/m04_02_echo_onset.png` (98,688 bytes, SHA `52c87ef1...`): Memory Echo Onset (electrical crackle exposure flash).
+3. `godot/verification/v8/m04/m04_03_echo_peak.png` (117,941 bytes, SHA `4bd7d404...`): Memory Echo Peak (fractured signal ghost + HUD terminal fragment text).
+4. `godot/verification/v8/m04/m04_04_disturbance_rupture.png` (119,485 bytes, SHA `80638c61...`): Disturbance Rupture / transition into pursuit.
 
 ---
 

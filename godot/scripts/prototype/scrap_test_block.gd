@@ -610,7 +610,11 @@ func _on_extraction_completed() -> void:
 		touch_ui.close_interaction_overlay()
 
 ## M04: start echo sequence; disturbance fires only after echo_completed
-func _trigger_echo_sequence() -> void:
+func _trigger_echo_sequence() -> bool:
+	if current_world_state != WorldLoopState.CORE_EXTRACTED:
+		print("[WORLD_LOOP] Rejecting echo sequence: world state is not CORE_EXTRACTED (current: %s)" % WorldLoopState.keys()[current_world_state])
+		return false
+		
 	print("[WORLD_LOOP] Entering Memory Echo sequence...")
 	# Lazy-initialize echo controller on first use
 	if not echo_controller:
@@ -619,7 +623,8 @@ func _trigger_echo_sequence() -> void:
 		add_child(echo_controller)
 		echo_controller.echo_completed.connect(_on_echo_completed)
 	echo_controller.setup(audio_mgr)
-	echo_controller.trigger_echo()
+	echo_controller.arm_for_extraction()
+	return echo_controller.trigger_echo()
 
 ## M04: fired by echo_controller.echo_completed — hands off to disturbance
 func _on_echo_completed() -> void:
@@ -4743,21 +4748,41 @@ func _run_v8_m04_echo_assertions() -> void:
 	await get_tree().process_frame
 
 	# ─────────────────────────────────────────────────────────────────────────
-	# ASSERTION 1: Echo cannot trigger before extraction
+	# ASSERTION 1: Pre-extraction Echo triggering fails closed
 	# ─────────────────────────────────────────────────────────────────────────
-	print("\n--- Assertion 1: Echo cannot trigger before extraction ---")
-	# Ensure echo controller is not active at cold start
+	print("\n--- Assertion 1: Pre-extraction Echo triggering fails closed ---")
 	assert(current_world_state == WorldLoopState.START, "FAIL A1: World state must start at START")
-	# echo_controller is lazily initialized — must not exist before extraction
-	var echo_ctrl_exists_pre: bool = echo_controller != null
-	if echo_ctrl_exists_pre:
-		assert(echo_controller.current_phase == MemoryEchoController.EchoPhase.IDLE,
-			"FAIL A1: Echo phase must be IDLE before extraction")
-		# Attempt to trigger echo before extraction — must return false (wrong state guard)
-		# (will return true from IDLE, but world_state guard prevents MEMORY_ECHO from
-		#  being a valid disturbance entry. We test the trigger count stays 0.)
-		assert(echo_controller.get_trigger_count() == 0, "FAIL A1: Trigger count must be 0 before extraction")
-	print("  -> Assertion 1 PASS: Echo is inactive before extraction")
+	
+	# Actively attempt real controller-level pre-extraction trigger paths:
+	if not echo_controller:
+		echo_controller = MemoryEchoController.new()
+		echo_controller.name = "MemoryEchoController"
+		add_child(echo_controller)
+		echo_controller.echo_completed.connect(_on_echo_completed)
+	echo_controller.setup(audio_mgr)
+	
+	# Path 1: Direct un-armed call to trigger_echo() must be rejected
+	var direct_unarmed_res: bool = echo_controller.trigger_echo()
+	assert(direct_unarmed_res == false, "FAIL A1: Direct un-armed trigger_echo() must return false")
+	
+	# Path 2: Gameplay _trigger_echo_sequence() call before extraction (state == START) must be rejected
+	var sequence_early_res: bool = _trigger_echo_sequence()
+	assert(sequence_early_res == false, "FAIL A1: _trigger_echo_sequence() before extraction must return false")
+	
+	# Prove zero side effects:
+	assert(echo_controller.current_phase == MemoryEchoController.EchoPhase.IDLE,
+		"FAIL A1: Echo phase must remain IDLE after early trigger attempts")
+	assert(echo_controller.get_trigger_count() == 0,
+		"FAIL A1: Trigger count must remain 0 after early trigger attempts")
+	if audio_mgr and audio_mgr._echo_voice:
+		assert(not audio_mgr._echo_voice.playing,
+			"FAIL A1: No echo audio must start from early trigger attempts")
+	if echo_controller._canvas_layer:
+		assert(not echo_controller._canvas_layer.visible,
+			"FAIL A1: No echo visual overlay must appear from early trigger attempts")
+	assert(current_pursuit_state == PursuitState.CALM,
+		"FAIL A1: No disturbance must start from early trigger attempts")
+	print("  -> Assertion 1 PASS: Pre-extraction trigger attempts strictly fail closed with zero side effects")
 
 	# ─────────────────────────────────────────────────────────────────────────
 	# ASSERTION 2: Extraction triggers echo exactly once
@@ -4772,7 +4797,14 @@ func _run_v8_m04_echo_assertions() -> void:
 	assert(echo_controller.get_trigger_count() == 1, "FAIL A2: Echo must be triggered exactly once by extraction")
 	assert(current_world_state == WorldLoopState.CORE_EXTRACTED,
 		"FAIL A2: World state must be CORE_EXTRACTED after extraction")
-	print("  -> Assertion 2 PASS: Echo triggered exactly once by extraction")
+	assert(echo_controller._canvas_layer != null and echo_controller._canvas_layer.visible,
+		"FAIL A2: Echo visual overlay must be visible upon extraction")
+	
+	# Duplicate trigger during active echo must fail closed:
+	var dup_res: bool = _trigger_echo_sequence()
+	assert(dup_res == false, "FAIL A2: Duplicate trigger during active echo must return false")
+	assert(echo_controller.get_trigger_count() == 1, "FAIL A2: Duplicate trigger must not increment count")
+	print("  -> Assertion 2 PASS: Echo triggered exactly once by extraction (duplicates rejected)")
 
 	# ─────────────────────────────────────────────────────────────────────────
 	# ASSERTION 3: Echo does not permanently lock player input
@@ -4788,6 +4820,8 @@ func _run_v8_m04_echo_assertions() -> void:
 		"FAIL A3: Echo must complete successfully within expected window")
 	if player:
 		assert(not player.is_input_locked, "FAIL A3: Player input must not be permanently locked after echo")
+	assert(echo_controller._canvas_layer != null and not echo_controller._canvas_layer.visible,
+		"FAIL A3: Echo visual overlay must be hidden upon completion")
 	print("  -> Assertion 3 PASS: Player input not permanently locked (completed cleanly)")
 
 	# ─────────────────────────────────────────────────────────────────────────
@@ -4821,6 +4855,11 @@ func _run_v8_m04_echo_assertions() -> void:
 			"FAIL A5: Echo phase must be IDLE after reset during echo")
 		assert(echo_controller.get_trigger_count() == 0,
 			"FAIL A5: Trigger count must be 0 after reset")
+		assert(not echo_controller.is_armed_for_extraction,
+			"FAIL A5: Echo controller must be disarmed after reset")
+		if echo_controller._canvas_layer:
+			assert(not echo_controller._canvas_layer.visible,
+				"FAIL A5: Echo visual overlay must be hidden after reset")
 	if audio_mgr and audio_mgr._echo_voice:
 		assert(not audio_mgr._echo_voice.playing,
 			"FAIL A5: Echo voice must not be playing after reset")
@@ -4965,18 +5004,16 @@ func _run_v8_m04_echo_assertions() -> void:
 	get_tree().quit(0)
 
 func _save_m04_proof_png(path: String) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
 	var base_dir := path.get_base_dir()
 	DirAccess.make_dir_recursive_absolute(base_dir)
-	if DisplayServer.get_name() != "headless":
-		var vp := get_viewport()
-		if vp:
-			var tex := vp.get_texture()
-			if tex:
-				var img := tex.get_image()
-				if img:
-					img.save_png(path)
-					return
-	# Headless visual proof PNG (valid RGBA8 image with dark aesthetic palette)
-	var fallback := Image.create(256, 256, false, Image.FORMAT_RGBA8)
-	fallback.fill(Color(0.08, 0.08, 0.12, 1.0))
-	fallback.save_png(path)
+	var vp := get_viewport()
+	if vp:
+		var tex := vp.get_texture()
+		if tex:
+			var img := tex.get_image()
+			if img:
+				img.save_png(path)
+				return
+	assert(false, "FAIL: Viewport texture image capture failed for path: %s" % path)
