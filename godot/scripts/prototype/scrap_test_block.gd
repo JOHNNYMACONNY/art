@@ -3621,12 +3621,10 @@ func _run_v8_dynamic_readability() -> void:
 
 func _run_v8_safe_area_assertions() -> void:
 	print("\n=========================================================================")
-	print("[V8 02.1] Starting Mobile Safe-Area & Device Simulation Assertion Suite...")
+	print("[V8 02.1A + 02.2] Starting Mobile Safe-Area, Transform & Control Hierarchy Suite...")
 	print("=========================================================================\n")
-	await get_tree().create_timer(0.1).timeout
-	assert(touch_ui != null, "FAIL: TouchControlsUI must exist")
-	assert(touch_ui.safe_area_root != null, "FAIL: SafeAreaRoot must exist")
 
+	await get_tree().process_frame
 	var vp_rect := touch_ui.get_viewport_rect()
 
 	# -------------------------------------------------------------------------
@@ -3642,45 +3640,58 @@ func _run_v8_safe_area_assertions() -> void:
 	assert(safe1.encloses(act_rect1), "FAIL: Action button must be enclosed by safe rect in 16:9")
 	
 	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	touch_ui.set_route_switch_button_visible(true)
 	var gas_rect1: Rect2 = touch_ui.gas_button.get_global_rect()
 	var brk_rect1: Rect2 = touch_ui.brake_button.get_global_rect()
 	var hbrk_rect1: Rect2 = touch_ui.handbrake_button.get_global_rect()
+	var rs_rect1: Rect2 = touch_ui.route_switch_button.get_global_rect()
 	var dism_rect1: Rect2 = touch_ui.dismount_button.get_global_rect()
-	assert(safe1.encloses(gas_rect1), "FAIL: Gas button must be enclosed by safe rect in 16:9")
-	assert(safe1.encloses(brk_rect1), "FAIL: Brake button must be enclosed by safe rect in 16:9")
-	assert(safe1.encloses(hbrk_rect1), "FAIL: Handbrake button must be enclosed by safe rect in 16:9")
-	assert(safe1.encloses(dism_rect1), "FAIL: Dismount button must be enclosed by safe rect in 16:9")
+	assert(safe1.encloses(gas_rect1), "FAIL: Gas button must be enclosed in 16:9")
+	assert(safe1.encloses(brk_rect1), "FAIL: Brake button must be enclosed in 16:9")
+	assert(safe1.encloses(hbrk_rect1), "FAIL: Handbrake button must be enclosed in 16:9")
+	assert(safe1.encloses(rs_rect1), "FAIL: Route Switch button must be enclosed in 16:9")
+	assert(safe1.encloses(dism_rect1), "FAIL: Dismount button must be enclosed in 16:9")
 	print("  -> Profile 1 PASS: All controls enclosed | Safe Rect: %s" % safe1)
 
 	# -------------------------------------------------------------------------
-	# 2. Profile 2: 19.5:9 Left Notch / Dynamic Island (2340x1080, left inset 132px)
+	# 2. Profile 2A: 19.5:9 Notch Inside Pillarbox (2340x1080, left inset 132px)
 	# -------------------------------------------------------------------------
-	print("[PROFILE 2] 19.5:9 Left Notch / Island Inset (2340x1080, Left Inset 132px)...")
+	print("[PROFILE 2A] 19.5:9 Notch Inside Pillarbox (2340x1080, Left Inset 132px)...")
 	touch_ui.set_simulated_safe_area(Rect2i(132, 0, 2208, 1080), Vector2i(2340, 1080))
-	var safe2 := touch_ui.get_resolved_safe_rect()
-	assert(safe2.position.x > 0.0, "FAIL: Safe area 2 must have positive left offset")
+	var safe2a := touch_ui.get_resolved_safe_rect()
+	# Because 132px < 210px pillarbox, 16:9 game area is completely unobstructed
+	assert(safe2a == vp_rect, "FAIL: 132px notch in 210px pillarbox must leave 16:9 canvas safe area at full viewport")
+	print("  -> Profile 2A PASS: Pillarbox protects game canvas | Safe Rect: %s" % safe2a)
+
+	# -------------------------------------------------------------------------
+	# 2B. Profile 2B: 19.5:9 Deep Cutout Penetrating Canvas (2340x1080, left inset 290px)
+	# -------------------------------------------------------------------------
+	print("[PROFILE 2B] 19.5:9 Deep Cutout Penetrating Canvas (2340x1080, Left Inset 290px)...")
+	touch_ui.set_simulated_safe_area(Rect2i(290, 0, 2050, 1080), Vector2i(2340, 1080))
+	var safe2b := touch_ui.get_resolved_safe_rect()
+	assert(is_equal_approx(safe2b.position.x, 40.0), "FAIL: (290-210)/2.0 must produce 40px canvas inset")
 	
-	# Test joystick spawning at extreme left edge x=0 (inside notch zone)
+	# Test joystick spawning at extreme left edge x=0 (inside notch zone) -> Clamps to safe area
 	touch_ui.set_mode(TouchControlsUI.UIMode.FOOT_TRAVERSAL)
 	touch_ui._start_joystick(1, Vector2(5.0, 300.0))
 	var joy_base_rect2: Rect2 = touch_ui.joystick_base.get_global_rect()
-	assert(joy_base_rect2.position.x >= safe2.position.x - 0.1, "FAIL: Joystick base must clamp right of notch inset")
+	assert(joy_base_rect2.position.x >= safe2b.position.x - 0.1, "FAIL: Joystick base must clamp right of cutout inset")
 	touch_ui._stop_joystick()
-	print("  -> Profile 2 PASS: Left notch clamped | Safe Rect: %s" % safe2)
+	print("  -> Profile 2B PASS: Deep left cutout clamped | Safe Rect: %s" % safe2b)
 
 	# -------------------------------------------------------------------------
-	# 3. Profile 3: 19.5:9 Right Notch / Island Inset (2340x1080, right inset 132px)
+	# 3. Profile 3: 19.5:9 Deep Right Cutout (2340x1080, right inset 290px -> safe rect width 2050px)
 	# -------------------------------------------------------------------------
-	print("[PROFILE 3] 19.5:9 Right Notch / Island Inset (2340x1080, Right Inset 132px)...")
-	touch_ui.set_simulated_safe_area(Rect2i(0, 0, 2208, 1080), Vector2i(2340, 1080))
+	print("[PROFILE 3] 19.5:9 Deep Right Cutout (2340x1080, Right Inset 290px)...")
+	touch_ui.set_simulated_safe_area(Rect2i(0, 0, 2050, 1080), Vector2i(2340, 1080))
 	var safe3 := touch_ui.get_resolved_safe_rect()
-	assert(safe3.end.x < vp_rect.size.x, "FAIL: Safe area 3 must have right margin")
+	assert(is_equal_approx(safe3.end.x, 920.0), "FAIL: 290px right notch must produce 40px right margin (end.x=920)")
 	
 	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
 	var gas_rect3: Rect2 = touch_ui.gas_button.get_global_rect()
-	assert(safe3.encloses(gas_rect3), "FAIL: Gas button must stay inside safe area with right notch")
-	assert(gas_rect3.end.x <= safe3.end.x + 0.1, "FAIL: Gas button must not bleed into right notch zone")
-	print("  -> Profile 3 PASS: Right notch enclosed | Safe Rect: %s" % safe3)
+	assert(safe3.encloses(gas_rect3), "FAIL: Gas button must stay inside safe area with right cutout")
+	assert(gas_rect3.end.x <= safe3.end.x + 0.1, "FAIL: Gas button must not bleed into right cutout zone")
+	print("  -> Profile 3 PASS: Right cutout enclosed | Safe Rect: %s" % safe3)
 
 	# -------------------------------------------------------------------------
 	# 4. Profile 4: 20:9 Bottom Home Indicator (2400x1080, bottom inset 80px)
@@ -3688,7 +3699,7 @@ func _run_v8_safe_area_assertions() -> void:
 	print("[PROFILE 4] 20:9 Bottom Home Indicator (2400x1080, Bottom Inset 80px)...")
 	touch_ui.set_simulated_safe_area(Rect2i(0, 0, 2400, 1000), Vector2i(2400, 1080))
 	var safe4 := touch_ui.get_resolved_safe_rect()
-	assert(safe4.end.y < vp_rect.size.y, "FAIL: Safe area 4 must have bottom margin")
+	assert(is_equal_approx(safe4.end.y, 500.0), "FAIL: 80px bottom home indicator must produce 40px bottom margin (end.y=500)")
 	
 	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
 	var gas_rect4: Rect2 = touch_ui.gas_button.get_global_rect()
@@ -3698,28 +3709,26 @@ func _run_v8_safe_area_assertions() -> void:
 	print("  -> Profile 4 PASS: Bottom home bar avoided | Safe Rect: %s" % safe4)
 
 	# -------------------------------------------------------------------------
-	# 5. Profile 5: 20:9 Dual Cutout + Bottom Home Bar (2400x1080, left 140px, right 140px, bottom 80px)
+	# 5. Profile 5: 20:9 Dual Cutouts + Bottom Home Bar (2400x1080, left 290px, right 290px, bottom 80px)
 	# -------------------------------------------------------------------------
-	print("[PROFILE 5] 20:9 Dual Cutout + Bottom Home Bar (Left/Right 140px, Bottom 80px)...")
-	touch_ui.set_simulated_safe_area(Rect2i(140, 0, 2120, 1000), Vector2i(2400, 1080))
+	print("[PROFILE 5] 20:9 Dual Cutouts + Bottom Home Bar (Left/Right 290px, Bottom 80px)...")
+	touch_ui.set_simulated_safe_area(Rect2i(290, 0, 1820, 1000), Vector2i(2400, 1080))
 	var safe5 := touch_ui.get_resolved_safe_rect()
-	assert(safe5.position.x > 0.0 and safe5.end.x < vp_rect.size.x and safe5.end.y < vp_rect.size.y, "FAIL: Safe area 5 must apply X and Y insets")
+	assert(is_equal_approx(safe5.position.x, 25.0) and is_equal_approx(safe5.end.x, 935.0) and is_equal_approx(safe5.end.y, 500.0), "FAIL: Safe area 5 transform insets")
 	
 	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	touch_ui.set_route_switch_button_visible(true)
 	var gas_rect5: Rect2 = touch_ui.gas_button.get_global_rect()
 	var brk_rect5: Rect2 = touch_ui.brake_button.get_global_rect()
 	var hbrk_rect5: Rect2 = touch_ui.handbrake_button.get_global_rect()
+	var rs_rect5: Rect2 = touch_ui.route_switch_button.get_global_rect()
 	var dism_rect5: Rect2 = touch_ui.dismount_button.get_global_rect()
 	assert(safe5.encloses(gas_rect5), "FAIL: Gas enclosed in dual cutout")
 	assert(safe5.encloses(brk_rect5), "FAIL: Brake enclosed in dual cutout")
 	assert(safe5.encloses(hbrk_rect5), "FAIL: Handbrake enclosed in dual cutout")
+	assert(safe5.encloses(rs_rect5), "FAIL: Route Switch enclosed in dual cutout")
 	assert(safe5.encloses(dism_rect5), "FAIL: Dismount enclosed in dual cutout")
-	
-	# Verify zero overlap between driving buttons
-	assert(not gas_rect5.intersects(brk_rect5), "FAIL: Gas and Brake must not overlap")
-	assert(not gas_rect5.intersects(hbrk_rect5), "FAIL: Gas and Handbrake must not overlap")
-	assert(not brk_rect5.intersects(hbrk_rect5), "FAIL: Brake and Handbrake must not overlap")
-	print("  -> Profile 5 PASS: Dual cutouts + home bar enclosed | Zero overlap | Safe Rect: %s" % safe5)
+	print("  -> Profile 5 PASS: Dual cutouts + home bar enclosed | Safe Rect: %s" % safe5)
 
 	# -------------------------------------------------------------------------
 	# 6. Profile 6: 4:3 Tablet Landscape (2048x1536 iPad Sanity)
@@ -3733,7 +3742,44 @@ func _run_v8_safe_area_assertions() -> void:
 	print("  -> Profile 6 PASS: 4:3 Tablet enclosed | Safe Rect: %s" % safe6)
 
 	# -------------------------------------------------------------------------
-	# 7. Stale Pointer Purge on Safe-Area Recomputation
+	# 7. Ergonomic Control Hierarchy & Hitbox Separation (Ticket 02.2)
+	# -------------------------------------------------------------------------
+	print("[ERGONOMICS] Testing Right-Thumb Button Hierarchy, Spacing & Overlap...")
+	touch_ui.set_simulated_safe_area(Rect2i(0, 0, 960, 540), Vector2i(960, 540))
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	touch_ui.set_route_switch_button_visible(true)
+	await get_tree().process_frame
+
+	var gas_r: Rect2 = touch_ui.gas_button.get_global_rect()
+	var brk_r: Rect2 = touch_ui.brake_button.get_global_rect()
+	var hbrk_r: Rect2 = touch_ui.handbrake_button.get_global_rect()
+	var rs_r: Rect2 = touch_ui.route_switch_button.get_global_rect()
+	var dism_r: Rect2 = touch_ui.dismount_button.get_global_rect()
+
+	# Pairwise non-intersection
+	assert(not gas_r.intersects(brk_r), "FAIL: Gas and Brake must not overlap")
+	assert(not gas_r.intersects(hbrk_r), "FAIL: Gas and Handbrake must not overlap")
+	assert(not brk_r.intersects(hbrk_r), "FAIL: Brake and Handbrake must not overlap")
+	assert(not hbrk_r.intersects(rs_r), "FAIL: Handbrake and Route Switch must not overlap")
+	assert(not dism_r.intersects(rs_r), "FAIL: Dismount and Route Switch must not overlap")
+	assert(not dism_r.intersects(hbrk_r), "FAIL: Dismount and Handbrake must not overlap")
+
+	# Physical separation margins
+	var gas_brk_gap: float = gas_r.position.x - brk_r.end.x
+	assert(gas_brk_gap >= 15.0, "FAIL: Gas-Brake gap must be >= 15px (actual: %.1f)" % gas_brk_gap)
+
+	var hbrk_gas_gap: float = gas_r.position.y - hbrk_r.end.y
+	assert(hbrk_gas_gap >= 15.0, "FAIL: Handbrake-Gas gap must be >= 15px (actual: %.1f)" % hbrk_gas_gap)
+
+	var rs_hbrk_gap: float = hbrk_r.position.y - rs_r.end.y
+	assert(rs_hbrk_gap >= 15.0, "FAIL: RouteSwitch-Handbrake gap must be >= 15px (actual: %.1f)" % rs_hbrk_gap)
+
+	var dism_gap: float = rs_r.position.y - dism_r.end.y
+	assert(dism_gap >= 100.0, "FAIL: Dismount button must be >= 100px separated from driving cluster (actual: %.1f)" % dism_gap)
+	print("  -> Ergonomic Hierarchy PASS: Clean margins (Gas-Brake: %.1fpx, E-Brake: %.1fpx, Route: %.1fpx, Dismount: %.1fpx)" % [gas_brk_gap, hbrk_gas_gap, rs_hbrk_gap, dism_gap])
+
+	# -------------------------------------------------------------------------
+	# 8. Stale Pointer Purge on Safe-Area Recomputation
 	# -------------------------------------------------------------------------
 	print("[INPUT PURGE] Testing touch state purge on layout resize/safe-area update...")
 	touch_ui.set_simulated_safe_area(Rect2i(0, 0, 960, 540), Vector2i(960, 540))
@@ -3746,16 +3792,17 @@ func _run_v8_safe_area_assertions() -> void:
 	touch_ui.gas_button.gui_input.emit(touch_down)
 	assert(touch_ui._gas_touch_index == 3 and touch_ui._is_gas_pressed, "FAIL: Gas must register active touch index 3")
 	
-	# Now trigger simulated safe area change -> Must purge touch index 3
+	# Trigger simulated safe area change -> Must purge touch index 3
 	touch_ui.set_simulated_safe_area(Rect2i(100, 0, 860, 540), Vector2i(960, 540))
 	assert(touch_ui._gas_touch_index == -1 and not touch_ui._is_gas_pressed, "FAIL: Gas touch must be purged on safe area recomputation")
 	print("  -> Input Purge PASS: Zero stale touch state survived layout update!")
 
 	# Clean up simulator
 	touch_ui.clear_simulated_safe_area()
+	touch_ui.set_route_switch_button_visible(false)
 
 	print("\n=========================================================================")
-	print("[ALL 6 SIMULATION PROFILES + PURGE VERIFICATIONS PASSED 100% GREEN!]")
+	print("[ALL 02.1A TRANSFORM + 02.2 ERGONOMIC ASSERTIONS PASSED 100% GREEN!]")
 	print("=========================================================================\n")
 	get_tree().quit(0)
 
@@ -3772,14 +3819,14 @@ func _export_v8_safe_area_proof() -> void:
 	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_safe_area_01_16x9_standard.png")
 	print("  Saved: v8_safe_area_01_16x9_standard.png")
 
-	# Profile 2: 19.5:9 Left Notch
-	touch_ui.set_simulated_safe_area(Rect2i(132, 0, 2208, 1080), Vector2i(2340, 1080))
+	# Profile 2: 19.5:9 Deep Left Cutout
+	touch_ui.set_simulated_safe_area(Rect2i(290, 0, 2050, 1080), Vector2i(2340, 1080))
 	await get_tree().create_timer(0.15).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_safe_area_02_19_5x9_left_notch.png")
 	print("  Saved: v8_safe_area_02_19_5x9_left_notch.png")
 
-	# Profile 3: 19.5:9 Right Notch
-	touch_ui.set_simulated_safe_area(Rect2i(0, 0, 2208, 1080), Vector2i(2340, 1080))
+	# Profile 3: 19.5:9 Deep Right Cutout
+	touch_ui.set_simulated_safe_area(Rect2i(0, 0, 2050, 1080), Vector2i(2340, 1080))
 	await get_tree().create_timer(0.15).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_safe_area_03_19_5x9_right_notch.png")
 	print("  Saved: v8_safe_area_03_19_5x9_right_notch.png")
@@ -3791,7 +3838,7 @@ func _export_v8_safe_area_proof() -> void:
 	print("  Saved: v8_safe_area_04_20x9_home_bar.png")
 
 	# Profile 5: 20:9 Dual Cutout + Home Bar
-	touch_ui.set_simulated_safe_area(Rect2i(140, 0, 2120, 1000), Vector2i(2400, 1080))
+	touch_ui.set_simulated_safe_area(Rect2i(290, 0, 1820, 1000), Vector2i(2400, 1080))
 	await get_tree().create_timer(0.15).timeout
 	get_viewport().get_texture().get_image().save_png("res://verification/v8/v8_safe_area_05_20x9_dual_cutout.png")
 	print("  Saved: v8_safe_area_05_20x9_dual_cutout.png")
@@ -3803,11 +3850,7 @@ func _export_v8_safe_area_proof() -> void:
 	print("  Saved: v8_safe_area_06_4x3_tablet.png")
 
 	touch_ui.clear_simulated_safe_area()
+	touch_ui.set_route_switch_button_visible(false)
 	print("\n[ALL 6 SAFE AREA PROOFS EXPORTED SUCCESSFULLY!]")
 	get_tree().quit(0)
-
-
-
-
-
 

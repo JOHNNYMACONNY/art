@@ -153,19 +153,28 @@ func get_resolved_safe_rect() -> Rect2:
 	if safe_pixels.size.x <= 0 or safe_pixels.size.y <= 0:
 		return vp_rect
 
-	# Map screen pixel coordinates to canvas coordinate space using viewport size
-	var scale_x: float = vp_rect.size.x / float(screen_sz.x)
-	var scale_y: float = vp_rect.size.y / float(screen_sz.y)
+	# In Godot with aspect="keep", calculate uniform scale and pillarbox/letterbox offsets
+	var scale_x: float = float(screen_sz.x) / vp_rect.size.x
+	var scale_y: float = float(screen_sz.y) / vp_rect.size.y
+	var uniform_scale: float = minf(scale_x, scale_y)
+	if uniform_scale <= 0.0001:
+		uniform_scale = 1.0
 
-	var canvas_x: float = float(safe_pixels.position.x) * scale_x
-	var canvas_y: float = float(safe_pixels.position.y) * scale_y
-	var canvas_w: float = float(safe_pixels.size.x) * scale_x
-	var canvas_h: float = float(safe_pixels.size.y) * scale_y
+	var rendered_w: float = vp_rect.size.x * uniform_scale
+	var rendered_h: float = vp_rect.size.y * uniform_scale
+	var offset_x: float = (float(screen_sz.x) - rendered_w) * 0.5
+	var offset_y: float = (float(screen_sz.y) - rendered_h) * 0.5
 
-	var resolved := Rect2(canvas_x, canvas_y, canvas_w, canvas_h)
-	var clamped_pos := Vector2(maxf(resolved.position.x, 0.0), maxf(resolved.position.y, 0.0))
-	var clamped_size := Vector2(minf(resolved.size.x, vp_rect.size.x - clamped_pos.x), minf(resolved.size.y, vp_rect.size.y - clamped_pos.y))
-	return Rect2(clamped_pos, clamped_size)
+	# Convert physical screen safe pixel boundaries to 960x540 canvas coordinates
+	var canvas_x1: float = clampf((float(safe_pixels.position.x) - offset_x) / uniform_scale, 0.0, vp_rect.size.x)
+	var canvas_y1: float = clampf((float(safe_pixels.position.y) - offset_y) / uniform_scale, 0.0, vp_rect.size.y)
+	var canvas_x2: float = clampf((float(safe_pixels.position.x + safe_pixels.size.x) - offset_x) / uniform_scale, 0.0, vp_rect.size.x)
+	var canvas_y2: float = clampf((float(safe_pixels.position.y + safe_pixels.size.y) - offset_y) / uniform_scale, 0.0, vp_rect.size.y)
+
+	var canvas_w: float = maxf(0.0, canvas_x2 - canvas_x1)
+	var canvas_h: float = maxf(0.0, canvas_y2 - canvas_y1)
+
+	return Rect2(canvas_x1, canvas_y1, canvas_w, canvas_h)
 
 func _update_safe_area_layout() -> void:
 	# Crucial invariant: purge all active touches when layout changes to avoid sticky pointers
