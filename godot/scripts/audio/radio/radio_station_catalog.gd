@@ -1,9 +1,9 @@
 class_name RadioStationCatalog
 extends RefCounted
 
-## Radio Station Catalog for ECHOES
+## Radio Station Catalog for YARDLINE
 ## Immutable station definitions, segment metadata, and fallback properties.
-## Defines the PROPOSED/EXPERIMENTAL "ECHOES 99.4 FM" station identity.
+## Defines the PROPOSED/EXPERIMENTAL "YARDLINE 88.3" station identity.
 
 enum Category {
 	SONG,
@@ -14,14 +14,21 @@ enum Category {
 	ECHO_INTRUSION # Inactive stub for later milestone (#25)
 }
 
-const DEFAULT_STATION_ID := "radio.echoes_fm"
+## Segment playback phases (for INTRO→BODY→OUTRO model)
+enum Phase {
+	INTRO,
+	BODY,
+	OUTRO
+}
+
+const DEFAULT_STATION_ID := "radio.yardline"
 
 # Master Station Catalog
 const STATIONS: Dictionary = {
-	"radio.echoes_fm": {
-		"station_id": "radio.echoes_fm",
-		"name": "ECHOES 99.4 FM",
-		"frequency_mhz": 99.4,
+	"radio.yardline": {
+		"station_id": "radio.yardline",
+		"name": "YARDLINE 88.3",
+		"frequency_mhz": 88.3,
 		"tagline": "Scrap Frequency / Pirate Relay",
 		"description": "Autonomous underground radio relay transmitting synthesized scrap grooves and yard traffic alerts.",
 		"is_experimental": true,
@@ -32,7 +39,7 @@ const STATIONS: Dictionary = {
 				"category": Category.SONG,
 				"title": "Scrap Pulse",
 				"artist": "Null Pointer",
-				"slot_id": "radio.echoes_fm.song_01",
+				"slot_id": "radio.yardline.song_01",
 				"duration_sec": 4.0,
 				"intro_sec": 0.5,
 				"body_sec": 3.0,
@@ -45,7 +52,7 @@ const STATIONS: Dictionary = {
 				"category": Category.SONG,
 				"title": "Neon Drift",
 				"artist": "Yard Unit 7",
-				"slot_id": "radio.echoes_fm.song_02",
+				"slot_id": "radio.yardline.song_02",
 				"duration_sec": 4.0,
 				"intro_sec": 0.5,
 				"body_sec": 3.0,
@@ -58,7 +65,7 @@ const STATIONS: Dictionary = {
 				"category": Category.SONG,
 				"title": "Rust Groove",
 				"artist": "Courier Zero",
-				"slot_id": "radio.echoes_fm.song_03",
+				"slot_id": "radio.yardline.song_03",
 				"duration_sec": 4.0,
 				"intro_sec": 0.5,
 				"body_sec": 3.0,
@@ -71,7 +78,7 @@ const STATIONS: Dictionary = {
 				"category": Category.SONG,
 				"title": "Signal Loss",
 				"artist": "The Resonators",
-				"slot_id": "radio.echoes_fm.song_04",
+				"slot_id": "radio.yardline.song_04",
 				"duration_sec": 4.0,
 				"intro_sec": 0.5,
 				"body_sec": 3.0,
@@ -85,8 +92,11 @@ const STATIONS: Dictionary = {
 				"id": "dj_01_track_intro",
 				"category": Category.DJ_LINK,
 				"title": "DJ Intro - Keep Moving",
-				"slot_id": "radio.echoes_fm.dj_link_intro",
+				"slot_id": "radio.yardline.dj_link_intro",
 				"duration_sec": 1.2,
+				"intro_sec": 0.0,
+				"body_sec": 1.2,
+				"outro_sec": 0.0,
 				"context": "INTRO",
 				"base_freq_hz": 440.0
 			},
@@ -94,36 +104,48 @@ const STATIONS: Dictionary = {
 				"id": "dj_02_track_outro",
 				"category": Category.DJ_LINK,
 				"title": "DJ Outro - Stay Tuned",
-				"slot_id": "radio.echoes_fm.dj_link_outro",
+				"slot_id": "radio.yardline.dj_link_outro",
 				"duration_sec": 1.0,
+				"intro_sec": 0.0,
+				"body_sec": 1.0,
+				"outro_sec": 0.0,
 				"context": "OUTRO",
 				"base_freq_hz": 440.0
 			},
 			{
 				"id": "dj_03_sweeper",
 				"category": Category.DJ_LINK,
-				"title": "DJ Sweeper - Echoes Flow",
-				"slot_id": "radio.echoes_fm.dj_sweeper",
+				"title": "DJ Sweeper - Yardline Flow",
+				"slot_id": "radio.yardline.dj_sweeper",
 				"duration_sec": 0.8,
+				"intro_sec": 0.0,
+				"body_sec": 0.8,
+				"outro_sec": 0.0,
 				"context": "SWEEPER",
 				"base_freq_hz": 520.0
 			},
 
 			# --- STATION IDS ---
 			{
-				"id": "id_01_echoes_jingle",
+				"id": "id_01_yardline_jingle",
 				"category": Category.STATION_ID,
-				"title": "Echoes 99.4 Signature Jingle",
-				"slot_id": "radio.echoes_fm.station_id_01",
+				"title": "Yardline 88.3 Signature Jingle",
+				"slot_id": "radio.yardline.station_id_01",
 				"duration_sec": 1.5,
+				"intro_sec": 0.0,
+				"body_sec": 1.5,
+				"outro_sec": 0.0,
 				"base_freq_hz": 660.0
 			},
 			{
-				"id": "id_02_echoes_sting",
+				"id": "id_02_yardline_sting",
 				"category": Category.STATION_ID,
-				"title": "Echoes Stinger",
-				"slot_id": "radio.echoes_fm.station_id_02",
+				"title": "Yardline Stinger",
+				"slot_id": "radio.yardline.station_id_02",
 				"duration_sec": 0.8,
+				"intro_sec": 0.0,
+				"body_sec": 0.8,
+				"outro_sec": 0.0,
 				"base_freq_hz": 880.0
 			},
 
@@ -132,16 +154,22 @@ const STATIONS: Dictionary = {
 				"id": "ad_01_scrap_parts",
 				"category": Category.ADVERT,
 				"title": "Yard Surplus Salvage Ad",
-				"slot_id": "radio.echoes_fm.advert_01",
+				"slot_id": "radio.yardline.advert_01",
 				"duration_sec": 1.5,
+				"intro_sec": 0.0,
+				"body_sec": 1.5,
+				"outro_sec": 0.0,
 				"base_freq_hz": 350.0
 			},
 			{
 				"id": "ad_02_courier_rations",
 				"category": Category.ADVERT,
 				"title": "Hydro-Ration Paste Commercial",
-				"slot_id": "radio.echoes_fm.advert_02",
+				"slot_id": "radio.yardline.advert_02",
 				"duration_sec": 1.5,
+				"intro_sec": 0.0,
+				"body_sec": 1.5,
+				"outro_sec": 0.0,
 				"base_freq_hz": 380.0
 			},
 
@@ -150,18 +178,24 @@ const STATIONS: Dictionary = {
 				"id": "world_01_pursuit_advisory",
 				"category": Category.WORLD_REACTION,
 				"title": "Security Pulse Advisory",
-				"slot_id": "radio.echoes_fm.world_pursuit",
+				"slot_id": "radio.yardline.world_pursuit",
 				"trigger_event": "PURSUIT_START",
 				"duration_sec": 1.5,
+				"intro_sec": 0.0,
+				"body_sec": 1.5,
+				"outro_sec": 0.0,
 				"base_freq_hz": 587.33
 			},
 			{
 				"id": "world_02_gate_activity",
 				"category": Category.WORLD_REACTION,
 				"title": "Perimeter Barrier Notice",
-				"slot_id": "radio.echoes_fm.world_gate",
+				"slot_id": "radio.yardline.world_gate",
 				"trigger_event": "GATE_SLAM",
 				"duration_sec": 1.2,
+				"intro_sec": 0.0,
+				"body_sec": 1.2,
+				"outro_sec": 0.0,
 				"base_freq_hz": 554.37
 			},
 
@@ -170,8 +204,11 @@ const STATIONS: Dictionary = {
 				"id": "echo_01_intrusion_stub",
 				"category": Category.ECHO_INTRUSION,
 				"title": "Echo Frequency Bleed (Stub)",
-				"slot_id": "radio.echoes_fm.echo_intrusion_stub",
+				"slot_id": "radio.yardline.echo_intrusion_stub",
 				"duration_sec": 1.0,
+				"intro_sec": 0.0,
+				"body_sec": 1.0,
+				"outro_sec": 0.0,
 				"is_active": false,
 				"base_freq_hz": 110.0
 			}

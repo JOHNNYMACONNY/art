@@ -2,9 +2,19 @@ extends RefCounted
 
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
 
-const MAX_NON_SONG_GAP := 2
-const SONG_HISTORY_LIMIT := 2
-const DEFAULT_SEED := 1337
+## Bounded category weights per ChatGPT #22 spec
+## SONG=60, DJ_LINK=15, STATION_ID=10, ADVERT=10, WORLD_REACTION=5 (when eligible), ECHO_INTRUSION=0
+const WEIGHT_SONG          := 60
+const WEIGHT_DJ_LINK       := 15
+const WEIGHT_STATION_ID    := 10
+const WEIGHT_ADVERT        := 10
+const WEIGHT_WORLD_REACTION := 5
+const WEIGHT_ECHO_INTRUSION := 0
+
+const MAX_NON_SONG_GAP     := 2   ## Max consecutive non-song items before SONG is forced
+const SONG_HISTORY_LIMIT   := 4   ## RECENT_CONTENT_WINDOW = 4 for songs
+const INTERSTITIAL_HISTORY_LIMIT := 4  ## Recent interstitial window
+const DEFAULT_SEED         := 1337
 
 var _station_id: String = RadioStationCatalogScript.DEFAULT_STATION_ID
 var _rng := RandomNumberGenerator.new()
@@ -17,6 +27,7 @@ var _interstitial_history: Array[String] = []
 var _non_song_gap_counter: int = 0
 var _last_category: int = -1
 
+## Pending world events queue. Events are deferred (not dropped) when max-gap rule fires.
 var _pending_world_events: Array[String] = []
 
 func _init(initial_seed: int = DEFAULT_SEED, station: String = RadioStationCatalogScript.DEFAULT_STATION_ID) -> void:
@@ -47,6 +58,8 @@ func reset_programming_state() -> void:
 	_last_category = -1
 	_pending_world_events.clear()
 
+## Director-only reset: reseeds PRNG with provided seed and clears all programming state.
+## AudioManager must call reset() on director independently; player state is separate.
 func reset(initial_seed: int = DEFAULT_SEED) -> void:
 	set_seed(initial_seed)
 	reset_programming_state()
@@ -73,27 +86,39 @@ func set_paused(paused: bool) -> void:
 func advance_next_item() -> Dictionary:
 	var next_item: Dictionary = {}
 
-	# 1. Check for urgent reactive world events
-	if not _pending_world_events.is_empty():
+	# 1. Max-gap rule: SONG is FORCED and world events are DEFERRED (not consumed)
+	#    This ensures a queued world event survives the forced song.
+	if _non_song_gap_counter >= MAX_NON_SONG_GAP:
+		next_item = _pick_item_for_category(RadioStationCatalogScript.Category.SONG)
+		# World events remain in queue - deferred, not dropped
+
+	# 2. Check for pending reactive world events (only if max-gap didn't fire)
+	elif not _pending_world_events.is_empty():
 		var event_name: String = _pending_world_events.pop_front()
-		var world_items: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(_station_id, RadioStationCatalogScript.Category.WORLD_REACTION)
+		var world_items: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(
+			_station_id, RadioStationCatalogScript.Category.WORLD_REACTION)
 		for wi in world_items:
 			if wi.get("trigger_event") == event_name:
 				next_item = wi.duplicate(true)
 				break
+		# If no matching item found, event was consumed but produced nothing - continue normally
+		if next_item.is_empty():
+			var target_category: int = _choose_next_category()
+			next_item = _pick_item_for_category(target_category)
 
-	# 2. If no reactive event, select category according to programming rules
-	if next_item.is_empty():
+	# 3. Normal weighted category selection
+	else:
 		var target_category: int = _choose_next_category()
 		next_item = _pick_item_for_category(target_category)
 
-	# Fallback if category selection yielded empty
+	# Fallback if all selection paths yielded empty
 	if next_item.is_empty():
-		var songs: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(_station_id, RadioStationCatalogScript.Category.SONG)
+		var songs: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(
+			_station_id, RadioStationCatalogScript.Category.SONG)
 		if not songs.is_empty():
 			next_item = songs[0].duplicate(true)
 
-	# 3. Update state, anti-repeat tracking, and gap counters
+	# 4. Update state, anti-repeat tracking, and gap counters
 	_current_item = next_item
 	_cursor_position_sec = 0.0
 	var cat: int = next_item.get("category", RadioStationCatalogScript.Category.SONG)
@@ -102,69 +127,83 @@ func advance_next_item() -> Dictionary:
 	if cat == RadioStationCatalogScript.Category.SONG:
 		_non_song_gap_counter = 0
 		_song_history.append(next_item.get("id", ""))
-		while _song_history.size() > SONG_HISTORY_LIMIT:
+		while _song_history.size() > 3:
 			_song_history.pop_front()
 	else:
 		_non_song_gap_counter += 1
 		_interstitial_history.append(next_item.get("id", ""))
-		while _interstitial_history.size() > 4:
+		while _interstitial_history.size() > INTERSTITIAL_HISTORY_LIMIT:
 			_interstitial_history.pop_front()
 
 	return _current_item
 
 func _choose_next_category() -> int:
-	# Enforce Max-Gap Rule: Music must return within MAX_NON_SONG_GAP
-	if _non_song_gap_counter >= MAX_NON_SONG_GAP:
+	## Build weighted pool based on eligible categories
+	## Rule: no immediate repeat of the same non-SONG category
+	var has_world_events: bool = not _pending_world_events.is_empty()
+	var world_items: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(
+		_station_id, RadioStationCatalogScript.Category.WORLD_REACTION)
+	var world_reaction_eligible: bool = has_world_events and not world_items.is_empty()
+
+	## Compute total weight
+	var total: int = WEIGHT_SONG
+	if _last_category != RadioStationCatalogScript.Category.DJ_LINK:
+		total += WEIGHT_DJ_LINK
+	if _last_category != RadioStationCatalogScript.Category.STATION_ID:
+		total += WEIGHT_STATION_ID
+	if _last_category != RadioStationCatalogScript.Category.ADVERT:
+		total += WEIGHT_ADVERT
+	if world_reaction_eligible and _last_category != RadioStationCatalogScript.Category.WORLD_REACTION:
+		total += WEIGHT_WORLD_REACTION
+
+	var roll: int = _rng.randi_range(0, total - 1)
+
+	## Walk thresholds in order: SONG always eligible
+	var threshold: int = WEIGHT_SONG
+	if roll < threshold:
 		return RadioStationCatalogScript.Category.SONG
 
-	# If cold start (no previous item), begin with a SONG or STATION_ID
-	if _last_category == -1:
-		var roll: float = _rng.randf()
-		if roll < 0.70:
-			return RadioStationCatalogScript.Category.SONG
-		else:
-			return RadioStationCatalogScript.Category.STATION_ID
-
-	# If last item was a SONG
-	if _last_category == RadioStationCatalogScript.Category.SONG:
-		var roll: float = _rng.randf()
-		if roll < 0.35:
+	if _last_category != RadioStationCatalogScript.Category.DJ_LINK:
+		threshold += WEIGHT_DJ_LINK
+		if roll < threshold:
 			return RadioStationCatalogScript.Category.DJ_LINK
-		elif roll < 0.60:
-			return RadioStationCatalogScript.Category.STATION_ID
-		elif roll < 0.80:
-			return RadioStationCatalogScript.Category.ADVERT
-		else:
-			return RadioStationCatalogScript.Category.SONG
 
-	# If last item was non-song, bias strongly towards SONG
-	var roll: float = _rng.randf()
-	if roll < 0.65:
-		return RadioStationCatalogScript.Category.SONG
-	elif roll < 0.85:
-		return RadioStationCatalogScript.Category.DJ_LINK
-	else:
-		return RadioStationCatalogScript.Category.STATION_ID
+	if _last_category != RadioStationCatalogScript.Category.STATION_ID:
+		threshold += WEIGHT_STATION_ID
+		if roll < threshold:
+			return RadioStationCatalogScript.Category.STATION_ID
+
+	if _last_category != RadioStationCatalogScript.Category.ADVERT:
+		threshold += WEIGHT_ADVERT
+		if roll < threshold:
+			return RadioStationCatalogScript.Category.ADVERT
+
+	if world_reaction_eligible and _last_category != RadioStationCatalogScript.Category.WORLD_REACTION:
+		return RadioStationCatalogScript.Category.WORLD_REACTION
+
+	# Fallback to SONG
+	return RadioStationCatalogScript.Category.SONG
 
 func _pick_item_for_category(category: int) -> Dictionary:
-	var items: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(_station_id, category as RadioStationCatalogScript.Category)
+	var items: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(
+		_station_id, category as RadioStationCatalogScript.Category)
 	if items.is_empty():
 		return {}
 
 	var candidates: Array[Dictionary] = []
 
 	if category == RadioStationCatalogScript.Category.SONG:
-		# Filter out recently played songs in history
+		# Filter out recently played songs in history window (RECENT_CONTENT_WINDOW=4)
 		for item in items:
 			if not _song_history.has(item.get("id")):
 				candidates.append(item)
-		# If all songs in history (pool depleted), use full items
+		# Pool depletion fallback: use full pool
 		if candidates.is_empty():
 			candidates = items.duplicate()
 	else:
-		# Filter out immediately preceding interstitial
+		# Filter out items in recent interstitial history window
 		for item in items:
-			if _interstitial_history.is_empty() or _interstitial_history.back() != item.get("id"):
+			if not _interstitial_history.has(item.get("id")):
 				candidates.append(item)
 		if candidates.is_empty():
 			candidates = items.duplicate()

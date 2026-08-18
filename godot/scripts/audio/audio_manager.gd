@@ -427,6 +427,8 @@ func reset_audio_instant() -> void:
 	event_counts.clear()
 	current_mix_state = MixState.CALM
 	AudioReferenceResolverScript.reset()
+	if _radio_director:
+		_radio_director.reset()
 	if _radio_player:
 		_radio_player.reset()
 
@@ -434,6 +436,10 @@ func get_radio_director() -> RefCounted:
 	if not _radio_director:
 		_radio_director = RadioProgramDirectorScript.new()
 	return _radio_director
+
+func reset_radio_director(initial_seed: int = 1337) -> void:
+	if _radio_director:
+		_radio_director.reset(initial_seed)
 
 func get_radio_player() -> Node:
 	if not _radio_player:

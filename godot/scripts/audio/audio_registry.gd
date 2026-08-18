@@ -452,10 +452,10 @@ const SLOTS: Dictionary = {
 		"replacement_required": true,
 		"description": "Corrupted courier transmission burst"
 	},
-	"radio.echoes_fm.song_01": {
-		"slot_id": "radio.echoes_fm.song_01",
+	"radio.yardline.song_01": {
+		"slot_id": "radio.yardline.song_01",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -466,12 +466,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM track 1: Scrap Pulse"
+		"description": "Yardline 88.3 track 1: Scrap Pulse"
 	},
-	"radio.echoes_fm.song_02": {
-		"slot_id": "radio.echoes_fm.song_02",
+	"radio.yardline.song_02": {
+		"slot_id": "radio.yardline.song_02",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -482,12 +482,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM track 2: Neon Drift"
+		"description": "Yardline 88.3 track 2: Neon Drift"
 	},
-	"radio.echoes_fm.song_03": {
-		"slot_id": "radio.echoes_fm.song_03",
+	"radio.yardline.song_03": {
+		"slot_id": "radio.yardline.song_03",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -498,12 +498,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM track 3: Rust Groove"
+		"description": "Yardline 88.3 track 3: Rust Groove"
 	},
-	"radio.echoes_fm.song_04": {
-		"slot_id": "radio.echoes_fm.song_04",
+	"radio.yardline.song_04": {
+		"slot_id": "radio.yardline.song_04",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -514,12 +514,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM track 4: Signal Loss"
+		"description": "Yardline 88.3 track 4: Signal Loss"
 	},
-	"radio.echoes_fm.dj_link_intro": {
-		"slot_id": "radio.echoes_fm.dj_link_intro",
+	"radio.yardline.dj_link_intro": {
+		"slot_id": "radio.yardline.dj_link_intro",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -530,12 +530,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM DJ voice intro link"
+		"description": "Yardline 88.3 DJ voice intro link"
 	},
-	"radio.echoes_fm.dj_link_outro": {
-		"slot_id": "radio.echoes_fm.dj_link_outro",
+	"radio.yardline.dj_link_outro": {
+		"slot_id": "radio.yardline.dj_link_outro",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -546,12 +546,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM DJ voice outro link"
+		"description": "Yardline 88.3 DJ voice outro link"
 	},
-	"radio.echoes_fm.dj_sweeper": {
-		"slot_id": "radio.echoes_fm.dj_sweeper",
+	"radio.yardline.dj_sweeper": {
+		"slot_id": "radio.yardline.dj_sweeper",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -562,12 +562,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM radio station sweeper sound"
+		"description": "Yardline 88.3 radio station sweeper sound"
 	},
-	"radio.echoes_fm.station_id_01": {
-		"slot_id": "radio.echoes_fm.station_id_01",
+	"radio.yardline.station_id_01": {
+		"slot_id": "radio.yardline.station_id_01",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -578,12 +578,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM signature jingle ID"
+		"description": "Yardline 88.3 signature jingle ID"
 	},
-	"radio.echoes_fm.station_id_02": {
-		"slot_id": "radio.echoes_fm.station_id_02",
+	"radio.yardline.station_id_02": {
+		"slot_id": "radio.yardline.station_id_02",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -594,12 +594,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM sting station ID"
+		"description": "Yardline 88.3 sting station ID"
 	},
-	"radio.echoes_fm.advert_01": {
-		"slot_id": "radio.echoes_fm.advert_01",
+	"radio.yardline.advert_01": {
+		"slot_id": "radio.yardline.advert_01",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -610,12 +610,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM satirical surplus salvage advert"
+		"description": "Yardline 88.3 satirical surplus salvage advert"
 	},
-	"radio.echoes_fm.advert_02": {
-		"slot_id": "radio.echoes_fm.advert_02",
+	"radio.yardline.advert_02": {
+		"slot_id": "radio.yardline.advert_02",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -626,12 +626,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM hydro-ration commercial advert"
+		"description": "Yardline 88.3 hydro-ration commercial advert"
 	},
-	"radio.echoes_fm.world_pursuit": {
-		"slot_id": "radio.echoes_fm.world_pursuit",
+	"radio.yardline.world_pursuit": {
+		"slot_id": "radio.yardline.world_pursuit",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -642,12 +642,12 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM scrap yard pursuit bulletin"
+		"description": "Yardline 88.3 scrap yard pursuit bulletin"
 	},
-	"radio.echoes_fm.world_gate": {
-		"slot_id": "radio.echoes_fm.world_gate",
+	"radio.yardline.world_gate": {
+		"slot_id": "radio.yardline.world_gate",
 		"domain": Domain.RADIO,
-		"diegesis": Diegesis.NON_DIEGETIC,
+		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.RADIO_MUSIC,
 		"playback_type": PlaybackType.TRANSIENT,
@@ -658,7 +658,7 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Echoes 99.4 FM perimeter barrier activity alert"
+		"description": "Yardline 88.3 perimeter barrier activity alert"
 	}
 }
 
