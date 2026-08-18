@@ -21,8 +21,14 @@ var _current_item: Dictionary = {}
 var _current_segment_index: int = 0
 var _current_segment: Dictionary = {}
 
+var _lifecycle_volume_db: float = 0.0
+var _duck_volume_db: float = 0.0
+
 var _fade_tween: Tween = null
 var _fade_generation: int = 0
+
+var _duck_tween: Tween = null
+var _duck_generation: int = 0
 
 func _init(director: RefCounted = null) -> void:
 	if director:
@@ -40,6 +46,7 @@ func _ensure_player() -> void:
 		_player.bus = "Master"
 		add_child(_player)
 		_player.finished.connect(_on_stream_finished)
+		_update_composed_volume()
 
 func _exit_tree() -> void:
 	reset()
@@ -74,11 +81,68 @@ func get_playback_position() -> float:
 		return _director.get_cursor_position()
 	return 0.0
 
+# -----------------------------------------------------------------------------
+# DUAL-LAYER GAIN COMPOSITION (LIFECYCLE FADE + MIX DUCKING)
+# -----------------------------------------------------------------------------
+
+func _update_composed_volume() -> void:
+	if _player:
+		if _lifecycle_volume_db <= -70.0:
+			_player.volume_db = -80.0
+		else:
+			_player.volume_db = clampf(_lifecycle_volume_db + _duck_volume_db, -80.0, 6.0)
+
+func get_lifecycle_volume_db() -> float:
+	return _lifecycle_volume_db
+
+func get_duck_volume_db() -> float:
+	return _duck_volume_db
+
+func get_composed_volume_db() -> float:
+	if _lifecycle_volume_db <= -70.0:
+		return -80.0
+	return clampf(_lifecycle_volume_db + _duck_volume_db, -80.0, 6.0)
+
+func _set_lifecycle_volume_db(vol: float) -> void:
+	_lifecycle_volume_db = vol
+	_update_composed_volume()
+
+func _set_duck_volume_db(vol: float) -> void:
+	_duck_volume_db = vol
+	_update_composed_volume()
+
 func _cancel_radio_fade() -> void:
 	_fade_generation += 1
 	if _fade_tween and _fade_tween.is_valid():
 		_fade_tween.kill()
 		_fade_tween = null
+
+func _cancel_duck_tween() -> void:
+	_duck_generation += 1
+	if _duck_tween and _duck_tween.is_valid():
+		_duck_tween.kill()
+		_duck_tween = null
+
+func is_duck_tweening() -> bool:
+	return _duck_tween != null and _duck_tween.is_valid() and _duck_tween.is_running()
+
+## Independent Ducking API for pursuit pressure / critical mix layers
+func set_duck_volume_db(target_db: float, duration: float = 0.0) -> void:
+	_cancel_duck_tween()
+	var gen: int = _duck_generation
+	_ensure_player()
+	if duration > 0.0 and is_inside_tree():
+		_duck_tween = create_tween()
+		if _duck_tween:
+			_duck_tween.tween_method(_set_duck_volume_db, _duck_volume_db, target_db, duration)
+			_duck_tween.tween_callback(func():
+				if _duck_generation == gen:
+					_duck_volume_db = target_db
+					_update_composed_volume()
+			)
+			return
+	_duck_volume_db = target_db
+	_update_composed_volume()
 
 func play_station(station_id: String = RadioStationCatalogScript.DEFAULT_STATION_ID) -> void:
 	_cancel_radio_fade()
@@ -137,6 +201,7 @@ func _play_current_segment() -> void:
 
 	_current_stream = stream
 	if _player:
+		_update_composed_volume()
 		_player.stream = stream
 		_player.play(0.0)
 
@@ -181,6 +246,7 @@ func resume() -> void:
 	if _player and _current_stream:
 		var resume_pos: float = _director.get_cursor_position()
 		_player.stream = _current_stream
+		_update_composed_volume()
 		_player.play(resume_pos)
 
 	playback_state_changed.emit(_is_playing, _is_paused)
@@ -194,17 +260,17 @@ func fade_out_and_pause(duration: float = 0.20) -> void:
 	if is_inside_tree() and _player:
 		_fade_tween = create_tween()
 		if _fade_tween:
-			_fade_tween.tween_property(_player, "volume_db", -80.0, maxf(0.01, duration))
+			_fade_tween.tween_method(_set_lifecycle_volume_db, _lifecycle_volume_db, -80.0, maxf(0.01, duration))
 			_fade_tween.tween_callback(func():
 				if _fade_generation == gen:
 					pause()
-					if _player:
-						_player.volume_db = 0.0
+					_lifecycle_volume_db = 0.0
+					_update_composed_volume()
 			)
 			return
 	pause()
-	if _player:
-		_player.volume_db = 0.0
+	_lifecycle_volume_db = 0.0
+	_update_composed_volume()
 
 func fade_in_and_resume(duration: float = 0.18) -> void:
 	_cancel_radio_fade()
@@ -215,19 +281,21 @@ func fade_in_and_resume(duration: float = 0.18) -> void:
 	elif _is_paused:
 		resume()
 
-	if _player:
-		_player.volume_db = -80.0
+	_lifecycle_volume_db = -80.0
+	_update_composed_volume()
+
 	if is_inside_tree() and _player:
 		_fade_tween = create_tween()
 		if _fade_tween:
-			_fade_tween.tween_property(_player, "volume_db", 0.0, maxf(0.01, duration))
+			_fade_tween.tween_method(_set_lifecycle_volume_db, -80.0, 0.0, maxf(0.01, duration))
 			_fade_tween.tween_callback(func():
-				if _fade_generation == gen and _player:
-					_player.volume_db = 0.0
+				if _fade_generation == gen:
+					_lifecycle_volume_db = 0.0
+					_update_composed_volume()
 			)
 			return
-	if _player:
-		_player.volume_db = 0.0
+	_lifecycle_volume_db = 0.0
+	_update_composed_volume()
 
 func stop() -> void:
 	_cancel_radio_fade()
@@ -239,12 +307,17 @@ func stop() -> void:
 	if _player:
 		_player.stop()
 		_player.stream = null
-		_player.volume_db = 0.0
 	_current_stream = null
+	_lifecycle_volume_db = 0.0
+	_update_composed_volume()
 	playback_state_changed.emit(_is_playing, _is_paused)
 
 func reset() -> void:
 	stop()
+	_cancel_duck_tween()
+	_duck_volume_db = 0.0
+	_lifecycle_volume_db = 0.0
+	_update_composed_volume()
 	if _director:
 		_director.reset()
 

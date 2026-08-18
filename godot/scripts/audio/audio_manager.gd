@@ -233,6 +233,7 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			set_siren_audio(true, pos)
 		SoundEvent.PURSUIT_INTERCEPTED:
 			_play_synth_sweep(pos, 400.0, 100.0, 0.5, 0.7)
+			set_radio_duck(-24.0, 0.05)
 		SoundEvent.EVASION_RELEASE:
 			_play_synth_sweep(pos, 500.0, 1000.0, 0.5, 0.5)
 		SoundEvent.COLLISION_GLANCE:
@@ -313,19 +314,26 @@ func _process(delta: float) -> void:
 				_siren_player.volume_db = lerpf(-24.0, 3.0, p)
 			if _tension_player and _tension_player.playing:
 				_tension_player.volume_db = lerpf(-40.0, -6.0, p)
-				
+			
+			var duck_target: float = lerpf(0.0, -10.0, p)
+			set_radio_duck(duck_target, 0.0)
+
 			if _current_pursuit_pressure <= 0.0:
 				clear_pursuit_pressure()
 		else:
 			clear_pursuit_pressure()
 
 ## Continuous pursuit pressure API
-## Maps distance into continuous siren pitch escalation and harmonic tension drone
+## Maps distance into continuous siren pitch escalation, harmonic tension drone & radio ducking
 func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
 	_is_decaying_pursuit_pressure = false # Cancel any active decay envelope when active pursuit updates
 	# Normalized pressure P: 0.0 at >= 20m, smoothly rising to 1.0 at <= 5m
 	var p: float = clampf((20.0 - distance) / 15.0, 0.0, 1.0)
 	_current_pursuit_pressure = p
+
+	# Continuous radio ducking: -7dB at low pressure down to -13dB at maximum pressure
+	var duck_target: float = lerpf(-7.0, -13.0, p)
+	set_radio_duck(duck_target, 0.10)
 
 	if _siren_player:
 		_siren_player.global_position = pursuer_pos
@@ -370,6 +378,7 @@ func clear_pursuit_pressure() -> void:
 		_tension_player.stop()
 	_tension_layer_active = false
 	_current_pursuit_pressure = 0.0
+	set_radio_duck(0.0, 0.5)
 
 ## Handle neutral collision telemetry from CourierBike
 func on_collision_contact(head_on_ratio: float, impact_speed: float, pos: Vector3) -> void:
@@ -427,6 +436,7 @@ func reset_audio_instant() -> void:
 	event_counts.clear()
 	current_mix_state = MixState.CALM
 	AudioReferenceResolverScript.reset()
+	clear_radio_duck()
 	if _radio_director:
 		_radio_director.reset()
 	if _radio_player:
@@ -472,6 +482,23 @@ func fade_in_radio(duration: float = 0.2) -> void:
 	if _radio_player:
 		_radio_player.fade_in_and_resume(duration)
 
+func set_radio_duck(duck_db: float, duration: float = 0.0) -> void:
+	if _radio_player and _radio_player.has_method("set_duck_volume_db"):
+		_radio_player.set_duck_volume_db(duck_db, duration)
+
+func get_radio_duck() -> float:
+	if _radio_player and _radio_player.has_method("get_duck_volume_db"):
+		return _radio_player.get_duck_volume_db()
+	return 0.0
+
+func is_radio_duck_tweening() -> bool:
+	if _radio_player and _radio_player.has_method("is_duck_tweening"):
+		return _radio_player.is_duck_tweening()
+	return false
+
+func clear_radio_duck() -> void:
+	set_radio_duck(0.0, 0.0)
+
 func _play_reference_stream(stream: AudioStream, slot_id: String, pos: Vector3) -> void:
 	var slot_meta: Dictionary = AudioRegistryScript.get_slot(slot_id)
 	var spatial = slot_meta.get("spatial_type", AudioRegistryScript.SpatialType.DIEGETIC_3D)
@@ -506,6 +533,7 @@ func set_mix_state(state: MixState) -> void:
 			set_siren_audio(false, Vector3.ZERO)
 			if _tension_player and _tension_player.playing:
 				_tension_player.stop()
+			set_radio_duck(0.0, 0.5)
 		MixState.SIGNAL_CURIOSITY:
 			set_tuning_audio(0.15)
 		MixState.TUNING_FOCUS:
@@ -516,23 +544,26 @@ func set_mix_state(state: MixState) -> void:
 			play_event(SoundEvent.COMPLETION, Vector3.ZERO)
 		MixState.DISTURBANCE:
 			play_event(SoundEvent.DISTURBANCE_ALERT, Vector3.ZERO)
+			set_radio_duck(-10.0, 0.15)
 		MixState.PURSUIT_PRESSURE:
 			pass
 		MixState.ROUTE_SWITCH_IMPACT:
 			play_event(SoundEvent.GATE_SLAM, Vector3.ZERO)
 		MixState.EVASION_RELEASE:
 			play_event(SoundEvent.EVASION_RELEASE, Vector3.ZERO)
+			set_radio_duck(0.0, 1.0)
 		MixState.QUIET_AFTERMATH:
 			set_siren_audio(false, Vector3.ZERO)
 			set_tuning_audio(0.0)
 			if _tension_player and _tension_player.playing:
 				_tension_player.stop()
-		## M04: Memory Echo window — duck ambient, hold space; no pursuit audio started
+			set_radio_duck(0.0, 0.5)
+		## M04: Memory Echo window — duck ambient, hold space; priority duck radio -16dB
 		MixState.MEMORY_ECHO:
 			set_tuning_audio(0.0)
 			if _static_player and _static_player.playing:
 				_static_player.stop()
-			# Play the ECHO_ONSET transient to open the window
+			set_radio_duck(-16.0, 0.20)
 			play_event(SoundEvent.ECHO_ONSET, Vector3.ZERO)
 
 # -----------------------------------------------------------------------------
