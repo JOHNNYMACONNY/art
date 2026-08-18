@@ -21,6 +21,8 @@ var _current_item: Dictionary = {}
 var _current_segment_index: int = 0
 var _current_segment: Dictionary = {}
 
+var _fade_tween: Tween = null
+
 func _init(director: RefCounted = null) -> void:
 	if director:
 		_director = director
@@ -28,6 +30,9 @@ func _init(director: RefCounted = null) -> void:
 		_director = RadioProgramDirectorScript.new()
 
 func _ready() -> void:
+	_ensure_player()
+
+func _ensure_player() -> void:
 	if not _player:
 		_player = AudioStreamPlayer.new()
 		_player.name = "RadioAudioStreamPlayer"
@@ -101,6 +106,7 @@ func advance_segment() -> void:
 	segment_started.emit(_current_item)
 
 func _play_current_segment() -> void:
+	_ensure_player()
 	var segments: Array = _current_item.get("segments", [])
 	if segments.is_empty() or _current_segment_index >= segments.size():
 		advance_segment()
@@ -161,6 +167,7 @@ func resume() -> void:
 	_is_paused = false
 	_director.set_paused(false)
 
+	_ensure_player()
 	if _player and _current_stream:
 		var resume_pos: float = _director.get_cursor_position()
 		_player.stream = _current_stream
@@ -168,7 +175,48 @@ func resume() -> void:
 
 	playback_state_changed.emit(_is_playing, _is_paused)
 
+func fade_out_and_pause(duration: float = 0.25) -> void:
+	if not _is_playing or _is_paused:
+		return
+	if _fade_tween and _fade_tween.is_valid():
+		_fade_tween.kill()
+		_fade_tween = null
+	if is_inside_tree() and _player:
+		_fade_tween = create_tween()
+		if _fade_tween:
+			_fade_tween.tween_property(_player, "volume_db", -80.0, maxf(0.01, duration))
+			_fade_tween.tween_callback(func():
+				pause()
+				if _player:
+					_player.volume_db = 0.0
+			)
+			return
+	pause()
+	if _player:
+		_player.volume_db = 0.0
+
+func fade_in_and_resume(duration: float = 0.2) -> void:
+	if not _is_playing or not _is_paused:
+		return
+	if _fade_tween and _fade_tween.is_valid():
+		_fade_tween.kill()
+		_fade_tween = null
+	_ensure_player()
+	if _player:
+		_player.volume_db = -80.0
+	resume()
+	if is_inside_tree() and _player:
+		_fade_tween = create_tween()
+		if _fade_tween:
+			_fade_tween.tween_property(_player, "volume_db", 0.0, maxf(0.01, duration))
+			return
+	if _player:
+		_player.volume_db = 0.0
+
 func stop() -> void:
+	if _fade_tween and _fade_tween.is_valid():
+		_fade_tween.kill()
+		_fade_tween = null
 	_is_playing = false
 	_is_paused = false
 	_current_item = {}
@@ -177,6 +225,7 @@ func stop() -> void:
 	if _player:
 		_player.stop()
 		_player.stream = null
+		_player.volume_db = 0.0
 	_current_stream = null
 	playback_state_changed.emit(_is_playing, _is_paused)
 

@@ -447,6 +447,31 @@ func get_radio_player() -> Node:
 		add_child(_radio_player)
 	return _radio_player
 
+func is_radio_playing() -> bool:
+	return _radio_player.is_playing() if _radio_player else false
+
+func is_radio_paused() -> bool:
+	return _radio_player.is_paused() if _radio_player else false
+
+func play_radio_station(station_id: String = RadioStationCatalogScript.DEFAULT_STATION_ID) -> void:
+	get_radio_player().play_station(station_id)
+
+func pause_radio() -> void:
+	if _radio_player:
+		_radio_player.pause()
+
+func resume_radio() -> void:
+	if _radio_player:
+		_radio_player.resume()
+
+func fade_out_radio(duration: float = 0.25) -> void:
+	if _radio_player:
+		_radio_player.fade_out_and_pause(duration)
+
+func fade_in_radio(duration: float = 0.2) -> void:
+	if _radio_player:
+		_radio_player.fade_in_and_resume(duration)
+
 func _play_reference_stream(stream: AudioStream, slot_id: String, pos: Vector3) -> void:
 	var slot_meta: Dictionary = AudioRegistryScript.get_slot(slot_id)
 	var spatial = slot_meta.get("spatial_type", AudioRegistryScript.SpatialType.DIEGETIC_3D)

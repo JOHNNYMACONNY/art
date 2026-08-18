@@ -16,6 +16,7 @@ signal driving_steer_updated(steer: float)
 signal driving_throttle_updated(throttle: float)
 signal driving_handbrake_updated(active: bool)
 signal dismount_pressed
+signal radio_toggle_pressed
 signal replay_pressed
 signal retry_chase_pressed
 signal safe_area_updated(resolved_canvas_rect: Rect2)
@@ -42,6 +43,7 @@ var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 @onready var gas_button: Button = _find_node_recursive("ThrottleButton")
 @onready var brake_button: Button = _find_node_recursive("BrakeButton")
 @onready var handbrake_button: Button = _find_node_recursive("HandbrakeButton")
+@onready var radio_button: Button = _find_node_recursive("RadioButton")
 @onready var dismount_button: Button = _find_node_recursive("DismountButton")
 @onready var route_switch_button: Button = _find_node_recursive("RouteSwitchButton")
 
@@ -220,6 +222,9 @@ func _on_action_button_clicked() -> void:
 func _on_dismount_button_clicked() -> void:
 	dismount_pressed.emit()
 
+func _on_radio_button_clicked() -> void:
+	radio_toggle_pressed.emit()
+
 func _on_route_switch_button_clicked() -> void:
 	action_button_pressed.emit()
 
@@ -229,8 +234,20 @@ func trigger_route_switch() -> void:
 func trigger_dismount() -> void:
 	_on_dismount_button_clicked()
 
+func trigger_radio_toggle() -> void:
+	_on_radio_button_clicked()
+
 func trigger_action() -> void:
 	_on_action_button_clicked()
+
+func update_radio_button_state(is_enabled: bool, _station_id: String = "radio.yardline") -> void:
+	if radio_button:
+		if is_enabled:
+			radio_button.text = "[ 88.3 FM ]"
+			radio_button.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		else:
+			radio_button.text = "[ RADIO: OFF ]"
+			radio_button.modulate = Color(1.0, 1.0, 1.0, 0.6)
 
 # ==============================================================================
 # LIFECYCLE & INITIALIZATION
@@ -248,6 +265,8 @@ func _ready() -> void:
 		action_button.pressed.connect(_on_action_button_clicked)
 	if dismount_button:
 		dismount_button.pressed.connect(_on_dismount_button_clicked)
+	if radio_button:
+		radio_button.pressed.connect(_on_radio_button_clicked)
 	if route_switch_button:
 		route_switch_button.pressed.connect(_on_route_switch_button_clicked)
 	if core_tap_button:
@@ -262,6 +281,7 @@ func _ready() -> void:
 	close_interaction_overlay()
 	hide_tension_hud()
 	set_route_switch_button_visible(false)
+	update_radio_button_state(true)
 
 	# Continuous driving controls enforce global single-pointer ownership
 	if gas_button:
@@ -467,6 +487,11 @@ func _input(event: InputEvent) -> void:
 			_handle_touch_up_anywhere(_brake_touch_index)
 			_handle_touch_up_anywhere(_handbrake_touch_index)
 			_handle_touch_up_anywhere(_interaction_touch_index)
+	elif event is InputEventKey:
+		var key_ev := event as InputEventKey
+		if key_ev.pressed and not key_ev.echo:
+			if key_ev.keycode == KEY_R and current_mode == UIMode.VEHICLE_DRIVING:
+				radio_toggle_pressed.emit()
 
 func _handle_touch_up_anywhere(index: int) -> void:
 	if index == _joystick_touch_index and _joystick_active:
