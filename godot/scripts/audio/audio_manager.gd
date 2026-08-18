@@ -376,14 +376,15 @@ func start_pursuit_release_decay(duration: float = 1.0) -> void:
 	print("[AUDIO] Smooth pursuit pressure decay started (duration: %.1fs, initial: %.2f, duck: %.2f)..." % [duration, _decay_initial_pressure, _decay_initial_duck_db])
 
 ## Clear and halt all pursuit pressure audio layers
-func clear_pursuit_pressure() -> void:
+func clear_pursuit_pressure(preserve_radio_duck: bool = false) -> void:
 	_is_decaying_pursuit_pressure = false
 	set_siren_audio(false, Vector3.ZERO)
 	if _tension_player and _tension_player.playing:
 		_tension_player.stop()
 	_tension_layer_active = false
 	_current_pursuit_pressure = 0.0
-	set_radio_duck(0.0, 0.0)
+	if not preserve_radio_duck:
+		set_radio_duck(0.0, 0.0)
 
 ## Handle neutral collision telemetry from CourierBike
 func on_collision_contact(head_on_ratio: float, impact_speed: float, pos: Vector3) -> void:

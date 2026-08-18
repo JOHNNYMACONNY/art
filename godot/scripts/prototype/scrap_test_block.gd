@@ -404,13 +404,13 @@ func _begin_disturbance_sequence(expected_source_state: PursuitState) -> bool:
 func trigger_disturbance_alert() -> void:
 	_begin_disturbance_sequence(PursuitState.CALM)
 
-func _end_pursuit_common() -> void:
+func _end_pursuit_common(preserve_radio_duck: bool = false) -> void:
 	if pursuer:
 		pursuer.reset_pursuer()
 	if signal_gate:
 		signal_gate.set_pursuit_active(false)
 	if audio_mgr:
-		audio_mgr.clear_pursuit_pressure()
+		audio_mgr.clear_pursuit_pressure(preserve_radio_duck)
 	if touch_ui:
 		touch_ui.hide_tension_hud()
 
@@ -462,7 +462,7 @@ func _on_pursuer_intercepted() -> void:
 	if player: player.is_input_locked = true
 	if courier_bike: courier_bike.force_dismount()
 	if scrap_hauler: scrap_hauler.force_dismount()
-	_end_pursuit_common()
+	_end_pursuit_common(true)
 	if audio_mgr:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED, player.global_position if player else Vector3.ZERO)
 	if touch_ui:
@@ -8147,17 +8147,28 @@ func _run_v8_m24_assertions() -> void:
 		assert(audio_mgr.is_radio_duck_tweening() == false, "FAIL 3: Zero tween churn invariant held across pursuit frame %d" % fr)
 	print("  -> Assertion 3 PASS: Continuous pursuit pressure scaling & zero-tween-churn verified!")
 
-	# ASSERTION 4: Real Interception -> Recovery Callback -> RETRY_READY Clears Critical Mix
-	print("\n[ASSERTION 4] Testing Real Interception -> Recovery Callback -> RETRY_READY Clears Critical Mix...")
+	# ASSERTION 4: Real Interception -> Monotonic Critical Duck (-24 dB) -> RETRY_READY Clears Mix
+	print("\n[ASSERTION 4] Testing Real Interception -> Monotonic Critical Duck -> RETRY_READY Clears Mix...")
 	_on_bike_mounted(player)
 	audio_mgr.set_pursuit_pressure(3.0, Vector3.ZERO)
-	assert(is_equal_approx(audio_mgr.get_radio_duck(), -13.0), "FAIL 4: Active pursuit pressure duck")
+	var pre_intercept_duck: float = audio_mgr.get_radio_duck()
+	assert(is_equal_approx(pre_intercept_duck, -13.0), "FAIL 4: Active pursuit pressure duck is -13 dB")
 	
 	# Real interception event
 	_on_pursuer_intercepted()
+	var immediate_duck: float = audio_mgr.get_radio_duck()
+	assert(immediate_duck <= pre_intercept_duck + 0.01, "FAIL 4: Immediate post-call duck must never lift toward 0 (got %.2f, pre: %.2f)" % [immediate_duck, pre_intercept_duck])
+
+	# Critical attack monotonic transition toward -24 dB
+	var prev_attack_duck: float = immediate_duck
 	var int_wait := Time.get_ticks_msec()
 	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - int_wait < 600:
 		await get_tree().process_frame
+		var cur_attack_duck: float = audio_mgr.get_radio_duck()
+		assert(cur_attack_duck <= prev_attack_duck + 0.001, "FAIL 4: Critical duck attack must be monotonically darker (cur: %.2f, prev: %.2f)" % [cur_attack_duck, prev_attack_duck])
+		assert(cur_attack_duck <= pre_intercept_duck + 0.01, "FAIL 4: No sample during critical attack may exceed pre-intercept duck")
+		prev_attack_duck = cur_attack_duck
+
 	assert(is_equal_approx(audio_mgr.get_radio_duck(), -24.0), "FAIL 4: Interception overrides with critical duck -24 dB (got %.2f)" % audio_mgr.get_radio_duck())
 	assert(current_pursuit_state == PursuitState.INTERCEPTED, "FAIL 4: Pursuit state is INTERCEPTED")
 
@@ -8177,7 +8188,7 @@ func _run_v8_m24_assertions() -> void:
 		await get_tree().process_frame
 	assert(is_equal_approx(r_player.get_duck_volume_db(), 0.0), "FAIL 4: Bike remount after retry does not inherit stale -24 dB (got %.2f)" % r_player.get_duck_volume_db())
 	assert(is_equal_approx(r_player.get_composed_volume_db(), 0.0), "FAIL 4: Composed volume is 0 dB on clean remount")
-	print("  -> Assertion 4 PASS: Real interception -> RETRY_READY clears critical mix and prevents stale inheritance!")
+	print("  -> Assertion 4 PASS: Real interception monotonic critical duck, RETRY_READY neutralization, and remount verified!")
 
 	# ASSERTION 5: Real Evasion Controller Path (_on_successful_evasion) & Interruption
 	print("\n[ASSERTION 5] Testing Real Evasion Controller Path (_on_successful_evasion) & Interruption...")
