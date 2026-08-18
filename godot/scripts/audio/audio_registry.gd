@@ -429,7 +429,7 @@ const SLOTS: Dictionary = {
 		"playback_type": PlaybackType.CONTINUOUS_LOOP,
 		"is_looping": true,
 		"loop_start_sec": 0.0,
-		"loop_end_sec": 2.0,
+		"loop_end_sec": 1.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,

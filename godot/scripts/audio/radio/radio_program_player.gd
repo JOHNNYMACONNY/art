@@ -61,6 +61,16 @@ func is_playing() -> bool:
 func is_paused() -> bool:
 	return _is_paused
 
+func is_stream_playing() -> bool:
+	return _player != null and _player.is_playing()
+
+func get_audio_stream_player_count() -> int:
+	var count: int = 0
+	for child in get_children():
+		if child is AudioStreamPlayer:
+			count += 1
+	return count
+
 func get_current_item() -> Dictionary:
 	return _current_item
 
