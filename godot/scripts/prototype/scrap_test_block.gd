@@ -280,7 +280,7 @@ func _ready() -> void:
 		_run_v8_m15_fast_retry_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-m21-audio-registry-assertions") or OS.get_cmdline_user_args().has("--run-v8-m21-assertions"):
 		_run_v8_m21_audio_registry_assertions()
-	elif OS.get_cmdline_user_args().has("--run-v8-m22-radio-director-assertions") or OS.get_cmdline_user_args().has("--run-v8-m22-assertions"):
+	elif OS.get_cmdline_user_args().has("--run-v8-m22-radio-director-assertions") or OS.get_cmdline_user_args().has("--run-v8-m22-radio-program-assertions") or OS.get_cmdline_user_args().has("--run-v8-m22-assertions"):
 		_run_v8_m22_radio_director_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-readability") or OS.get_cmdline_user_args().has("--run-v8-assertions"):
 		_run_v8_dynamic_readability()
