@@ -89,6 +89,8 @@ var _tension_layer_active: bool = false
 var _is_decaying_pursuit_pressure: bool = false
 var _decay_rate_per_sec: float = 1.0
 var _decay_initial_pressure: float = 0.0
+var _current_radio_duck_db: float = 0.0
+var _decay_initial_duck_db: float = 0.0
 
 # Minimum interval between duplicate transient events (throttling)
 const EVENT_COOLDOWNS_MSEC: Dictionary = {
@@ -232,6 +234,7 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			_play_synth_sweep(pos, 350.0, 700.0, 0.4, 0.6)
 			set_siren_audio(true, pos)
 		SoundEvent.PURSUIT_INTERCEPTED:
+			_is_decaying_pursuit_pressure = false
 			_play_synth_sweep(pos, 400.0, 100.0, 0.5, 0.7)
 			set_radio_duck(-24.0, 0.05)
 		SoundEvent.EVASION_RELEASE:
@@ -315,7 +318,8 @@ func _process(delta: float) -> void:
 			if _tension_player and _tension_player.playing:
 				_tension_player.volume_db = lerpf(-40.0, -6.0, p)
 			
-			var duck_target: float = lerpf(0.0, -10.0, p)
+			var ratio: float = clampf(_current_pursuit_pressure / maxf(_decay_initial_pressure, 0.001), 0.0, 1.0)
+			var duck_target: float = lerpf(0.0, _decay_initial_duck_db, ratio)
 			set_radio_duck(duck_target, 0.0)
 
 			if _current_pursuit_pressure <= 0.0:
@@ -331,9 +335,9 @@ func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
 	var p: float = clampf((20.0 - distance) / 15.0, 0.0, 1.0)
 	_current_pursuit_pressure = p
 
-	# Continuous radio ducking: -7dB at low pressure down to -13dB at maximum pressure
+	# Continuous radio ducking: -7dB at low pressure down to -13dB at maximum pressure (no per-frame tween churn)
 	var duck_target: float = lerpf(-7.0, -13.0, p)
-	set_radio_duck(duck_target, 0.10)
+	set_radio_duck(duck_target, 0.0)
 
 	if _siren_player:
 		_siren_player.global_position = pursuer_pos
@@ -366,9 +370,10 @@ func start_pursuit_release_decay(duration: float = 1.0) -> void:
 		return
 			
 	_decay_initial_pressure = _current_pursuit_pressure
+	_decay_initial_duck_db = _current_radio_duck_db
 	_decay_rate_per_sec = _current_pursuit_pressure / maxf(duration, 0.1)
 	_is_decaying_pursuit_pressure = true
-	print("[AUDIO] Smooth pursuit pressure decay started (duration: %.1fs, initial: %.2f)..." % [duration, _decay_initial_pressure])
+	print("[AUDIO] Smooth pursuit pressure decay started (duration: %.1fs, initial: %.2f, duck: %.2f)..." % [duration, _decay_initial_pressure, _decay_initial_duck_db])
 
 ## Clear and halt all pursuit pressure audio layers
 func clear_pursuit_pressure() -> void:
@@ -378,7 +383,7 @@ func clear_pursuit_pressure() -> void:
 		_tension_player.stop()
 	_tension_layer_active = false
 	_current_pursuit_pressure = 0.0
-	set_radio_duck(0.0, 0.5)
+	set_radio_duck(0.0, 0.0)
 
 ## Handle neutral collision telemetry from CourierBike
 func on_collision_contact(head_on_ratio: float, impact_speed: float, pos: Vector3) -> void:
@@ -454,6 +459,7 @@ func reset_radio_director(initial_seed: int = 1337) -> void:
 func get_radio_player() -> Node:
 	if not _radio_player:
 		_radio_player = RadioProgramPlayerScript.new(get_radio_director())
+		_radio_player.set_duck_volume_db(_current_radio_duck_db, 0.0)
 		add_child(_radio_player)
 	return _radio_player
 
@@ -483,13 +489,14 @@ func fade_in_radio(duration: float = 0.2) -> void:
 		_radio_player.fade_in_and_resume(duration)
 
 func set_radio_duck(duck_db: float, duration: float = 0.0) -> void:
+	_current_radio_duck_db = duck_db
 	if _radio_player and _radio_player.has_method("set_duck_volume_db"):
 		_radio_player.set_duck_volume_db(duck_db, duration)
 
 func get_radio_duck() -> float:
 	if _radio_player and _radio_player.has_method("get_duck_volume_db"):
 		return _radio_player.get_duck_volume_db()
-	return 0.0
+	return _current_radio_duck_db
 
 func is_radio_duck_tweening() -> bool:
 	if _radio_player and _radio_player.has_method("is_duck_tweening"):
@@ -497,7 +504,9 @@ func is_radio_duck_tweening() -> bool:
 	return false
 
 func clear_radio_duck() -> void:
-	set_radio_duck(0.0, 0.0)
+	_current_radio_duck_db = 0.0
+	if _radio_player and _radio_player.has_method("set_duck_volume_db"):
+		_radio_player.set_duck_volume_db(0.0, 0.0)
 
 func _play_reference_stream(stream: AudioStream, slot_id: String, pos: Vector3) -> void:
 	var slot_meta: Dictionary = AudioRegistryScript.get_slot(slot_id)

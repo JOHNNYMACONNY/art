@@ -8122,36 +8122,33 @@ func _run_v8_m24_assertions() -> void:
 	assert(is_equal_approx(audio_mgr.get_radio_duck(), 0.0), "FAIL 2: EVASION_RELEASE duck is 0 dB (got %.2f)" % audio_mgr.get_radio_duck())
 	print("  -> Assertion 2 PASS: MixState duck targets (0dB, -10dB, -16dB) verified!")
 
-	# ASSERTION 3: Continuous Pursuit Pressure Ducking (-7 to -13 dB)
-	print("\n[ASSERTION 3] Testing Continuous Pursuit Pressure Ducking (-7 to -13 dB)...")
+	# ASSERTION 3: Continuous Pursuit Pressure Ducking & Zero Per-Frame Tween Churn
+	print("\n[ASSERTION 3] Testing Continuous Pursuit Pressure Ducking & Zero Per-Frame Tween Churn...")
 	# Distance >= 20m -> Pressure 0.0 -> Duck -7 dB
 	audio_mgr.set_pursuit_pressure(25.0, Vector3.ZERO)
-	var p25_wait := Time.get_ticks_msec()
-	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - p25_wait < 600:
-		await get_tree().process_frame
-	assert(is_equal_approx(audio_mgr.get_radio_duck(), -7.0), "FAIL 3: Pursuit pressure at 25m ducks to -7 dB (got %.2f)" % audio_mgr.get_radio_duck())
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), -7.0), "FAIL 3: Pursuit pressure at 25m ducks immediately to -7 dB")
+	assert(audio_mgr.is_radio_duck_tweening() == false, "FAIL 3: No tween created on continuous pressure update")
 
 	# Distance = 12.5m -> Pressure 0.5 -> Duck -10 dB
 	audio_mgr.set_pursuit_pressure(12.5, Vector3.ZERO)
-	var p12_wait := Time.get_ticks_msec()
-	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - p12_wait < 600:
-		await get_tree().process_frame
-	assert(is_equal_approx(audio_mgr.get_radio_duck(), -10.0), "FAIL 3: Pursuit pressure at 12.5m ducks to -10 dB (got %.2f)" % audio_mgr.get_radio_duck())
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), -10.0), "FAIL 3: Pursuit pressure at 12.5m ducks immediately to -10 dB")
+	assert(audio_mgr.is_radio_duck_tweening() == false, "FAIL 3: No tween created on continuous pressure update")
 
 	# Distance <= 5m -> Pressure 1.0 -> Duck -13 dB
 	audio_mgr.set_pursuit_pressure(3.0, Vector3.ZERO)
-	var p3_wait := Time.get_ticks_msec()
-	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - p3_wait < 600:
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), -13.0), "FAIL 3: Pursuit pressure at 3m ducks immediately to -13 dB")
+	assert(audio_mgr.is_radio_duck_tweening() == false, "FAIL 3: No tween created on continuous pressure update")
+
+	# Run 60 frames of sustained pursuit updates to prove ZERO tween allocation churn
+	for fr in range(60):
+		audio_mgr.set_pursuit_pressure(5.0 + float(fr % 10), Vector3.ZERO)
 		await get_tree().process_frame
-	assert(is_equal_approx(audio_mgr.get_radio_duck(), -13.0), "FAIL 3: Pursuit pressure at 3m ducks to -13 dB (got %.2f)" % audio_mgr.get_radio_duck())
-	print("  -> Assertion 3 PASS: Continuous pursuit pressure scaling (-7dB to -13dB) verified!")
+		assert(audio_mgr.is_radio_duck_tweening() == false, "FAIL 3: Zero tween churn invariant held across pursuit frame %d" % fr)
+	print("  -> Assertion 3 PASS: Continuous pursuit pressure scaling & zero-tween-churn verified!")
 
 	# ASSERTION 4: Interception Dominates Critical Duck (-24 dB)
 	print("\n[ASSERTION 4] Testing Interception Dominates Critical Duck (-24 dB)...")
 	audio_mgr.set_pursuit_pressure(3.0, Vector3.ZERO)
-	var p_crit_wait := Time.get_ticks_msec()
-	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - p_crit_wait < 600:
-		await get_tree().process_frame
 	assert(is_equal_approx(audio_mgr.get_radio_duck(), -13.0), "FAIL 4: Active pursuit pressure duck")
 	audio_mgr.play_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED, Vector3.ZERO)
 	var int_wait := Time.get_ticks_msec()
@@ -8160,22 +8157,37 @@ func _run_v8_m24_assertions() -> void:
 	assert(is_equal_approx(audio_mgr.get_radio_duck(), -24.0), "FAIL 4: Interception overrides with critical duck -24 dB (got %.2f)" % audio_mgr.get_radio_duck())
 	print("  -> Assertion 4 PASS: Interception dominance (-24 dB) verified!")
 
-	# ASSERTION 5: Evasion Smooth Release Decay
-	print("\n[ASSERTION 5] Testing Evasion Smooth Release Decay...")
+	# ASSERTION 5: Evasion Smooth Monotonic Release Decay Without Curve Jumps
+	print("\n[ASSERTION 5] Testing Evasion Smooth Monotonic Release Decay Without Curve Jumps...")
 	audio_mgr.set_pursuit_pressure(5.0, Vector3.ZERO)
-	var p5_wait := Time.get_ticks_msec()
-	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - p5_wait < 600:
-		await get_tree().process_frame
-	assert(is_equal_approx(audio_mgr.get_radio_duck(), -13.0), "FAIL 5: Initial pressure duck")
-	audio_mgr.start_pursuit_release_decay(0.3)
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), -13.0), "FAIL 5: Initial pressure duck is -13 dB")
+	audio_mgr.start_pursuit_release_decay(0.4)
 	assert(audio_mgr._is_decaying_pursuit_pressure == true, "FAIL 5: Decay envelope active")
 	
-	# Wait for decay duration
+	# Sample frame 1: must start at exact initial duck without jump
+	await get_tree().process_frame
+	var prev_duck: float = audio_mgr.get_radio_duck()
+	assert(prev_duck <= -12.0, "FAIL 5: Evasion release starts from exact current duck (-13dB), no discontinuous jump (got %.2f)" % prev_duck)
+
+	# Monitor monotonic recovery towards 0.0 dB
 	var decay_start := Time.get_ticks_msec()
 	while audio_mgr._is_decaying_pursuit_pressure and Time.get_ticks_msec() - decay_start < 800:
 		await get_tree().process_frame
-	assert(is_equal_approx(audio_mgr.get_radio_duck(), 0.0), "FAIL 5: Duck smoothly returned to 0 dB post-evasion (got %.2f)" % audio_mgr.get_radio_duck())
-	print("  -> Assertion 5 PASS: Evasion smooth release decay verified!")
+		var cur_duck: float = audio_mgr.get_radio_duck()
+		assert(cur_duck >= prev_duck - 0.001, "FAIL 5: Evasion duck recovery must be strictly monotonic toward 0 dB (cur: %.2f, prev: %.2f)" % [cur_duck, prev_duck])
+		prev_duck = cur_duck
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), 0.0), "FAIL 5: Duck smoothly returned to exact 0 dB post-evasion (got %.2f)" % audio_mgr.get_radio_duck())
+
+	# Test stale recovery cancelled immediately by interception
+	audio_mgr.set_pursuit_pressure(5.0, Vector3.ZERO)
+	audio_mgr.start_pursuit_release_decay(1.0)
+	await get_tree().process_frame
+	audio_mgr.play_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED, Vector3.ZERO)
+	var int_a5_wait := Time.get_ticks_msec()
+	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - int_a5_wait < 600:
+		await get_tree().process_frame
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), -24.0), "FAIL 5: Stale evasion decay overridden immediately by interception (got %.2f)" % audio_mgr.get_radio_duck())
+	print("  -> Assertion 5 PASS: Monotonic smooth evasion decay and cancellation verified!")
 
 	# ASSERTION 6: Falsification - Lifecycle OFF / Dismount During Duck Never Resurrects on Recovery
 	print("\n[ASSERTION 6] Falsification: OFF/Dismount during duck cannot be resurrected by recovery...")
@@ -8209,48 +8221,47 @@ func _run_v8_m24_assertions() -> void:
 	assert(r_player.is_paused() == false, "FAIL 6: Radio resumed on toggle ON")
 	print("  -> Assertion 6 PASS: Duck recovery never resurrects disabled/paused radio!")
 
-	# ASSERTION 7: Mount During Active Pursuit Inherits Current Duck Immediately
-	print("\n[ASSERTION 7] Testing Mount During Active Pursuit Inherits Current Duck Immediately...")
-	# 1. Dismount to foot
+	# ASSERTION 7: Pursuit BEFORE RadioProgramPlayer Creation -> First Mount Inherits Duck
+	print("\n[ASSERTION 7] Testing Pursuit BEFORE RadioProgramPlayer Creation -> First Mount Inherits Duck...")
+	# 1. Cleanly tear down RadioProgramPlayer completely
 	_on_bike_dismounted()
 	await get_tree().process_frame
-	assert(get_radio_owner() == null, "FAIL 7: On foot")
+	if audio_mgr._radio_player:
+		audio_mgr._radio_player.queue_free()
+		audio_mgr._radio_player = null
+	assert(audio_mgr._radio_player == null, "FAIL 7: RadioProgramPlayer is completely null")
 
-	# 2. Trigger high pursuit pressure while on foot
+	# 2. Trigger high pursuit pressure on foot before radio player exists
 	audio_mgr.set_pursuit_pressure(5.0, Vector3.ZERO)
-	var p5_a7 := Time.get_ticks_msec()
-	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - p5_a7 < 600:
-		await get_tree().process_frame
-	assert(is_equal_approx(audio_mgr.get_radio_duck(), -13.0), "FAIL 7: Duck is -13 dB while on foot")
+	assert(audio_mgr._radio_player == null, "FAIL 7: Radio player still null before mount")
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), -13.0), "FAIL 7: AudioManager retained duck state (-13 dB) without player")
 
-	# 3. Mount Hauler
-	_on_hauler_mounted(player)
-	var h_wait := Time.get_ticks_msec()
-	while r_player.is_paused() and Time.get_ticks_msec() - h_wait < 500:
+	# 3. First Mount on Courier Bike creates player
+	_on_bike_mounted(player)
+	var p_mount := Time.get_ticks_msec()
+	while audio_mgr.get_radio_player().get_lifecycle_volume_db() < 0.0 and Time.get_ticks_msec() - p_mount < 500:
 		await get_tree().process_frame
-	var h_fade := Time.get_ticks_msec()
-	while r_player.get_lifecycle_volume_db() < 0.0 and Time.get_ticks_msec() - h_fade < 500:
-		await get_tree().process_frame
-	assert(get_radio_owner() == scrap_hauler, "FAIL 7: Hauler is owner")
-	assert(is_equal_approx(r_player.get_duck_volume_db(), -13.0), "FAIL 7: Hauler inherited active -13 dB duck on mount")
-	assert(is_equal_approx(r_player.get_composed_volume_db(), -13.0), "FAIL 7: Composed volume is -13 dB")
-	print("  -> Assertion 7 PASS: Vehicle mount inherits active pursuit duck immediately!")
+	var created_player = audio_mgr.get_radio_player()
+	assert(created_player != null, "FAIL 7: Radio player instantiated on first mount")
+	assert(is_equal_approx(created_player.get_duck_volume_db(), -13.0), "FAIL 7: Newly created radio player inherited -13 dB duck immediately")
+	assert(is_equal_approx(created_player.get_composed_volume_db(), -13.0), "FAIL 7: Composed volume is -13 dB")
+	print("  -> Assertion 7 PASS: Pursuit before RadioProgramPlayer creation cleanly inherited on first mount!")
 
 	# ASSERTION 8: Stale Duck / Recovery Callback Invalidation (Generation Safety)
 	print("\n[ASSERTION 8] Testing Stale Duck / Recovery Callback Invalidation...")
 	# 1. Launch a long 0.5s duck tween to -10 dB
-	r_player.set_duck_volume_db(-10.0, 0.5)
+	created_player.set_duck_volume_db(-10.0, 0.5)
 	await get_tree().process_frame
 
 	# 2. Mid-tween, immediately slam critical duck to -24 dB
-	r_player.set_duck_volume_db(-24.0, 0.0)
-	assert(is_equal_approx(r_player.get_duck_volume_db(), -24.0), "FAIL 8: Critical duck set immediately")
+	created_player.set_duck_volume_db(-24.0, 0.0)
+	assert(is_equal_approx(created_player.get_duck_volume_db(), -24.0), "FAIL 8: Critical duck set immediately")
 
 	# 3. Wait beyond old 0.5s tween duration
 	var tween_wait := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - tween_wait < 600:
 		await get_tree().process_frame
-	assert(is_equal_approx(r_player.get_duck_volume_db(), -24.0), "FAIL 8: Stale duck callback did not overwrite critical -24 dB")
+	assert(is_equal_approx(created_player.get_duck_volume_db(), -24.0), "FAIL 8: Stale duck callback did not overwrite critical -24 dB")
 	print("  -> Assertion 8 PASS: Generation safety eliminates stale duck tween callbacks!")
 
 	# ASSERTION 9: Replay / Reset Returns Neutral Duck (0 dB) & Cleans Tweens
@@ -8265,7 +8276,7 @@ func _run_v8_m24_assertions() -> void:
 	await get_tree().process_frame
 
 	assert(is_equal_approx(audio_mgr.get_radio_duck(), 0.0), "FAIL 9: Radio duck reset to 0 dB on replay")
-	assert(r_player._duck_tween == null or not r_player._duck_tween.is_valid(), "FAIL 9: Duck tween cancelled on replay")
+	assert(created_player._duck_tween == null or not created_player._duck_tween.is_valid(), "FAIL 9: Duck tween cancelled on replay")
 	print("  -> Assertion 9 PASS: Deterministic replay restores neutral 0 dB duck and cancels tweens!")
 
 	# ASSERTION 10: Single-Player Authority & 12-Cycle Stress Invariant
@@ -8294,8 +8305,19 @@ func _run_v8_m24_assertions() -> void:
 	assert(audio_mgr.get_radio_player() != null, "FAIL 10: Exactly 1 RadioProgramPlayer authority")
 	print("  -> Assertion 10 PASS: Single-player authority and 0 node leaks preserved across 12 stress cycles!")
 
-	# ASSERTION 11: Engine, Siren, Tension & M07 Semantics Preserved
-	print("\n[ASSERTION 11] Testing Engine, Siren, Tension & Ambient Semantics...")
+	# ASSERTION 11: Preserved Semantics & Exactly-Once Event Invariants
+	print("\n[ASSERTION 11] Testing Preserved Semantics & Exactly-Once Event Invariants...")
+	# Reset event counts
+	audio_mgr.event_counts.clear()
+
+	# Exactly-once DISTURBANCE_ALERT
+	audio_mgr.set_mix_state(AudioManagerScript.MixState.DISTURBANCE)
+	assert(audio_mgr.event_counts.get(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT, 0) == 1, "FAIL 11: DISTURBANCE_ALERT fired exactly once")
+
+	# Exactly-once ECHO_ONSET
+	audio_mgr.set_mix_state(AudioManagerScript.MixState.MEMORY_ECHO)
+	assert(audio_mgr.event_counts.get(AudioManagerScript.SoundEvent.ECHO_ONSET, 0) == 1, "FAIL 11: ECHO_ONSET fired exactly once")
+
 	_on_bike_mounted(player)
 	courier_bike.current_speed = 7.0
 	audio_mgr.set_engine_audio(0.5, courier_bike.global_position)
@@ -8311,10 +8333,10 @@ func _run_v8_m24_assertions() -> void:
 
 	# Ambient sound clink
 	audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, Vector3.ZERO)
-	assert(audio_mgr.event_counts[AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK] > 0, "FAIL 11: Ambient clink fired")
+	assert(audio_mgr.event_counts.get(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, 0) > 0, "FAIL 11: Ambient clink fired")
 
 	_on_bike_dismounted()
-	print("  -> Assertion 11 PASS: Engine, siren, tension hysteresis & ambient semantics preserved!")
+	print("  -> Assertion 11 PASS: Exactly-once events and subsystem semantics preserved!")
 
 	print("\n=========================================================================")
 	print("[ALL V8 M24 DYNAMIC RADIO MIX DUCKING ASSERTIONS (1-11) PASSED 100% GREEN!]")
