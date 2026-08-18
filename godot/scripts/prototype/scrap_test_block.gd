@@ -483,6 +483,8 @@ func _on_pursuer_intercepted() -> void:
 			scrap_hauler.rotation = Vector3.ZERO
 			
 		current_pursuit_state = PursuitState.RETRY_READY
+		if audio_mgr:
+			audio_mgr.clear_radio_duck()
 		print("[PURSUIT] Recovery complete. Transitioned to RETRY_READY.")
 	)
 
@@ -8091,8 +8093,8 @@ func _run_v8_m24_assertions() -> void:
 	assert(is_equal_approx(r_player.get_composed_volume_db(), 0.0), "FAIL 1: Composed volume is 0 dB")
 	print("  -> Assertion 1 PASS: Gain composition layer independence verified!")
 
-	# ASSERTION 2: Target Duck Levels Across Mix States
-	print("\n[ASSERTION 2] Testing Target Duck Levels Across Mix States (CALM, DISTURBANCE, ECHO, EVASION)...")
+	# ASSERTION 2: Target Duck Levels Across Discrete Mix States
+	print("\n[ASSERTION 2] Testing Target Duck Levels Across Discrete Mix States (CALM, DISTURBANCE, ECHO, EVASION)...")
 	# CALM -> 0 dB
 	audio_mgr.set_mix_state(AudioManagerScript.MixState.CALM)
 	var calm_wait := Time.get_ticks_msec()
@@ -8114,12 +8116,11 @@ func _run_v8_m24_assertions() -> void:
 		await get_tree().process_frame
 	assert(is_equal_approx(audio_mgr.get_radio_duck(), -16.0), "FAIL 2: MEMORY_ECHO duck is -16 dB (got %.2f)" % audio_mgr.get_radio_duck())
 
-	# EVASION_RELEASE -> 0 dB
+	# EVASION_RELEASE -> Semantic event, zero competing duck Tweens
 	audio_mgr.set_mix_state(AudioManagerScript.MixState.EVASION_RELEASE)
-	var ev_wait := Time.get_ticks_msec()
-	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - ev_wait < 1500:
-		await get_tree().process_frame
-	assert(is_equal_approx(audio_mgr.get_radio_duck(), 0.0), "FAIL 2: EVASION_RELEASE duck is 0 dB (got %.2f)" % audio_mgr.get_radio_duck())
+	await get_tree().process_frame
+	assert(audio_mgr.current_mix_state == AudioManagerScript.MixState.EVASION_RELEASE, "FAIL 2: MixState EVASION_RELEASE active")
+	assert(audio_mgr.is_radio_duck_tweening() == false, "FAIL 2: EVASION_RELEASE does not start competing duck Tween")
 	print("  -> Assertion 2 PASS: MixState duck targets (0dB, -10dB, -16dB) verified!")
 
 	# ASSERTION 3: Continuous Pursuit Pressure Ducking & Zero Per-Frame Tween Churn
@@ -8146,48 +8147,89 @@ func _run_v8_m24_assertions() -> void:
 		assert(audio_mgr.is_radio_duck_tweening() == false, "FAIL 3: Zero tween churn invariant held across pursuit frame %d" % fr)
 	print("  -> Assertion 3 PASS: Continuous pursuit pressure scaling & zero-tween-churn verified!")
 
-	# ASSERTION 4: Interception Dominates Critical Duck (-24 dB)
-	print("\n[ASSERTION 4] Testing Interception Dominates Critical Duck (-24 dB)...")
+	# ASSERTION 4: Real Interception -> Recovery Callback -> RETRY_READY Clears Critical Mix
+	print("\n[ASSERTION 4] Testing Real Interception -> Recovery Callback -> RETRY_READY Clears Critical Mix...")
+	_on_bike_mounted(player)
 	audio_mgr.set_pursuit_pressure(3.0, Vector3.ZERO)
 	assert(is_equal_approx(audio_mgr.get_radio_duck(), -13.0), "FAIL 4: Active pursuit pressure duck")
-	audio_mgr.play_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED, Vector3.ZERO)
+	
+	# Real interception event
+	_on_pursuer_intercepted()
 	var int_wait := Time.get_ticks_msec()
 	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - int_wait < 600:
 		await get_tree().process_frame
 	assert(is_equal_approx(audio_mgr.get_radio_duck(), -24.0), "FAIL 4: Interception overrides with critical duck -24 dB (got %.2f)" % audio_mgr.get_radio_duck())
-	print("  -> Assertion 4 PASS: Interception dominance (-24 dB) verified!")
+	assert(current_pursuit_state == PursuitState.INTERCEPTED, "FAIL 4: Pursuit state is INTERCEPTED")
 
-	# ASSERTION 5: Evasion Smooth Monotonic Release Decay Without Curve Jumps
-	print("\n[ASSERTION 5] Testing Evasion Smooth Monotonic Release Decay Without Curve Jumps...")
+	# Wait for the real 0.8s recovery timer to complete and transition to RETRY_READY
+	var rec_wait := Time.get_ticks_msec()
+	while current_pursuit_state != PursuitState.RETRY_READY and Time.get_ticks_msec() - rec_wait < 1500:
+		await get_tree().process_frame
+	assert(current_pursuit_state == PursuitState.RETRY_READY, "FAIL 4: Transitioned to RETRY_READY")
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), 0.0), "FAIL 4: RETRY_READY neutralized stored radio duck to 0 dB (got %.2f)" % audio_mgr.get_radio_duck())
+	assert(r_player.is_paused() == true, "FAIL 4: Radio remains paused while on foot")
+	assert(get_radio_owner() == null, "FAIL 4: Radio owner is null on foot")
+
+	# Remount bike after retry: must NOT inherit stale -24 dB duck
+	_on_bike_mounted(player)
+	var remount_wait := Time.get_ticks_msec()
+	while r_player.get_lifecycle_volume_db() < 0.0 and Time.get_ticks_msec() - remount_wait < 500:
+		await get_tree().process_frame
+	assert(is_equal_approx(r_player.get_duck_volume_db(), 0.0), "FAIL 4: Bike remount after retry does not inherit stale -24 dB (got %.2f)" % r_player.get_duck_volume_db())
+	assert(is_equal_approx(r_player.get_composed_volume_db(), 0.0), "FAIL 4: Composed volume is 0 dB on clean remount")
+	print("  -> Assertion 4 PASS: Real interception -> RETRY_READY clears critical mix and prevents stale inheritance!")
+
+	# ASSERTION 5: Real Evasion Controller Path (_on_successful_evasion) & Interruption
+	print("\n[ASSERTION 5] Testing Real Evasion Controller Path (_on_successful_evasion) & Interruption...")
+	# 1. Real active pursuit at max pressure
+	_on_bike_mounted(player)
 	audio_mgr.set_pursuit_pressure(5.0, Vector3.ZERO)
 	assert(is_equal_approx(audio_mgr.get_radio_duck(), -13.0), "FAIL 5: Initial pressure duck is -13 dB")
-	audio_mgr.start_pursuit_release_decay(0.4)
-	assert(audio_mgr._is_decaying_pursuit_pressure == true, "FAIL 5: Decay envelope active")
-	
-	# Sample frame 1: must start at exact initial duck without jump
+
+	# 2. Call REAL _on_successful_evasion()
+	_on_successful_evasion()
+	assert(current_pursuit_state == PursuitState.EVADED, "FAIL 5: Pursuit state transitioned to EVADED")
+	assert(audio_mgr.current_mix_state == AudioManagerScript.MixState.EVASION_RELEASE, "FAIL 5: MixState is EVASION_RELEASE")
+	assert(audio_mgr.is_radio_duck_tweening() == false, "FAIL 5: Zero competing duck Tweens during evasion decay")
+
+	# Frame 1: must start at exact initial duck (-13 dB) without discontinuous jump
 	await get_tree().process_frame
 	var prev_duck: float = audio_mgr.get_radio_duck()
 	assert(prev_duck <= -12.0, "FAIL 5: Evasion release starts from exact current duck (-13dB), no discontinuous jump (got %.2f)" % prev_duck)
 
-	# Monitor monotonic recovery towards 0.0 dB
+	# Monitor monotonic recovery toward 0.0 dB
 	var decay_start := Time.get_ticks_msec()
-	while audio_mgr._is_decaying_pursuit_pressure and Time.get_ticks_msec() - decay_start < 800:
+	while audio_mgr._is_decaying_pursuit_pressure and Time.get_ticks_msec() - decay_start < 1500:
 		await get_tree().process_frame
 		var cur_duck: float = audio_mgr.get_radio_duck()
 		assert(cur_duck >= prev_duck - 0.001, "FAIL 5: Evasion duck recovery must be strictly monotonic toward 0 dB (cur: %.2f, prev: %.2f)" % [cur_duck, prev_duck])
 		prev_duck = cur_duck
 	assert(is_equal_approx(audio_mgr.get_radio_duck(), 0.0), "FAIL 5: Duck smoothly returned to exact 0 dB post-evasion (got %.2f)" % audio_mgr.get_radio_duck())
+	assert(audio_mgr._is_decaying_pursuit_pressure == false, "FAIL 5: Decay envelope inactive")
 
-	# Test stale recovery cancelled immediately by interception
+	# 3. New Pursuit Cancels Evasion Recovery Mid-Flight
 	audio_mgr.set_pursuit_pressure(5.0, Vector3.ZERO)
-	audio_mgr.start_pursuit_release_decay(1.0)
+	_on_successful_evasion()
 	await get_tree().process_frame
-	audio_mgr.play_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED, Vector3.ZERO)
-	var int_a5_wait := Time.get_ticks_msec()
-	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - int_a5_wait < 600:
+	# Allow partial recovery
+	for fr in range(10):
 		await get_tree().process_frame
-	assert(is_equal_approx(audio_mgr.get_radio_duck(), -24.0), "FAIL 5: Stale evasion decay overridden immediately by interception (got %.2f)" % audio_mgr.get_radio_duck())
-	print("  -> Assertion 5 PASS: Monotonic smooth evasion decay and cancellation verified!")
+	var partial_duck: float = audio_mgr.get_radio_duck()
+	assert(partial_duck > -13.0 and partial_duck < 0.0, "FAIL 5: Partial recovery in progress")
+
+	# Interrupted by new pursuit pressure update (e.g. 10m distance -> p=0.667 -> duck ~-11.0 dB)
+	audio_mgr.set_pursuit_pressure(10.0, Vector3.ZERO)
+	assert(audio_mgr._is_decaying_pursuit_pressure == false, "FAIL 5: Decay envelope halted by new pursuit")
+	assert(audio_mgr.is_radio_duck_tweening() == false, "FAIL 5: No stale tween active")
+	var expected_p: float = clampf((20.0 - 10.0) / 15.0, 0.0, 1.0)
+	var expected_duck: float = lerpf(-7.0, -13.0, expected_p)
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), expected_duck), "FAIL 5: Duck immediately follows new pursuit curve (got %.2f, exp: %.2f)" % [audio_mgr.get_radio_duck(), expected_duck])
+
+	# Ensure old recovery does not later restore 0 dB
+	for fr in range(20):
+		await get_tree().process_frame
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), expected_duck), "FAIL 5: Old evasion recovery never later overwrites active pursuit")
+	print("  -> Assertion 5 PASS: Real evasion controller path, monotonic release, and new-pursuit cancellation verified!")
 
 	# ASSERTION 6: Falsification - Lifecycle OFF / Dismount During Duck Never Resurrects on Recovery
 	print("\n[ASSERTION 6] Falsification: OFF/Dismount during duck cannot be resurrected by recovery...")

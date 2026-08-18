@@ -560,7 +560,7 @@ func set_mix_state(state: MixState) -> void:
 			play_event(SoundEvent.GATE_SLAM, Vector3.ZERO)
 		MixState.EVASION_RELEASE:
 			play_event(SoundEvent.EVASION_RELEASE, Vector3.ZERO)
-			set_radio_duck(0.0, 1.0)
+			# Radio duck recovery owned exclusively by start_pursuit_release_decay() decay envelope
 		MixState.QUIET_AFTERMATH:
 			set_siren_audio(false, Vector3.ZERO)
 			set_tuning_audio(0.0)
