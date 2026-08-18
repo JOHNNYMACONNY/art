@@ -6,7 +6,7 @@ const AudioReferenceResolverScript = preload("res://scripts/audio/audio_referenc
 
 signal segment_started(item: Dictionary)
 signal segment_completed(item: Dictionary)
-signal phase_changed(phase: int, item: Dictionary)
+signal phase_changed(phase: int, item: Dictionary, segment: Dictionary)
 signal station_changed(station_id: String)
 signal playback_state_changed(is_playing: bool, is_paused: bool)
 
@@ -16,10 +16,10 @@ var _is_playing: bool = false
 var _is_paused: bool = false
 var _current_stream: AudioStream = null
 
-## Multi-phase song playback state
-var _current_phase: int = -1 # RadioStationCatalog.Phase or -1
-var _body_only_mode: bool = false
+## Segment-driven playback state
 var _current_item: Dictionary = {}
+var _current_segment_index: int = 0
+var _current_segment: Dictionary = {}
 
 func _init(director: RefCounted = null) -> void:
 	if director:
@@ -47,18 +47,25 @@ func is_playing() -> bool:
 func is_paused() -> bool:
 	return _is_paused
 
+func get_current_item() -> Dictionary:
+	return _current_item
+
+func get_current_segment_index() -> int:
+	return _current_segment_index
+
+func get_current_segment() -> Dictionary:
+	return _current_segment
+
 func get_current_phase() -> int:
-	return _current_phase
-
-func is_body_only_mode() -> bool:
-	return _body_only_mode
-
-func set_body_only_mode(enabled: bool) -> void:
-	_body_only_mode = enabled
+	if not _current_segment.is_empty():
+		return _current_segment.get("phase", RadioStationCatalogScript.Phase.BODY)
+	return -1
 
 func get_playback_position() -> float:
 	if _player and _player.is_playing():
 		return _player.get_playback_position()
+	elif _director:
+		return _director.get_cursor_position()
 	return 0.0
 
 func play_station(station_id: String = RadioStationCatalogScript.DEFAULT_STATION_ID) -> void:
@@ -89,39 +96,30 @@ func advance_segment() -> void:
 		return
 
 	_current_item = next_item
-	_start_item_playback(_current_item)
+	_current_segment_index = 0
+	_play_current_segment()
 	segment_started.emit(_current_item)
 
-func _start_item_playback(item: Dictionary) -> void:
-	var category: int = item.get("category", RadioStationCatalogScript.Category.SONG)
+func _play_current_segment() -> void:
+	var segments: Array = _current_item.get("segments", [])
+	if segments.is_empty() or _current_segment_index >= segments.size():
+		advance_segment()
+		return
 
-	if category == RadioStationCatalogScript.Category.SONG:
-		if _body_only_mode:
-			_play_phase(RadioStationCatalogScript.Phase.BODY, item)
-		else:
-			var intro_sec: float = item.get("intro_sec", 0.0)
-			if intro_sec > 0.0:
-				_play_phase(RadioStationCatalogScript.Phase.INTRO, item)
-			else:
-				_play_phase(RadioStationCatalogScript.Phase.BODY, item)
-	else:
-		# Interstitials, Station IDs, Adverts, World Reactions are single-phase BODY items
-		_play_phase(RadioStationCatalogScript.Phase.BODY, item)
+	_current_segment = segments[_current_segment_index]
+	var phase: int = _current_segment.get("phase", RadioStationCatalogScript.Phase.BODY)
+	phase_changed.emit(phase, _current_item, _current_segment)
 
-func _play_phase(phase: int, item: Dictionary) -> void:
-	_current_phase = phase
-	phase_changed.emit(phase, item)
-
+	var slot_id: String = _current_segment.get("semantic_slot_id", "")
 	var stream: AudioStream = null
-	var slot_id: String = item.get("slot_id", "")
 
-	# 1. Reference resolver check (slot override)
+	# 1. Check sandboxed local reference resolver for this specific segment slot
 	if not slot_id.is_empty() and AudioReferenceResolverScript.is_reference_enabled():
 		stream = AudioReferenceResolverScript.resolve_stream(slot_id)
 
-	# 2. Synthesize phase-specific procedural audio
+	# 2. Synthesize segment-specific procedural fallback if not overridden
 	if not stream:
-		stream = _synthesize_phase_segment(item, phase)
+		stream = _synthesize_segment_audio(_current_item, _current_segment)
 
 	_current_stream = stream
 	if _player:
@@ -132,31 +130,14 @@ func _on_stream_finished() -> void:
 	if not _is_playing or _is_paused:
 		return
 
-	var cat: int = _current_item.get("category", -1)
-	if cat == RadioStationCatalogScript.Category.SONG:
-		match _current_phase:
-			RadioStationCatalogScript.Phase.INTRO:
-				# Transition INTRO -> BODY
-				_play_phase(RadioStationCatalogScript.Phase.BODY, _current_item)
-				return
-			RadioStationCatalogScript.Phase.BODY:
-				if not _body_only_mode:
-					var outro_sec: float = _current_item.get("outro_sec", 0.0)
-					if outro_sec > 0.0:
-						# Transition BODY -> OUTRO
-						_play_phase(RadioStationCatalogScript.Phase.OUTRO, _current_item)
-						return
-				# If body-only or no outro, advance next item
-				advance_segment()
-				return
-			RadioStationCatalogScript.Phase.OUTRO:
-				# Song finished completely, advance next item
-				advance_segment()
-				return
-			_:
-				advance_segment()
-				return
+	var segments: Array = _current_item.get("segments", [])
+	_current_segment_index += 1
+
+	if _current_segment_index < segments.size():
+		# Advance to next phase within the same song/item
+		_play_current_segment()
 	else:
+		# Item completed all phases -> advance to next program item from director
 		advance_segment()
 
 func pause() -> void:
@@ -164,11 +145,12 @@ func pause() -> void:
 		return
 
 	_is_paused = true
+	var cur_pos := 0.0
 	if _player and _player.is_playing():
-		var playback_pos: float = _player.get_playback_position()
-		_director.set_cursor_position(playback_pos)
+		cur_pos = _player.get_playback_position()
 		_player.stop()
 
+	_director.set_cursor_position(cur_pos)
 	_director.set_paused(true)
 	playback_state_changed.emit(_is_playing, _is_paused)
 
@@ -189,8 +171,9 @@ func resume() -> void:
 func stop() -> void:
 	_is_playing = false
 	_is_paused = false
-	_current_phase = -1
 	_current_item = {}
+	_current_segment_index = 0
+	_current_segment = {}
 	if _player:
 		_player.stop()
 		_player.stream = null
@@ -202,27 +185,19 @@ func reset() -> void:
 	if _director:
 		_director.reset()
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if _is_playing and not _is_paused and _player and _player.is_playing():
 		_director.set_cursor_position(_player.get_playback_position())
 
 # -----------------------------------------------------------------------------
-# PROCEDURAL PHASE SYNTHESIS
+# PROCEDURAL SEGMENT SYNTHESIS
 # -----------------------------------------------------------------------------
 
-func _synthesize_phase_segment(item: Dictionary, phase: int) -> AudioStreamWAV:
+func _synthesize_segment_audio(item: Dictionary, segment: Dictionary) -> AudioStreamWAV:
 	var category: int = item.get("category", RadioStationCatalogScript.Category.SONG)
-	var freq: float = item.get("base_freq_hz", 440.0)
-
-	var duration: float = item.get("duration_sec", 2.0)
-	if category == RadioStationCatalogScript.Category.SONG:
-		match phase:
-			RadioStationCatalogScript.Phase.INTRO:
-				duration = item.get("intro_sec", 0.5)
-			RadioStationCatalogScript.Phase.BODY:
-				duration = item.get("body_sec", 3.0)
-			RadioStationCatalogScript.Phase.OUTRO:
-				duration = item.get("outro_sec", 0.5)
+	var phase: int = segment.get("phase", RadioStationCatalogScript.Phase.BODY)
+	var duration: float = segment.get("duration_sec", 2.0)
+	var freq: float = segment.get("base_freq_hz", item.get("base_freq_hz", 440.0))
 
 	var sample_rate: int = 22050
 	var total_samples: int = int(duration * sample_rate)
@@ -242,21 +217,16 @@ func _synthesize_phase_segment(item: Dictionary, phase: int) -> AudioStreamWAV:
 			RadioStationCatalogScript.Category.SONG:
 				match phase:
 					RadioStationCatalogScript.Phase.INTRO:
-						# Filter sweep into the track
 						var filter_env := clampf(t / maxf(0.01, duration), 0.0, 1.0)
-						var tone := sin(t * freq * TAU) * 0.4
-						sample_val = tone * filter_env
+						sample_val = sin(t * freq * TAU) * 0.4 * filter_env
 					RadioStationCatalogScript.Phase.BODY:
-						# Full dynamic groove
 						var beat := sin(t * 8.0 * PI) * 0.3
 						var tone := sin(t * freq * TAU) * 0.5
 						var sub := sin(t * (freq * 0.5) * TAU) * 0.2
 						sample_val = (tone + sub) * (0.7 + beat)
 					RadioStationCatalogScript.Phase.OUTRO:
-						# Fading tail
 						var fade := clampf(1.0 - (t / maxf(0.01, duration)), 0.0, 1.0)
-						var tone := sin(t * freq * TAU) * 0.4
-						sample_val = tone * fade
+						sample_val = sin(t * freq * TAU) * 0.4 * fade
 
 			RadioStationCatalogScript.Category.DJ_LINK:
 				var speech_mod := sin(t * 12.0 * TAU) * 0.4 + 0.6

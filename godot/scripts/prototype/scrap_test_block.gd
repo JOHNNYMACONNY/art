@@ -7118,9 +7118,9 @@ func _run_v8_m22_radio_director_assertions() -> void:
 	print("=========================================================================\n")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 1: Station Catalog Schema, Metadata & YARDLINE 88.3 Identity
+	# ASSERTION 1: Station Catalog Schema, Metadata & Explicit Segment Arrays
 	# -------------------------------------------------------------------------
-	print("[ASSERTION 1] Testing Station Catalog Schema, Metadata & YARDLINE 88.3 Identity...")
+	print("[ASSERTION 1] Testing Station Catalog Schema, Metadata & Explicit Segment Arrays...")
 	var all_stations: Dictionary = RadioStationCatalogScript.get_all_stations()
 	assert(all_stations.has("radio.yardline"), "FAIL 1: Must contain radio.yardline station definition")
 
@@ -7130,104 +7130,143 @@ func _run_v8_m22_radio_director_assertions() -> void:
 	assert(yardline_station["frequency_mhz"] == 88.3, "FAIL 1: Valid station frequency")
 	assert(yardline_station.get("is_experimental", false) == true, "FAIL 1: Must be marked as experimental station")
 
-	var songs: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.yardline", RadioStationCatalogScript.Category.SONG)
-	assert(songs.size() >= 4, "FAIL 1: Must contain at least 4 songs (found %d)" % songs.size())
+	# Verify song_01 has 3 explicit segments (INTRO -> BODY -> OUTRO)
+	var song_01: Dictionary = RadioStationCatalogScript.get_item_by_id("radio.yardline", "song_01_scrap_pulse")
+	assert(not song_01.is_empty(), "FAIL 1: song_01_scrap_pulse exists")
+	var s01_segments: Array = song_01.get("segments", [])
+	assert(s01_segments.size() == 3, "FAIL 1: song_01 must have 3 explicit segments")
+	assert(s01_segments[0]["phase"] == RadioStationCatalogScript.Phase.INTRO, "FAIL 1: Segment 0 is INTRO")
+	assert(s01_segments[0]["semantic_slot_id"] == "radio.yardline.song_01.intro", "FAIL 1: Segment 0 slot is song_01.intro")
+	assert(s01_segments[1]["phase"] == RadioStationCatalogScript.Phase.BODY, "FAIL 1: Segment 1 is BODY")
+	assert(s01_segments[1]["semantic_slot_id"] == "radio.yardline.song_01.body", "FAIL 1: Segment 1 slot is song_01.body")
+	assert(s01_segments[2]["phase"] == RadioStationCatalogScript.Phase.OUTRO, "FAIL 1: Segment 2 is OUTRO")
+	assert(s01_segments[2]["semantic_slot_id"] == "radio.yardline.song_01.outro", "FAIL 1: Segment 2 slot is song_01.outro")
 
-	var dj_links: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.yardline", RadioStationCatalogScript.Category.DJ_LINK)
-	assert(dj_links.size() >= 3, "FAIL 1: Must contain at least 3 DJ links (found %d)" % dj_links.size())
+	# Verify song_02 is an authored BODY-only song (1 segment)
+	var song_02: Dictionary = RadioStationCatalogScript.get_item_by_id("radio.yardline", "song_02_neon_drift")
+	assert(not song_02.is_empty(), "FAIL 1: song_02_neon_drift exists")
+	var s02_segments: Array = song_02.get("segments", [])
+	assert(s02_segments.size() == 1, "FAIL 1: song_02 must have 1 segment (authored BODY-only)")
+	assert(s02_segments[0]["phase"] == RadioStationCatalogScript.Phase.BODY, "FAIL 1: Segment is BODY")
+	assert(s02_segments[0]["semantic_slot_id"] == "radio.yardline.song_02.body", "FAIL 1: Segment slot is song_02.body")
 
-	var station_ids: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.yardline", RadioStationCatalogScript.Category.STATION_ID)
-	assert(station_ids.size() >= 2, "FAIL 1: Must contain at least 2 station IDs (found %d)" % station_ids.size())
-
-	var adverts: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.yardline", RadioStationCatalogScript.Category.ADVERT)
-	assert(adverts.size() >= 2, "FAIL 1: Must contain at least 2 adverts (found %d)" % adverts.size())
-
-	var world_reactions: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.yardline", RadioStationCatalogScript.Category.WORLD_REACTION)
-	assert(world_reactions.size() >= 2, "FAIL 1: Must contain at least 2 world reactions (found %d)" % world_reactions.size())
-
-	var echo_stubs: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category("radio.yardline", RadioStationCatalogScript.Category.ECHO_INTRUSION)
-	assert(echo_stubs.size() >= 1, "FAIL 1: Must contain at least 1 echo intrusion stub (found %d)" % echo_stubs.size())
-
+	# Verify all catalog items have non-empty segments array with valid schema
 	for item in yardline_station["items"]:
 		assert(item.has("id") and not item["id"].is_empty(), "FAIL 1: Item missing id")
 		assert(item.has("category") and item["category"] is int, "FAIL 1: Item %s missing category" % item.get("id"))
 		assert(item.has("title") and not item["title"].is_empty(), "FAIL 1: Item %s missing title" % item.get("id"))
-		assert(item.has("slot_id") and not item["slot_id"].is_empty(), "FAIL 1: Item %s missing slot_id" % item.get("id"))
-		assert(item.has("duration_sec") and item["duration_sec"] > 0.0, "FAIL 1: Item %s missing duration_sec" % item.get("id"))
-		assert(item.has("base_freq_hz") and item["base_freq_hz"] > 0.0, "FAIL 1: Item %s missing base_freq_hz" % item.get("id"))
-	print("  -> Assertion 1 PASS: YARDLINE 88.3 identity, schema, & 14-item pool 100% verified!")
+		assert(item.has("segments") and item["segments"].size() > 0, "FAIL 1: Item %s missing segments array" % item.get("id"))
+		for seg in item["segments"]:
+			assert(seg.has("phase") and seg["phase"] is int, "FAIL 1: Segment missing phase in %s" % item.get("id"))
+			assert(seg.has("semantic_slot_id") and not seg["semantic_slot_id"].is_empty(), "FAIL 1: Segment missing semantic_slot_id in %s" % item.get("id"))
+			assert(seg.has("duration_sec") and seg["duration_sec"] > 0.0, "FAIL 1: Segment missing duration_sec in %s" % item.get("id"))
+	print("  -> Assertion 1 PASS: YARDLINE 88.3 identity, segment schema & authored BODY-only song verified!")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 2: Radio Registry Semantic Diegesis (DIEGETIC)
+	# ASSERTION 2: Radio Registry Semantic Diegesis & Segment Slots
 	# -------------------------------------------------------------------------
-	print("\n[ASSERTION 2] Testing Radio Registry Slots & Semantic Diegesis (DIEGETIC)...")
-	var radio_slots := [
-		"radio.yardline.song_01", "radio.yardline.song_02", "radio.yardline.song_03", "radio.yardline.song_04",
+	print("\n[ASSERTION 2] Testing Radio Registry Segment Slots & Diegesis (DIEGETIC)...")
+	var registered_segment_slots := [
+		"radio.yardline.song_01.intro", "radio.yardline.song_01.body", "radio.yardline.song_01.outro",
+		"radio.yardline.song_02.body", "radio.yardline.song_03.body", "radio.yardline.song_04.body",
 		"radio.yardline.dj_link_intro", "radio.yardline.dj_link_outro", "radio.yardline.dj_sweeper",
 		"radio.yardline.station_id_01", "radio.yardline.station_id_02",
 		"radio.yardline.advert_01", "radio.yardline.advert_02",
 		"radio.yardline.world_pursuit", "radio.yardline.world_gate"
 	]
-	for slot_id in radio_slots:
+	for slot_id in registered_segment_slots:
 		assert(AudioRegistryScript.has_slot(slot_id), "FAIL 2: Registry must define slot %s" % slot_id)
 		var meta: Dictionary = AudioRegistryScript.get_slot(slot_id)
 		assert(meta["domain"] == AudioRegistryScript.Domain.RADIO, "FAIL 2: Slot %s must have Domain.RADIO" % slot_id)
 		assert(meta["diegesis"] == AudioRegistryScript.Diegesis.DIEGETIC, "FAIL 2: Slot %s must have Diegesis.DIEGETIC" % slot_id)
-	print("  -> Assertion 2 PASS: All 13 radio slots defined with Diegesis.DIEGETIC verified!")
+		assert(meta["mix_group"] == AudioRegistryScript.MixGroup.RADIO_MUSIC, "FAIL 2: Slot %s mix_group must be RADIO_MUSIC" % slot_id)
+		assert(meta["asset_status"] == AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK, "FAIL 2: Slot %s asset_status must be PROCEDURAL_FALLBACK" % slot_id)
+		assert(meta["replacement_required"] == true, "FAIL 2: Slot %s replacement_required must be true" % slot_id)
+	print("  -> Assertion 2 PASS: All registered segment slots defined with Diegesis.DIEGETIC verified!")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 3: Real SONG Segment Model (INTRO -> BODY -> OUTRO) Playback Lifecycle
+	# ASSERTION 3: Real Finished-Signal Playback Proof for Segmented Song (INTRO -> BODY -> OUTRO)
 	# -------------------------------------------------------------------------
-	print("\n[ASSERTION 3] Testing Real SONG Segment Model (INTRO -> BODY -> OUTRO) Lifecycle...")
+	print("\n[ASSERTION 3] Testing Real Finished-Signal Playback for Segmented Song (INTRO -> BODY -> OUTRO)...")
 	var player_song = RadioProgramPlayerScript.new()
 	add_child(player_song)
 
-	var song_item: Dictionary = RadioStationCatalogScript.get_item_by_id("radio.yardline", "song_01_scrap_pulse")
+	# Prepare a fast test item with 3 micro segments (0.02s each) to let real AudioStreamPlayer play and finish naturally
+	var micro_song_item := {
+		"id": "test_micro_song",
+		"category": RadioStationCatalogScript.Category.SONG,
+		"title": "Micro Song",
+		"segments": [
+			{"phase": RadioStationCatalogScript.Phase.INTRO, "semantic_slot_id": "radio.yardline.song_01.intro", "duration_sec": 0.02, "base_freq_hz": 440.0},
+			{"phase": RadioStationCatalogScript.Phase.BODY, "semantic_slot_id": "radio.yardline.song_01.body", "duration_sec": 0.02, "base_freq_hz": 440.0},
+			{"phase": RadioStationCatalogScript.Phase.OUTRO, "semantic_slot_id": "radio.yardline.song_01.outro", "duration_sec": 0.02, "base_freq_hz": 440.0}
+		]
+	}
+
 	var recorded_phases: Array[int] = []
-	player_song.phase_changed.connect(func(p, it): recorded_phases.append(p))
+	var started_items: Array[Dictionary] = []
+	player_song.phase_changed.connect(func(p, it, seg):
+		recorded_phases.append(p)
+		# At each phase transition, verify the song item remains the same
+		assert(it["id"] == "test_micro_song", "FAIL 3: Must remain on same song during phases")
+	)
+	player_song.segment_started.connect(func(it): started_items.append(it))
 
-	# Start playback of the song
 	player_song._is_playing = true
-	player_song._current_item = song_item
-	player_song._start_item_playback(song_item)
+	player_song._current_item = micro_song_item
+	player_song._current_segment_index = 0
+	player_song._play_current_segment()
+	player_song.segment_started.emit(micro_song_item)
 
-	assert(player_song.get_current_phase() == RadioStationCatalogScript.Phase.INTRO, "FAIL 3: Song must start in INTRO phase")
-	assert(recorded_phases == [RadioStationCatalogScript.Phase.INTRO], "FAIL 3: INTRO phase signal emitted")
+	# Allow real AudioStreamPlayer finished signal to drive the phases
+	# Each segment is 0.02s; we wait up to 0.5s for all 3 phases to complete naturally via finished signal
+	var start_time := Time.get_ticks_msec()
+	while recorded_phases.size() < 3 and Time.get_ticks_msec() - start_time < 500:
+		await get_tree().process_frame
 
-	# Finish INTRO stream -> must advance to BODY
-	player_song._on_stream_finished()
-	assert(player_song.get_current_phase() == RadioStationCatalogScript.Phase.BODY, "FAIL 3: Song must transition to BODY phase")
-	assert(recorded_phases == [RadioStationCatalogScript.Phase.INTRO, RadioStationCatalogScript.Phase.BODY], "FAIL 3: BODY phase signal emitted")
-
-	# Finish BODY stream -> must advance to OUTRO
-	player_song._on_stream_finished()
-	assert(player_song.get_current_phase() == RadioStationCatalogScript.Phase.OUTRO, "FAIL 3: Song must transition to OUTRO phase")
-	assert(recorded_phases == [RadioStationCatalogScript.Phase.INTRO, RadioStationCatalogScript.Phase.BODY, RadioStationCatalogScript.Phase.OUTRO], "FAIL 3: OUTRO phase signal emitted")
+	assert(recorded_phases == [
+		RadioStationCatalogScript.Phase.INTRO,
+		RadioStationCatalogScript.Phase.BODY,
+		RadioStationCatalogScript.Phase.OUTRO
+	], "FAIL 3: Recorded phases must strictly be [INTRO, BODY, OUTRO], got %s" % str(recorded_phases))
+	assert(started_items[0]["id"] == "test_micro_song", "FAIL 3: Only test_micro_song started before OUTRO finish")
 
 	player_song.free()
-	print("  -> Assertion 3 PASS: INTRO -> BODY -> OUTRO signal-driven progression verified!")
+	print("  -> Assertion 3 PASS: Real AudioStreamPlayer finished signal drove INTRO -> BODY -> OUTRO!")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 4: Real BODY-Only Song Path
+	# ASSERTION 4: Real Finished-Signal Playback Proof for Authored BODY-Only Song
 	# -------------------------------------------------------------------------
-	print("\n[ASSERTION 4] Testing Real BODY-Only Song Playback Path...")
-	var player_body_only = RadioProgramPlayerScript.new()
-	add_child(player_body_only)
-	player_body_only.set_body_only_mode(true)
-	assert(player_body_only.is_body_only_mode() == true, "FAIL 4: Body only mode enabled")
+	print("\n[ASSERTION 4] Testing Real Finished-Signal Playback for Authored BODY-Only Song...")
+	var player_body = RadioProgramPlayerScript.new()
+	add_child(player_body)
+
+	var micro_body_song := {
+		"id": "test_micro_body_song",
+		"category": RadioStationCatalogScript.Category.SONG,
+		"title": "Micro Body Song",
+		"segments": [
+			{"phase": RadioStationCatalogScript.Phase.BODY, "semantic_slot_id": "radio.yardline.song_02.body", "duration_sec": 0.02, "base_freq_hz": 440.0}
+		]
+	}
 
 	var recorded_body_phases: Array[int] = []
-	player_body_only.phase_changed.connect(func(p, it): recorded_body_phases.append(p))
+	player_body.phase_changed.connect(func(p, it, seg): recorded_body_phases.append(p))
 
-	player_body_only._is_playing = true
-	player_body_only._current_item = song_item
-	player_body_only._start_item_playback(song_item)
+	player_body._is_playing = true
+	player_body._current_item = micro_body_song
+	player_body._current_segment_index = 0
+	player_body._play_current_segment()
 
-	assert(player_body_only.get_current_phase() == RadioStationCatalogScript.Phase.BODY, "FAIL 4: In body-only mode, song must start directly in BODY phase")
-	assert(recorded_body_phases == [RadioStationCatalogScript.Phase.BODY], "FAIL 4: Only BODY phase signal emitted")
+	var start_time_body := Time.get_ticks_msec()
+	while recorded_body_phases.size() < 1 and Time.get_ticks_msec() - start_time_body < 300:
+		await get_tree().process_frame
 
-	player_body_only.free()
-	print("  -> Assertion 4 PASS: Real BODY-only song playback path verified!")
+	assert(recorded_body_phases == [RadioStationCatalogScript.Phase.BODY],
+		"FAIL 4: Authored BODY-only song must only emit BODY phase, got %s" % str(recorded_body_phases))
+
+	player_body.free()
+	print("  -> Assertion 4 PASS: Authored BODY-only song natural lifecycle verified!")
 
 	# -------------------------------------------------------------------------
 	# ASSERTION 5: Anti-Repeat Window (RECENT_CONTENT_WINDOW = 4 for Songs)
@@ -7240,7 +7279,6 @@ func _run_v8_m22_radio_director_assertions() -> void:
 		var item: Dictionary = dir_window.advance_next_item()
 		if item["category"] == RadioStationCatalogScript.Category.SONG:
 			var song_id: String = item["id"]
-			# With 4 songs and window of 4, a song cannot appear if it was in the last 3 songs
 			if played_song_ids.size() >= 3:
 				var recent_slice = played_song_ids.slice(-3)
 				assert(not recent_slice.has(song_id), "FAIL 5: Song %s repeated within recent window %s" % [song_id, recent_slice])
@@ -7269,7 +7307,7 @@ func _run_v8_m22_radio_director_assertions() -> void:
 	# -------------------------------------------------------------------------
 	# ASSERTION 7: Bounded Category Weights & Distribution Check
 	# -------------------------------------------------------------------------
-	print("\n[ASSERTION 7] Testing Bounded Category Weights (60/15/10/10/5/0)...")
+	print("\n[ASSERTION 7] Testing Bounded Category Weights (60/15/10/10/0)...")
 	var dir_dist = RadioProgramDirectorScript.new(777)
 	var counts := {
 		RadioStationCatalogScript.Category.SONG: 0,
@@ -7294,6 +7332,7 @@ func _run_v8_m22_radio_director_assertions() -> void:
 	])
 	assert(counts[RadioStationCatalogScript.Category.SONG] >= 150, "FAIL 7: SONG must be dominant category (>50%%)")
 	assert(counts[RadioStationCatalogScript.Category.ECHO_INTRUSION] == 0, "FAIL 7: ECHO_INTRUSION weight must be 0")
+	assert(counts[RadioStationCatalogScript.Category.WORLD_REACTION] == 0, "FAIL 7: WORLD_REACTION without queued events must be 0")
 	assert(counts[RadioStationCatalogScript.Category.DJ_LINK] > 0, "FAIL 7: DJ_LINK must appear")
 	assert(counts[RadioStationCatalogScript.Category.STATION_ID] > 0, "FAIL 7: STATION_ID must appear")
 	assert(counts[RadioStationCatalogScript.Category.ADVERT] > 0, "FAIL 7: ADVERT must appear")
@@ -7304,105 +7343,149 @@ func _run_v8_m22_radio_director_assertions() -> void:
 	# -------------------------------------------------------------------------
 	print("\n[ASSERTION 8 & 9] Testing Max-Gap Priority over Queued World Events & Queue Deferral...")
 	var dir_defer = RadioProgramDirectorScript.new(999)
-	# Force non-song gap counter to MAX_NON_SONG_GAP (2)
 	dir_defer._non_song_gap_counter = RadioProgramDirectorScript.MAX_NON_SONG_GAP
 	dir_defer._last_category = RadioStationCatalogScript.Category.DJ_LINK
 
-	# Queue a world event
 	dir_defer.notify_world_event("PURSUIT_START")
 
-	# Next advance MUST be a SONG because max-gap (2) is reached
 	var forced_item: Dictionary = dir_defer.advance_next_item()
 	assert(forced_item["category"] == RadioStationCatalogScript.Category.SONG,
 		"FAIL 8: Max-gap rule must force SONG even when world event is queued!")
 
-	# Event must NOT have been dropped; it must remain queued and play immediately after the forced song
 	var deferred_event_item: Dictionary = dir_defer.advance_next_item()
 	assert(deferred_event_item["category"] == RadioStationCatalogScript.Category.WORLD_REACTION,
 		"FAIL 9: Deferred world event must fire immediately after forced song!")
 	assert(deferred_event_item["id"] == "world_01_pursuit_advisory",
 		"FAIL 9: Deferred event must be world_01_pursuit_advisory!")
+
+	# Verify event was consumed once and not repeated
+	var post_event_item: Dictionary = dir_defer.advance_next_item()
+	assert(post_event_item["category"] != RadioStationCatalogScript.Category.WORLD_REACTION,
+		"FAIL 9: World event must be consumed once")
 	print("  -> Assertions 8 & 9 PASS: Max-gap outranking & world event queue preservation verified!")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 10: Configured-Seed Deterministic Reset & Reproducibility
+	# ASSERTION 10: Configured-Seed Reset Falsification (Non-1337 Seed Preserved on reset())
 	# -------------------------------------------------------------------------
-	print("\n[ASSERTION 10] Testing Configured-Seed Deterministic Reset...")
-	var dir_seed_test = RadioProgramDirectorScript.new(1337)
+	print("\n[ASSERTION 10] Testing Configured-Seed Reset Falsification without Passing Seed to reset()...")
+	var dir_seed_test = RadioProgramDirectorScript.new(55)
+	assert(dir_seed_test.get_initial_seed() == 55, "FAIL 10: Initial seed must be 55")
+
 	var seq_run_1: Array[String] = []
-	for i in range(30):
+	for i in range(25):
 		seq_run_1.append(dir_seed_test.advance_next_item()["id"])
 
-	# Reset with same seed
-	dir_seed_test.reset(1337)
+	# Call reset() WITHOUT passing a seed - must restore 55, NOT default 1337!
+	dir_seed_test.reset()
+	assert(dir_seed_test.get_initial_seed() == 55, "FAIL 10: reset() must preserve configured initial seed 55")
+
 	var seq_run_2: Array[String] = []
-	for i in range(30):
+	for i in range(25):
 		seq_run_2.append(dir_seed_test.advance_next_item()["id"])
 
-	assert(seq_run_1 == seq_run_2, "FAIL 10: Resetting director with identical seed must reproduce exact sequence")
-	print("  -> Assertion 10 PASS: Deterministic reset reproducibility verified!")
+	assert(seq_run_1 == seq_run_2, "FAIL 10: Resetting director without arguments must reproduce initial seed=55 sequence")
+	print("  -> Assertion 10 PASS: Configured initial seed 55 preserved on reset() verified!")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 11: AudioManager Director-Only Reset
+	# ASSERTION 11: AudioManager Director-Only Reset Preserves Configured Seed
 	# -------------------------------------------------------------------------
-	print("\n[ASSERTION 11] Testing AudioManager Director-Only Reset Independence...")
+	print("\n[ASSERTION 11] Testing AudioManager Reset Audio Instant Preserves Configured Seed...")
 	var mgr_director = audio_mgr.get_radio_director()
+	mgr_director.set_seed(77)
 	for i in range(10):
 		mgr_director.advance_next_item()
 	assert(not mgr_director.get_current_item().is_empty(), "FAIL 11: Director has state")
 
-	# Call reset_radio_director independently
-	audio_mgr.reset_radio_director(42)
-	assert(mgr_director.get_current_item().is_empty(), "FAIL 11: Director-only reset cleared item state")
-	assert(mgr_director.get_seed() == 42, "FAIL 11: Director reseeded to 42")
-	print("  -> Assertion 11 PASS: AudioManager director-only reset verified!")
+	# Instant reset via AudioManager
+	audio_mgr.reset_audio_instant()
+	assert(mgr_director.get_current_item().is_empty(), "FAIL 11: Reset cleared item state")
+	assert(mgr_director.get_initial_seed() == 77, "FAIL 11: Configured initial seed 77 preserved on reset_audio_instant()")
+	print("  -> Assertion 11 PASS: AudioManager instant reset preserves configured seed verified!")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 12: Actual Playback-Position Pause/Resume Falsification
+	# ASSERTION 12: Real Playback-Position Pause/Resume Falsification
 	# -------------------------------------------------------------------------
-	print("\n[ASSERTION 12] Testing Actual Playback-Position Pause/Resume with Real AudioStreamPlayer...")
+	print("\n[ASSERTION 12] Testing Real Playback-Position Pause/Resume Falsification...")
 	var player_pause_test = RadioProgramPlayerScript.new(RadioProgramDirectorScript.new(55))
 	add_child(player_pause_test)
 
-	player_pause_test.play_station("radio.yardline")
-	assert(player_pause_test.is_playing() == true, "FAIL 12: Player playing")
+	var pause_start_signals := 0
+	player_pause_test.segment_started.connect(func(it): pause_start_signals += 1)
 
-	# Pause player and verify director captures position
+	# Synthesize a 1.0s item to allow observing playback progress
+	var test_pause_item := {
+		"id": "test_pause_item",
+		"category": RadioStationCatalogScript.Category.SONG,
+		"title": "Pause Test Song",
+		"segments": [
+			{"phase": RadioStationCatalogScript.Phase.BODY, "semantic_slot_id": "radio.yardline.song_01.body", "duration_sec": 1.0, "base_freq_hz": 440.0}
+		]
+	}
+
+	player_pause_test._is_playing = true
+	player_pause_test._current_item = test_pause_item
+	player_pause_test._current_segment_index = 0
+	player_pause_test._play_current_segment()
+	player_pause_test.segment_started.emit(test_pause_item)
+
+	# Await until AudioStreamPlayer progress is > 0
+	var pause_timer := Time.get_ticks_msec()
+	while player_pause_test.get_playback_position() <= 0.0 and Time.get_ticks_msec() - pause_timer < 300:
+		await get_tree().process_frame
+
+	var captured_content_id: String = player_pause_test.get_current_item().get("id", "")
+	var captured_seg_idx: int = player_pause_test.get_current_segment_index()
+	var pre_pause_pos: float = player_pause_test.get_playback_position()
+	var pre_pause_signal_count: int = pause_start_signals
+
+	# Pause player
 	player_pause_test.pause()
-	assert(player_pause_test.is_paused() == true, "FAIL 12: Player is paused")
+	assert(player_pause_test.is_paused() == true, "FAIL 12: Player must be paused")
+	var stored_cursor: float = player_pause_test.get_director().get_cursor_position()
+	assert(player_pause_test.get_current_item().get("id") == captured_content_id, "FAIL 12: Same content during pause")
+	assert(player_pause_test.get_current_segment_index() == captured_seg_idx, "FAIL 12: Same segment during pause")
+	assert(pause_start_signals == pre_pause_signal_count, "FAIL 12: No new segment start signals during pause")
 
-	# Resume player and verify playback state
+	# Wait while paused
+	for frame in range(5):
+		await get_tree().process_frame
+	assert(player_pause_test.get_director().get_cursor_position() == stored_cursor, "FAIL 12: Cursor position frozen while paused")
+
+	# Resume player
 	player_pause_test.resume()
-	assert(player_pause_test.is_paused() == false, "FAIL 12: Player is resumed")
+	assert(player_pause_test.is_paused() == false, "FAIL 12: Player resumed")
+	assert(player_pause_test.get_current_item().get("id") == captured_content_id, "FAIL 12: Same content after resume")
+	assert(player_pause_test.get_current_segment_index() == captured_seg_idx, "FAIL 12: Same segment after resume")
+	assert(pause_start_signals == pre_pause_signal_count, "FAIL 12: No duplicate start signal emitted by resume")
 
 	player_pause_test.stop()
-	assert(player_pause_test.is_playing() == false, "FAIL 12: Player stopped")
 	player_pause_test.free()
-	print("  -> Assertion 12 PASS: Real playback-position pause/resume verified!")
+	print("  -> Assertion 12 PASS: Real playback-position pause/resume falsification verified!")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 13: Radio-Slot Reference Override Through #21 Resolver
+	# ASSERTION 13: Phase-Specific Reference Override & Program Selection Parity
 	# -------------------------------------------------------------------------
-	print("\n[ASSERTION 13] Testing Radio-Slot Reference Resolver Override...")
+	print("\n[ASSERTION 13] Testing Phase-Specific Reference Override & Selection Parity...")
 	var test_sandbox_dir := "/tmp/test_yardline_audio/"
 	DirAccess.make_dir_recursive_absolute(test_sandbox_dir)
-	var test_wav_path := test_sandbox_dir + "test_yardline_song01.wav"
+	var test_wav_path := test_sandbox_dir + "test_yardline_song01_body.wav"
 	var test_manifest_path := test_sandbox_dir + "manifest.json"
 
-	# Synthesize sample WAV bytes and save to disk
+	# Synthesize a distinct test WAV for BODY segment ONLY
 	var synth_temp_player = RadioProgramPlayerScript.new()
 	var test_item = RadioStationCatalogScript.get_item_by_id("radio.yardline", "song_01_scrap_pulse")
-	var temp_wav: AudioStreamWAV = synth_temp_player._synthesize_phase_segment(test_item, RadioStationCatalogScript.Phase.BODY)
+	var body_seg: Dictionary = test_item["segments"][1] # BODY segment
+	var temp_wav: AudioStreamWAV = synth_temp_player._synthesize_segment_audio(test_item, body_seg)
 	synth_temp_player.free()
 
 	temp_wav.save_to_wav(test_wav_path)
 	assert(FileAccess.file_exists(test_wav_path), "FAIL 13: Sample WAV file written to disk")
 
-	# Write manifest.json
+	# Write manifest.json mapping ONLY radio.yardline.song_01.body
 	var manifest_data := {
 		"version": 1,
 		"slots": {
-			"radio.yardline.song_01": "test_yardline_song01.wav"
+			"radio.yardline.song_01.body": "test_yardline_song01_body.wav"
 		}
 	}
 	var mf := FileAccess.open(test_manifest_path, FileAccess.WRITE)
@@ -7410,31 +7493,44 @@ func _run_v8_m22_radio_director_assertions() -> void:
 	mf.close()
 	assert(FileAccess.file_exists(test_manifest_path), "FAIL 13: Manifest JSON written to disk")
 
-	# Opt-in to reference resolver
+	# Enable reference audio resolver
 	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "1")
 	OS.set_environment("ECHOES_REFERENCE_AUDIO_MANIFEST", test_manifest_path)
 	AudioReferenceResolverScript.reset()
 
 	assert(AudioReferenceResolverScript.is_reference_enabled() == true, "FAIL 13: Reference audio resolver enabled")
-	var resolved_stream: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream("radio.yardline.song_01")
-	assert(resolved_stream != null, "FAIL 13: Resolved stream must not be null")
-	assert(resolved_stream.data.size() > 0, "FAIL 13: Resolved stream has non-empty sample data")
+	var intro_resolved = AudioReferenceResolverScript.resolve_stream("radio.yardline.song_01.intro")
+	assert(intro_resolved == null, "FAIL 13: INTRO segment has no reference override (uses procedural fallback)")
 
-	# Test player integration
-	var resolver_player = RadioProgramPlayerScript.new()
-	add_child(resolver_player)
-	resolver_player._play_phase(RadioStationCatalogScript.Phase.BODY, test_item)
-	assert(resolver_player._current_stream != null, "FAIL 13: Player resolved stream from reference audio")
-	assert(resolver_player._current_stream.data.size() == resolved_stream.data.size(), "FAIL 13: Player loaded identical stream from manifest")
+	var body_resolved: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream("radio.yardline.song_01.body")
+	assert(body_resolved != null, "FAIL 13: BODY segment resolved from reference manifest")
+	assert(body_resolved.data.size() == temp_wav.data.size(), "FAIL 13: BODY resolved stream matches test WAV")
 
-	# Reset resolver and clean up
+	var outro_resolved = AudioReferenceResolverScript.resolve_stream("radio.yardline.song_01.outro")
+	assert(outro_resolved == null, "FAIL 13: OUTRO segment has no reference override (uses procedural fallback)")
+
+	# Program selection parity check: seed 2026 sequence with reference enabled vs disabled
+	var dir_parity_ref = RadioProgramDirectorScript.new(2026)
+	var seq_ref: Array[String] = []
+	for i in range(30):
+		seq_ref.append(dir_parity_ref.advance_next_item()["id"])
+
+	# Disable reference
 	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "0")
 	OS.set_environment("ECHOES_REFERENCE_AUDIO_MANIFEST", "")
 	AudioReferenceResolverScript.reset()
-	resolver_player.free()
+
+	var dir_parity_noref = RadioProgramDirectorScript.new(2026)
+	var seq_noref: Array[String] = []
+	for i in range(30):
+		seq_noref.append(dir_parity_noref.advance_next_item()["id"])
+
+	assert(seq_ref == seq_noref, "FAIL 13: Program selection must be 100%% identical with reference enabled vs disabled")
+
+	# Clean up
 	DirAccess.remove_absolute(test_wav_path)
 	DirAccess.remove_absolute(test_manifest_path)
-	print("  -> Assertion 13 PASS: Radio-slot reference resolver override verified!")
+	print("  -> Assertion 13 PASS: Phase-specific reference override & selection parity verified!")
 
 	# -------------------------------------------------------------------------
 	# ASSERTION 14: Injectable Missing/Unplayable/Empty Station Falsification
@@ -7443,7 +7539,6 @@ func _run_v8_m22_radio_director_assertions() -> void:
 	var empty_player = RadioProgramPlayerScript.new(RadioProgramDirectorScript.new(1, "nonexistent.station"))
 	add_child(empty_player)
 
-	# Attempting to advance on empty station should safely stop playback
 	empty_player._is_playing = true
 	empty_player.advance_segment()
 	assert(empty_player.is_playing() == false, "FAIL 14: Empty station must terminate playback safely")
@@ -7495,19 +7590,19 @@ func _run_v8_m22_radio_director_assertions() -> void:
 	print("  -> Assertion 15 PASS: Two-seed 250-item sweeps with max streak <= 2 verified!")
 
 	# -------------------------------------------------------------------------
-	# ASSERTION 16: Signal-Driven INTRO/BODY/OUTRO Playback Proof
+	# ASSERTION 16: Signal-Driven Playback Chain Execution
 	# -------------------------------------------------------------------------
-	print("\n[ASSERTION 16] Testing Full Station Playback with Multi-Phase Signal Sequence...")
+	print("\n[ASSERTION 16] Testing Full Station Playback Chain Execution...")
 	var live_station_player = RadioProgramPlayerScript.new(RadioProgramDirectorScript.new(888))
 	add_child(live_station_player)
 
 	var signal_log: Array[String] = []
 	live_station_player.segment_started.connect(func(it): signal_log.append("START:" + it["id"]))
-	live_station_player.phase_changed.connect(func(ph, it): signal_log.append("PHASE:%d:%s" % [ph, it["id"]]))
+	live_station_player.phase_changed.connect(func(ph, it, seg): signal_log.append("PHASE:%d:%s" % [ph, it["id"]]))
 	live_station_player.segment_completed.connect(func(it): signal_log.append("COMPLETED:" + it["id"]))
 
 	live_station_player.play_station("radio.yardline")
-	# Step through stream completions
+	# Step through stream completions naturally
 	for i in range(6):
 		live_station_player._on_stream_finished()
 

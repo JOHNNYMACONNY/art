@@ -3,12 +3,12 @@ extends RefCounted
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
 
 ## Bounded category weights per ChatGPT #22 spec
-## SONG=60, DJ_LINK=15, STATION_ID=10, ADVERT=10, WORLD_REACTION=5 (when eligible), ECHO_INTRUSION=0
+## SONG=60, DJ_LINK=15, STATION_ID=10, ADVERT=10, ECHO_INTRUSION=0
+## WORLD_REACTION is 100% EVENT-DRIVEN PRIORITY content (not randomly weighted)
 const WEIGHT_SONG          := 60
 const WEIGHT_DJ_LINK       := 15
 const WEIGHT_STATION_ID    := 10
 const WEIGHT_ADVERT        := 10
-const WEIGHT_WORLD_REACTION := 5
 const WEIGHT_ECHO_INTRUSION := 0
 
 const MAX_NON_SONG_GAP     := 2   ## Max consecutive non-song items before SONG is forced
@@ -17,6 +17,7 @@ const INTERSTITIAL_HISTORY_LIMIT := 4  ## Recent interstitial window
 const DEFAULT_SEED         := 1337
 
 var _station_id: String = RadioStationCatalogScript.DEFAULT_STATION_ID
+var _initial_seed: int = DEFAULT_SEED
 var _rng := RandomNumberGenerator.new()
 var _current_item: Dictionary = {}
 var _cursor_position_sec: float = 0.0
@@ -32,13 +33,18 @@ var _pending_world_events: Array[String] = []
 
 func _init(initial_seed: int = DEFAULT_SEED, station: String = RadioStationCatalogScript.DEFAULT_STATION_ID) -> void:
 	_station_id = station
-	set_seed(initial_seed)
+	_initial_seed = initial_seed
+	_rng.seed = initial_seed
 
 func set_seed(s: int) -> void:
+	_initial_seed = s
 	_rng.seed = s
 
 func get_seed() -> int:
 	return _rng.seed
+
+func get_initial_seed() -> int:
+	return _initial_seed
 
 func set_station(station: String) -> void:
 	if _station_id != station:
@@ -58,10 +64,12 @@ func reset_programming_state() -> void:
 	_last_category = -1
 	_pending_world_events.clear()
 
-## Director-only reset: reseeds PRNG with provided seed and clears all programming state.
-## AudioManager must call reset() on director independently; player state is separate.
-func reset(initial_seed: int = DEFAULT_SEED) -> void:
-	set_seed(initial_seed)
+## Director-only reset: restores configured initial seed (or sets new_seed if provided)
+## and clears all programming state.
+func reset(new_seed: int = -1) -> void:
+	if new_seed != -1:
+		_initial_seed = new_seed
+	_rng.seed = _initial_seed
 	reset_programming_state()
 
 func notify_world_event(event_name: String) -> void:
@@ -86,13 +94,11 @@ func set_paused(paused: bool) -> void:
 func advance_next_item() -> Dictionary:
 	var next_item: Dictionary = {}
 
-	# 1. Max-gap rule: SONG is FORCED and world events are DEFERRED (not consumed)
-	#    This ensures a queued world event survives the forced song.
+	# 1. Max-gap rule: SONG is FORCED and world events are DEFERRED (preserved in queue)
 	if _non_song_gap_counter >= MAX_NON_SONG_GAP:
 		next_item = _pick_item_for_category(RadioStationCatalogScript.Category.SONG)
-		# World events remain in queue - deferred, not dropped
 
-	# 2. Check for pending reactive world events (only if max-gap didn't fire)
+	# 2. Check for pending reactive world events (event-driven priority content)
 	elif not _pending_world_events.is_empty():
 		var event_name: String = _pending_world_events.pop_front()
 		var world_items: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(
@@ -101,7 +107,6 @@ func advance_next_item() -> Dictionary:
 			if wi.get("trigger_event") == event_name:
 				next_item = wi.duplicate(true)
 				break
-		# If no matching item found, event was consumed but produced nothing - continue normally
 		if next_item.is_empty():
 			var target_category: int = _choose_next_category()
 			next_item = _pick_item_for_category(target_category)
@@ -127,7 +132,7 @@ func advance_next_item() -> Dictionary:
 	if cat == RadioStationCatalogScript.Category.SONG:
 		_non_song_gap_counter = 0
 		_song_history.append(next_item.get("id", ""))
-		while _song_history.size() > 3:
+		while _song_history.size() > 3: # Keep 3 in history to ensure non-depletion across 4 songs
 			_song_history.pop_front()
 	else:
 		_non_song_gap_counter += 1
@@ -140,12 +145,6 @@ func advance_next_item() -> Dictionary:
 func _choose_next_category() -> int:
 	## Build weighted pool based on eligible categories
 	## Rule: no immediate repeat of the same non-SONG category
-	var has_world_events: bool = not _pending_world_events.is_empty()
-	var world_items: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(
-		_station_id, RadioStationCatalogScript.Category.WORLD_REACTION)
-	var world_reaction_eligible: bool = has_world_events and not world_items.is_empty()
-
-	## Compute total weight
 	var total: int = WEIGHT_SONG
 	if _last_category != RadioStationCatalogScript.Category.DJ_LINK:
 		total += WEIGHT_DJ_LINK
@@ -153,8 +152,6 @@ func _choose_next_category() -> int:
 		total += WEIGHT_STATION_ID
 	if _last_category != RadioStationCatalogScript.Category.ADVERT:
 		total += WEIGHT_ADVERT
-	if world_reaction_eligible and _last_category != RadioStationCatalogScript.Category.WORLD_REACTION:
-		total += WEIGHT_WORLD_REACTION
 
 	var roll: int = _rng.randi_range(0, total - 1)
 
@@ -178,10 +175,6 @@ func _choose_next_category() -> int:
 		if roll < threshold:
 			return RadioStationCatalogScript.Category.ADVERT
 
-	if world_reaction_eligible and _last_category != RadioStationCatalogScript.Category.WORLD_REACTION:
-		return RadioStationCatalogScript.Category.WORLD_REACTION
-
-	# Fallback to SONG
 	return RadioStationCatalogScript.Category.SONG
 
 func _pick_item_for_category(category: int) -> Dictionary:
@@ -197,7 +190,6 @@ func _pick_item_for_category(category: int) -> Dictionary:
 		for item in items:
 			if not _song_history.has(item.get("id")):
 				candidates.append(item)
-		# Pool depletion fallback: use full pool
 		if candidates.is_empty():
 			candidates = items.duplicate()
 	else:
@@ -218,6 +210,7 @@ func _pick_item_for_category(category: int) -> Dictionary:
 func serialize_state() -> Dictionary:
 	return {
 		"station_id": _station_id,
+		"initial_seed": _initial_seed,
 		"current_item": _current_item.duplicate(true),
 		"cursor_position_sec": _cursor_position_sec,
 		"is_paused": _is_paused,
@@ -237,6 +230,7 @@ func deserialize_state(data: Dictionary) -> bool:
 		return false
 
 	_station_id = data.get("station_id", RadioStationCatalogScript.DEFAULT_STATION_ID)
+	_initial_seed = data.get("initial_seed", DEFAULT_SEED)
 	_current_item = data.get("current_item", {}).duplicate(true)
 	_cursor_position_sec = data.get("cursor_position_sec", 0.0)
 	_is_paused = data.get("is_paused", false)

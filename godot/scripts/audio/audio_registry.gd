@@ -452,8 +452,8 @@ const SLOTS: Dictionary = {
 		"replacement_required": true,
 		"description": "Corrupted courier transmission burst"
 	},
-	"radio.yardline.song_01": {
-		"slot_id": "radio.yardline.song_01",
+	"radio.yardline.song_01.intro": {
+		"slot_id": "radio.yardline.song_01.intro",
 		"domain": Domain.RADIO,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
@@ -466,10 +466,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Yardline 88.3 track 1: Scrap Pulse"
+		"description": "Yardline 88.3 Scrap Pulse intro segment"
 	},
-	"radio.yardline.song_02": {
-		"slot_id": "radio.yardline.song_02",
+	"radio.yardline.song_01.body": {
+		"slot_id": "radio.yardline.song_01.body",
 		"domain": Domain.RADIO,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
@@ -482,10 +482,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Yardline 88.3 track 2: Neon Drift"
+		"description": "Yardline 88.3 Scrap Pulse body segment"
 	},
-	"radio.yardline.song_03": {
-		"slot_id": "radio.yardline.song_03",
+	"radio.yardline.song_01.outro": {
+		"slot_id": "radio.yardline.song_01.outro",
 		"domain": Domain.RADIO,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
@@ -498,10 +498,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Yardline 88.3 track 3: Rust Groove"
+		"description": "Yardline 88.3 Scrap Pulse outro segment"
 	},
-	"radio.yardline.song_04": {
-		"slot_id": "radio.yardline.song_04",
+	"radio.yardline.song_02.body": {
+		"slot_id": "radio.yardline.song_02.body",
 		"domain": Domain.RADIO,
 		"diegesis": Diegesis.DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
@@ -514,7 +514,39 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
 		"replacement_required": true,
-		"description": "Yardline 88.3 track 4: Signal Loss"
+		"description": "Yardline 88.3 Neon Drift body segment"
+	},
+	"radio.yardline.song_03.body": {
+		"slot_id": "radio.yardline.song_03.body",
+		"domain": Domain.RADIO,
+		"diegesis": Diegesis.DIEGETIC,
+		"spatial_type": SpatialType.NON_DIEGETIC_2D,
+		"mix_group": MixGroup.RADIO_MUSIC,
+		"playback_type": PlaybackType.TRANSIENT,
+		"is_looping": false,
+		"loop_start_sec": 0.0,
+		"loop_end_sec": 0.0,
+		"cooldown_msec": 0,
+		"max_concurrency": 1,
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"description": "Yardline 88.3 Rust Groove body segment"
+	},
+	"radio.yardline.song_04.body": {
+		"slot_id": "radio.yardline.song_04.body",
+		"domain": Domain.RADIO,
+		"diegesis": Diegesis.DIEGETIC,
+		"spatial_type": SpatialType.NON_DIEGETIC_2D,
+		"mix_group": MixGroup.RADIO_MUSIC,
+		"playback_type": PlaybackType.TRANSIENT,
+		"is_looping": false,
+		"loop_start_sec": 0.0,
+		"loop_end_sec": 0.0,
+		"cooldown_msec": 0,
+		"max_concurrency": 1,
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"description": "Yardline 88.3 Signal Loss body segment"
 	},
 	"radio.yardline.dj_link_intro": {
 		"slot_id": "radio.yardline.dj_link_intro",
