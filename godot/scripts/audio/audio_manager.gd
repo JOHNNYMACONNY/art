@@ -492,6 +492,11 @@ func get_radio_player() -> Node:
 		add_child(_radio_player)
 	return _radio_player
 
+## M25: Non-creating radio player inspection — MUST NOT instantiate anything.
+## Use for eligibility checks only; never for mount/radio lifecycle flows.
+func get_existing_radio_player() -> Node:
+	return _radio_player
+
 ## M25: Update Precursor Echo Hybrid Radio Interference
 func update_radio_interference(source_pos: Vector3, vehicle_pos: Vector3, eligible: bool = true) -> void:
 	if not eligible:

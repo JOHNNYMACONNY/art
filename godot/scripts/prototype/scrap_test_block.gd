@@ -351,23 +351,28 @@ func _process(delta: float) -> void:
 func _process_radio_interference() -> void:
 	if not audio_mgr:
 		return
+	# Cheap authoritative gates first — never create radio player from eligibility check
 	var active_veh: Node3D = _get_active_vehicle()
-	var radio_player = audio_mgr.get_radio_player()
-	var is_eligible: bool = (
+	if not (
 		current_world_state == WorldLoopState.PANEL_POWERED
 		and corroded_panel != null
 		and active_veh != null
 		and _radio_owner == active_veh
 		and is_radio_enabled()
-		and radio_player != null
+	):
+		audio_mgr.clear_radio_interference()
+		return
+	# Only after cheap gates pass: inspect existing player without creating it
+	var radio_player = audio_mgr.get_existing_radio_player()
+	if not (
+		radio_player != null
 		and radio_player.is_playing()
 		and not radio_player.is_paused()
 		and radio_player.is_stream_playing()
-	)
-	if is_eligible and corroded_panel:
-		audio_mgr.update_radio_interference(corroded_panel.global_position, active_veh.global_position, true)
-	else:
+	):
 		audio_mgr.clear_radio_interference()
+		return
+	audio_mgr.update_radio_interference(corroded_panel.global_position, active_veh.global_position, true)
 
 func _process_pursuit_loop(delta: float) -> void:
 	if current_pursuit_state == PursuitState.PURSUIT_ACTIVE and pursuer and pursuer.is_active:
@@ -8435,12 +8440,85 @@ func _run_v8_m25_echo_radio_interference_assertions() -> void:
 	print("[ASSERTION 1] Testing Eligibility Invariants (Cold Start, Radio OFF, On Foot, Stopped/Unpaused Radio, Outside Radius)...")
 	reset_slice()
 	await get_tree().process_frame
-	
+
 	# 1A: Cold start: world state != PANEL_POWERED
 	assert(current_world_state != WorldLoopState.PANEL_POWERED, "FAIL 1A: Cold start state is not PANEL_POWERED")
 	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL 1A: Cold start interference intensity is 0.0")
 	assert(is_equal_approx(audio_mgr.get_radio_contamination_db(), 0.0), "FAIL 1A: Cold start contamination gain is 0.0 dB")
 	assert(audio_mgr.get_radio_interference_player().playing == false, "FAIL 1A: 3D interference player stopped on cold start")
+
+	# --- LAZY-SESSION FALSIFICATION A: Cold start does not create radio player ---
+	var cold_existing_before = audio_mgr.get_existing_radio_player()
+	assert(cold_existing_before == null, "FAIL LAZY-A: No radio player exists on cold start")
+	var cold_player_count_before: int = 0
+	for ch in audio_mgr.get_children():
+		if ch.get_script() == load("res://scripts/audio/radio/radio_program_player.gd"):
+			cold_player_count_before += 1
+	assert(cold_player_count_before == 0, "FAIL LAZY-A: Zero RadioProgramPlayers exist before interference check on cold start")
+
+	# Run eligibility check on cold start (on foot, world != PANEL_POWERED)
+	_process_radio_interference()
+
+	var cold_existing_after = audio_mgr.get_existing_radio_player()
+	assert(cold_existing_after == null, "FAIL LAZY-A: Interference eligibility check MUST NOT create radio player on cold start")
+	var cold_player_count_after: int = 0
+	for ch in audio_mgr.get_children():
+		if ch.get_script() == load("res://scripts/audio/radio/radio_program_player.gd"):
+			cold_player_count_after += 1
+	assert(cold_player_count_after == 0, "FAIL LAZY-A: Zero RadioProgramPlayers after cold-start interference check")
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL LAZY-A: Cold start intensity == 0.0")
+	assert(is_equal_approx(audio_mgr.get_radio_contamination_db(), 0.0), "FAIL LAZY-A: Cold start contamination == 0.0")
+	assert(audio_mgr.get_radio_interference_player().playing == false, "FAIL LAZY-A: 3D player stopped on cold start check")
+	print("  COLD_START_PLAYER_COUNT_BEFORE: %d | COLD_START_PLAYER_COUNT_AFTER_INTERFERENCE_CHECK: %d" % [cold_player_count_before, cold_player_count_after])
+
+	# --- LAZY-SESSION FALSIFICATION B: PANEL_POWERED on-foot does not create radio player ---
+	current_world_state = WorldLoopState.PANEL_POWERED
+	# Keep on foot (no active vehicle)
+	assert(_get_active_vehicle() == null, "FAIL LAZY-B: Still on foot for panel-powered test")
+
+	var panel_before: int = 0
+	for ch in audio_mgr.get_children():
+		if ch.get_script() == load("res://scripts/audio/radio/radio_program_player.gd"):
+			panel_before += 1
+	assert(panel_before == 0, "FAIL LAZY-B: Still zero players before panel-powered on-foot check")
+
+	_process_radio_interference()
+
+	var panel_after: int = 0
+	for ch in audio_mgr.get_children():
+		if ch.get_script() == load("res://scripts/audio/radio/radio_program_player.gd"):
+			panel_after += 1
+	assert(panel_after == 0, "FAIL LAZY-B: Interference check on PANEL_POWERED on-foot MUST NOT create radio player")
+	assert(audio_mgr.get_existing_radio_player() == null, "FAIL LAZY-B: get_existing_radio_player() still null after panel-powered on-foot check")
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL LAZY-B: PANEL_POWERED on-foot intensity == 0.0")
+	print("  PANEL_POWERED_ON_FOOT_PLAYER_COUNT_BEFORE: %d | PANEL_POWERED_ON_FOOT_PLAYER_COUNT_AFTER: %d" % [panel_before, panel_after])
+
+	# --- LAZY-SESSION FALSIFICATION C: First real mount creates exactly one player ---
+	_on_bike_mounted(player)
+	courier_bike.global_position = corroded_panel.global_position + Vector3(5.0, 0.0, 0.0)
+	# Legitimate mount flow creates RadioProgramPlayer via get_radio_player()
+	var post_mount_existing = audio_mgr.get_existing_radio_player()
+	assert(post_mount_existing != null, "FAIL LAZY-C: First real mount creates exactly one RadioProgramPlayer")
+	var post_mount_count: int = 0
+	for ch in audio_mgr.get_children():
+		if ch.get_script() == load("res://scripts/audio/radio/radio_program_player.gd"):
+			post_mount_count += 1
+	assert(post_mount_count == 1, "FAIL LAZY-C: Exactly one RadioProgramPlayer after first mount")
+	# Wait for stream to start after lifecycle fade/resume
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert(audio_mgr.get_existing_radio_player().is_stream_playing() == true, "FAIL LAZY-C: Radio stream playing after first mount lifecycle")
+	print("  FIRST_REAL_MOUNT_CREATES_PLAYER_PROOF: %d player(s) | POST_MOUNT_RADIO_STREAM_PLAYING_PROOF: true" % post_mount_count)
+	# Eligible in-range interference works normally after mount
+	_process_radio_interference()
+	var post_mount_intensity = audio_mgr.get_radio_interference_intensity()
+	assert(post_mount_intensity > 0.0, "FAIL LAZY-C: Eligible in-range interference active after first mount")
+	print("  POST_MOUNT_INTERFERENCE_PROOF: intensity=%.3f (> 0.0)" % post_mount_intensity)
+
+	# Reset to fresh state for remaining 1B-1E
+	_on_bike_dismounted()
+	reset_slice()
+	await get_tree().process_frame
 
 	# 1B: Power panel but keep radio OFF
 	current_world_state = WorldLoopState.PANEL_POWERED
@@ -8656,7 +8734,10 @@ func _run_v8_m25_echo_radio_interference_assertions() -> void:
 	assert(audio_mgr.event_counts.get(AudioManagerScript.SoundEvent.ECHO_ONSET, 0) == 1, "FAIL 6: ECHO_ONSET fired exactly once across whole echo")
 	assert(audio_mgr.event_counts.get(AudioManagerScript.SoundEvent.ECHO_PEAK, 0) == 1, "FAIL 6: ECHO_PEAK fired exactly once")
 	assert(audio_mgr.event_counts.get(AudioManagerScript.SoundEvent.ECHO_TAIL, 0) == 1, "FAIL 6: ECHO_TAIL fired exactly once")
-	assert(current_pursuit_state == PursuitState.DISTURBANCE_ALERT, "FAIL 6: Disturbance alert triggered exactly once upon echo completion")
+	assert(current_pursuit_state == PursuitState.DISTURBANCE_ALERT, "FAIL 6: Pursuit state is DISTURBANCE_ALERT after echo completion")
+	var disturbance_count: int = int(audio_mgr.event_counts.get(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT, 0))
+	assert(disturbance_count == 1, "FAIL 6: DISTURBANCE_ALERT fired exactly once (got %d)" % disturbance_count)
+	print("  DISTURBANCE_ALERT_EXACT_COUNT: %d" % disturbance_count)
 
 	# Clean up echo and pursuit for next test
 	if echo_controller:
@@ -8708,9 +8789,11 @@ func _run_v8_m25_echo_radio_interference_assertions() -> void:
 	assert(_radio_owner == null, "FAIL 7: Radio owner cleared on forced dismount")
 	assert(audio_mgr._current_radio_duck_db <= -23.9, "FAIL 7: Critical -24 dB mix duck target authoritative on interception")
 
-	# Wait for 0.06s duck tween to reach target
-	await get_tree().create_timer(0.06).timeout
-	assert(audio_mgr.get_radio_duck() <= -23.9, "FAIL 7: Critical -24 dB mix duck reached after tween")
+	# Wait for 0.05s duck tween to reach target
+	var duck_wait := Time.get_ticks_msec()
+	while audio_mgr.is_radio_duck_tweening() and Time.get_ticks_msec() - duck_wait < 300:
+		await get_tree().process_frame
+	assert(audio_mgr.get_radio_duck() <= -23.9, "FAIL 7: Critical -24 dB mix duck reached after tween (got %.2f)" % audio_mgr.get_radio_duck())
 
 	# Clear pursuit to restore baseline
 	audio_mgr.clear_radio_duck()
