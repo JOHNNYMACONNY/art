@@ -420,6 +420,22 @@ const SLOTS: Dictionary = {
 		"replacement_required": true,
 		"description": "Memory echo resolution stinger and chord decay"
 	},
+	"echo.radio_interference": {
+		"slot_id": "echo.radio_interference",
+		"domain": Domain.ECHO,
+		"diegesis": Diegesis.HYBRID,
+		"spatial_type": SpatialType.HYBRID,
+		"mix_group": MixGroup.SIGNATURE_ECHO,
+		"playback_type": PlaybackType.CONTINUOUS_LOOP,
+		"is_looping": true,
+		"loop_start_sec": 0.0,
+		"loop_end_sec": 2.0,
+		"cooldown_msec": 0,
+		"max_concurrency": 1,
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"description": "Precursor memory echo hybrid radio interference texture"
+	},
 	"world.ambient_wind": {
 		"slot_id": "world.ambient_wind",
 		"domain": Domain.WORLD,

@@ -23,6 +23,7 @@ var _current_segment: Dictionary = {}
 
 var _lifecycle_volume_db: float = 0.0
 var _duck_volume_db: float = 0.0
+var _contamination_volume_db: float = 0.0
 
 var _fade_tween: Tween = null
 var _fade_generation: int = 0
@@ -82,7 +83,7 @@ func get_playback_position() -> float:
 	return 0.0
 
 # -----------------------------------------------------------------------------
-# DUAL-LAYER GAIN COMPOSITION (LIFECYCLE FADE + MIX DUCKING)
+# THREE-LAYER GAIN COMPOSITION (LIFECYCLE FADE + MIX DUCKING + HYBRID CONTAMINATION)
 # -----------------------------------------------------------------------------
 
 func _update_composed_volume() -> void:
@@ -90,7 +91,7 @@ func _update_composed_volume() -> void:
 		if _lifecycle_volume_db <= -70.0:
 			_player.volume_db = -80.0
 		else:
-			_player.volume_db = clampf(_lifecycle_volume_db + _duck_volume_db, -80.0, 6.0)
+			_player.volume_db = clampf(_lifecycle_volume_db + _duck_volume_db + _contamination_volume_db, -80.0, 6.0)
 
 func get_lifecycle_volume_db() -> float:
 	return _lifecycle_volume_db
@@ -98,10 +99,13 @@ func get_lifecycle_volume_db() -> float:
 func get_duck_volume_db() -> float:
 	return _duck_volume_db
 
+func get_contamination_volume_db() -> float:
+	return _contamination_volume_db
+
 func get_composed_volume_db() -> float:
 	if _lifecycle_volume_db <= -70.0:
 		return -80.0
-	return clampf(_lifecycle_volume_db + _duck_volume_db, -80.0, 6.0)
+	return clampf(_lifecycle_volume_db + _duck_volume_db + _contamination_volume_db, -80.0, 6.0)
 
 func _set_lifecycle_volume_db(vol: float) -> void:
 	_lifecycle_volume_db = vol
@@ -109,6 +113,10 @@ func _set_lifecycle_volume_db(vol: float) -> void:
 
 func _set_duck_volume_db(vol: float) -> void:
 	_duck_volume_db = vol
+	_update_composed_volume()
+
+func set_contamination_volume_db(vol: float) -> void:
+	_contamination_volume_db = vol
 	_update_composed_volume()
 
 func _cancel_radio_fade() -> void:

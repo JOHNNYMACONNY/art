@@ -92,6 +92,15 @@ var _decay_initial_pressure: float = 0.0
 var _current_radio_duck_db: float = 0.0
 var _decay_initial_duck_db: float = 0.0
 
+# M25: Precursor Echo Hybrid Radio Interference Tracking
+var _radio_interference_player: AudioStreamPlayer3D = null
+var _radio_interference_stream: AudioStreamWAV = null
+var _radio_interference_intensity: float = 0.0
+var _current_contamination_duck_db: float = 0.0
+
+const INTERFERENCE_OUTER_RADIUS: float = 18.0
+const INTERFERENCE_INNER_RADIUS: float = 3.0
+
 # Minimum interval between duplicate transient events (throttling)
 const EVENT_COOLDOWNS_MSEC: Dictionary = {
 	SoundEvent.FOOTSTEP: 120,
@@ -131,6 +140,8 @@ func _ready() -> void:
 	_siren_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_tension_stream = _create_harmonic_drone_wav(110.0, 220.0, 1.0, 0.35)
 	_tension_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_radio_interference_stream = _create_fractured_carrier_wav(1.0, 0.3)
+	_radio_interference_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	
 	_hum_player = AudioStreamPlayer3D.new()
 	_hum_player.name = "ProximityHumPlayer"
@@ -175,6 +186,16 @@ func _ready() -> void:
 	_echo_voice.bus = &"Master"
 	_echo_voice.volume_db = 0.0
 	add_child(_echo_voice)
+
+	## M25: Precursor Echo Hybrid Radio Interference 3D player
+	_radio_interference_player = AudioStreamPlayer3D.new()
+	_radio_interference_player.name = "RadioInterferencePlayer3D"
+	_radio_interference_player.bus = &"Master"
+	_radio_interference_player.unit_size = 8.0
+	_radio_interference_player.max_distance = 25.0
+	_radio_interference_player.stream = _radio_interference_stream
+	_radio_interference_player.volume_db = -80.0
+	add_child(_radio_interference_player)
 
 func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 	var now := Time.get_ticks_msec()
@@ -428,6 +449,12 @@ func reset_audio_instant() -> void:
 		_echo_voice.stop()
 		_echo_voice.volume_db = 0.0
 
+	## M25: kill interference player cleanly on instant reset
+	if _radio_interference_player:
+		_radio_interference_player.stop()
+		_radio_interference_player.volume_db = -80.0
+	clear_radio_interference()
+
 	# Kill and free all active 2D reference transients
 	for p2d in _active_2d_transients:
 		if is_instance_valid(p2d):
@@ -461,8 +488,70 @@ func get_radio_player() -> Node:
 	if not _radio_player:
 		_radio_player = RadioProgramPlayerScript.new(get_radio_director())
 		_radio_player.set_duck_volume_db(_current_radio_duck_db, 0.0)
+		_radio_player.set_contamination_volume_db(_current_contamination_duck_db)
 		add_child(_radio_player)
 	return _radio_player
+
+## M25: Update Precursor Echo Hybrid Radio Interference
+func update_radio_interference(source_pos: Vector3, vehicle_pos: Vector3, eligible: bool = true) -> void:
+	if not eligible:
+		clear_radio_interference()
+		return
+		
+	var dist: float = vehicle_pos.distance_to(source_pos)
+	if dist >= INTERFERENCE_OUTER_RADIUS:
+		clear_radio_interference()
+		return
+		
+	var intensity: float = clampf((INTERFERENCE_OUTER_RADIUS - dist) / (INTERFERENCE_OUTER_RADIUS - INTERFERENCE_INNER_RADIUS), 0.0, 1.0)
+	_radio_interference_intensity = intensity
+	
+	if _radio_interference_player:
+		_radio_interference_player.global_position = source_pos
+		var base_vol: float = lerpf(-30.0, -12.0, intensity)
+		
+		# Attenuate directional 3D voice under pursuit/disturbance/interception pressure
+		if _current_radio_duck_db <= -20.0:
+			# Critical interception: suppress completely
+			base_vol = -80.0
+		elif _current_pursuit_pressure > 0.0:
+			base_vol += lerpf(0.0, -18.0, _current_pursuit_pressure)
+		elif current_mix_state == MixState.DISTURBANCE:
+			base_vol += -12.0
+		elif current_mix_state == MixState.MEMORY_ECHO:
+			base_vol = -80.0
+			
+		_radio_interference_player.volume_db = base_vol
+		if base_vol > -70.0:
+			if not _radio_interference_player.playing:
+				_radio_interference_player.play()
+		else:
+			if _radio_interference_player.playing:
+				_radio_interference_player.stop()
+
+	# Radio contamination gain (maps 0.0 -> 0.0 dB, 1.0 -> -4.0 dB)
+	var contamination_db: float = lerpf(0.0, -4.0, intensity)
+	_current_contamination_duck_db = contamination_db
+	if _radio_player and _radio_player.has_method("set_contamination_volume_db"):
+		_radio_player.set_contamination_volume_db(contamination_db)
+
+func clear_radio_interference() -> void:
+	_radio_interference_intensity = 0.0
+	_current_contamination_duck_db = 0.0
+	if _radio_interference_player and _radio_interference_player.playing:
+		_radio_interference_player.stop()
+		_radio_interference_player.volume_db = -80.0
+	if _radio_player and _radio_player.has_method("set_contamination_volume_db"):
+		_radio_player.set_contamination_volume_db(0.0)
+
+func get_radio_interference_intensity() -> float:
+	return _radio_interference_intensity
+
+func get_radio_contamination_db() -> float:
+	return _current_contamination_duck_db
+
+func get_radio_interference_player() -> AudioStreamPlayer3D:
+	return _radio_interference_player
 
 func is_radio_playing() -> bool:
 	return _radio_player.is_playing() if _radio_player else false
@@ -842,6 +931,32 @@ func _create_echo_tail_wav() -> AudioStreamWAV:
 		var sig := (sin(2.0 * PI * 3400.0 * t) * 0.6
 			+ sin(2.0 * PI * 5100.0 * t) * 0.25
 			+ (randf() * 2.0 - 1.0) * 0.1) * env * 0.45
+		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
+## M25: Precursor Echo hybrid radio interference procedural texture (~1.0s loop)
+## Unstable reclaimed-radio carrier with subtle amplitude/frequency flutter
+## and fracture grain — distinct from white noise or tonal hum.
+func _create_fractured_carrier_wav(duration: float = 1.0, volume: float = 0.3) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	var sample_count := int(22050 * duration)
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		# Subtle carrier with gentle flutter
+		var f1 := 175.0 + 3.0 * sin(2.0 * PI * 4.0 * t)
+		var carrier := sin(2.0 * PI * f1 * t) * 0.45 + sin(2.0 * PI * (f1 * 1.5) * t) * 0.25
+		# Fracture grain modulation
+		var flutter := 0.7 + 0.3 * sin(2.0 * PI * 8.0 * t)
+		var crackle := (randf() * 2.0 - 1.0) * 0.12
+		var sig := (carrier * flutter + crackle) * volume
 		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
 	wav.data = data
 	return wav

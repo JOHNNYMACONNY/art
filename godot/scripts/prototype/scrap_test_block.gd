@@ -299,6 +299,8 @@ func _ready() -> void:
 		_run_v8_m23_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-m24-radio-mix-assertions") or OS.get_cmdline_user_args().has("--run-v8-m24-assertions"):
 		_run_v8_m24_assertions()
+	elif OS.get_cmdline_user_args().has("--run-v8-m25-echo-radio-interference-assertions") or OS.get_cmdline_user_args().has("--run-v8-m25-assertions"):
+		_run_v8_m25_echo_radio_interference_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-readability") or OS.get_cmdline_user_args().has("--run-v8-assertions"):
 		_run_v8_dynamic_readability()
 
@@ -335,6 +337,7 @@ func _process(delta: float) -> void:
 			if is_instance_valid(actor) and actor.has_method("check_proximity_threat"):
 				actor.check_proximity_threat(active_entity.global_position, active_entity.velocity)
 			
+	_process_radio_interference()
 	_process_pursuit_loop(delta)
 		
 	if status_label:
@@ -344,6 +347,24 @@ func _process(delta: float) -> void:
 			Engine.get_frames_per_second(),
 			1000.0 / max(Engine.get_frames_per_second(), 1)
 		]
+
+func _process_radio_interference() -> void:
+	if not audio_mgr:
+		return
+	var active_veh: Node3D = _get_active_vehicle()
+	var is_eligible: bool = (
+		current_world_state == WorldLoopState.PANEL_POWERED
+		and corroded_panel != null
+		and active_veh != null
+		and _radio_owner == active_veh
+		and is_radio_enabled()
+		and audio_mgr.get_radio_player() != null
+		and not audio_mgr.get_radio_player().is_paused()
+	)
+	if is_eligible and corroded_panel:
+		audio_mgr.update_radio_interference(corroded_panel.global_position, active_veh.global_position, true)
+	else:
+		audio_mgr.clear_radio_interference()
 
 func _process_pursuit_loop(delta: float) -> void:
 	if current_pursuit_state == PursuitState.PURSUIT_ACTIVE and pursuer and pursuer.is_active:
@@ -909,6 +930,8 @@ func _on_extraction_step_changed(step_name: String) -> void:
 				audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
 
 func _on_extraction_completed() -> void:
+	if audio_mgr:
+		audio_mgr.clear_radio_interference()
 	_extracted_count += 1
 	current_world_state = WorldLoopState.CORE_EXTRACTED
 	print("[WORLD_LOOP] MICRO-PLAY LOOP COMPLETE! Core extracted.")
@@ -8393,5 +8416,324 @@ func _run_v8_m24_assertions() -> void:
 
 	print("\n=========================================================================")
 	print("[ALL V8 M24 DYNAMIC RADIO MIX DUCKING ASSERTIONS (1-11) PASSED 100% GREEN!]")
+	print("=========================================================================\n")
+	get_tree().quit(0)
+
+func _run_v8_m25_echo_radio_interference_assertions() -> void:
+	print("\n=========================================================================")
+	print("[RUNNING V8 M25 FIRST HYBRID ECHO/RADIO INTERFERENCE TRACER (#25)]")
+	print("=========================================================================\n")
+
+	# ASSERTION 1: Eligibility Invariants (Cold, Radio OFF, Foot, Outside Radius)
+	print("[ASSERTION 1] Testing Eligibility Invariants (Cold Start, Radio OFF, On Foot, Outside Radius)...")
+	reset_slice()
+	await get_tree().process_frame
+	
+	# Cold start: world state != PANEL_POWERED (CALM / SEARCHING)
+	assert(current_world_state != WorldLoopState.PANEL_POWERED, "FAIL 1: Cold start state is not PANEL_POWERED")
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL 1: Cold start interference intensity is 0.0")
+	assert(is_equal_approx(audio_mgr.get_radio_contamination_db(), 0.0), "FAIL 1: Cold start contamination gain is 0.0 dB")
+	assert(audio_mgr.get_radio_interference_player().playing == false, "FAIL 1: 3D interference player stopped on cold start")
+
+	# Power panel but keep radio OFF
+	current_world_state = WorldLoopState.PANEL_POWERED
+	if is_radio_enabled():
+		_on_radio_toggle_pressed() # Turn OFF
+	_process_radio_interference()
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL 1: Radio OFF produces zero interference")
+	assert(audio_mgr.get_radio_interference_player().playing == false, "FAIL 1: 3D interference player stopped when radio OFF")
+
+	# Turn radio ON, but player is on foot
+	_on_radio_toggle_pressed() # Turn ON
+	assert(is_radio_enabled() == true, "FAIL 1: Radio is enabled")
+	assert(_get_active_vehicle() == null, "FAIL 1: Player is on foot")
+	_process_radio_interference()
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL 1: On-foot produces zero interference")
+	assert(audio_mgr.get_radio_interference_player().playing == false, "FAIL 1: 3D player stopped on foot")
+
+	# Mount bike with radio playing, but place vehicle outside outer radius (25m)
+	_on_bike_mounted(player)
+	courier_bike.global_position = corroded_panel.global_position + Vector3(25.0, 0.0, 0.0)
+	_process_radio_interference()
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL 1: Outside 18m radius produces zero interference")
+	assert(audio_mgr.get_radio_interference_player().playing == false, "FAIL 1: 3D player stopped outside 18m")
+	print("  -> Assertion 1 PASS: Eligibility invariants (cold, radio OFF, on foot, outside radius) verified!")
+
+	# ASSERTION 2: Approach & Monotonic Intensity / Directional Voice Scaling
+	print("\n[ASSERTION 2] Testing Approach & Monotonic Intensity / Directional Voice Scaling...")
+	# 1. Approach from 18m down to 3m
+	var distances: Array[float] = [18.0, 15.0, 12.0, 9.0, 6.0, 3.0, 1.5]
+	var prev_intensity: float = -0.01
+	var prev_cont_gain: float = 0.01
+	var prev_3d_vol: float = -100.0
+
+	for d in distances:
+		courier_bike.global_position = corroded_panel.global_position + Vector3(d, 0.0, 0.0)
+		_process_radio_interference()
+		var intensity: float = audio_mgr.get_radio_interference_intensity()
+		var cont_gain: float = audio_mgr.get_radio_contamination_db()
+		var p3d: AudioStreamPlayer3D = audio_mgr.get_radio_interference_player()
+		
+		# Intensity monotonic rise
+		assert(intensity >= prev_intensity - 0.001, "FAIL 2: Intensity must monotonically increase on approach (d=%.1f, cur=%.3f, prev=%.3f)" % [d, intensity, prev_intensity])
+		# Contamination gain monotonic fall (more negative)
+		assert(cont_gain <= prev_cont_gain + 0.001, "FAIL 2: Contamination gain must monotonically decrease (d=%.1f, cur=%.2f, prev=%.2f)" % [d, cont_gain, prev_cont_gain])
+		
+		if d < 18.0:
+			assert(p3d.playing == true, "FAIL 2: 3D player playing inside radius (d=%.1f)" % d)
+			assert(p3d.volume_db >= prev_3d_vol - 0.01, "FAIL 2: 3D voice volume must monotonically increase on approach (d=%.1f, cur=%.2f, prev=%.2f)" % [d, p3d.volume_db, prev_3d_vol])
+			prev_3d_vol = p3d.volume_db
+			
+		prev_intensity = intensity
+		prev_cont_gain = cont_gain
+
+	# At <= 3m: bounded to 1.0 intensity and -4.0 dB contamination
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 1.0), "FAIL 2: Max intensity at <= 3m is bounded to 1.0 (got %.3f)" % audio_mgr.get_radio_interference_intensity())
+	assert(is_equal_approx(audio_mgr.get_radio_contamination_db(), -4.0), "FAIL 2: Max contamination gain is bounded to -4.0 dB (got %.2f)" % audio_mgr.get_radio_contamination_db())
+	assert(is_equal_approx(audio_mgr.get_radio_interference_player().volume_db, -12.0), "FAIL 2: Max 3D volume is bounded to -12.0 dB (got %.2f)" % audio_mgr.get_radio_interference_player().volume_db)
+
+	# 2. Retreat from 3m back to 20m
+	var retreat_distances: Array[float] = [3.0, 6.0, 10.0, 14.0, 17.5, 19.0]
+	var prev_ret_intensity: float = 1.01
+	for d in retreat_distances:
+		courier_bike.global_position = corroded_panel.global_position + Vector3(d, 0.0, 0.0)
+		_process_radio_interference()
+		var ret_intensity: float = audio_mgr.get_radio_interference_intensity()
+		assert(ret_intensity <= prev_ret_intensity + 0.001, "FAIL 2: Intensity must monotonically decrease on retreat (d=%.1f, cur=%.3f, prev=%.3f)" % [d, ret_intensity, prev_ret_intensity])
+		prev_ret_intensity = ret_intensity
+
+	# At 19m: cleanly 0.0
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL 2: Intensity is 0.0 beyond 18m")
+	assert(is_equal_approx(audio_mgr.get_radio_contamination_db(), 0.0), "FAIL 2: Contamination gain is 0.0 dB beyond 18m")
+	assert(audio_mgr.get_radio_interference_player().playing == false, "FAIL 2: 3D player stopped beyond 18m")
+	print("  -> Assertion 2 PASS: Monotonic approach scaling and retreat recovery verified!")
+
+	# ASSERTION 3: Spatial Source & Directional Authority
+	print("\n[ASSERTION 3] Testing Spatial Source & Directional Authority...")
+	var p3d_inst = audio_mgr.get_radio_interference_player()
+	assert(p3d_inst is AudioStreamPlayer3D, "FAIL 3: Interference player must be AudioStreamPlayer3D")
+	courier_bike.global_position = corroded_panel.global_position + Vector3(5.0, 0.0, 0.0)
+	_process_radio_interference()
+	assert(p3d_inst.global_position.is_equal_approx(corroded_panel.global_position), "FAIL 3: 3D player position matches CorrodedPanel global_position")
+	print("  -> Assertion 3 PASS: Spatial 3D source and directional positioning verified!")
+
+	# ASSERTION 4: Radio Program Continuity Lock (Zero Mutation)
+	print("\n[ASSERTION 4] Testing Radio Program Continuity Lock (Zero Program Mutation)...")
+	var r_player = audio_mgr.get_radio_player()
+	var pre_station = r_player._director.get_station_id()
+	var pre_content = r_player.get_current_item().get("content_id", "")
+	var pre_segment = r_player.get_current_segment_index()
+	var pre_cursor = r_player.get_playback_position()
+
+	# Drive into max interference and hold for 60 frames
+	courier_bike.global_position = corroded_panel.global_position + Vector3(2.5, 0.0, 0.0)
+	for fr in range(60):
+		_process_radio_interference()
+		await get_tree().process_frame
+
+	assert(r_player._director.get_station_id() == pre_station, "FAIL 4: Station ID unchanged during interference")
+	assert(r_player.get_current_item().get("content_id", "") == pre_content, "FAIL 4: Content ID unchanged during interference")
+	assert(r_player.get_current_segment_index() == pre_segment, "FAIL 4: Segment index unchanged during interference")
+	assert(r_player.get_playback_position() >= pre_cursor, "FAIL 4: Cursor advanced naturally forward")
+	
+	# Retreat out
+	courier_bike.global_position = corroded_panel.global_position + Vector3(22.0, 0.0, 0.0)
+	_process_radio_interference()
+	await get_tree().process_frame
+	assert(r_player._director.get_station_id() == pre_station, "FAIL 4: Station ID unchanged after exit")
+	assert(r_player.get_current_item().get("content_id", "") == pre_content, "FAIL 4: Content ID unchanged after exit")
+	print("  -> Assertion 4 PASS: Radio program continuity lock verified (zero mutation)!")
+
+	# ASSERTION 5: Multi-Vehicle Parity & Single-Voice Continuity (Courier Bike <-> Scrap Hauler)
+	print("\n[ASSERTION 5] Testing Multi-Vehicle Parity & Single-Voice Continuity...")
+	courier_bike.global_position = corroded_panel.global_position + Vector3(8.0, 0.0, 0.0)
+	_process_radio_interference()
+	var bike_intensity = audio_mgr.get_radio_interference_intensity()
+	assert(bike_intensity > 0.60 and bike_intensity < 0.75, "FAIL 5: Bike intensity at 8m is valid (~0.667)")
+
+	# Dismount Bike
+	_on_bike_dismounted()
+	_process_radio_interference()
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL 5: Dismount immediately clears interference")
+	assert(_radio_owner == null, "FAIL 5: Radio owner cleared on dismount")
+
+	# Mount Scrap Hauler at 8m
+	scrap_hauler.global_position = corroded_panel.global_position + Vector3(8.0, 0.0, 0.0)
+	_on_hauler_mounted(player)
+	_process_radio_interference()
+	var hauler_intensity = audio_mgr.get_radio_interference_intensity()
+	assert(is_equal_approx(hauler_intensity, bike_intensity), "FAIL 5: Hauler mounts with exact distance-matching intensity (got %.3f, exp %.3f)" % [hauler_intensity, bike_intensity])
+	assert(audio_mgr.get_radio_interference_player().playing == true, "FAIL 5: Interference player resumed for Hauler")
+
+	# Single-player authority count
+	var p3d_count: int = 0
+	for c in audio_mgr.get_children():
+		if c is AudioStreamPlayer3D and c.name.begins_with("RadioInterference"):
+			p3d_count += 1
+	assert(p3d_count == 1, "FAIL 5: Exactly 1 RadioInterferencePlayer3D authority")
+	print("  -> Assertion 5 PASS: Bike <-> Hauler multi-vehicle parity and single-voice continuity verified!")
+
+	# ASSERTION 6: Extraction -> M04 Memory Echo Authority Handoff
+	print("\n[ASSERTION 6] Testing Extraction -> M04 Memory Echo Authority Handoff...")
+	scrap_hauler.global_position = corroded_panel.global_position + Vector3(3.0, 0.0, 0.0)
+	_process_radio_interference()
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 1.0), "FAIL 6: Interference at 1.0 prior to extraction")
+	assert(audio_mgr.get_radio_interference_player().playing == true, "FAIL 6: 3D player playing before extraction")
+
+	# Trigger Extraction Completion
+	audio_mgr.event_counts.clear()
+	_on_extraction_completed()
+	await get_tree().process_frame
+
+	assert(current_world_state == WorldLoopState.CORE_EXTRACTED, "FAIL 6: World transitioned to CORE_EXTRACTED")
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL 6: Precursor interference cleared on extraction")
+	assert(is_equal_approx(audio_mgr.get_radio_contamination_db(), 0.0), "FAIL 6: Contamination gain cleared to 0 dB on extraction")
+	assert(audio_mgr.get_radio_interference_player().playing == false, "FAIL 6: 3D player stopped on extraction")
+	assert(audio_mgr.event_counts.get(AudioManagerScript.SoundEvent.ECHO_ONSET, 0) == 1, "FAIL 6: ECHO_ONSET fired exactly once by M04")
+	if echo_controller:
+		echo_controller.reset_echo()
+	print("  -> Assertion 6 PASS: Extraction cleanly clears precursor interference and hands off to M04!")
+
+	# ASSERTION 7: Pursuit & Interception Hierarchy Dominance
+	print("\n[ASSERTION 7] Testing Pursuit & Interception Hierarchy Dominance...")
+	audio_mgr.reset_audio_instant()
+	await get_tree().process_frame
+	current_world_state = WorldLoopState.PANEL_POWERED
+	_on_bike_mounted(player)
+	courier_bike.global_position = corroded_panel.global_position + Vector3(5.0, 0.0, 0.0)
+	_process_radio_interference()
+	var pre_pursuit_3d_vol = audio_mgr.get_radio_interference_player().volume_db
+
+	# Pursuit pressure engaged
+	audio_mgr.set_pursuit_pressure(10.0, Vector3.ZERO)
+	_process_radio_interference()
+	var pursuit_3d_vol = audio_mgr.get_radio_interference_player().volume_db
+	assert(pursuit_3d_vol < pre_pursuit_3d_vol, "FAIL 7: 3D interference voice attenuated under pursuit pressure (cur=%.2f, pre=%.2f)" % [pursuit_3d_vol, pre_pursuit_3d_vol])
+
+	# Interception overrides completely
+	audio_mgr.set_radio_duck(-24.0, 0.0)
+	_process_radio_interference()
+	assert(audio_mgr.get_radio_interference_player().playing == false or audio_mgr.get_radio_interference_player().volume_db <= -70.0, "FAIL 7: 3D interference voice suppressed under critical interception")
+	assert(is_equal_approx(audio_mgr.get_radio_duck(), -24.0), "FAIL 7: Radio duck is critical -24 dB")
+
+	# Clear pursuit to restore baseline
+	audio_mgr.clear_radio_duck()
+	audio_mgr.clear_pursuit_pressure()
+	print("  -> Assertion 7 PASS: Pursuit attenuation and critical interception dominance verified!")
+
+	# ASSERTION 8: Replay / Reset Determinism & 12-Cycle Stress (0 Leaks)
+	print("\n[ASSERTION 8] Testing Replay / Reset Determinism & 12-Cycle Stress (0 Leaks)...")
+	# 1. Reset from dirty state
+	current_world_state = WorldLoopState.PANEL_POWERED
+	_on_bike_mounted(player)
+	courier_bike.global_position = corroded_panel.global_position + Vector3(3.0, 0.0, 0.0)
+	_process_radio_interference()
+	assert(audio_mgr.get_radio_interference_player().playing == true, "FAIL 8: Dirty state active before reset")
+
+	reset_slice()
+	await get_tree().process_frame
+	assert(is_equal_approx(audio_mgr.get_radio_interference_intensity(), 0.0), "FAIL 8: Intensity reset to 0.0 on replay")
+	assert(is_equal_approx(audio_mgr.get_radio_contamination_db(), 0.0), "FAIL 8: Contamination reset to 0 dB on replay")
+	assert(audio_mgr.get_radio_interference_player().playing == false, "FAIL 8: 3D player stopped on replay")
+
+	# 2. 12 Rapid approach/retreat/mount/dismount cycles
+	for cycle in range(12):
+		current_world_state = WorldLoopState.PANEL_POWERED
+		_on_bike_mounted(player)
+		courier_bike.global_position = corroded_panel.global_position + Vector3(float(cycle % 15) + 2.0, 0.0, 0.0)
+		_process_radio_interference()
+		_on_bike_dismounted()
+		_process_radio_interference()
+		_on_hauler_mounted(player)
+		scrap_hauler.global_position = corroded_panel.global_position + Vector3(float(cycle % 10) + 1.0, 0.0, 0.0)
+		_process_radio_interference()
+		_on_hauler_dismounted()
+		_process_radio_interference()
+	await get_tree().process_frame
+
+	var r_players: int = 0
+	var r_streams: int = 0
+	var int_players: int = 0
+	for child in audio_mgr.get_children():
+		if child is AudioStreamPlayer and child.name.begins_with("RadioAudioStreamPlayer"):
+			r_streams += 1
+		for subchild in child.get_children():
+			if subchild is AudioStreamPlayer and subchild.name.begins_with("RadioAudioStreamPlayer"):
+				r_streams += 1
+		if child is AudioStreamPlayer3D and child.name.begins_with("RadioInterference"):
+			int_players += 1
+	if audio_mgr.get_radio_player() != null:
+		r_players += 1
+
+	assert(r_players == 1, "FAIL 8: Exactly 1 RadioProgramPlayer authority")
+	assert(r_streams == 1, "FAIL 8: Exactly 1 RadioAudioStreamPlayer authority")
+	assert(int_players == 1, "FAIL 8: Exactly 1 RadioInterferencePlayer3D authority")
+	print("  -> Assertion 8 PASS: Reset determinism and zero node leaks verified across 12 stress cycles!")
+
+	# ASSERTION 9: Semantic Registry & Procedural Fallback Integrity
+	print("\n[ASSERTION 9] Testing Semantic Registry & Procedural Fallback Integrity...")
+	var slot_meta = AudioRegistryScript.get_slot("echo.radio_interference")
+	assert(not slot_meta.is_empty(), "FAIL 9: echo.radio_interference slot exists in registry")
+	assert(slot_meta["domain"] == AudioRegistryScript.Domain.ECHO, "FAIL 9: Domain is ECHO")
+	assert(slot_meta["diegesis"] == AudioRegistryScript.Diegesis.HYBRID, "FAIL 9: Diegesis is HYBRID")
+	assert(slot_meta["spatial_type"] == AudioRegistryScript.SpatialType.HYBRID, "FAIL 9: SpatialType is HYBRID")
+	assert(slot_meta["mix_group"] == AudioRegistryScript.MixGroup.SIGNATURE_ECHO, "FAIL 9: MixGroup is SIGNATURE_ECHO")
+	assert(slot_meta["playback_type"] == AudioRegistryScript.PlaybackType.CONTINUOUS_LOOP, "FAIL 9: PlaybackType is CONTINUOUS_LOOP")
+	assert(slot_meta["asset_status"] == AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK, "FAIL 9: AssetStatus is PROCEDURAL_FALLBACK")
+	assert(slot_meta["replacement_required"] == true, "FAIL 9: Replacement required is true")
+
+	var stream = audio_mgr._radio_interference_stream
+	assert(stream != null, "FAIL 9: Procedural stream synthesized")
+	assert(stream.format == AudioStreamWAV.FORMAT_8_BITS, "FAIL 9: Stream format is 8-bit")
+	assert(stream.mix_rate == 22050, "FAIL 9: Stream mix rate is 22050")
+	assert(stream.loop_mode == AudioStreamWAV.LOOP_FORWARD, "FAIL 9: Stream is loopable")
+	print("  -> Assertion 9 PASS: Semantic slot registry metadata and procedural fallback integrity verified!")
+
+	# ASSERTION 10: Actual Multi-Stream Concurrent Playback Proof
+	print("\n[ASSERTION 10] Testing Actual Multi-Stream Concurrent Playback Proof...")
+	current_world_state = WorldLoopState.PANEL_POWERED
+	_on_bike_mounted(player)
+	courier_bike.global_position = corroded_panel.global_position + Vector3(6.0, 0.0, 0.0)
+	courier_bike.current_speed = 7.0
+	audio_mgr.set_engine_audio(0.5, courier_bike.global_position)
+	var p_rad = audio_mgr.get_radio_player()
+	if p_rad:
+		p_rad._cancel_radio_fade()
+		p_rad._set_lifecycle_volume_db(0.0)
+	_process_radio_interference()
+	await get_tree().process_frame
+
+	var p_eng = audio_mgr._engine_player
+	var p_int = audio_mgr.get_radio_interference_player()
+
+	assert(p_rad != null and not p_rad.is_paused(), "FAIL 10: Radio active")
+	assert(p_eng != null and p_eng.playing == true, "FAIL 10: Engine rev playing")
+	assert(p_int != null and p_int.playing == true, "FAIL 10: Interference 3D player playing")
+
+	var intensity_10 = audio_mgr.get_radio_interference_intensity()
+	var cont_10 = p_rad.get_contamination_volume_db()
+	var comp_10 = p_rad.get_composed_volume_db()
+	var int_vol_10 = p_int.volume_db
+
+	print("  [CONCURRENT PLAYBACK METRICS]")
+	print("    Radio Playing: %s | Lifecycle: %.2f dB | Duck: %.2f dB | Contamination: %.2f dB | Composed: %.2f dB" % [
+		not p_rad.is_paused(), p_rad.get_lifecycle_volume_db(), p_rad.get_duck_volume_db(), cont_10, comp_10
+	])
+	print("    Engine Playing: %s | Speed Ratio: 0.50 | Position: %s" % [p_eng.playing, courier_bike.global_position])
+	print("    Interference 3D Playing: %s | Intensity: %.3f | Volume: %.2f dB | Position: %s" % [
+		p_int.playing, intensity_10, int_vol_10, p_int.global_position
+	])
+
+	assert(intensity_10 > 0.70 and intensity_10 < 0.90, "FAIL 10: Valid intensity at 6m (~0.80)")
+	assert(cont_10 < -2.5 and cont_10 > -3.8, "FAIL 10: Valid contamination gain at 6m (~-3.2 dB)")
+	assert(comp_10 < -2.5 and comp_10 > -3.8, "FAIL 10: Valid composed volume at 6m (~-3.2 dB)")
+	assert(int_vol_10 > -20.0 and int_vol_10 < -13.0, "FAIL 10: Valid 3D volume at 6m (~-15.6 dB)")
+
+	_on_bike_dismounted()
+	_process_radio_interference()
+	print("  -> Assertion 10 PASS: Multi-stream concurrent playback verified!")
+
+	print("\n=========================================================================")
+	print("[ALL V8 M25 FIRST HYBRID ECHO/RADIO INTERFERENCE ASSERTIONS (1-10) PASSED 100% GREEN!]")
 	print("=========================================================================\n")
 	get_tree().quit(0)
