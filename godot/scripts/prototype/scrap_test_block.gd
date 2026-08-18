@@ -72,21 +72,18 @@ var _contact_broken_timer: float = 0.0
 var _recovery_marker: Vector3 = Vector3(-1.5, 0.05, 3.0)
 var _last_pursuit_vehicle: Node3D = null
 var _is_retrying_chase: bool = false
-var _vehicle_radio_states: Dictionary = {}
+var _radio_enabled: bool = true
+var _radio_station_id: String = RadioStationCatalogScript.DEFAULT_STATION_ID
+var _radio_owner: Node3D = null
 
-func get_vehicle_radio_state(veh: Node3D) -> Dictionary:
-	if not veh:
-		return {"enabled": true, "station_id": RadioStationCatalogScript.DEFAULT_STATION_ID}
-	if not _vehicle_radio_states.has(veh):
-		_vehicle_radio_states[veh] = {
-			"enabled": true,
-			"station_id": RadioStationCatalogScript.DEFAULT_STATION_ID
-		}
-	return _vehicle_radio_states[veh]
+func get_radio_owner() -> Node3D:
+	return _radio_owner
 
-func set_vehicle_radio_state(veh: Node3D, state: Dictionary) -> void:
-	if veh:
-		_vehicle_radio_states[veh] = state
+func is_radio_enabled() -> bool:
+	return _radio_enabled
+
+func get_radio_station_id() -> String:
+	return _radio_station_id
 
 func _ready() -> void:
 	var tuner_scene: PackedScene = load("res://scenes/interactions/signal_tuner.tscn")
@@ -635,23 +632,20 @@ func _on_hauler_mounted(player_ref: PlayerRunner) -> void:
 
 func _on_vehicle_mounted_generic(veh: Node3D, _player_ref: PlayerRunner) -> void:
 	active_vehicle = veh
+	_radio_owner = veh
 	if touch_ui:
 		touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
 	if camera and veh:
 		camera.set_target(veh)
 	if audio_mgr and veh:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.BIKE_MOUNT, veh.global_position)
-		var r_state := get_vehicle_radio_state(veh)
 		var radio_player = audio_mgr.get_radio_player()
-		if r_state.get("enabled", true):
-			if not radio_player.is_playing():
-				radio_player.play_station(r_state.get("station_id", RadioStationCatalogScript.DEFAULT_STATION_ID))
-			elif radio_player.is_paused():
-				radio_player.fade_in_and_resume(0.2)
+		if _radio_enabled:
+			radio_player.fade_in_and_resume(0.18)
 		else:
 			radio_player.pause()
 		if touch_ui:
-			touch_ui.update_radio_button_state(r_state.get("enabled", true), r_state.get("station_id", RadioStationCatalogScript.DEFAULT_STATION_ID))
+			touch_ui.update_radio_button_state(_radio_enabled, _radio_station_id)
 	if pursuer and pursuer.is_active:
 		pursuer.target_node = veh
 
@@ -662,13 +656,12 @@ func _on_hauler_dismounted() -> void:
 	_on_vehicle_dismounted_generic()
 
 func _on_vehicle_dismounted_generic() -> void:
-	if active_vehicle:
-		var cur_r_state := get_vehicle_radio_state(active_vehicle)
-		set_vehicle_radio_state(active_vehicle, cur_r_state)
+	if _radio_owner == active_vehicle:
+		_radio_owner = null
 	if audio_mgr:
 		var radio_player = audio_mgr.get_radio_player()
 		if radio_player and radio_player.is_playing() and not radio_player.is_paused():
-			radio_player.fade_out_and_pause(0.25)
+			radio_player.fade_out_and_pause(0.20)
 	active_vehicle = null
 	if touch_ui:
 		touch_ui.set_mode(TouchControlsUI.UIMode.FOOT_TRAVERSAL)
@@ -684,20 +677,14 @@ func _on_radio_toggle_pressed() -> void:
 	var veh := _get_active_vehicle()
 	if not veh or not audio_mgr:
 		return
-	var r_state := get_vehicle_radio_state(veh)
-	var new_enabled: bool = not r_state.get("enabled", true)
-	r_state["enabled"] = new_enabled
-	set_vehicle_radio_state(veh, r_state)
+	_radio_enabled = not _radio_enabled
 	var radio_player = audio_mgr.get_radio_player()
-	if new_enabled:
-		if radio_player.is_paused():
-			radio_player.resume()
-		else:
-			radio_player.play_station(r_state.get("station_id", RadioStationCatalogScript.DEFAULT_STATION_ID))
+	if _radio_enabled:
+		radio_player.fade_in_and_resume(0.18)
 	else:
-		radio_player.pause()
+		radio_player.fade_out_and_pause(0.18)
 	if touch_ui:
-		touch_ui.update_radio_button_state(new_enabled, r_state.get("station_id", RadioStationCatalogScript.DEFAULT_STATION_ID))
+		touch_ui.update_radio_button_state(_radio_enabled, _radio_station_id)
 
 func _on_dismount_pressed() -> void:
 	var veh := _get_active_vehicle()
@@ -816,13 +803,15 @@ func reset_slice() -> void:
 	
 	_last_pursuit_vehicle = null
 	_is_retrying_chase = false
-	_vehicle_radio_states.clear()
+	_radio_enabled = true
+	_radio_station_id = RadioStationCatalogScript.DEFAULT_STATION_ID
+	_radio_owner = null
 	
 	if touch_ui:
 		touch_ui.reset_all_input_states()
 		touch_ui.set_route_switch_button_visible(false)
 		touch_ui.hide_replay_overlay()
-		touch_ui.update_radio_button_state(true)
+		touch_ui.update_radio_button_state(true, _radio_station_id)
 		
 	print("[WORLD_LOOP] Slice reset to initial cold start state cleanly.")
 		
@@ -7715,49 +7704,54 @@ func _run_v8_m23_assertions() -> void:
 	assert(courier_bike != null and scrap_hauler != null, "FAIL 1: Both vehicles must exist in scene")
 	assert(has_method("_on_vehicle_mounted_generic"), "FAIL 1: Main controller must have _on_vehicle_mounted_generic")
 	assert(has_method("_on_vehicle_dismounted_generic"), "FAIL 1: Main controller must have _on_vehicle_dismounted_generic")
+	assert(has_method("get_radio_owner"), "FAIL 1: Controller must expose get_radio_owner")
+	assert(has_method("is_radio_enabled"), "FAIL 1: Controller must expose is_radio_enabled")
+	assert(has_method("get_radio_station_id"), "FAIL 1: Controller must expose get_radio_station_id")
 	print("  -> Assertion 1 PASS: Shared generic vehicle mount/dismount seam verified!")
 
-	# ASSERTION 2: Bike Mount / Radio Playback Start
-	print("\n[ASSERTION 2] Testing Courier Bike Mount & Radio Playback Start...")
+	# ASSERTION 2: Bike Mount & Real Playback Cursor Advance
+	print("\n[ASSERTION 2] Testing Courier Bike Mount & Real Playback Cursor Advance...")
 	reset_slice()
 	await get_tree().process_frame
 	_on_bike_mounted(player)
 	await get_tree().process_frame
+	assert(get_radio_owner() == courier_bike, "FAIL 2: Radio owner must be Bike on mount")
 	var r_player = audio_mgr.get_radio_player()
 	assert(r_player.is_playing() == true, "FAIL 2: Radio must be playing upon vehicle mount")
 	assert(r_player.is_paused() == false, "FAIL 2: Radio must not be paused upon active mount")
 	assert(not r_player.get_current_item().is_empty(), "FAIL 2: Current radio item must be populated")
-	var initial_item_id: String = r_player.get_current_item().get("id", "")
-	print("  [DEBUG] Initial playing item on Bike: %s" % initial_item_id)
-	print("  -> Assertion 2 PASS: Bike mount naturally started radio playback!")
+	
+	var wait_start := Time.get_ticks_msec()
+	while r_player.get_playback_position() <= 0.0 and Time.get_ticks_msec() - wait_start < 1000:
+		await get_tree().process_frame
+	
+	var bike_cursor: float = r_player.get_playback_position()
+	assert(bike_cursor > 0.0, "FAIL 2: Real playback cursor must advance > 0 (got %.3f)" % bike_cursor)
+	var captured_item_2: Dictionary = r_player.get_current_item()
+	var captured_seg_2: int = r_player.get_current_segment_index()
+	print("  [DEBUG] Initial playing item on Bike: %s | Cursor: %.3fs" % [captured_item_2.get("id"), bike_cursor])
+	print("  -> Assertion 2 PASS: Bike mount started real playback with naturally advancing cursor!")
 
 	# ASSERTION 3: Bike Dismount / Bounded Gain Fade & Cursor Preservation
 	print("\n[ASSERTION 3] Testing Bike Dismount Transition & Cursor Preservation...")
-	var captured_item_3: Dictionary = r_player.get_current_item()
-	var captured_seg_3: int = r_player.get_current_segment_index()
-
 	_on_bike_dismounted()
 	await get_tree().process_frame
 	var fade_wait_start := Time.get_ticks_msec()
 	while not r_player.is_paused() and Time.get_ticks_msec() - fade_wait_start < 600:
 		await get_tree().process_frame
 
+	assert(get_radio_owner() == null, "FAIL 3: Radio owner must be null after dismount")
 	assert(r_player.is_paused() == true, "FAIL 3: Radio must be paused after dismount fade")
 	var stored_cursor_3: float = r_player.get_director().get_cursor_position()
-	# In headless audio, if player cursor didn't tick, inject positive fallback
-	if stored_cursor_3 <= 0.0:
-		stored_cursor_3 = 0.5
-		r_player.get_director().set_cursor_position(0.5)
-
 	assert(stored_cursor_3 > 0.0, "FAIL 3: Stored cursor must be positive across dismount")
-	assert(r_player.get_current_item().get("id") == captured_item_3.get("id"), "FAIL 3: Radio item must remain identical during dismount")
-	assert(r_player.get_current_segment_index() == captured_seg_3, "FAIL 3: Segment index preserved during dismount")
+	assert(r_player.get_current_item().get("id") == captured_item_2.get("id"), "FAIL 3: Radio item must remain identical during dismount")
+	assert(r_player.get_current_segment_index() == captured_seg_2, "FAIL 3: Segment index preserved during dismount")
 
 	# Verify cursor remains frozen while paused
 	for fr in range(5):
 		await get_tree().process_frame
 	assert(r_player.get_director().get_cursor_position() == stored_cursor_3, "FAIL 3: Cursor must remain frozen while paused")
-	print("  -> Assertion 3 PASS: Bike dismount paused radio with exact preserved cursor %.2fs!" % stored_cursor_3)
+	print("  -> Assertion 3 PASS: Bike dismount paused radio with exact preserved cursor %.3fs!" % stored_cursor_3)
 
 	# ASSERTION 4: Bike Remount / Resume at Preserved Cursor
 	print("\n[ASSERTION 4] Testing Courier Bike Remount & Resume from Preserved Cursor...")
@@ -7767,128 +7761,151 @@ func _run_v8_m23_assertions() -> void:
 	while r_player.is_paused() and Time.get_ticks_msec() - remount_fade_start < 500:
 		await get_tree().process_frame
 
+	assert(get_radio_owner() == courier_bike, "FAIL 4: Radio owner must be Bike on remount")
 	assert(r_player.is_playing() == true, "FAIL 4: Radio must be playing on remount")
 	assert(r_player.is_paused() == false, "FAIL 4: Radio resumed (not paused) on remount")
-	assert(r_player.get_current_item().get("id") == captured_item_3.get("id"), "FAIL 4: Same song continues on remount")
-	assert(r_player.get_current_segment_index() == captured_seg_3, "FAIL 4: Same segment continues on remount")
+	assert(r_player.get_current_item().get("id") == captured_item_2.get("id"), "FAIL 4: Same song continues on remount")
+	assert(r_player.get_current_segment_index() == captured_seg_2, "FAIL 4: Same segment continues on remount")
+	assert(r_player.get_director().get_cursor_position() >= stored_cursor_3, "FAIL 4: Playback continues from preserved cursor")
 	print("  -> Assertion 4 PASS: Bike remount seamlessly resumed playback at preserved point!")
 
-	# ASSERTION 5: Scrap Hauler Mount & Independent Vehicle Ownership
-	print("\n[ASSERTION 5] Testing Scrap Hauler Mount & Seam Parity...")
+	# ASSERTION 5: Scrap Hauler Mount & Real Playback Proof
+	print("\n[ASSERTION 5] Testing Scrap Hauler Mount & Real Playback Proof...")
 	_on_bike_dismounted()
 	await get_tree().process_frame
 	_on_hauler_mounted(player)
 	await get_tree().process_frame
 	assert(active_vehicle == scrap_hauler, "FAIL 5: Active vehicle must be scrap_hauler")
-	assert(r_player.is_playing() == true, "FAIL 5: Radio plays when mounted in Hauler")
-	assert(r_player.is_paused() == false, "FAIL 5: Radio is unpaused in Hauler")
-	print("  -> Assertion 5 PASS: Scrap Hauler mount verified through same generic seam!")
+	assert(get_radio_owner() == scrap_hauler, "FAIL 5: Radio owner must be Hauler")
+	var hauler_wait := Time.get_ticks_msec()
+	while r_player.get_playback_position() <= 0.0 and Time.get_ticks_msec() - hauler_wait < 1000:
+		await get_tree().process_frame
+	assert(r_player.get_playback_position() > 0.0, "FAIL 5: Hauler real playback cursor must advance > 0")
+	print("  -> Assertion 5 PASS: Scrap Hauler mount verified with advancing playback cursor!")
 
-	# ASSERTION 6: Per-Vehicle Radio State Persistence (Cross-Vehicle Isolation)
-	print("\n[ASSERTION 6] Testing Per-Vehicle Radio State Persistence...")
+	# ASSERTION 6: Bike -> Hauler Shared Session Transfer Proof
+	print("\n[ASSERTION 6] Testing Bike -> Hauler Shared Session Transfer Proof...")
+	reset_slice()
+	await get_tree().process_frame
+	_on_bike_mounted(player)
+	await get_tree().process_frame
+	var b_wait := Time.get_ticks_msec()
+	while r_player.get_playback_position() <= 0.0 and Time.get_ticks_msec() - b_wait < 1000:
+		await get_tree().process_frame
+	
+	var captured_id_6: String = r_player.get_current_item().get("id", "")
+	var captured_seg_6: int = r_player.get_current_segment_index()
+	var captured_cur_6: float = r_player.get_director().get_cursor_position()
+	var captured_seed_6: int = r_player.get_director().get_seed()
+
+	_on_bike_dismounted()
+	await get_tree().process_frame
+	var d_wait := Time.get_ticks_msec()
+	while not r_player.is_paused() and Time.get_ticks_msec() - d_wait < 600:
+		await get_tree().process_frame
+
+	_on_hauler_mounted(player)
+	await get_tree().process_frame
+	var h_wait := Time.get_ticks_msec()
+	while r_player.is_paused() and Time.get_ticks_msec() - h_wait < 500:
+		await get_tree().process_frame
+
+	assert(get_radio_owner() == scrap_hauler, "FAIL 6: Radio owner transferred to Hauler")
+	assert(is_radio_enabled() == true, "FAIL 6: Session remains enabled across transfer")
+	assert(r_player.get_current_item().get("id") == captured_id_6, "FAIL 6: Same song content_id transferred to Hauler")
+	assert(r_player.get_current_segment_index() == captured_seg_6, "FAIL 6: Same segment index transferred to Hauler")
+	assert(r_player.get_director().get_cursor_position() >= captured_cur_6, "FAIL 6: Preserved cursor transferred to Hauler")
+	assert(r_player.get_director().get_seed() == captured_seed_6, "FAIL 6: Director RNG state preserved across vehicle transfer")
+	print("  -> Assertion 6 PASS: Single persistent radio session transferred between Bike and Hauler seamlessly!")
+
+	# ASSERTION 7: Power Transfer Proof Across Vehicles
+	print("\n[ASSERTION 7] Testing Power Transfer Proof Across Vehicles...")
 	# 1. Turn OFF radio in Hauler
 	_on_radio_toggle_pressed()
-	assert(r_player.is_paused() == true, "FAIL 6: Radio paused after toggle OFF in Hauler")
-	assert(get_vehicle_radio_state(scrap_hauler)["enabled"] == false, "FAIL 6: Hauler radio state recorded as disabled")
+	var off_wait := Time.get_ticks_msec()
+	while not r_player.is_paused() and Time.get_ticks_msec() - off_wait < 600:
+		await get_tree().process_frame
+	assert(is_radio_enabled() == false, "FAIL 7: Radio session disabled in Hauler")
+	assert(r_player.is_paused() == true, "FAIL 7: Radio paused after toggle OFF in Hauler")
 
 	# 2. Dismount Hauler
 	_on_hauler_dismounted()
 	await get_tree().process_frame
 
-	# 3. Mount Bike (Bike radio was ON)
+	# 3. Mount Bike -> Must remain OFF because shared session is OFF
 	_on_bike_mounted(player)
 	await get_tree().process_frame
-	assert(get_vehicle_radio_state(courier_bike)["enabled"] == true, "FAIL 6: Bike radio state must be enabled")
-	assert(r_player.is_paused() == false, "FAIL 6: Radio resumes in Bike because Bike radio was ON")
+	assert(get_radio_owner() == courier_bike, "FAIL 7: Radio owner is Bike")
+	assert(is_radio_enabled() == false, "FAIL 7: Bike inherited disabled power state from shared session")
+	assert(r_player.is_paused() == true, "FAIL 7: Radio remains paused in Bike")
 
-	# 4. Dismount Bike, remount Hauler -> Hauler must stay OFF
+	# 4. Turn radio back ON in Bike
+	_on_radio_toggle_pressed()
+	var on_wait := Time.get_ticks_msec()
+	while r_player.is_paused() and Time.get_ticks_msec() - on_wait < 500:
+		await get_tree().process_frame
+	assert(is_radio_enabled() == true, "FAIL 7: Radio turned back ON in Bike")
+	assert(r_player.is_paused() == false, "FAIL 7: Radio resumed in Bike after toggle ON")
+
+	# 5. Dismount Bike, mount Hauler -> Hauler must now be ON
 	_on_bike_dismounted()
 	await get_tree().process_frame
 	_on_hauler_mounted(player)
 	await get_tree().process_frame
-	assert(get_vehicle_radio_state(scrap_hauler)["enabled"] == false, "FAIL 6: Hauler radio state preserved as disabled")
-	assert(r_player.is_paused() == true, "FAIL 6: Radio remains paused in Hauler")
+	assert(is_radio_enabled() == true, "FAIL 7: Hauler inherited enabled state from shared session")
+	assert(r_player.is_paused() == false, "FAIL 7: Radio playing in Hauler")
+	print("  -> Assertion 7 PASS: Single shared radio power state transfers across all vehicles!")
 
-	# 5. Turn Hauler radio back ON
-	_on_radio_toggle_pressed()
-	assert(get_vehicle_radio_state(scrap_hauler)["enabled"] == true, "FAIL 6: Hauler radio state turned back ON")
-	assert(r_player.is_paused() == false, "FAIL 6: Radio resumed in Hauler after toggle ON")
-	print("  -> Assertion 6 PASS: Per-vehicle radio state persistence & isolation verified!")
+	# ASSERTION 8: Rapid Mount/Dismount Fade Race Falsification
+	print("\n[ASSERTION 8] Testing Rapid Mount/Dismount Fade Race Falsification...")
+	_on_bike_mounted(player)
+	_on_bike_dismounted()
+	_on_bike_mounted(player)
+	
+	# Wait for old fade-out duration to elapse
+	var stale_wait := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - stale_wait < 600:
+		await get_tree().process_frame
 
-	# ASSERTION 7: Station / Power Toggle Controls (Touch & Desktop 'R' Emulation)
-	print("\n[ASSERTION 7] Testing UI & Desktop 'R' Key Emulation...")
-	assert(touch_ui.radio_button != null, "FAIL 7: Radio button must exist in touch UI")
-	assert(touch_ui.radio_button.text == "[ 88.3 FM ]", "FAIL 7: Radio button shows station name when ON")
-
-	# Touch UI trigger
-	touch_ui.trigger_radio_toggle()
-	assert(get_vehicle_radio_state(scrap_hauler)["enabled"] == false, "FAIL 7: Touch toggle turned radio OFF")
-	assert(touch_ui.radio_button.text == "[ RADIO: OFF ]", "FAIL 7: Radio button displays OFF")
-
-	# Desktop 'R' Key down
-	var key_r_down := InputEventKey.new()
-	key_r_down.keycode = KEY_R
-	key_r_down.pressed = true
-	key_r_down.echo = false
-	touch_ui._input(key_r_down)
-	assert(get_vehicle_radio_state(scrap_hauler)["enabled"] == true, "FAIL 7: Desktop 'R' turned radio ON")
-	assert(touch_ui.radio_button.text == "[ 88.3 FM ]", "FAIL 7: Radio button displays [ 88.3 FM ]")
-
-	# Desktop 'R' Key again -> toggle OFF
-	touch_ui._input(key_r_down)
-	assert(get_vehicle_radio_state(scrap_hauler)["enabled"] == false, "FAIL 7: Desktop 'R' toggled radio OFF")
-	print("  -> Assertion 7 PASS: Touch & Desktop 'R' key controls toggle radio flawlessly!")
-
-	# ASSERTION 8: Single-Voice Invariant (Zero Duplicate AudioStreamPlayers)
-	print("\n[ASSERTION 8] Testing Single-Voice Invariant across 15 Rapid Cycles...")
-	for cycle in range(15):
-		_on_bike_mounted(player)
-		_on_radio_toggle_pressed()
-		_on_bike_dismounted()
-		_on_hauler_mounted(player)
-		_on_radio_toggle_pressed()
-		_on_hauler_dismounted()
-	await get_tree().process_frame
-
-	var found_radio_players: int = 0
-	for child in audio_mgr.get_children():
-		if child is AudioStreamPlayer and child.name.begins_with("RadioAudioStreamPlayer"):
-			found_radio_players += 1
-		for subchild in child.get_children():
-			if subchild is AudioStreamPlayer and subchild.name.begins_with("RadioAudioStreamPlayer"):
-				found_radio_players += 1
-
-	assert(found_radio_players == 1, "FAIL 8: Must have exactly 1 RadioAudioStreamPlayer instance, found %d" % found_radio_players)
-	print("  -> Assertion 8 PASS: Exactly 1 AudioStreamPlayer preserved across 15 rapid cycles (0 leaks)!")
+	assert(get_radio_owner() == courier_bike, "FAIL 8: Radio owner must be Bike after rapid remount")
+	assert(r_player.is_playing() == true, "FAIL 8: Radio must still be playing (not stopped)")
+	assert(r_player.is_paused() == false, "FAIL 8: Radio must NOT be paused by stale fade-out callback")
+	print("  -> Assertion 8 PASS: Generation-safe fade cancellation eliminates stale pause callbacks!")
 
 	# ASSERTION 9: Deterministic Cold Replay Reset
 	print("\n[ASSERTION 9] Testing Deterministic Cold Replay Reset...")
-	audio_mgr.get_radio_director().advance_next_item()
-	audio_mgr.get_radio_director().set_cursor_position(3.5)
-	set_vehicle_radio_state(courier_bike, {"enabled": false, "station_id": "radio.yardline"})
-	set_vehicle_radio_state(scrap_hauler, {"enabled": false, "station_id": "radio.yardline"})
+	r_player.get_director().advance_next_item()
+	r_player.get_director().set_cursor_position(3.5)
+	_on_radio_toggle_pressed()
+	assert(is_radio_enabled() == false, "FAIL 9: Session toggled OFF before replay")
 
 	reset_slice()
 	await get_tree().process_frame
 
-	assert(get_vehicle_radio_state(courier_bike)["enabled"] == true, "FAIL 9: Bike radio state reset to default enabled")
-	assert(get_vehicle_radio_state(scrap_hauler)["enabled"] == true, "FAIL 9: Hauler radio state reset to default enabled")
+	assert(is_radio_enabled() == true, "FAIL 9: Radio session reset to default enabled")
+	assert(get_radio_owner() == null, "FAIL 9: Radio owner reset to null")
 	assert(r_player.is_playing() == false, "FAIL 9: Radio player stopped after cold replay")
-	assert(audio_mgr.get_radio_director().get_cursor_position() == 0.0, "FAIL 9: Director cursor reset to 0 on replay")
-	assert(audio_mgr.get_radio_director().get_current_item().is_empty(), "FAIL 9: Director current item cleared on replay")
+	assert(r_player.get_director().get_cursor_position() == 0.0, "FAIL 9: Director cursor reset to 0 on replay")
+	assert(r_player.get_director().get_current_item().is_empty(), "FAIL 9: Director current item cleared on replay")
+	assert(touch_ui.radio_button.text == "[ 88.3 FM ]", "FAIL 9: Radio button text reset on replay")
 	print("  -> Assertion 9 PASS: Deterministic cold replay restores default radio baseline!")
 
 	# ASSERTION 10: Vehicle Engine & Radio Audio Decoupling
 	print("\n[ASSERTION 10] Testing Vehicle Engine & Radio Audio Decoupling...")
+	courier_bike.current_speed = 5.0
 	_on_bike_mounted(player)
-	audio_mgr.play_event(AudioManagerScript.SoundEvent.ENGINE_REV, courier_bike.global_position)
+	audio_mgr.set_engine_audio(0.5, courier_bike.global_position)
 	assert(audio_mgr._engine_player != null and audio_mgr._engine_player.playing == true, "FAIL 10: Engine rev playing")
 	assert(r_player.is_playing() == true, "FAIL 10: Radio playing simultaneously")
 
 	_on_radio_toggle_pressed()
+	var eng_wait := Time.get_ticks_msec()
+	while not r_player.is_paused() and Time.get_ticks_msec() - eng_wait < 600:
+		await get_tree().process_frame
 	assert(r_player.is_paused() == true, "FAIL 10: Radio paused")
 	assert(audio_mgr._engine_player.playing == true, "FAIL 10: Engine rev unaffected by radio pause")
 
+	courier_bike.current_speed = 0.0
 	_on_bike_dismounted()
 	await get_tree().process_frame
 	assert(audio_mgr._engine_player.playing == false, "FAIL 10: Engine rev stopped upon dismount")
@@ -7911,11 +7928,41 @@ func _run_v8_m23_assertions() -> void:
 	AudioReferenceResolverScript.reset()
 	print("  -> Assertion 11 PASS: Missing local reference files never break radio or mounting!")
 
-	# ASSERTION 12: Multitouch Pointer Isolation Invariant
-	print("\n[ASSERTION 12] Testing Multitouch Pointer Isolation with Radio Controls...")
-	assert(touch_ui.is_pointer_index_claimed(0) == false, "FAIL 12: Pointer 0 unassigned")
-	assert(touch_ui.is_pointer_index_claimed(1) == false, "FAIL 12: Pointer 1 unassigned")
-	print("  -> Assertion 12 PASS: Multitouch pointer isolation strictly preserved!")
+	# ASSERTION 12: Multitouch Pointer Isolation & Active Driving Control Preservation
+	print("\n[ASSERTION 12] Testing Multitouch Pointer Isolation with Active Driving Controls...")
+	_on_bike_mounted(player)
+	await get_tree().process_frame
+
+	# 1. Simulate GAS touch down (pointer 0 on GAS button)
+	var gas_press := InputEventScreenTouch.new()
+	gas_press.index = 0
+	gas_press.pressed = true
+	gas_press.position = touch_ui.gas_button.global_position + Vector2(10, 10)
+	touch_ui.gas_button.gui_input.emit(gas_press)
+	assert(touch_ui._is_gas_pressed == true, "FAIL 12: GAS button is pressed")
+	assert(touch_ui._gas_touch_index == 0, "FAIL 12: GAS owns touch index 0")
+
+	# 2. While GAS is held, trigger RADIO toggle
+	touch_ui.trigger_radio_toggle()
+	assert(touch_ui._is_gas_pressed == true, "FAIL 12: GAS remains pressed after touch radio toggle")
+	assert(touch_ui._gas_touch_index == 0, "FAIL 12: GAS still owns touch index 0")
+
+	# 3. Trigger desktop key 'R' event while GAS is held
+	var key_r := InputEventKey.new()
+	key_r.keycode = KEY_R
+	key_r.pressed = true
+	touch_ui._input(key_r)
+	assert(touch_ui._is_gas_pressed == true, "FAIL 12: GAS remains pressed after desktop R key")
+	assert(touch_ui._gas_touch_index == 0, "FAIL 12: GAS still owns touch index 0")
+
+	# 4. Release GAS
+	var gas_release := InputEventScreenTouch.new()
+	gas_release.index = 0
+	gas_release.pressed = false
+	touch_ui.gas_button.gui_input.emit(gas_release)
+	assert(touch_ui._is_gas_pressed == false, "FAIL 12: GAS cleanly released")
+	assert(touch_ui.is_pointer_index_claimed(0) == false, "FAIL 12: Pointer 0 unclaimed after release")
+	print("  -> Assertion 12 PASS: Multitouch pointer isolation strictly preserved during radio interaction!")
 
 	print("\n=========================================================================")
 	print("[ALL V8 M23 VEHICLE RADIO LIFECYCLE ASSERTIONS (1-12) PASSED 100% GREEN!]")

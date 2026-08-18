@@ -22,6 +22,7 @@ var _current_segment_index: int = 0
 var _current_segment: Dictionary = {}
 
 var _fade_tween: Tween = null
+var _fade_generation: int = 0
 
 func _init(director: RefCounted = null) -> void:
 	if director:
@@ -73,7 +74,14 @@ func get_playback_position() -> float:
 		return _director.get_cursor_position()
 	return 0.0
 
+func _cancel_radio_fade() -> void:
+	_fade_generation += 1
+	if _fade_tween and _fade_tween.is_valid():
+		_fade_tween.kill()
+		_fade_tween = null
+
 func play_station(station_id: String = RadioStationCatalogScript.DEFAULT_STATION_ID) -> void:
+	_cancel_radio_fade()
 	if _director.get_station_id() != station_id:
 		_director.set_station(station_id)
 		station_changed.emit(station_id)
@@ -150,6 +158,7 @@ func pause() -> void:
 	if not _is_playing or _is_paused:
 		return
 
+	_cancel_radio_fade()
 	_is_paused = true
 	var cur_pos := 0.0
 	if _player and _player.is_playing():
@@ -164,6 +173,7 @@ func resume() -> void:
 	if not _is_playing or not _is_paused:
 		return
 
+	_cancel_radio_fade()
 	_is_paused = false
 	_director.set_paused(false)
 
@@ -175,48 +185,52 @@ func resume() -> void:
 
 	playback_state_changed.emit(_is_playing, _is_paused)
 
-func fade_out_and_pause(duration: float = 0.25) -> void:
+func fade_out_and_pause(duration: float = 0.20) -> void:
 	if not _is_playing or _is_paused:
 		return
-	if _fade_tween and _fade_tween.is_valid():
-		_fade_tween.kill()
-		_fade_tween = null
+	_cancel_radio_fade()
+	var gen: int = _fade_generation
+	_ensure_player()
 	if is_inside_tree() and _player:
 		_fade_tween = create_tween()
 		if _fade_tween:
 			_fade_tween.tween_property(_player, "volume_db", -80.0, maxf(0.01, duration))
 			_fade_tween.tween_callback(func():
-				pause()
-				if _player:
-					_player.volume_db = 0.0
+				if _fade_generation == gen:
+					pause()
+					if _player:
+						_player.volume_db = 0.0
 			)
 			return
 	pause()
 	if _player:
 		_player.volume_db = 0.0
 
-func fade_in_and_resume(duration: float = 0.2) -> void:
-	if not _is_playing or not _is_paused:
-		return
-	if _fade_tween and _fade_tween.is_valid():
-		_fade_tween.kill()
-		_fade_tween = null
+func fade_in_and_resume(duration: float = 0.18) -> void:
+	_cancel_radio_fade()
+	var gen: int = _fade_generation
 	_ensure_player()
+	if not _is_playing:
+		play_station(_director.get_station_id() if _director else RadioStationCatalogScript.DEFAULT_STATION_ID)
+	elif _is_paused:
+		resume()
+
 	if _player:
 		_player.volume_db = -80.0
-	resume()
 	if is_inside_tree() and _player:
 		_fade_tween = create_tween()
 		if _fade_tween:
 			_fade_tween.tween_property(_player, "volume_db", 0.0, maxf(0.01, duration))
+			_fade_tween.tween_callback(func():
+				if _fade_generation == gen and _player:
+					_player.volume_db = 0.0
+			)
 			return
 	if _player:
 		_player.volume_db = 0.0
 
 func stop() -> void:
-	if _fade_tween and _fade_tween.is_valid():
-		_fade_tween.kill()
-		_fade_tween = null
+	_cancel_radio_fade()
 	_is_playing = false
 	_is_paused = false
 	_current_item = {}
