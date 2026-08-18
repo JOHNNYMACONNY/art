@@ -76,6 +76,18 @@ func notify_world_event(event_name: String) -> void:
 	if not _pending_world_events.has(event_name):
 		_pending_world_events.append(event_name)
 
+func queue_world_event(event_name: String) -> void:
+	notify_world_event(event_name)
+
+func get_pending_world_events() -> Array[String]:
+	return _pending_world_events.duplicate()
+
+func get_recent_songs() -> Array[String]:
+	return _song_history.duplicate()
+
+func get_recent_interstitials() -> Array[String]:
+	return _interstitial_history.duplicate()
+
 func get_current_item() -> Dictionary:
 	return _current_item
 
