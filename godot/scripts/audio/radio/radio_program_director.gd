@@ -99,7 +99,8 @@ func advance_next_item() -> Dictionary:
 		next_item = _pick_item_for_category(RadioStationCatalogScript.Category.SONG)
 
 	# 2. Check for pending reactive world events (event-driven priority content)
-	elif not _pending_world_events.is_empty():
+	# Rule: Cannot immediately repeat WORLD_REACTION after another WORLD_REACTION; preserve event in queue
+	elif not _pending_world_events.is_empty() and _last_category != RadioStationCatalogScript.Category.WORLD_REACTION:
 		var event_name: String = _pending_world_events.pop_front()
 		var world_items: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(
 			_station_id, RadioStationCatalogScript.Category.WORLD_REACTION)
