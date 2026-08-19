@@ -9,3 +9,7 @@ This directory contains the Godot 4.7 Desktop Golden Block prototype for evaluat
 - Police pursuit response
 - FB-13 Thrum & HS-7 Wavicle visual/audio FX
 - Desktop native Audio Engine comparison
+
+## Browser playtest
+
+GitHub Actions exports the project with the `Web Playtest` preset. The CI job builds an isolated WebGL/Compatibility copy, smoke-tests the generated static bundle, and uploads the browser-ready build as an artifact. The source project remains configured for its desktop Forward+ target.
