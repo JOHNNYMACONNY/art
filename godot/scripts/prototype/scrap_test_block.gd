@@ -326,18 +326,18 @@ func _process(delta: float) -> void:
 	if active_veh:
 		# Calculate keyboard driving inputs (WASD + Arrow keys + Space handbrake)
 		var kb_throttle: float = 0.0
-		if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+		if Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_UP) or Input.is_action_pressed("ui_up"):
 			kb_throttle += 1.0
-		if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+		if Input.is_physical_key_pressed(KEY_S) or Input.is_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_DOWN) or Input.is_action_pressed("ui_down"):
 			kb_throttle -= 1.0
 
 		var kb_steer: float = 0.0
-		if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+		if Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_RIGHT) or Input.is_action_pressed("ui_right"):
 			kb_steer += 1.0
-		if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+		if Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_LEFT) or Input.is_action_pressed("ui_left"):
 			kb_steer -= 1.0
 
-		var kb_handbrake: bool = Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_SHIFT)
+		var kb_handbrake: bool = Input.is_physical_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_SPACE) or Input.is_physical_key_pressed(KEY_SHIFT) or Input.is_key_pressed(KEY_SHIFT) or Input.is_action_pressed("ui_select")
 
 		var net_throttle: float = kb_throttle if abs(kb_throttle) > 0.0 else _throttle_input
 		var net_steer: float = kb_steer if abs(kb_steer) > 0.0 else _steer_input
@@ -8942,79 +8942,119 @@ func _run_v8_m25_echo_radio_interference_assertions() -> void:
 
 func _run_v8_desktop_controls_assertions() -> void:
 	print("\n=========================================================================")
-	print("[RUNNING V8 DESKTOP CONTROLS & INPUT OWNERSHIP SUITE (#29)]")
+	print("[RUNNING HARDENED V8 DESKTOP CONTROLS & INPUT OWNERSHIP SUITE (#29)]")
 	print("=========================================================================\n")
 
-	# ASSERTION 1: WASD On-Foot Screen/Camera-Relative Mapping (45-deg Yaw)
-	print("[ASSERTION 1] Testing WASD On-Foot Camera-Relative Direction Mapping...")
+	var _inject_key = func(k: Key, pressed: bool) -> void:
+		var ev := InputEventKey.new()
+		ev.physical_keycode = k
+		ev.keycode = k
+		ev.pressed = pressed
+		ev.echo = false
+		Input.parse_input_event(ev)
+		Input.flush_buffered_events()
+		if k == KEY_W or k == KEY_UP:
+			if pressed: Input.action_press("ui_up") else: Input.action_release("ui_up")
+		elif k == KEY_S or k == KEY_DOWN:
+			if pressed: Input.action_press("ui_down") else: Input.action_release("ui_down")
+		elif k == KEY_A or k == KEY_LEFT:
+			if pressed: Input.action_press("ui_left") else: Input.action_release("ui_left")
+		elif k == KEY_D or k == KEY_RIGHT:
+			if pressed: Input.action_press("ui_right") else: Input.action_release("ui_right")
+		elif k == KEY_SPACE or k == KEY_SHIFT:
+			if pressed: Input.action_press("ui_select") else: Input.action_release("ui_select")
+
+	# ASSERTION 1: WASD On-Foot Screen/Camera-Relative Mapping via Real Input Polling
+	print("[ASSERTION 1] Testing WASD On-Foot Camera-Relative Direction via Real Key Polling...")
 	reset_slice()
 	await get_tree().process_frame
+	player.global_position = Vector3(0, 0, 0)
 
 	var yaw_rad := deg_to_rad(45.0)
 	var exp_forward := Vector3(-sin(yaw_rad), 0.0, -cos(yaw_rad)).normalized()
 	var exp_right := Vector3(cos(yaw_rad), 0.0, -sin(yaw_rad)).normalized()
 
-	# W alone -> input_dir Vector2(0, -1) -> move_dir -exp_forward
-	var w_input := Vector2(0, -1)
-	var w_move_dir := (exp_right * w_input.x + exp_forward * w_input.y).normalized()
-	assert(w_move_dir.is_equal_approx(-exp_forward), "FAIL 1: W must produce -forward camera-relative direction")
+	# W alone -> feeds into player._physics_process -> velocity in -exp_forward
+	_inject_key.call(KEY_W, true)
+	player.velocity = Vector3.ZERO
+	player._physics_process(0.1)
+	assert(player.velocity.length() > 0.0, "FAIL 1: Real W key poll must accelerate runner")
+	assert(player.velocity.normalized().is_equal_approx(-exp_forward), "FAIL 1: W must produce -forward camera-relative direction")
+	_inject_key.call(KEY_W, false)
 
-	# S alone -> input_dir Vector2(0, 1) -> move_dir +exp_forward
-	var s_input := Vector2(0, 1)
-	var s_move_dir := (exp_right * s_input.x + exp_forward * s_input.y).normalized()
-	assert(s_move_dir.is_equal_approx(exp_forward), "FAIL 1: S must produce +forward camera-relative direction")
+	# S alone -> feeds into player._physics_process -> velocity in +exp_forward
+	_inject_key.call(KEY_S, true)
+	player.velocity = Vector3.ZERO
+	player._physics_process(0.1)
+	assert(player.velocity.length() > 0.0, "FAIL 1: Real S key poll must accelerate runner")
+	assert(player.velocity.normalized().is_equal_approx(exp_forward), "FAIL 1: S must produce +forward camera-relative direction")
+	_inject_key.call(KEY_S, false)
 
-	# A alone -> input_dir Vector2(-1, 0) -> move_dir -exp_right
-	var a_input := Vector2(-1, 0)
-	var a_move_dir := (exp_right * a_input.x + exp_forward * a_input.y).normalized()
-	assert(a_move_dir.is_equal_approx(-exp_right), "FAIL 1: A must produce -right camera-relative direction")
+	# A alone -> feeds into player._physics_process -> velocity in -exp_right
+	_inject_key.call(KEY_A, true)
+	player.velocity = Vector3.ZERO
+	player._physics_process(0.1)
+	assert(player.velocity.length() > 0.0, "FAIL 1: Real A key poll must accelerate runner")
+	assert(player.velocity.normalized().is_equal_approx(-exp_right), "FAIL 1: A must produce -right camera-relative direction")
+	_inject_key.call(KEY_A, false)
 
-	# D alone -> input_dir Vector2(1, 0) -> move_dir +exp_right
-	var d_input := Vector2(1, 0)
-	var d_move_dir := (exp_right * d_input.x + exp_forward * d_input.y).normalized()
-	assert(d_move_dir.is_equal_approx(exp_right), "FAIL 1: D must produce +right camera-relative direction")
-	print("  -> Assertion 1 PASS: WASD 45-deg camera-relative on-foot mapping verified!")
+	# D alone -> feeds into player._physics_process -> velocity in +exp_right
+	_inject_key.call(KEY_D, true)
+	player.velocity = Vector3.ZERO
+	player._physics_process(0.1)
+	assert(player.velocity.length() > 0.0, "FAIL 1: Real D key poll must accelerate runner")
+	assert(player.velocity.normalized().is_equal_approx(exp_right), "FAIL 1: D must produce +right camera-relative direction")
+	_inject_key.call(KEY_D, false)
+	print("  -> Assertion 1 PASS: WASD 45-deg camera-relative on-foot mapping verified via real key input!")
 
-	# ASSERTION 2: Diagonal Normalized Magnitude (Length <= 1.0)
-	print("\n[ASSERTION 2] Testing Diagonal Input Normalization...")
-	var diagonals: Array[Vector2] = [
-		Vector2(1, -1), # W + D
-		Vector2(-1, -1), # W + A
-		Vector2(1, 1), # S + D
-		Vector2(-1, 1) # S + A
-	]
-	for diag in diagonals:
-		var norm_diag := diag.normalized()
-		assert(norm_diag.length() <= 1.0001, "FAIL 2: Diagonal normalized vector length must be <= 1.0")
-		assert(is_equal_approx(norm_diag.length(), 1.0), "FAIL 2: Diagonal normalized vector length must be 1.0")
-	print("  -> Assertion 2 PASS: Diagonal input normalization verified!")
+	# ASSERTION 2: Diagonal Normalized Magnitude via Real Input Polling
+	print("\n[ASSERTION 2] Testing Diagonal Input Normalization via Real Keys...")
+	_inject_key.call(KEY_W, true)
+	_inject_key.call(KEY_D, true)
+	player.velocity = Vector3.ZERO
+	player._physics_process(0.2)
+	assert(player.velocity.length() <= player.move_speed + 0.01, "FAIL 2: Diagonal speed must not exceed move_speed (got %.2f > %.2f)" % [player.velocity.length(), player.move_speed])
+	_inject_key.call(KEY_W, false)
+	_inject_key.call(KEY_D, false)
+	print("  -> Assertion 2 PASS: Diagonal input normalization verified via real keys!")
 
-	# ASSERTION 3: Opposite Key Cancellation (W+S -> 0, A+D -> 0)
-	print("\n[ASSERTION 3] Testing Opposite Key Cancellation...")
-	var ws_cancel := Vector2(0, 0) # W (+1) + S (-1)
-	assert(ws_cancel == Vector2.ZERO, "FAIL 3: W+S must produce net zero Y input")
-	var ad_cancel := Vector2(0, 0) # A (-1) + D (+1)
-	assert(ad_cancel == Vector2.ZERO, "FAIL 3: A+D must produce net zero X input")
-	print("  -> Assertion 3 PASS: Opposite key cancellation verified!")
+	# ASSERTION 3: Opposite Key Cancellation via Real Input Polling
+	print("\n[ASSERTION 3] Testing Opposite Key Cancellation via Real Keys...")
+	_inject_key.call(KEY_W, true)
+	_inject_key.call(KEY_S, true)
+	player.velocity = Vector3.ZERO
+	player._physics_process(0.1)
+	assert(player.velocity.is_zero_approx(), "FAIL 3: W+S pressed together must produce zero velocity")
+	_inject_key.call(KEY_W, false)
+	_inject_key.call(KEY_S, false)
+
+	_inject_key.call(KEY_A, true)
+	_inject_key.call(KEY_D, true)
+	player.velocity = Vector3.ZERO
+	player._physics_process(0.1)
+	assert(player.velocity.is_zero_approx(), "FAIL 3: A+D pressed together must produce zero velocity")
+	_inject_key.call(KEY_A, false)
+	_inject_key.call(KEY_D, false)
+	print("  -> Assertion 3 PASS: Opposite key cancellation verified via real keys!")
 
 	# ASSERTION 4: Mouse Click/Drag Rejection on Movement Joystick
 	print("\n[ASSERTION 4] Testing Mouse Click/Drag Does NOT Acquire Movement Joystick...")
 	touch_ui.set_mode(TouchControlsUI.UIMode.FOOT_TRAVERSAL)
 	touch_ui.reset_all_input_states()
 
-	# Send mouse button down on left touch area
 	var mouse_down := InputEventMouseButton.new()
+	mouse_down.device = 0 # Physical mouse
 	mouse_down.button_index = MOUSE_BUTTON_LEFT
 	mouse_down.pressed = true
 	mouse_down.position = Vector2(150.0, 250.0)
 	touch_ui._gui_input(mouse_down)
 
-	assert(touch_ui._joystick_active == false, "FAIL 4: Mouse click on screen MUST NOT activate movement joystick")
+	assert(touch_ui._joystick_active == false, "FAIL 4: Physical mouse click on screen MUST NOT activate movement joystick")
 	assert(touch_ui._current_joystick_vec == Vector2.ZERO, "FAIL 4: Mouse click MUST NOT set joystick vector")
 	assert(player.joystick_vector == Vector2.ZERO, "FAIL 4: Player joystick vector remains zero on mouse click")
 
-	# Send mouse motion drag
 	var mouse_motion := InputEventMouseMotion.new()
+	mouse_motion.device = 0
 	mouse_motion.position = Vector2(180.0, 250.0)
 	mouse_motion.relative = Vector2(30.0, 0.0)
 	touch_ui._gui_input(mouse_motion)
@@ -9034,14 +9074,15 @@ func _run_v8_desktop_controls_assertions() -> void:
 	var tuned_result: Array[float] = [0.0]
 	var tune_sub := touch_ui.tuner_dragged.connect(func(px: float): tuned_result[0] = px)
 
-	# Simulate mouse drag on tuner overlay
 	var mouse_tuner_down := InputEventMouseButton.new()
+	mouse_tuner_down.device = 0
 	mouse_tuner_down.button_index = MOUSE_BUTTON_LEFT
 	mouse_tuner_down.pressed = true
 	mouse_tuner_down.position = Vector2(480.0, 270.0)
 	touch_ui._gui_input(mouse_tuner_down)
 
 	var mouse_tuner_move := InputEventMouseMotion.new()
+	mouse_tuner_move.device = 0
 	mouse_tuner_move.position = Vector2(530.0, 270.0)
 	mouse_tuner_move.relative = Vector2(50.0, 0.0)
 	touch_ui._gui_input(mouse_tuner_move)
@@ -9052,219 +9093,220 @@ func _run_v8_desktop_controls_assertions() -> void:
 	assert(player.global_position.distance_to(pre_runner_pos) < 0.05, "FAIL 5: Runner position MUST NOT change during mouse tuner drag")
 	assert(player.velocity.is_zero_approx(), "FAIL 5: Runner velocity MUST remain zero during mouse tuner drag")
 
-	# Mouse release
 	var mouse_tuner_up := InputEventMouseButton.new()
+	mouse_tuner_up.device = 0
 	mouse_tuner_up.button_index = MOUSE_BUTTON_LEFT
 	mouse_tuner_up.pressed = false
 	touch_ui._input(mouse_tuner_up)
 	touch_ui.close_interaction_overlay()
 	print("  -> Assertion 5 PASS: Mouse gesture interaction isolated from runner locomotion!")
 
-	# ASSERTION 6: E Interaction Single-Fire & Context Action Dispatch
-	print("\n[ASSERTION 6] Testing E Key Single-Fire Context Action...")
+	# ASSERTION 6: E Interaction Single-Fire & Real Vehicle Mount
+	print("\n[ASSERTION 6] Testing E Key Single-Fire Context Action & Real Vehicle Mount...")
 	reset_slice()
 	await get_tree().process_frame
+
+	player.global_position = courier_bike.global_position + Vector3(0.5, 0.0, 0.5)
+	if courier_bike.mount_interactable:
+		courier_bike.mount_interactable.update_player_distance(player.global_position)
+	for item in _interactables:
+		if item:
+			item.update_player_distance(player.global_position)
+	_evaluate_target_selection()
 
 	var action_result: Array[int] = [0]
 	var action_sub := touch_ui.action_button_pressed.connect(func(): action_result[0] += 1)
 
-	# Send physical E key down
 	var key_e_down := InputEventKey.new()
+	key_e_down.physical_keycode = KEY_E
 	key_e_down.keycode = KEY_E
 	key_e_down.pressed = true
 	key_e_down.echo = false
 	touch_ui._input(key_e_down)
+	await get_tree().create_timer(0.35).timeout
 
 	assert(action_result[0] == 1, "FAIL 6: E key must emit action_button_pressed exactly once (got %d)" % action_result[0])
+	assert(courier_bike.occupant == player, "FAIL 6: Pressing E near bike must mount vehicle")
+	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL 6: Bike transitioned to DRIVING state")
+	assert(active_vehicle == courier_bike, "FAIL 6: active_vehicle set to mounted bike")
 
-	# Send key up (must NOT fire again)
 	var key_e_up := InputEventKey.new()
+	key_e_up.physical_keycode = KEY_E
 	key_e_up.keycode = KEY_E
 	key_e_up.pressed = false
 	touch_ui._input(key_e_up)
 
-	assert(action_result[0] == 1, "FAIL 6: E key release must NOT trigger action event")
+	assert(action_result[0] == 1, "FAIL 6: E key release must NOT trigger duplicate action")
 
-	# Echo key down (must NOT fire again)
 	var key_e_echo := InputEventKey.new()
+	key_e_echo.physical_keycode = KEY_E
 	key_e_echo.keycode = KEY_E
 	key_e_echo.pressed = true
 	key_e_echo.echo = true
 	touch_ui._input(key_e_echo)
 
-	assert(action_result[0] == 1, "FAIL 6: E key echo must NOT trigger duplicate action event")
-	print("  -> Assertion 6 PASS: E interaction single-fire verified!")
+	assert(action_result[0] == 1, "FAIL 6: E key echo must NOT trigger duplicate action")
+	print("  -> Assertion 6 PASS: E interaction single-fire and real mount verified!")
 
-	# ASSERTION 7: Courier Bike WASD Drive Mapping & Handling
-	print("\n[ASSERTION 7] Testing Courier Bike WASD Drive Mapping...")
-	reset_slice()
-	await get_tree().process_frame
-
-	courier_bike.occupant = player
-	courier_bike.current_state = CourierBike.BikeState.DRIVING
-	_on_bike_mounted(player)
-	assert(touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING if touch_ui else true, "FAIL 7: In driving mode after mount")
+	# ASSERTION 7: Courier Bike WASD Drive Mapping via Real Process Polling
+	print("\n[ASSERTION 7] Testing Courier Bike WASD Drive Mapping via Real Process Polling...")
 	assert(courier_bike.occupant == player, "FAIL 7: Courier bike mounted")
+	active_vehicle = courier_bike
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
 
-	# Forward throttle drive
-	courier_bike.set_drive_inputs(1.0, 0.0, 0.1, false)
-	assert(courier_bike.current_speed > 0.0, "FAIL 7: Throttle +1.0 accelerates bike forward")
+	_inject_key.call(KEY_W, true)
+	_process(0.1)
+	assert(courier_bike.current_speed > 0.0, "FAIL 7: Polling W key in _process must accelerate bike forward (got %.2f)" % courier_bike.current_speed)
+	_inject_key.call(KEY_W, false)
 
-	# Steering drive
-	courier_bike.set_drive_inputs(1.0, 1.0, 0.1, false)
-	assert(courier_bike.steering_angle > 0.0, "FAIL 7: Steer +1.0 turns steering angle")
+	_inject_key.call(KEY_D, true)
+	_process(0.1)
+	assert(courier_bike.steering_angle > 0.0, "FAIL 7: Polling D key in _process must steer bike right (got %.3f)" % courier_bike.steering_angle)
+	_inject_key.call(KEY_D, false)
+	print("  -> Assertion 7 PASS: Courier Bike WASD drive mapping verified via real process polling!")
 
-	courier_bike.occupant = null
-	courier_bike.current_state = CourierBike.BikeState.PARKED
+	# ASSERTION 8: Scrap Hauler Drive Input Parity via Real Process Polling
+	print("\n[ASSERTION 8] Testing Scrap Hauler Drive Parity via Real Process Polling...")
+	courier_bike.force_dismount()
 	_on_bike_dismounted()
-	print("  -> Assertion 7 PASS: Courier Bike WASD drive mapping verified!")
-
-	# ASSERTION 8: Scrap Hauler Parity
-	print("\n[ASSERTION 8] Testing Scrap Hauler Drive Input Parity...")
-	reset_slice()
-	await get_tree().process_frame
 
 	scrap_hauler.occupant = player
 	scrap_hauler.current_state = ScrapHaulerScript.VehicleState.DRIVING
 	_on_hauler_mounted(player)
-	assert(scrap_hauler.occupant == player, "FAIL 8: Scrap hauler mounted")
+	active_vehicle = scrap_hauler
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
 
-	scrap_hauler.set_drive_inputs(1.0, 0.0, 0.1, false)
-	assert(scrap_hauler.current_speed > 0.0, "FAIL 8: Hauler accelerates with throttle +1.0")
+	_inject_key.call(KEY_W, true)
+	_process(0.1)
+	assert(scrap_hauler.current_speed > 0.0, "FAIL 8: Polling W in _process must accelerate hauler (got %.2f)" % scrap_hauler.current_speed)
+	_inject_key.call(KEY_W, false)
 
-	scrap_hauler.set_drive_inputs(1.0, -1.0, 0.1, false)
-	assert(scrap_hauler.steering_angle < 0.0, "FAIL 8: Hauler steers left with steer -1.0")
+	_inject_key.call(KEY_A, true)
+	_process(0.1)
+	assert(scrap_hauler.steering_angle < 0.0, "FAIL 8: Polling A in _process must steer hauler left (got %.3f)" % scrap_hauler.steering_angle)
+	_inject_key.call(KEY_A, false)
 
-	scrap_hauler.occupant = null
-	scrap_hauler.current_state = ScrapHaulerScript.VehicleState.PARKED
+	scrap_hauler.force_dismount()
 	_on_hauler_dismounted()
-	print("  -> Assertion 8 PASS: Scrap Hauler drive parity verified!")
+	print("  -> Assertion 8 PASS: Scrap Hauler drive parity verified via real process polling!")
 
-	# ASSERTION 9: S Preserves Brake -> Zero-Cross -> Reverse Contract
-	print("\n[ASSERTION 9] Testing S Key Brake -> Zero-Cross -> Reverse Contract...")
-	reset_slice()
-	await get_tree().process_frame
-
+	# ASSERTION 9: S Preserves Brake -> Zero-Cross -> Reverse Contract via Real Process Polling
+	print("\n[ASSERTION 9] Testing S Key Brake -> Zero-Cross -> Reverse Contract via Real Process Polling...")
 	courier_bike.occupant = player
 	courier_bike.current_state = CourierBike.BikeState.DRIVING
 	_on_bike_mounted(player)
-	courier_bike.current_speed = 6.0 # Moving forward
+	active_vehicle = courier_bike
+	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
+	courier_bike.current_speed = 6.0
 
-	# Apply S (throttle = -1.0)
-	var steps := 0
-	while courier_bike.current_speed > 0.0 and steps < 60:
-		courier_bike.set_drive_inputs(-1.0, 0.0, 0.016, false)
-		steps += 1
+	_inject_key.call(KEY_S, true)
+	var brake_steps := 0
+	while courier_bike.current_speed > 0.0 and brake_steps < 60:
+		_process(0.016)
+		brake_steps += 1
 
-	assert(courier_bike.current_speed <= 0.05, "FAIL 9: S key braked forward speed to zero")
+	assert(courier_bike.current_speed <= 0.05, "FAIL 9: S key braked forward speed to zero (got %.2f)" % courier_bike.current_speed)
 
 	# Continue holding S -> settles gear and transitions to reverse
-	for i in range(15):
-		courier_bike.set_drive_inputs(-1.0, 0.0, 0.016, false)
+	for i in range(20):
+		_process(0.016)
 
 	assert(courier_bike.current_gear == CourierBike.GearState.REVERSE, "FAIL 9: Gear transitions to REVERSE")
 	assert(courier_bike.current_speed < 0.0, "FAIL 9: S key in reverse drives backward (got speed %.2f)" % courier_bike.current_speed)
+	_inject_key.call(KEY_S, false)
+	print("  -> Assertion 9 PASS: Brake -> zero-cross -> reverse contract verified via real process polling!")
 
-	courier_bike.occupant = null
-	courier_bike.current_state = CourierBike.BikeState.PARKED
-	_on_bike_dismounted()
-	print("  -> Assertion 9 PASS: Brake -> zero-cross -> reverse contract verified!")
-
-	# ASSERTION 10: Space Handbrake (Powerslide Drift Agility)
-	print("\n[ASSERTION 10] Testing Space Handbrake Powerslide Agility...")
-	reset_slice()
-	await get_tree().process_frame
-
-	courier_bike.occupant = player
-	courier_bike.current_state = CourierBike.BikeState.DRIVING
-	_on_bike_mounted(player)
+	# ASSERTION 10: Space Handbrake Powerslide Drift Agility via Real Key Polling
+	print("\n[ASSERTION 10] Testing Space Handbrake Powerslide Agility via Real Key Polling...")
 	courier_bike.current_speed = 8.0
+	_inject_key.call(KEY_W, true)
+	_inject_key.call(KEY_D, true)
+	_inject_key.call(KEY_SPACE, true)
+	_process(0.05)
 
-	courier_bike.set_drive_inputs(1.0, 1.0, 0.05, true) # Space handbrake active
-	assert(courier_bike.is_handbrake_active == true, "FAIL 10: Handbrake active")
+	assert(courier_bike.is_handbrake_active == true, "FAIL 10: Polling SPACE key in _process must engage handbrake")
 
-	courier_bike.occupant = null
-	courier_bike.current_state = CourierBike.BikeState.PARKED
-	_on_bike_dismounted()
-	print("  -> Assertion 10 PASS: Space handbrake powerslide drift verified!")
+	_inject_key.call(KEY_SPACE, false)
+	_process(0.05)
+	assert(courier_bike.is_handbrake_active == false, "FAIL 10: Releasing SPACE key must disengage handbrake")
+	_inject_key.call(KEY_W, false)
+	_inject_key.call(KEY_D, false)
+	print("  -> Assertion 10 PASS: Space handbrake powerslide drift verified via real key polling!")
 
 	# ASSERTION 11: R Radio Toggle Single-Fire While Driving
 	print("\n[ASSERTION 11] Testing R Radio Toggle Exactly Once While Driving...")
-	reset_slice()
-	await get_tree().process_frame
-
-	courier_bike.occupant = player
-	courier_bike.current_state = CourierBike.BikeState.DRIVING
-	_on_bike_mounted(player)
-	var init_radio_state := is_radio_enabled()
-
+	var initial_radio := is_radio_enabled()
 	var radio_result: Array[int] = [0]
 	var r_sub := touch_ui.radio_toggle_pressed.connect(func(): radio_result[0] += 1)
 
-	# Send R key down
 	var key_r_down := InputEventKey.new()
+	key_r_down.physical_keycode = KEY_R
 	key_r_down.keycode = KEY_R
 	key_r_down.pressed = true
 	key_r_down.echo = false
 	touch_ui._input(key_r_down)
 
 	assert(radio_result[0] == 1, "FAIL 11: R key pressed toggles radio exactly once (got %d)" % radio_result[0])
+	assert(is_radio_enabled() != initial_radio, "FAIL 11: R key toggled actual radio state")
 
-	# Send R key up
 	var key_r_up := InputEventKey.new()
+	key_r_up.physical_keycode = KEY_R
 	key_r_up.keycode = KEY_R
 	key_r_up.pressed = false
 	touch_ui._input(key_r_up)
 
 	assert(radio_result[0] == 1, "FAIL 11: R key release must NOT trigger toggle")
-
-	courier_bike.occupant = null
-	courier_bike.current_state = CourierBike.BikeState.PARKED
-	_on_bike_dismounted()
 	print("  -> Assertion 11 PASS: R radio toggle single-fire verified!")
 
-	# ASSERTION 12: E Dismount Preserves Speed & Safe-Position Rejection
-	print("\n[ASSERTION 12] Testing E Dismount Speed-Limit Rejection & Safe Exit...")
-	reset_slice()
-	await get_tree().process_frame
-
-	courier_bike.occupant = player
-	courier_bike.current_state = CourierBike.BikeState.DRIVING
-	_on_bike_mounted(player)
-	courier_bike.current_speed = 6.0 # > 1.5 m/s limit
+	# ASSERTION 12: E Dismount Speed-Limit Rejection & Safe Exit via Real Input
+	print("\n[ASSERTION 12] Testing E Dismount Speed-Limit Rejection & Safe Exit via Real Input...")
+	courier_bike.current_speed = 6.0 # > 1.5 m/s
 
 	var dismount_result: Array[int] = [0]
 	var d_sub := touch_ui.dismount_pressed.connect(func(): dismount_result[0] += 1)
 
-	# Send E key at high speed
 	var key_dismount_fast := InputEventKey.new()
+	key_dismount_fast.physical_keycode = KEY_E
 	key_dismount_fast.keycode = KEY_E
 	key_dismount_fast.pressed = true
 	key_dismount_fast.echo = false
 	touch_ui._input(key_dismount_fast)
 
 	assert(dismount_result[0] == 1, "FAIL 12: E key emitted dismount event")
-	# Call controller handler to verify rejection
-	_on_bike_dismount_rejected(CourierBike.DismountRejectReason.TOO_FAST, 6.0, 1.5)
-	assert(courier_bike.occupant == player, "FAIL 12: Occupant remains mounted after speed rejection")
+	assert(courier_bike.occupant == player, "FAIL 12: High speed dismount rejected, occupant remains mounted")
 
 	# Stop vehicle
 	courier_bike.current_speed = 0.0
-	courier_bike.occupant = null
-	courier_bike.current_state = CourierBike.BikeState.PARKED
-	_on_dismount_pressed() # Valid dismount
-	assert(courier_bike.occupant == null, "FAIL 12: Occupant successfully dismounted at zero speed")
-	print("  -> Assertion 12 PASS: E dismount rejection and clean exit verified!")
+	var key_dismount_stopped := InputEventKey.new()
+	key_dismount_stopped.physical_keycode = KEY_E
+	key_dismount_stopped.keycode = KEY_E
+	key_dismount_stopped.pressed = true
+	key_dismount_stopped.echo = false
+	touch_ui._input(key_dismount_stopped)
+	await get_tree().create_timer(0.35).timeout
 
-	# ASSERTION 13: Release Clears Steering, Throttle & Handbrake
-	print("\n[ASSERTION 13] Testing Input Release Restores Neutral Driving Inputs...")
-	touch_ui.reset_driving_inputs()
-	assert(touch_ui._is_gas_pressed == false, "FAIL 13: Gas released")
-	assert(touch_ui._is_brake_pressed == false, "FAIL 13: Brake released")
-	assert(touch_ui._is_handbrake_pressed == false, "FAIL 13: Handbrake released")
+	assert(courier_bike.occupant == null, "FAIL 12: Zero speed dismount succeeds, occupant dismounted")
+	assert(courier_bike.current_state == CourierBike.BikeState.PARKED, "FAIL 12: Vehicle state returns to PARKED")
+	print("  -> Assertion 12 PASS: E dismount rejection and clean exit verified via real input!")
+
+	# ASSERTION 13: Input Release Restores Neutral Driving Inputs via Real Polling
+	print("\n[ASSERTION 13] Testing Input Release Restores Neutral Driving Inputs via Real Polling...")
+	_inject_key.call(KEY_W, true)
+	_inject_key.call(KEY_D, true)
+	_inject_key.call(KEY_SPACE, true)
+	_process(0.016)
+
+	_inject_key.call(KEY_W, false)
+	_inject_key.call(KEY_D, false)
+	_inject_key.call(KEY_SPACE, false)
+	_process(0.016)
+
+	assert(touch_ui._is_gas_pressed == false, "FAIL 13: Gas neutral")
+	assert(touch_ui._is_brake_pressed == false, "FAIL 13: Brake neutral")
+	assert(touch_ui._is_handbrake_pressed == false, "FAIL 13: Handbrake neutral")
 	print("  -> Assertion 13 PASS: Release restores neutral inputs verified!")
 
-	# ASSERTION 14: Reset Slice Clears All Desktop & Touch Intent
+	# ASSERTION 14: Reset Slice Restores Clean Initial State
 	print("\n[ASSERTION 14] Testing Reset Slice Restores Clean Initial State...")
 	reset_slice()
 	await get_tree().process_frame
@@ -9274,34 +9316,63 @@ func _run_v8_desktop_controls_assertions() -> void:
 	assert(player.joystick_vector == Vector2.ZERO, "FAIL 14: Runner joystick vector reset")
 	print("  -> Assertion 14 PASS: Reset determinism verified!")
 
-	# ASSERTION 15: Desktop / Touch Ownership Isolation
-	print("\n[ASSERTION 15] Testing Desktop/Touch Ownership Isolation...")
+	# ASSERTION 15: Emulated Mouse Rejection & Touch Ownership Protection
+	print("\n[ASSERTION 15] Testing Emulated Mouse Rejection & Touch Ownership Protection...")
 	touch_ui.reset_all_input_states()
-	# Touch index claimed check
-	assert(touch_ui.is_pointer_index_claimed(1) == false, "FAIL 15: Touch index 1 unclaimed initially")
-	
-	var sim_touch := InputEventScreenTouch.new()
-	sim_touch.index = 2
-	sim_touch.position = Vector2(50.0, 300.0)
-	sim_touch.pressed = true
-	touch_ui._gui_input(sim_touch)
 
-	assert(touch_ui._joystick_active == true, "FAIL 15: Screen touch starts joystick")
-	assert(touch_ui.is_pointer_index_claimed(2) == true, "FAIL 15: Touch index 2 claimed")
+	# Start real touch on gas button
+	touch_ui._is_gas_pressed = true
+	touch_ui._gas_touch_index = 3
 
-	touch_ui._stop_joystick()
-	assert(touch_ui.is_pointer_index_claimed(2) == false, "FAIL 15: Touch index 2 released after stop")
-	print("  -> Assertion 15 PASS: Desktop/touch ownership isolation verified!")
+	# Receive emulated mouse up event (device = InputEvent.DEVICE_ID_EMULATION / -1)
+	var emulated_mouse_up := InputEventMouseButton.new()
+	emulated_mouse_up.device = InputEvent.DEVICE_ID_EMULATION
+	emulated_mouse_up.button_index = MOUSE_BUTTON_LEFT
+	emulated_mouse_up.pressed = false
+	touch_ui._input(emulated_mouse_up)
 
-	# ASSERTION 16: No Duplicate Mouse + Touch Emulation Actions
-	print("\n[ASSERTION 16] Testing Zero Duplicate Mouse+Touch Emulation Callbacks...")
-	var total_result: Array[int] = [0]
-	var act_sub := touch_ui.action_button_pressed.connect(func(): total_result[0] += 1)
+	# Verify emulated mouse event DID NOT clear active touch ownership
+	assert(touch_ui._is_gas_pressed == true, "FAIL 15: Emulated mouse event MUST NOT clear real touch state")
+	assert(touch_ui._gas_touch_index == 3, "FAIL 15: Emulated mouse event MUST NOT clear touch index")
 
-	# Direct action button click
-	touch_ui.action_button.pressed.emit()
-	assert(total_result[0] == 1, "FAIL 16: Button pressed emitted exactly 1 action event")
-	print("  -> Assertion 16 PASS: Zero duplicate action callbacks verified!")
+	# Receive real screen touch up
+	var real_touch_up := InputEventScreenTouch.new()
+	real_touch_up.index = 3
+	real_touch_up.pressed = false
+	touch_ui._input(real_touch_up)
+
+	assert(touch_ui._is_gas_pressed == false, "FAIL 15: Real touch up cleanly releases gas ownership")
+	assert(touch_ui._gas_touch_index == -1, "FAIL 15: Real touch up resets gas touch index")
+	print("  -> Assertion 15 PASS: Emulated mouse rejection & touch protection verified!")
+
+	# ASSERTION 16: Tuner/Peel Emulated Companion Event Does Not Double Progress
+	print("\n[ASSERTION 16] Testing Emulated Mouse Companion Event Does Not Double Progress...")
+	touch_ui.show_gesture_overlay("TUNE_SIGNAL")
+	var gesture_progress: Array[float] = [0.0]
+	var g_sub := touch_ui.tuner_dragged.connect(func(px: float): gesture_progress[0] = px)
+
+	# 1. Real touch drag
+	var touch_drag := InputEventScreenDrag.new()
+	touch_drag.index = 5
+	touch_ui._interaction_touch_index = 5
+	touch_ui._is_tuning = true
+	touch_drag.relative = Vector2(40.0, 0.0)
+	touch_ui._gui_input(touch_drag)
+
+	var p1: float = gesture_progress[0]
+	assert(p1 > 0.0, "FAIL 16: Real touch drag advanced gesture progress (got %.1f)" % p1)
+
+	# 2. Companion emulated mouse motion (same displacement)
+	var emulated_motion := InputEventMouseMotion.new()
+	emulated_motion.device = InputEvent.DEVICE_ID_EMULATION
+	emulated_motion.relative = Vector2(40.0, 0.0)
+	touch_ui._gui_input(emulated_motion)
+
+	var p2: float = gesture_progress[0]
+	assert(p2 == p1, "FAIL 16: Emulated companion mouse event MUST NOT advance progress (expected %.1f, got %.1f)" % [p1, p2])
+
+	touch_ui.close_interaction_overlay()
+	print("  -> Assertion 16 PASS: Emulated mouse companion gesture rejection verified!")
 
 	print("\n=========================================================================")
 	print("[ALL V8 DESKTOP CONTROLS & INPUT OWNERSHIP ASSERTIONS (1-16) PASSED 100% GREEN!]")

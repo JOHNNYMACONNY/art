@@ -505,8 +505,11 @@ func _input(event: InputEvent) -> void:
 			_handle_touch_up_anywhere(touch_ev.index)
 	elif event is InputEventMouseButton:
 		var mouse_ev := event as InputEventMouseButton
+		# Reject emulated mouse events synthesized from touchscreen input
+		if mouse_ev.device == InputEvent.DEVICE_ID_EMULATION:
+			return
 		if not mouse_ev.pressed:
-			# If mouse released, clear all active states
+			# If physical mouse released, clear active mouse states only (never clear touch ownership)
 			if _is_mouse_interacting:
 				_is_mouse_interacting = false
 				if _is_peeling:
@@ -515,25 +518,23 @@ func _input(event: InputEvent) -> void:
 				elif _is_tuning:
 					tuner_interaction_released.emit()
 					_is_tuning = false
-			_handle_touch_up_anywhere(_joystick_touch_index)
-			_handle_touch_up_anywhere(_gas_touch_index)
-			_handle_touch_up_anywhere(_brake_touch_index)
-			_handle_touch_up_anywhere(_handbrake_touch_index)
-			_handle_touch_up_anywhere(_interaction_touch_index)
 	elif event is InputEventKey:
 		var key_ev := event as InputEventKey
 		if key_ev.pressed and not key_ev.echo:
-			if key_ev.keycode == KEY_E:
+			var is_e: bool = key_ev.keycode == KEY_E or key_ev.physical_keycode == KEY_E
+			var is_space: bool = key_ev.keycode == KEY_SPACE or key_ev.physical_keycode == KEY_SPACE
+			var is_r: bool = key_ev.keycode == KEY_R or key_ev.physical_keycode == KEY_R
+			if is_e:
 				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
 					core_tap_pressed.emit()
 				elif current_mode == UIMode.FOOT_TRAVERSAL:
 					action_button_pressed.emit()
 				elif current_mode == UIMode.VEHICLE_DRIVING:
 					dismount_pressed.emit()
-			elif key_ev.keycode == KEY_SPACE:
+			elif is_space:
 				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
 					core_tap_pressed.emit()
-			elif key_ev.keycode == KEY_R and current_mode == UIMode.VEHICLE_DRIVING:
+			elif is_r and current_mode == UIMode.VEHICLE_DRIVING:
 				radio_toggle_pressed.emit()
 
 func _handle_touch_up_anywhere(index: int) -> void:
@@ -600,6 +601,9 @@ func _gui_input(event: InputEvent) -> void:
 
 	elif event is InputEventMouseButton:
 		var mouse_ev := event as InputEventMouseButton
+		# Reject emulated mouse events synthesized from touch
+		if mouse_ev.device == InputEvent.DEVICE_ID_EMULATION:
+			return
 		if gesture_panel and gesture_panel.visible:
 			if mouse_ev.button_index == MOUSE_BUTTON_LEFT:
 				if mouse_ev.pressed:
@@ -622,6 +626,9 @@ func _gui_input(event: InputEvent) -> void:
 
 	elif event is InputEventMouseMotion:
 		var mm := event as InputEventMouseMotion
+		# Reject emulated mouse events synthesized from touch
+		if mm.device == InputEvent.DEVICE_ID_EMULATION:
+			return
 		if gesture_panel and gesture_panel.visible and _is_mouse_interacting:
 			if _is_peeling:
 				_peel_accumulated_y = clampf(_peel_accumulated_y + mm.relative.y, 0.0, 150.0)
