@@ -59,6 +59,12 @@ func _run() -> void:
 		await _fail("Main scene is missing TouchControlsUI or Runner")
 		return
 
+	# 0. Desktop mouse must remain a mouse. If Godot synthesizes touch from it,
+	# a normal click can enter the floating-joystick ScreenTouch path.
+	if bool(ProjectSettings.get_setting("input_devices/pointing/emulate_touch_from_mouse", true)):
+		await _fail("Desktop mouse-to-touch emulation must be disabled to prevent joystick capture")
+		return
+
 	# 1. Physical WASD drives the on-foot runner without relying on touch emulation.
 	touch_ui.set_mode(touch_ui.UIMode.FOOT_TRAVERSAL)
 	player.set_joystick_input(Vector2.ZERO)
