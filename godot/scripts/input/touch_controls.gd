@@ -75,6 +75,8 @@ var _tuning_accum_px: float = 0.0
 var _is_gas_pressed: bool = false
 var _is_brake_pressed: bool = false
 var _is_handbrake_pressed: bool = false
+var _is_mouse_interacting: bool = false
+var desktop_hint_label: Label = null
 
 const MOUSE_POINTER_INDEX: int = -999
 
@@ -283,6 +285,29 @@ func _ready() -> void:
 	set_route_switch_button_visible(false)
 	update_radio_button_state(true)
 
+	# Desktop control hint for non-touchscreen/PC devices
+	var is_desktop: bool = OS.has_feature("pc") or not DisplayServer.is_touchscreen_available()
+	if is_desktop:
+		desktop_hint_label = Label.new()
+		desktop_hint_label.name = "DesktopHintLabel"
+		desktop_hint_label.text = "WASD Move/Drive · E Interact/Exit · Space Handbrake · R Radio"
+		desktop_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		desktop_hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		desktop_hint_label.anchor_left = 0.5
+		desktop_hint_label.anchor_right = 0.5
+		desktop_hint_label.anchor_top = 1.0
+		desktop_hint_label.anchor_bottom = 1.0
+		desktop_hint_label.offset_left = -250.0
+		desktop_hint_label.offset_right = 250.0
+		desktop_hint_label.offset_top = -28.0
+		desktop_hint_label.offset_bottom = -8.0
+		desktop_hint_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.45))
+		desktop_hint_label.add_theme_font_size_override("font_size", 12)
+		if safe_area_root:
+			safe_area_root.add_child(desktop_hint_label)
+		else:
+			add_child(desktop_hint_label)
+
 	# Continuous driving controls enforce global single-pointer ownership
 	if gas_button:
 		gas_button.button_down.connect(func():
@@ -482,6 +507,14 @@ func _input(event: InputEvent) -> void:
 		var mouse_ev := event as InputEventMouseButton
 		if not mouse_ev.pressed:
 			# If mouse released, clear all active states
+			if _is_mouse_interacting:
+				_is_mouse_interacting = false
+				if _is_peeling:
+					peel_gesture_released.emit()
+					_is_peeling = false
+				elif _is_tuning:
+					tuner_interaction_released.emit()
+					_is_tuning = false
 			_handle_touch_up_anywhere(_joystick_touch_index)
 			_handle_touch_up_anywhere(_gas_touch_index)
 			_handle_touch_up_anywhere(_brake_touch_index)
@@ -490,7 +523,17 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventKey:
 		var key_ev := event as InputEventKey
 		if key_ev.pressed and not key_ev.echo:
-			if key_ev.keycode == KEY_R and current_mode == UIMode.VEHICLE_DRIVING:
+			if key_ev.keycode == KEY_E:
+				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
+					core_tap_pressed.emit()
+				elif current_mode == UIMode.FOOT_TRAVERSAL:
+					action_button_pressed.emit()
+				elif current_mode == UIMode.VEHICLE_DRIVING:
+					dismount_pressed.emit()
+			elif key_ev.keycode == KEY_SPACE:
+				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
+					core_tap_pressed.emit()
+			elif key_ev.keycode == KEY_R and current_mode == UIMode.VEHICLE_DRIVING:
 				radio_toggle_pressed.emit()
 
 func _handle_touch_up_anywhere(index: int) -> void:
@@ -553,6 +596,39 @@ func _gui_input(event: InputEvent) -> void:
 				peel_gesture_dragged.emit(progress)
 			elif _is_tuning and abs(drag_ev.relative.x) > 0:
 				_tuning_accum_px += drag_ev.relative.x
+				tuner_dragged.emit(_tuning_accum_px)
+
+	elif event is InputEventMouseButton:
+		var mouse_ev := event as InputEventMouseButton
+		if gesture_panel and gesture_panel.visible:
+			if mouse_ev.button_index == MOUSE_BUTTON_LEFT:
+				if mouse_ev.pressed:
+					_is_mouse_interacting = true
+					if _current_gesture_type == "PEEL_PANEL":
+						_is_peeling = true
+						_peel_accumulated_y = 0.0
+					elif _current_gesture_type == "TUNE_SIGNAL":
+						_is_tuning = true
+						_tuning_accum_px = 0.0
+				else:
+					if _is_mouse_interacting:
+						_is_mouse_interacting = false
+						if _is_peeling:
+							peel_gesture_released.emit()
+							_is_peeling = false
+						elif _is_tuning:
+							tuner_interaction_released.emit()
+							_is_tuning = false
+
+	elif event is InputEventMouseMotion:
+		var mm := event as InputEventMouseMotion
+		if gesture_panel and gesture_panel.visible and _is_mouse_interacting:
+			if _is_peeling:
+				_peel_accumulated_y = clampf(_peel_accumulated_y + mm.relative.y, 0.0, 150.0)
+				var progress: float = clampf(_peel_accumulated_y / 150.0, 0.0, 1.0)
+				peel_gesture_dragged.emit(progress)
+			elif _is_tuning and abs(mm.relative.x) > 0:
+				_tuning_accum_px += mm.relative.x
 				tuner_dragged.emit(_tuning_accum_px)
 
 func _start_joystick(touch_idx: int, pos: Vector2) -> void:

@@ -39,14 +39,26 @@ func _physics_process(delta: float) -> void:
 		_reset_standing_pose()
 		return
 		
-	# Fallback keyboard input if joystick vector is zero
-	var input_dir := joystick_vector
-	if input_dir.length() < 0.05:
-		var kb_x := Input.get_action_strength("ui_right") - Input.get_action_strength("ui_left")
-		var kb_y := Input.get_action_strength("ui_down") - Input.get_action_strength("ui_up")
-		input_dir = Vector2(kb_x, kb_y)
-		if input_dir.length() > 1.0:
-			input_dir = input_dir.normalized()
+	# Keyboard input (WASD + Arrow keys) or joystick vector
+	var input_dir := Vector2.ZERO
+	if joystick_vector.length() >= 0.05:
+		input_dir = joystick_vector
+	else:
+		var kb_x: float = 0.0
+		var kb_y: float = 0.0
+		if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) or Input.is_action_pressed("ui_right"):
+			kb_x += 1.0
+		if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) or Input.is_action_pressed("ui_left"):
+			kb_x -= 1.0
+		if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) or Input.is_action_pressed("ui_down"):
+			kb_y += 1.0
+		if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) or Input.is_action_pressed("ui_up"):
+			kb_y -= 1.0
+		if abs(kb_x) > 0.0 or abs(kb_y) > 0.0:
+			var kb_vec := Vector2(kb_x, kb_y)
+			if kb_vec.length() > 1.0:
+				kb_vec = kb_vec.normalized()
+			input_dir = kb_vec
 			
 	if input_dir.length() > 0.05:
 		# Convert screen-relative 2D input (Up = -Y screen) to 3D world direction
