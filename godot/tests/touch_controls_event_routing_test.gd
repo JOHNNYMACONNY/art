@@ -1,5 +1,6 @@
 extends SceneTree
 
+# Exercises actual Viewport -> Control GUI routing, not direct method calls.
 var _last_joystick_vector := Vector2.ZERO
 
 func _init() -> void:
