@@ -26,7 +26,7 @@ jobs:
       GODOT_VERSION: "4.7.1"
       GODOT_RELEASE: "4.7.1-stable"
       GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
-      WEB_PROJECT: "${{ runner.temp }}/godot-web"
+      WEB_PROJECT: "${{ github.workspace }}/.godot-web-project"
 
     steps:
       - name: Checkout
