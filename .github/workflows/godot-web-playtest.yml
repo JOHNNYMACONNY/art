@@ -130,6 +130,16 @@ jobs:
             --path "$WEB_PROJECT" \
             --script res://tests/touch_controls_event_routing_test.gd
 
+      - name: Run desktop controls regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path "$WEB_PROJECT" \
+            --script res://tests/desktop_controls_event_routing_test.gd
+
       - name: Export Web playtest
         shell: bash
         run: |
