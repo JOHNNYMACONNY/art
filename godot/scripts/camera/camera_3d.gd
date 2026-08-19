@@ -10,6 +10,16 @@ extends Camera3D
 @export var max_speed_fov: float = 38.0
 @export var max_speed_ref: float = 14.0
 
+## Dynamic Yaw Follow & Polar Rig (#30 Candidate B)
+@export var dynamic_yaw_enabled: bool = true
+@export var vehicle_yaw_rate: float = 2.8 # s⁻¹
+@export var foot_yaw_rate: float = 1.5 # s⁻¹
+@export var max_yaw_speed: float = 2.5 # rad/s max slew
+
+const RIG_GROUND_RADIUS: float = 16.9705627 # sqrt(12^2 + 12^2)
+const RIG_ELEVATION_HEIGHT: float = 18.0
+
+var _current_yaw_rad: float = PI / 4.0 # 45 degrees initial
 var _interaction_target: Node3D = null
 var _is_interaction_mode: bool = false
 var _camera_offset: Vector3 = Vector3(12.0, 18.0, 12.0)
@@ -41,6 +51,7 @@ func reset_camera_instant(target: Node3D) -> void:
 	target_node = target
 	_is_interaction_mode = false
 	_interaction_target = null
+	_current_yaw_rad = PI / 4.0
 	fov = default_fov
 	if target:
 		_smoothed_focus_pos = target.global_position
@@ -49,7 +60,9 @@ func reset_camera_instant(target: Node3D) -> void:
 	_smoothed_look_ahead = Vector3.ZERO
 	_is_initialized = true
 	var framing_center: Vector3 = _smoothed_focus_pos
-	global_position = framing_center + _camera_offset
+	var offset_x: float = RIG_GROUND_RADIUS * sin(_current_yaw_rad)
+	var offset_z: float = RIG_GROUND_RADIUS * cos(_current_yaw_rad)
+	global_position = framing_center + Vector3(offset_x, RIG_ELEVATION_HEIGHT, offset_z)
 	look_at(framing_center + _focus_height_offset)
 
 func _process(delta: float) -> void:
@@ -107,10 +120,40 @@ func _process(delta: float) -> void:
 	_smoothed_look_ahead = _smoothed_look_ahead.lerp(target_look_ahead, look_ahead_factor)
 
 	# -------------------------------------------------------------------------
-	# STAGE 4: Combined Framing Center & Fixed Rig Transform
+	# STAGE 4: Dynamic Yaw Tracking & Combined Rig Transform
 	# -------------------------------------------------------------------------
+	if dynamic_yaw_enabled and not _is_interaction_mode:
+		var target_yaw: float = _current_yaw_rad
+		var yaw_rate: float = 0.0
+		
+		if target_node is CourierBike or target_node is ScrapHauler or (target_node != null and target_node.is_in_group("vehicles")):
+			var veh_fwd: Vector3 = -target_node.global_transform.basis.z
+			veh_fwd.y = 0.0
+			if veh_fwd.length_squared() > 0.01:
+				veh_fwd = veh_fwd.normalized()
+				# Place camera behind vehicle travel direction
+				target_yaw = atan2(veh_fwd.x, veh_fwd.z) + PI
+				yaw_rate = vehicle_yaw_rate
+		elif speed > 1.2 and raw_velocity.length() > 1.2:
+			var move_fwd: Vector3 = raw_velocity.normalized()
+			move_fwd.y = 0.0
+			if move_fwd.length_squared() > 0.01:
+				move_fwd = move_fwd.normalized()
+				target_yaw = atan2(move_fwd.x, move_fwd.z) + PI
+				yaw_rate = foot_yaw_rate
+		
+		if yaw_rate > 0.0:
+			var angle_diff: float = wrapf(target_yaw - _current_yaw_rad, -PI, PI)
+			var step: float = angle_diff * (1.0 - exp(-yaw_rate * delta))
+			step = clampf(step, -max_yaw_speed * delta, max_yaw_speed * delta)
+			_current_yaw_rad = wrapf(_current_yaw_rad + step, -PI, PI)
+
+	var offset_x: float = RIG_GROUND_RADIUS * sin(_current_yaw_rad)
+	var offset_z: float = RIG_GROUND_RADIUS * cos(_current_yaw_rad)
+	var dynamic_offset := Vector3(offset_x, RIG_ELEVATION_HEIGHT, offset_z)
+
 	var framing_center: Vector3 = _smoothed_focus_pos + _smoothed_look_ahead
-	global_position = framing_center + _camera_offset
+	global_position = framing_center + dynamic_offset
 	look_at(framing_center + _focus_height_offset)
 
 	# -------------------------------------------------------------------------

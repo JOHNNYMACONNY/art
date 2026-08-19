@@ -306,6 +306,8 @@ func _ready() -> void:
 		_run_v8_desktop_controls_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-m31-audio-runtime-diagnostic") or OS.get_cmdline_user_args().has("--run-v8-m31-assertions"):
 		_run_v8_m31_audio_runtime_diagnostic()
+	elif OS.get_cmdline_user_args().has("--run-v8-m30-dynamic-camera-assertions") or OS.get_cmdline_user_args().has("--run-v8-camera-feel-assertions") or OS.get_cmdline_user_args().has("--run-v8-m30-assertions"):
+		_run_v8_m30_dynamic_camera_assertions()
 	elif OS.get_cmdline_user_args().has("--run-v8-readability") or OS.get_cmdline_user_args().has("--run-v8-assertions"):
 		_run_v8_dynamic_readability()
 
@@ -9670,6 +9672,183 @@ func _run_v8_m31_audio_runtime_diagnostic() -> void:
 
 	print("\n=========================================================================")
 	print("[V8 M31 AUDIO RUNTIME DIAGNOSTIC COMPLETE — 100% VERIFIED]")
+	print("=========================================================================\n")
+	get_tree().quit(0)
+
+func _run_v8_m30_dynamic_camera_assertions() -> void:
+	print("\n=========================================================================")
+	print("[RUNNING V8 M30 DYNAMIC YAW CAMERA FEEL SUITE (#30 CANDIDATE B)]")
+	print("=========================================================================\n")
+
+	reset_slice()
+	await get_tree().process_frame
+
+	# ASSERTION 1: Rig Ground Radius & Height Elevation Invariance
+	print("[ASSERTION 1] Testing Rig Ground Radius & Height Elevation...")
+	camera.reset_camera_instant(player)
+	var expected_radius: float = sqrt(12.0 * 12.0 + 12.0 * 12.0)
+	var offset_vec: Vector3 = camera.global_position - player.global_position
+	var ground_dist: float = Vector2(offset_vec.x, offset_vec.z).length()
+	assert(abs(ground_dist - expected_radius) < 0.05, "FAIL 1: Ground radius %.2f != %.2f" % [ground_dist, expected_radius])
+	assert(abs(offset_vec.y - 18.0) < 0.05, "FAIL 1: Elevation height %.2f != 18.0" % offset_vec.y)
+	print("  -> Assertion 1 PASS: Rig geometry and elevation height verified!")
+
+	# ASSERTION 2: CourierBike Vehicle-Heading Dynamic Yaw Path
+	print("\n[ASSERTION 2] Testing CourierBike Vehicle-Heading Dynamic Yaw Follow...")
+	camera.set_target(courier_bike)
+	courier_bike.rotation.y = deg_to_rad(90.0) # Heading in -X
+	courier_bike.current_speed = 8.0
+	courier_bike.velocity = Vector3(-8.0, 0, 0)
+	for i in range(90):
+		camera._process(0.016)
+	var fwd_bike: Vector3 = -courier_bike.global_transform.basis.z
+	var expected_yaw_bike: float = wrapf(atan2(fwd_bike.x, fwd_bike.z) + PI, -PI, PI)
+	var yaw_err_bike: float = abs(wrapf(camera._current_yaw_rad - expected_yaw_bike, -PI, PI))
+	assert(yaw_err_bike < 0.35, "FAIL 2: CourierBike camera yaw did not converge (err=%.2f rad)" % yaw_err_bike)
+	print("  -> Assertion 2 PASS: CourierBike dynamic yaw follow verified!")
+
+	# ASSERTION 3: ScrapHauler Vehicle-Heading Parity
+	print("\n[ASSERTION 3] Testing ScrapHauler Vehicle-Heading Parity...")
+	camera.reset_camera_instant(scrap_hauler)
+	scrap_hauler.rotation.y = deg_to_rad(-90.0) # Heading in +X
+	scrap_hauler.current_speed = 6.0
+	scrap_hauler.velocity = Vector3(6.0, 0, 0)
+	for i in range(90):
+		camera._process(0.016)
+	var fwd_hauler: Vector3 = -scrap_hauler.global_transform.basis.z
+	var expected_yaw_hauler: float = wrapf(atan2(fwd_hauler.x, fwd_hauler.z) + PI, -PI, PI)
+	var yaw_err_hauler: float = abs(wrapf(camera._current_yaw_rad - expected_yaw_hauler, -PI, PI))
+	assert(yaw_err_hauler < 0.35, "FAIL 3: ScrapHauler camera yaw did not converge (err=%.2f rad)" % yaw_err_hauler)
+	print("  -> Assertion 3 PASS: ScrapHauler vehicle-heading parity verified!")
+
+	# ASSERTION 4: On-Foot Dynamic Yaw Follow
+	print("\n[ASSERTION 4] Testing On-Foot Dynamic Yaw Follow...")
+	camera.reset_camera_instant(player)
+	player.velocity = Vector3(0, 0, 3.5) # Moving in +Z
+	for i in range(90):
+		camera._process(0.016)
+	var expected_foot_yaw: float = wrapf(atan2(0.0, 1.0) + PI, -PI, PI)
+	var foot_yaw_err: float = abs(wrapf(camera._current_yaw_rad - expected_foot_yaw, -PI, PI))
+	assert(foot_yaw_err < 0.40, "FAIL 4: On-foot camera yaw did not follow runner velocity (err=%.2f rad)" % foot_yaw_err)
+	print("  -> Assertion 4 PASS: On-foot dynamic yaw follow verified!")
+
+	# ASSERTION 5: Rotated-Camera WASD Mapping (W remains screen-up)
+	print("\n[ASSERTION 5] Testing Rotated-Camera WASD Mapping (W is Screen-Up)...")
+	var test_yaws: Array[float] = [0.0, PI / 2.0, PI, -PI / 2.0]
+	for ty in test_yaws:
+		camera._current_yaw_rad = ty
+		camera._process(0.016)
+		# W alone -> feeds into player._physics_process
+		var _inject_key = func(k: Key, pressed: bool) -> void:
+			var ev := InputEventKey.new()
+			ev.physical_keycode = k
+			ev.keycode = k
+			ev.pressed = pressed
+			Input.parse_input_event(ev)
+			Input.flush_buffered_events()
+		_inject_key.call(KEY_W, true)
+		player.velocity = Vector3.ZERO
+		player._physics_process(0.1)
+		var cam_basis: Basis = camera.global_transform.basis
+		var cam_fwd_xz: Vector3 = Vector3(-cam_basis.z.x, 0.0, -cam_basis.z.z).normalized()
+		var vel_dir: Vector3 = Vector3(player.velocity.x, 0.0, player.velocity.z).normalized()
+		assert(vel_dir.dot(cam_fwd_xz) > 0.95, "FAIL 5: W at yaw %.2f did not move screen-up (dot=%.2f)" % [ty, vel_dir.dot(cam_fwd_xz)])
+		_inject_key.call(KEY_W, false)
+	print("  -> Assertion 5 PASS: Rotated-camera WASD screen-up invariant verified!")
+
+	# ASSERTION 6: Sustained A/D On Foot Does Not Create Endless Orbit
+	print("\n[ASSERTION 6] Testing Sustained A/D On Foot Does Not Create Endless Orbit...")
+	camera.reset_camera_instant(player)
+	player.velocity = Vector3(3.0, 0, 0)
+	var prev_yaw: float = camera._current_yaw_rad
+	var max_observed_rate: float = 0.0
+	for i in range(120):
+		player.velocity = player.velocity.rotated(Vector3.UP, 0.05) # turning
+		camera._process(0.016)
+		var diff: float = abs(wrapf(camera._current_yaw_rad - prev_yaw, -PI, PI)) / 0.016
+		if diff > max_observed_rate: max_observed_rate = diff
+		prev_yaw = camera._current_yaw_rad
+	assert(max_observed_rate <= camera.max_yaw_speed + 0.05, "FAIL 6: Yaw rate %.2f exceeded max %.2f" % [max_observed_rate, camera.max_yaw_speed])
+	print("  -> Assertion 6 PASS: Sustained turning rate bounded, no runaway orbit!")
+
+	# ASSERTION 7: 180-Degree Heading Change Remains Rate Bounded
+	print("\n[ASSERTION 7] Testing 180-Degree Vehicle Heading Rate Bounding...")
+	camera.reset_camera_instant(courier_bike)
+	courier_bike.rotation.y = 0.0 # North
+	camera._process(0.016)
+	courier_bike.rotation.y = PI # Immediate 180 flip South
+	courier_bike.current_speed = 10.0
+	courier_bike.velocity = Vector3(0, 0, 10.0)
+	camera._process(0.016)
+	var initial_yaw: float = camera._current_yaw_rad
+	camera._process(0.016)
+	var max_step: float = abs(wrapf(camera._current_yaw_rad - initial_yaw, -PI, PI))
+	var rate: float = max_step / 0.016
+	assert(rate <= camera.max_yaw_speed + 0.05, "FAIL 7: Instant 180 spin rate %.2f exceeded max %.2f" % [rate, camera.max_yaw_speed])
+	print("  -> Assertion 7 PASS: 180-degree flip remains rate bounded!")
+
+	# ASSERTION 8: Slalom Low-Pass Oscillation Damping
+	print("\n[ASSERTION 8] Testing Slalom Low-Pass Oscillation Damping...")
+	camera.reset_camera_instant(courier_bike)
+	var cam_yaw_min: float = 999.0
+	var cam_yaw_max: float = -999.0
+	for i in range(60):
+		var steer_angle: float = sin(float(i) * 0.8) * deg_to_rad(30.0) # +/- 30 deg slalom at high freq
+		courier_bike.rotation.y = steer_angle
+		courier_bike.current_speed = 8.0
+		camera._process(0.016)
+		var rel: float = wrapf(camera._current_yaw_rad - (PI / 4.0), -PI, PI)
+		if rel < cam_yaw_min: cam_yaw_min = rel
+		if rel > cam_yaw_max: cam_yaw_max = rel
+	var cam_swing: float = cam_yaw_max - cam_yaw_min
+	var veh_swing: float = deg_to_rad(60.0)
+	assert(cam_swing < veh_swing * 0.75, "FAIL 8: Slalom camera swing %.2f was not damped (veh=%.2f)" % [cam_swing, veh_swing])
+	print("  -> Assertion 8 PASS: Slalom oscillation filtered smoothly!")
+
+	# ASSERTION 9: Interaction Mode Freezes/Stabilizes Yaw
+	print("\n[ASSERTION 9] Testing Interaction Mode Freezes/Stabilizes Yaw...")
+	camera.reset_camera_instant(player)
+	var pre_interact_yaw: float = camera._current_yaw_rad
+	camera.set_interaction_mode(true, signal_tuner)
+	player.velocity = Vector3(10.0, 0, 10.0)
+	for i in range(30):
+		camera._process(0.016)
+	assert(abs(wrapf(camera._current_yaw_rad - pre_interact_yaw, -PI, PI)) < 0.001, "FAIL 9: Camera yaw moved during interaction mode")
+	print("  -> Assertion 9 PASS: Interaction mode stabilization verified!")
+
+	# ASSERTION 10: Interaction Exit Resumes Smoothly
+	print("\n[ASSERTION 10] Testing Interaction Exit Resumes Smoothly...")
+	camera.set_interaction_mode(false)
+	var post_exit_yaw_before: float = camera._current_yaw_rad
+	camera._process(0.016)
+	var post_exit_step: float = abs(wrapf(camera._current_yaw_rad - post_exit_yaw_before, -PI, PI))
+	assert(post_exit_step <= camera.max_yaw_speed * 0.016 + 0.001, "FAIL 10: Camera snapped on interaction exit (step=%.3f)" % post_exit_step)
+	print("  -> Assertion 10 PASS: Interaction exit resume continuity verified!")
+
+	# ASSERTION 11: Mount & Dismount Seamless Transition
+	print("\n[ASSERTION 11] Testing Mount & Dismount Seamless Transition...")
+	camera.reset_camera_instant(player)
+	var pos_before_mount: Vector3 = camera.global_position
+	camera.set_target(courier_bike)
+	camera._process(0.016)
+	var mount_jump: float = camera.global_position.distance_to(pos_before_mount)
+	assert(mount_jump < 1.0, "FAIL 11: Mount caused instantaneous snap (jump=%.2fm)" % mount_jump)
+	var pos_before_dismount: Vector3 = camera.global_position
+	camera.set_target(player)
+	camera._process(0.016)
+	var dismount_jump: float = camera.global_position.distance_to(pos_before_dismount)
+	assert(dismount_jump < 1.0, "FAIL 11: Dismount caused instantaneous snap (jump=%.2fm)" % dismount_jump)
+	print("  -> Assertion 11 PASS: Mount and dismount seamless transition verified!")
+
+	# ASSERTION 12: Instant Reset Snaps Yaw Deterministically (45 deg)
+	print("\n[ASSERTION 12] Testing Instant Reset Snaps Yaw Deterministically (45 deg)...")
+	camera._current_yaw_rad = deg_to_rad(210.0) # Perturbed yaw
+	camera.reset_camera_instant(player)
+	assert(abs(wrapf(camera._current_yaw_rad - PI / 4.0, -PI, PI)) < 0.001, "FAIL 12: Reset did not snap yaw to PI/4 (got %.2f)" % camera._current_yaw_rad)
+	print("  -> Assertion 12 PASS: Deterministic instant reset verified!")
+
+	print("\n=========================================================================")
+	print("[ALL V8 M30 DYNAMIC YAW CAMERA ASSERTIONS (1-12) PASSED 100% GREEN!]")
 	print("=========================================================================\n")
 	get_tree().quit(0)
 
