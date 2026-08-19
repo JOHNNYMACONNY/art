@@ -32,7 +32,7 @@ func _press(touch_ui: Node, key: Key) -> void:
 func _release(touch_ui: Node, key: Key) -> void:
 	touch_ui._input(_key_event(key, false))
 
-func _mount_vehicle(vehicle: Node, player: Node) -> bool:
+func _mount_vehicle_direct(vehicle: Node, player: Node) -> bool:
 	player.global_position = vehicle.global_position + Vector3(0.5, 0.0, 0.5)
 	if vehicle.mount_interactable:
 		vehicle.mount_interactable.update_player_distance(player.global_position)
@@ -57,14 +57,42 @@ func _run() -> void:
 		await _fail("Main scene is missing TouchControlsUI, Runner, CourierBike, or ScrapHauler")
 		return
 
-	# Courier Bike: mount through the real vehicle contract.
-	if not _mount_vehicle(bike, player):
-		await _fail("CourierBike request_mount failed during desktop authority setup")
+	# Courier Bike: E must traverse target selection + action authority, not a test-only mount shortcut.
+	player.global_position = bike.global_position + Vector3(0.5, 0.0, 0.5)
+	bike.mount_interactable.update_player_distance(player.global_position)
+	_scene_under_test._process(0.016)
+	if _scene_under_test._active_target != bike.mount_interactable:
+		await _fail("Bike mount interactable was not selected as the real E target")
 		return
+	var bike_mount_count: Array[int] = [0]
+	bike.mounted.connect(func(_player_ref): bike_mount_count[0] += 1)
+	touch_ui._input(_key_event(KEY_E, true))
+	touch_ui._input(_key_event(KEY_E, true, true))
+	touch_ui._input(_key_event(KEY_E, false))
 	await create_timer(0.3).timeout
 	await process_frame
-	if bike.occupant != player:
-		await _fail("CourierBike did not complete mount")
+	if bike.occupant != player or bike_mount_count[0] != 1:
+		await _fail("E did not mount CourierBike exactly once through controller authority")
+		return
+
+	# R must change the actual radio lifecycle state exactly once despite key-repeat echo.
+	var radio_before: bool = _scene_under_test.is_radio_enabled()
+	touch_ui._input(_key_event(KEY_R, true))
+	touch_ui._input(_key_event(KEY_R, true, true))
+	touch_ui._input(_key_event(KEY_R, false))
+	if _scene_under_test.is_radio_enabled() == radio_before:
+		await _fail("R did not toggle actual vehicle radio state")
+		return
+	var radio_after_one_press: bool = _scene_under_test.is_radio_enabled()
+	touch_ui._input(_key_event(KEY_R, true, true))
+	if _scene_under_test.is_radio_enabled() != radio_after_one_press:
+		await _fail("R key-repeat echo toggled actual radio state more than once")
+		return
+	# Restore initial state for the rest of the integration test.
+	touch_ui._input(_key_event(KEY_R, true))
+	touch_ui._input(_key_event(KEY_R, false))
+	if _scene_under_test.is_radio_enabled() != radio_before:
+		await _fail("Second deliberate R press did not restore radio state")
 		return
 
 	# W reaches set_drive_inputs and accelerates the actual bike.
@@ -137,7 +165,7 @@ func _run() -> void:
 		return
 
 	# Scrap Hauler: same keyboard language must traverse the same controller seam.
-	if not _mount_vehicle(hauler, player):
+	if not _mount_vehicle_direct(hauler, player):
 		await _fail("ScrapHauler request_mount failed during parity setup")
 		return
 	await create_timer(0.3).timeout
