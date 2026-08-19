@@ -70,11 +70,20 @@ var _joystick_handle_rest_pos: Vector2 = Vector2.ZERO
 var _current_joystick_vec: Vector2 = Vector2.ZERO
 var _is_peeling: bool = false
 var _is_tuning: bool = false
+var _is_mouse_interacting: bool = false
 var _current_gesture_type: String = ""
 var _tuning_accum_px: float = 0.0
 var _is_gas_pressed: bool = false
 var _is_brake_pressed: bool = false
 var _is_handbrake_pressed: bool = false
+
+# Desktop keyboard state is kept separate from touch ownership, then composed into
+# the same normalized vehicle intent signals used by mobile controls.
+var _keyboard_forward_pressed: bool = false
+var _keyboard_reverse_pressed: bool = false
+var _keyboard_left_pressed: bool = false
+var _keyboard_right_pressed: bool = false
+var _keyboard_handbrake_pressed: bool = false
 
 const MOUSE_POINTER_INDEX: int = -999
 
@@ -113,11 +122,42 @@ func _search_node(current: Node, target_name: String) -> Control:
 
 func _emit_net_throttle() -> void:
 	var throttle := 0.0
-	if _is_brake_pressed:
+	if current_mode == UIMode.VEHICLE_DRIVING and (_keyboard_forward_pressed or _keyboard_reverse_pressed):
+		var forward_value := 1.0 if _keyboard_forward_pressed else 0.0
+		var reverse_value := 1.0 if _keyboard_reverse_pressed else 0.0
+		throttle = forward_value - reverse_value
+	elif _is_brake_pressed:
 		throttle = -1.0
 	elif _is_gas_pressed:
 		throttle = 1.0
 	driving_throttle_updated.emit(throttle)
+
+func _emit_net_steer() -> void:
+	var steer := 0.0
+	if current_mode == UIMode.VEHICLE_DRIVING and (_keyboard_left_pressed or _keyboard_right_pressed):
+		var right_value := 1.0 if _keyboard_right_pressed else 0.0
+		var left_value := 1.0 if _keyboard_left_pressed else 0.0
+		steer = right_value - left_value
+	elif current_mode == UIMode.VEHICLE_DRIVING and _joystick_active:
+		steer = _current_joystick_vec.x
+	driving_steer_updated.emit(steer)
+
+func _emit_net_handbrake() -> void:
+	driving_handbrake_updated.emit(_is_handbrake_pressed or _keyboard_handbrake_pressed)
+
+func _reset_keyboard_driving_inputs() -> void:
+	_keyboard_forward_pressed = false
+	_keyboard_reverse_pressed = false
+	_keyboard_left_pressed = false
+	_keyboard_right_pressed = false
+	_keyboard_handbrake_pressed = false
+
+func _sync_keyboard_driving_inputs_from_input() -> void:
+	_keyboard_forward_pressed = Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_UP)
+	_keyboard_reverse_pressed = Input.is_physical_key_pressed(KEY_S) or Input.is_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_DOWN)
+	_keyboard_left_pressed = Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_LEFT)
+	_keyboard_right_pressed = Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_RIGHT)
+	_keyboard_handbrake_pressed = Input.is_physical_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_SPACE)
 
 func reset_driving_inputs() -> void:
 	_is_gas_pressed = false
@@ -126,9 +166,10 @@ func reset_driving_inputs() -> void:
 	_brake_touch_index = -1
 	_is_handbrake_pressed = false
 	_handbrake_touch_index = -1
+	_reset_keyboard_driving_inputs()
 	_emit_net_throttle()
-	driving_steer_updated.emit(0.0)
-	driving_handbrake_updated.emit(false)
+	_emit_net_steer()
+	_emit_net_handbrake()
 
 func reset_all_input_states() -> void:
 	_stop_joystick()
@@ -297,20 +338,9 @@ func _ready() -> void:
 	set_route_switch_button_visible(false)
 	update_radio_button_state(true)
 
-	# Continuous driving controls enforce global single-pointer ownership
+	# Continuous driving controls use ScreenTouch directly. Avoid Button mouse
+	# signals here so a desktop click cannot masquerade as held gas/brake input.
 	if gas_button:
-		gas_button.button_down.connect(func():
-			if _gas_touch_index == -1:
-				_gas_touch_index = MOUSE_POINTER_INDEX
-				_is_gas_pressed = true
-				_emit_net_throttle()
-		)
-		gas_button.button_up.connect(func():
-			if _gas_touch_index == MOUSE_POINTER_INDEX:
-				_is_gas_pressed = false
-				_gas_touch_index = -1
-				_emit_net_throttle()
-		)
 		gas_button.gui_input.connect(func(ev: InputEvent):
 			if ev is InputEventScreenTouch:
 				var st := ev as InputEventScreenTouch
@@ -325,18 +355,6 @@ func _ready() -> void:
 					_emit_net_throttle()
 		)
 	if brake_button:
-		brake_button.button_down.connect(func():
-			if _brake_touch_index == -1:
-				_brake_touch_index = MOUSE_POINTER_INDEX
-				_is_brake_pressed = true
-				_emit_net_throttle()
-		)
-		brake_button.button_up.connect(func():
-			if _brake_touch_index == MOUSE_POINTER_INDEX:
-				_is_brake_pressed = false
-				_brake_touch_index = -1
-				_emit_net_throttle()
-		)
 		brake_button.gui_input.connect(func(ev: InputEvent):
 			if ev is InputEventScreenTouch:
 				var st := ev as InputEventScreenTouch
@@ -351,18 +369,6 @@ func _ready() -> void:
 					_emit_net_throttle()
 		)
 	if handbrake_button:
-		handbrake_button.button_down.connect(func():
-			if _handbrake_touch_index == -1:
-				_handbrake_touch_index = MOUSE_POINTER_INDEX
-				_is_handbrake_pressed = true
-				driving_handbrake_updated.emit(true)
-		)
-		handbrake_button.button_up.connect(func():
-			if _handbrake_touch_index == MOUSE_POINTER_INDEX:
-				_is_handbrake_pressed = false
-				_handbrake_touch_index = -1
-				driving_handbrake_updated.emit(false)
-		)
 		handbrake_button.gui_input.connect(func(ev: InputEvent):
 			if ev is InputEventScreenTouch:
 				var st := ev as InputEventScreenTouch
@@ -370,11 +376,11 @@ func _ready() -> void:
 					if _handbrake_touch_index == -1 and not is_pointer_index_claimed(st.index):
 						_handbrake_touch_index = st.index
 						_is_handbrake_pressed = true
-						driving_handbrake_updated.emit(true)
+						_emit_net_handbrake()
 				elif not st.pressed and st.index == _handbrake_touch_index:
 					_is_handbrake_pressed = false
 					_handbrake_touch_index = -1
-					driving_handbrake_updated.emit(false)
+					_emit_net_handbrake()
 		)
 
 	if get_viewport():
@@ -403,6 +409,10 @@ func set_mode(mode: UIMode) -> void:
 		if action_button: action_button.visible = false
 		if driving_panel: driving_panel.visible = true
 		close_interaction_overlay()
+		_sync_keyboard_driving_inputs_from_input()
+		_emit_net_throttle()
+		_emit_net_steer()
+		_emit_net_handbrake()
 
 var _is_rejection_flashing: bool = false
 var _toast_timer_count: int = 0
@@ -482,29 +492,77 @@ func close_interaction_overlay() -> void:
 		gesture_panel.visible = false
 	_is_peeling = false
 	_is_tuning = false
+	_is_mouse_interacting = false
 	_interaction_touch_index = -1
 	_current_gesture_type = ""
 	_peel_accumulated_y = 0.0
 
+func _is_key(event: InputEventKey, first: Key, second: Key = KEY_NONE) -> bool:
+	return (
+		event.keycode == first or event.physical_keycode == first or
+		(second != KEY_NONE and (event.keycode == second or event.physical_keycode == second))
+	)
+
+func _update_keyboard_vehicle_state(event: InputEventKey) -> bool:
+	if current_mode != UIMode.VEHICLE_DRIVING or event.echo:
+		return false
+	if _is_key(event, KEY_W, KEY_UP):
+		_keyboard_forward_pressed = event.pressed
+		_emit_net_throttle()
+		return true
+	if _is_key(event, KEY_S, KEY_DOWN):
+		_keyboard_reverse_pressed = event.pressed
+		_emit_net_throttle()
+		return true
+	if _is_key(event, KEY_A, KEY_LEFT):
+		_keyboard_left_pressed = event.pressed
+		_emit_net_steer()
+		return true
+	if _is_key(event, KEY_D, KEY_RIGHT):
+		_keyboard_right_pressed = event.pressed
+		_emit_net_steer()
+		return true
+	if _is_key(event, KEY_SPACE):
+		_keyboard_handbrake_pressed = event.pressed
+		_emit_net_handbrake()
+		return true
+	return false
+
 func _input(event: InputEvent) -> void:
-	# Global safety net: finger release anywhere on screen releases any owned pointer
+	# Global safety net: finger release anywhere on screen releases any owned pointer.
 	if event is InputEventScreenTouch:
 		var touch_ev := event as InputEventScreenTouch
 		if not touch_ev.pressed:
 			_handle_touch_up_anywhere(touch_ev.index)
 	elif event is InputEventMouseButton:
 		var mouse_ev := event as InputEventMouseButton
-		if not mouse_ev.pressed:
-			# If mouse released, clear all active states
-			_handle_touch_up_anywhere(_joystick_touch_index)
-			_handle_touch_up_anywhere(_gas_touch_index)
-			_handle_touch_up_anywhere(_brake_touch_index)
-			_handle_touch_up_anywhere(_handbrake_touch_index)
-			_handle_touch_up_anywhere(_interaction_touch_index)
+		# Browsers may synthesize a mouse companion for a real touch. It must never
+		# clear touch ownership or progress the same interaction twice.
+		if mouse_ev.device == InputEvent.DEVICE_ID_EMULATION:
+			return
+		if not mouse_ev.pressed and _is_mouse_interacting:
+			_is_mouse_interacting = false
+			if _is_peeling:
+				peel_gesture_released.emit()
+				_is_peeling = false
+			elif _is_tuning:
+				tuner_interaction_released.emit()
+				_is_tuning = false
 	elif event is InputEventKey:
 		var key_ev := event as InputEventKey
+		_update_keyboard_vehicle_state(key_ev)
 		if key_ev.pressed and not key_ev.echo:
-			if key_ev.keycode == KEY_R and current_mode == UIMode.VEHICLE_DRIVING:
+			if _is_key(key_ev, KEY_E):
+				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
+					core_tap_pressed.emit()
+				elif current_mode == UIMode.FOOT_TRAVERSAL:
+					action_button_pressed.emit()
+				elif current_mode == UIMode.VEHICLE_DRIVING:
+					dismount_pressed.emit()
+			elif _is_key(key_ev, KEY_SPACE) and current_mode == UIMode.FOOT_TRAVERSAL:
+				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
+					core_tap_pressed.emit()
+			elif _is_key(key_ev, KEY_R) and current_mode == UIMode.VEHICLE_DRIVING:
 				radio_toggle_pressed.emit()
 
 func _handle_touch_up_anywhere(index: int) -> void:
@@ -530,7 +588,7 @@ func _handle_touch_up_anywhere(index: int) -> void:
 	if index == _handbrake_touch_index:
 		_is_handbrake_pressed = false
 		_handbrake_touch_index = -1
-		driving_handbrake_updated.emit(false)
+		_emit_net_handbrake()
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
@@ -567,6 +625,42 @@ func _gui_input(event: InputEvent) -> void:
 				peel_gesture_dragged.emit(progress)
 			elif _is_tuning and abs(drag_ev.relative.x) > 0:
 				_tuning_accum_px += drag_ev.relative.x
+				tuner_dragged.emit(_tuning_accum_px)
+
+	elif event is InputEventMouseButton:
+		var mouse_ev := event as InputEventMouseButton
+		if mouse_ev.device == InputEvent.DEVICE_ID_EMULATION:
+			return
+		if gesture_panel and gesture_panel.visible and mouse_ev.button_index == MOUSE_BUTTON_LEFT:
+			if mouse_ev.pressed:
+				_is_mouse_interacting = true
+				if _current_gesture_type == "PEEL_PANEL":
+					_is_peeling = true
+					_peel_accumulated_y = 0.0
+				elif _current_gesture_type == "TUNE_SIGNAL":
+					_is_tuning = true
+					_tuning_accum_px = 0.0
+			else:
+				if _is_mouse_interacting:
+					_is_mouse_interacting = false
+					if _is_peeling:
+						peel_gesture_released.emit()
+						_is_peeling = false
+					elif _is_tuning:
+						tuner_interaction_released.emit()
+						_is_tuning = false
+
+	elif event is InputEventMouseMotion:
+		var mouse_motion := event as InputEventMouseMotion
+		if mouse_motion.device == InputEvent.DEVICE_ID_EMULATION:
+			return
+		if gesture_panel and gesture_panel.visible and _is_mouse_interacting:
+			if _is_peeling:
+				_peel_accumulated_y = clampf(_peel_accumulated_y + mouse_motion.relative.y, 0.0, 150.0)
+				var progress: float = clampf(_peel_accumulated_y / 150.0, 0.0, 1.0)
+				peel_gesture_dragged.emit(progress)
+			elif _is_tuning and abs(mouse_motion.relative.x) > 0:
+				_tuning_accum_px += mouse_motion.relative.x
 				tuner_dragged.emit(_tuning_accum_px)
 
 func _start_joystick(touch_idx: int, pos: Vector2) -> void:
@@ -625,7 +719,7 @@ func _update_joystick(pos: Vector2) -> void:
 	if current_mode == UIMode.FOOT_TRAVERSAL:
 		joystick_vector_updated.emit(_current_joystick_vec)
 	elif current_mode == UIMode.VEHICLE_DRIVING:
-		driving_steer_updated.emit(_current_joystick_vec.x)
+		_emit_net_steer()
 
 func _stop_joystick() -> void:
 	_joystick_active = false
@@ -639,7 +733,7 @@ func _stop_joystick() -> void:
 	if current_mode == UIMode.FOOT_TRAVERSAL:
 		joystick_vector_updated.emit(Vector2.ZERO)
 	elif current_mode == UIMode.VEHICLE_DRIVING:
-		driving_steer_updated.emit(0.0)
+		_emit_net_steer()
 
 func show_replay_overlay(can_retry_chase: bool = true) -> void:
 	if replay_panel:
