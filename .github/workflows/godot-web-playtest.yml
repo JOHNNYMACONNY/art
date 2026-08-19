@@ -1,0 +1,206 @@
+name: Godot Web Playtest
+
+on:
+  pull_request:
+    paths:
+      - "godot/**"
+      - ".github/workflows/godot-web-playtest.yml"
+  push:
+    branches:
+      - main
+      - chatgpt/godot-web-playtest
+    paths:
+      - "godot/**"
+      - ".github/workflows/godot-web-playtest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: godot-web-playtest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export-web:
+    name: Export browser playtest
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GODOT_VERSION: "4.7.1"
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      WEB_PROJECT: "${{ runner.temp }}/godot-web"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish pending commit status
+        if: github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: 'pending',
+              context: 'godot-web-playtest/export',
+              description: 'Building browser playtest',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
+      - name: Cache Godot editor and export templates
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .godot-bin
+            ~/.local/share/godot/export_templates/4.7.1.stable
+          key: godot-4.7.1-linux-web-templates-v1
+
+      - name: Install Godot 4.7.1 editor
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Install Godot 4.7.1 export templates
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output export_templates.tpz \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz
+
+          template_dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          rm -rf "$template_dir"
+          mkdir -p "$template_dir" "${RUNNER_TEMP}/godot-export-templates"
+          unzip -q export_templates.tpz -d "${RUNNER_TEMP}/godot-export-templates"
+          cp -R "${RUNNER_TEMP}/godot-export-templates/templates/." "$template_dir/"
+          test -s "$template_dir/web_release.zip"
+
+      - name: Verify Godot install
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$GODOT_BIN"
+          "$GODOT_BIN" --version
+          test -s "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/web_release.zip"
+
+      - name: Prepare isolated WebGL compatibility project
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$WEB_PROJECT"
+          cp -a godot "$WEB_PROJECT"
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          project = Path(os.environ["WEB_PROJECT"]) / "project.godot"
+          text = project.read_text()
+          expected = 'config/features=PackedStringArray("4.7", "Forward Plus")'
+          if expected not in text:
+              raise SystemExit("Expected Forward Plus project feature was not found; review web compatibility patch.")
+          text = text.replace(
+              expected,
+              'config/features=PackedStringArray("4.7", "GL Compatibility")',
+              1,
+          )
+          marker = "[rendering]\n"
+          if marker not in text:
+              raise SystemExit("[rendering] section not found")
+          text = text.replace(
+              marker,
+              marker
+              + 'renderer/rendering_method="gl_compatibility"\n'
+              + 'renderer/rendering_method.mobile="gl_compatibility"\n',
+              1,
+          )
+          project.write_text(text)
+          PY
+
+          "$GODOT_BIN" \
+            --headless \
+            --editor \
+            --rendering-method gl_compatibility \
+            --path "$WEB_PROJECT" \
+            --quit
+
+      - name: Export Web playtest
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf build/web
+          mkdir -p build/web
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path "$WEB_PROJECT" \
+            --export-release "Web Playtest" \
+            "$GITHUB_WORKSPACE/build/web/index.html"
+
+          test -s build/web/index.html
+          test -s build/web/index.js
+          test -s build/web/index.wasm
+          test -s build/web/index.pck
+          printf '\nExported files:\n'
+          find build/web -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
+
+      - name: Static hosting smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --directory build/web >web-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          for _ in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/index.html >/dev/null; then
+              break
+            fi
+            sleep 0.5
+          done
+
+          curl --fail --silent --show-error http://127.0.0.1:8080/index.html | grep -q "Godot"
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/index.js
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/index.wasm
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/index.pck
+
+      - name: Upload browser playtest
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-web-playtest-${{ github.sha }}
+          path: build/web
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish final commit status
+        if: always() && github.event_name == 'push'
+        uses: actions/github-script@v7
+        env:
+          JOB_STATUS: ${{ job.status }}
+        with:
+          script: |
+            const succeeded = process.env.JOB_STATUS === 'success';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: succeeded ? 'success' : 'failure',
+              context: 'godot-web-playtest/export',
+              description: succeeded ? 'Browser playtest exported and smoke-tested' : 'Browser playtest export failed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
