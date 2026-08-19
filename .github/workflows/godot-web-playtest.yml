@@ -12,19 +12,29 @@ on:
     paths:
       - "godot/**"
       - ".github/workflows/godot-web-playtest.yml"
+  issue_comment:
+    types:
+      - created
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
+  issues: write
   statuses: write
 
 concurrency:
-  group: godot-web-playtest-${{ github.ref }}
+  group: godot-web-playtest-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   export-web:
     name: Export browser playtest
+    if: >-
+      github.event_name != 'issue_comment' ||
+      (github.event.issue.pull_request != null &&
+       github.event.comment.user.login == github.repository_owner &&
+       github.event.comment.body == '/playtest')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -34,18 +44,44 @@ jobs:
       WEB_PROJECT: "${{ runner.temp }}/godot-web"
 
     steps:
-      - name: Checkout
+      - name: Resolve source ref
+        id: source
+        uses: actions/github-script@v7
+        with:
+          script: |
+            if (context.eventName === 'issue_comment') {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+              });
+              core.setOutput('ref', pr.head.sha);
+              core.setOutput('display', `${pr.head.ref}@${pr.head.sha.slice(0, 12)}`);
+            } else {
+              core.setOutput('ref', context.sha);
+              core.setOutput('display', context.sha.slice(0, 12));
+            }
+
+      - name: Checkout target
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.ref }}
+
+      - name: Capture resolved commit
+        id: resolved
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Publish pending commit status
-        if: github.event_name == 'push'
         uses: actions/github-script@v7
+        env:
+          TARGET_SHA: ${{ steps.resolved.outputs.sha }}
         with:
           script: |
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha: context.sha,
+              sha: process.env.TARGET_SHA,
               state: 'pending',
               context: 'godot-web-playtest/export',
               description: 'Building browser playtest',
@@ -183,25 +219,46 @@ jobs:
       - name: Upload browser playtest
         uses: actions/upload-artifact@v4
         with:
-          name: godot-web-playtest-${{ github.sha }}
+          name: godot-web-playtest-${{ steps.resolved.outputs.sha }}
           path: build/web
           if-no-files-found: error
           retention-days: 14
 
       - name: Publish final commit status
-        if: always() && github.event_name == 'push'
+        if: always() && steps.resolved.outputs.sha != ''
         uses: actions/github-script@v7
         env:
           JOB_STATUS: ${{ job.status }}
+          TARGET_SHA: ${{ steps.resolved.outputs.sha }}
         with:
           script: |
             const succeeded = process.env.JOB_STATUS === 'success';
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha: context.sha,
+              sha: process.env.TARGET_SHA,
               state: succeeded ? 'success' : 'failure',
               context: 'godot-web-playtest/export',
               description: succeeded ? 'Browser playtest exported and smoke-tested' : 'Browser playtest export failed',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+
+      - name: Report PR-command result
+        if: always() && github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        env:
+          JOB_STATUS: ${{ job.status }}
+          SOURCE_DISPLAY: ${{ steps.source.outputs.display }}
+          TARGET_SHA: ${{ steps.resolved.outputs.sha }}
+        with:
+          script: |
+            const succeeded = process.env.JOB_STATUS === 'success';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const sha = process.env.TARGET_SHA || 'unresolved';
+            const artifact = succeeded ? `\nArtifact: \`godot-web-playtest-${sha}\`` : '';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Godot Web Playtest **${succeeded ? 'PASSED' : 'FAILED'}** for \`${process.env.SOURCE_DISPLAY || sha}\`.\n\nRun: ${runUrl}${artifact}`,
             });
