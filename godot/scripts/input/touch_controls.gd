@@ -500,7 +500,7 @@ func show_gesture_overlay(gesture_type: String) -> void:
 	if tuner_readout_label:
 		tuner_readout_label.visible = (gesture_type == "TUNE_SIGNAL")
 		if gesture_type == "TUNE_SIGNAL":
-			tuner_readout_label.text = "FREQ: 0.150 MHz | SIGNAL: [░░░░░░░░░░] 0%"
+			tuner_readout_label.text = "TUNE: 0.150 | SIGNAL: [░░░░░░░░░░] 0%"
 
 func update_tuner_feedback(freq: float, accuracy: float, is_locked: bool = false) -> void:
 	if not gesture_panel or not gesture_panel.visible or _current_gesture_type != "TUNE_SIGNAL":
@@ -517,11 +517,11 @@ func update_tuner_feedback(freq: float, accuracy: float, is_locked: bool = false
 		var filled: int = int(clampf(round(accuracy * 10.0), 0.0, 10.0))
 		var bar: String = "█".repeat(filled) + "░".repeat(10 - filled)
 		if is_locked:
-			tuner_readout_label.text = "SIGNAL LOCKED — FREQ: %.3f MHz | [ %s ] 100%%" % [freq, bar]
+			tuner_readout_label.text = "SIGNAL LOCKED — TUNE: %.3f | [ %s ] 100%%" % [freq, bar]
 		elif accuracy >= 0.90:
-			tuner_readout_label.text = "FREQ: %.3f MHz | SIGNAL: [%s] %.0f%% — [ LOCK ZONE: HOLD ]" % [freq, bar, accuracy * 100.0]
+			tuner_readout_label.text = "TUNE: %.3f | SIGNAL: [%s] %.0f%% — [ LOCK ZONE: HOLD ]" % [freq, bar, accuracy * 100.0]
 		else:
-			tuner_readout_label.text = "FREQ: %.3f MHz | SIGNAL: [%s] %.0f%%" % [freq, bar, accuracy * 100.0]
+			tuner_readout_label.text = "TUNE: %.3f | SIGNAL: [%s] %.0f%%" % [freq, bar, accuracy * 100.0]
 
 func close_interaction_overlay() -> void:
 	if gesture_panel:

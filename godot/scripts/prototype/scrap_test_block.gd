@@ -8973,6 +8973,8 @@ func _run_v8_desktop_controls_assertions() -> void:
 	print("[ASSERTION 1] Testing WASD On-Foot Camera-Relative Direction via Real Key Polling...")
 	reset_slice()
 	await get_tree().process_frame
+	if touch_ui == null:
+		touch_ui = get_node_or_null("CanvasLayer/TouchControlsUI") as TouchControlsUI
 	player.global_position = Vector3(0, 0, 0)
 
 	var yaw_rad := deg_to_rad(45.0)
@@ -9112,10 +9114,13 @@ func _run_v8_desktop_controls_assertions() -> void:
 	await get_tree().process_frame
 
 	player.global_position = courier_bike.global_position + Vector3(0.5, 0.0, 0.5)
+	courier_bike.force_update_transform()
 	if courier_bike.mount_interactable:
+		courier_bike.mount_interactable.force_update_transform()
 		courier_bike.mount_interactable.update_player_distance(player.global_position)
 	for item in _interactables:
 		if item:
+			item.force_update_transform()
 			item.update_player_distance(player.global_position)
 	_evaluate_target_selection()
 
@@ -9415,7 +9420,7 @@ func _run_v8_desktop_controls_assertions() -> void:
 	touch_ui.show_gesture_overlay("TUNE_SIGNAL")
 	touch_ui.update_tuner_feedback(0.15, 0.0, false)
 	assert(touch_ui.tuner_readout_label != null, "FAIL 18: Tuner readout label created")
-	assert("FREQ: 0.150 MHz" in touch_ui.tuner_readout_label.text, "FAIL 18: Initial frequency shown in readout label")
+	assert("TUNE: 0.150" in touch_ui.tuner_readout_label.text, "FAIL 18: Initial frequency shown in readout label")
 	assert("░░░░░░░░░░" in touch_ui.tuner_readout_label.text, "FAIL 18: Signal meter rendered in readout label")
 
 	touch_ui.update_tuner_feedback(0.72, 0.95, false)
@@ -9466,8 +9471,60 @@ func _run_v8_desktop_controls_assertions() -> void:
 	assert(touch_ui.gesture_panel.visible == false, "FAIL 19: Releasing tuner drag MUST close gesture overlay")
 	print("  -> Assertion 19 PASS: Authoritative release lifecycle verified!")
 
+	# ASSERTION 20: Real End-to-End Mouse Drag Tuner Progression & Signal Lock
+	print("\n[ASSERTION 20] Testing Real End-to-End Mouse Drag Tuner Progression & Signal Lock...")
+	reset_slice()
+	await get_tree().process_frame
+	player.global_position = signal_tuner.global_position + Vector3(0.0, 0.0, 1.5)
+	signal_tuner.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+
+	# 1. Real interaction entry via context action
+	_on_action_pressed()
+	await get_tree().create_timer(0.1).timeout
+	assert(player.is_input_locked == true, "FAIL 20: Player locked upon tuning entry")
+	assert(signal_tuner.current_state == SignalTuner.TunerState.TUNING, "FAIL 20: Tuner in TUNING state")
+	assert(touch_ui.gesture_panel.visible == true, "FAIL 20: Gesture overlay panel visible")
+	assert(abs(signal_tuner.current_frequency - 0.15) < 0.01, "FAIL 20: Initial tuner frequency is 0.15")
+
+	# 2. Real physical mouse drag to target frequency zone (target = 0.72, delta = +0.57)
+	var a20_mouse_down := InputEventMouseButton.new()
+	a20_mouse_down.device = 0
+	a20_mouse_down.button_index = MOUSE_BUTTON_LEFT
+	a20_mouse_down.pressed = true
+	a20_mouse_down.position = Vector2(400.0, 270.0)
+	touch_ui._gui_input(a20_mouse_down)
+
+	# Drag mouse horizontally across 10 steps to reach lock zone
+	var drag_events_emitted: Array[int] = [0]
+	var drag_sub := touch_ui.tuner_dragged.connect(func(_px: float): drag_events_emitted[0] += 1)
+	for s in range(10):
+		var a20_mouse_motion := InputEventMouseMotion.new()
+		a20_mouse_motion.device = 0
+		a20_mouse_motion.position = Vector2(400.0 + (s + 1) * 28.0, 270.0)
+		a20_mouse_motion.relative = Vector2(28.0, 0.0)
+		touch_ui._gui_input(a20_mouse_motion)
+		await get_tree().process_frame
+
+	assert(drag_events_emitted[0] == 10, "FAIL 20: Mouse drag dispatched 10 tuner_dragged events (got %d)" % drag_events_emitted[0])
+	assert(abs(signal_tuner.current_frequency - signal_tuner.target_frequency) <= signal_tuner.lock_tolerance, "FAIL 20: Frequency reached lock zone (got %.3f, target %.3f +- %.3f)" % [signal_tuner.current_frequency, signal_tuner.target_frequency, signal_tuner.lock_tolerance])
+	assert("LOCK ZONE" in touch_ui.tuner_readout_label.text or "SIGNAL LOCKED" in touch_ui.tuner_readout_label.text, "FAIL 20: HUD shows lock zone / signal locked")
+
+	# 3. Dwell in lock zone to complete locking
+	for i in range(30):
+		signal_tuner._process(0.016)
+		await get_tree().process_frame
+
+	assert(signal_tuner.current_state == SignalTuner.TunerState.LOCKED, "FAIL 20: Tuner reached LOCKED state after dwelling")
+	assert(corroded_panel.is_powered == true, "FAIL 20: CorrodedPanel is powered after tuner lock")
+	assert(current_world_state == WorldLoopState.PANEL_POWERED, "FAIL 20: World state advanced to PANEL_POWERED")
+	assert(touch_ui.gesture_panel.visible == false, "FAIL 20: Gesture overlay closed on lock completion")
+	assert(player.is_input_locked == false, "FAIL 20: Player unlocked on lock completion")
+	assert(camera._is_interaction_mode == false, "FAIL 20: Camera interaction mode cleared on lock completion")
+	print("  -> Assertion 20 PASS: Real mouse drag progression, signal locking, and panel power-up verified!")
+
 	print("\n=========================================================================")
-	print("[ALL V8 DESKTOP CONTROLS & INPUT OWNERSHIP ASSERTIONS (1-19) PASSED 100% GREEN!]")
+	print("[ALL V8 DESKTOP CONTROLS & INPUT OWNERSHIP ASSERTIONS (1-20) PASSED 100% GREEN!]")
 	print("=========================================================================\n")
 	get_tree().quit(0)
 
