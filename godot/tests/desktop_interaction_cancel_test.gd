@@ -26,7 +26,7 @@ func _key_event(key: Key, pressed: bool, echo: bool = false) -> InputEventKey:
 	event.echo = echo
 	return event
 
-func _enter_tuner(touch_ui: Node, player: Node, tuner: Node) -> bool:
+func _enter_tuner(touch_ui: Node, player: Node, tuner: SignalTuner) -> bool:
 	player.global_position = tuner.global_position + Vector3(0.0, 0.0, 1.5)
 	tuner.update_player_distance(player.global_position)
 	_scene_under_test._process(0.016)
@@ -36,7 +36,7 @@ func _enter_tuner(touch_ui: Node, player: Node, tuner: Node) -> bool:
 	touch_ui._input(_key_event(KEY_E, false))
 	return true
 
-func _assert_tuner_open(touch_ui: Node, player: Node, tuner: Node, camera: Node) -> String:
+func _assert_tuner_open(touch_ui: Node, player: Node, tuner: SignalTuner, camera: ChinatownCamera3D) -> String:
 	if tuner.current_state != tuner.TunerState.TUNING:
 		return "Tuner did not enter TUNING"
 	if not player.is_input_locked:
@@ -47,7 +47,7 @@ func _assert_tuner_open(touch_ui: Node, player: Node, tuner: Node, camera: Node)
 		return "Tuner gesture overlay is not visible"
 	return ""
 
-func _assert_tuner_closed(touch_ui: Node, player: Node, tuner: Node, camera: Node) -> String:
+func _assert_tuner_closed(touch_ui: Node, player: Node, tuner: SignalTuner, camera: ChinatownCamera3D) -> String:
 	if tuner.current_state == tuner.TunerState.TUNING:
 		return "Tuner remained in TUNING after cancel"
 	if player.is_input_locked:
@@ -69,11 +69,11 @@ func _run() -> void:
 	await process_frame
 	await physics_frame
 
-	var touch_ui := _scene_under_test.get_node_or_null("CanvasLayer/TouchControlsUI")
-	var player := _scene_under_test.get_node_or_null("Runner")
-	var tuner := _scene_under_test.signal_tuner
-	var camera := _scene_under_test.camera
-	var panel := _scene_under_test.corroded_panel
+	var touch_ui: TouchControlsUI = _scene_under_test.get_node_or_null("CanvasLayer/TouchControlsUI") as TouchControlsUI
+	var player: PlayerRunner = _scene_under_test.get_node_or_null("Runner") as PlayerRunner
+	var tuner: SignalTuner = _scene_under_test.signal_tuner as SignalTuner
+	var camera: ChinatownCamera3D = _scene_under_test.camera as ChinatownCamera3D
+	var panel: CorrodedPanel = _scene_under_test.corroded_panel as CorrodedPanel
 	if touch_ui == null or player == null or tuner == null or camera == null or panel == null:
 		await _fail("Main scene is missing tuner interaction dependencies")
 		return
