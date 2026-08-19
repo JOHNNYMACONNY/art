@@ -61,12 +61,27 @@ func _physics_process(delta: float) -> void:
 			input_dir = kb_vec
 			
 	if input_dir.length() > 0.05:
-		# Convert screen-relative 2D input (Up = -Y screen) to 3D world direction
-		var yaw_rad := deg_to_rad(_camera_yaw_deg)
-		var forward := Vector3(-sin(yaw_rad), 0.0, -cos(yaw_rad)).normalized()
-		var right := Vector3(cos(yaw_rad), 0.0, -sin(yaw_rad)).normalized()
+		input_dir = input_dir.normalized()
 		
-		var move_dir := (right * input_dir.x + forward * input_dir.y).normalized()
+		# Planar camera-relative movement: project live camera basis onto horizontal XZ plane
+		var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+		var forward_xz := Vector3(-0.707107, 0.0, -0.707107)
+		var right_xz := Vector3(0.707107, 0.0, -0.707107)
+		if cam:
+			var cam_basis := cam.global_transform.basis
+			var fwd := Vector3(-cam_basis.z.x, 0.0, -cam_basis.z.z)
+			if fwd.length_squared() > 0.001:
+				forward_xz = fwd.normalized()
+			var rgt := Vector3(cam_basis.x.x, 0.0, cam_basis.x.z)
+			if rgt.length_squared() > 0.001:
+				right_xz = rgt.normalized()
+		
+		# Screen space: Up = -Y, Down = +Y, Left = -X, Right = +X
+		# World movement: W (input_dir.y = -1.0) -> +forward_xz (screen-up / away from camera)
+		# S (input_dir.y = +1.0) -> -forward_xz (screen-down / toward camera)
+		# D (input_dir.x = +1.0) -> +right_xz (screen-right)
+		# A (input_dir.x = -1.0) -> -right_xz (screen-left)
+		var move_dir := (right_xz * input_dir.x + forward_xz * (-input_dir.y)).normalized()
 		var target_vel := move_dir * (move_speed * input_dir.length())
 		
 		velocity = velocity.move_toward(target_vel, acceleration * delta)

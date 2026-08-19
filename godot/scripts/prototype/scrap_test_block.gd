@@ -211,6 +211,7 @@ func _ready() -> void:
 		touch_ui.radio_toggle_pressed.connect(_on_radio_toggle_pressed)
 		touch_ui.replay_pressed.connect(reset_slice)
 		touch_ui.retry_chase_pressed.connect(retry_chase)
+		touch_ui.interaction_cancelled.connect(_on_interaction_cancelled)
 		
 	if status_label:
 		status_label.text = "ECHOS IN THE SCRAP // GOLDEN SLICE v6"
@@ -877,6 +878,24 @@ func reset_slice() -> void:
 		
 	print("[WORLD_LOOP] Slice reset to initial cold start state cleanly.")
 
+func _cleanup_interaction_state() -> void:
+	if player:
+		player.is_input_locked = false
+	if camera:
+		camera.set_interaction_mode(false)
+	if touch_ui:
+		touch_ui.close_interaction_overlay()
+
+func _on_interaction_cancelled() -> void:
+	if signal_tuner and signal_tuner.current_state == SignalTuner.TunerState.TUNING:
+		signal_tuner.cancel_interaction()
+	if corroded_panel and corroded_panel.current_step == CorrodedPanel.Step.PEELING:
+		corroded_panel.cancel_interaction()
+	if audio_mgr:
+		audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
+		audio_mgr.set_tuning_audio(0.0)
+	_cleanup_interaction_state()
+
 func _on_tuner_dragged(accum_px: float) -> void:
 	if signal_tuner:
 		signal_tuner.tune_from_accum_px(accum_px)
@@ -887,10 +906,14 @@ func _on_tuner_interaction_released() -> void:
 	if audio_mgr:
 		audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
 		audio_mgr.set_tuning_audio(0.0)
+	_cleanup_interaction_state()
 
-func _on_tuner_frequency_changed(_freq: float, accuracy: float) -> void:
+func _on_tuner_frequency_changed(freq: float, accuracy: float) -> void:
 	if audio_mgr:
 		audio_mgr.set_tuning_audio(accuracy)
+	if touch_ui:
+		var is_locked: bool = signal_tuner != null and signal_tuner.current_state == SignalTuner.TunerState.LOCKED
+		touch_ui.update_tuner_feedback(freq, accuracy, is_locked)
 
 func _on_tuner_signal_locked(tuner_ref: SignalTuner) -> void:
 	print("[WORLD_LOOP] SIGNAL LOCKED! Powering up Corroded Panel...")
@@ -910,12 +933,9 @@ func _on_tuner_signal_locked(tuner_ref: SignalTuner) -> void:
 		if corroded_panel:
 			audio_mgr.play_event(AudioManagerScript.SoundEvent.PANEL_POWERED, corroded_panel.global_position)
 			
-	if player:
-		player.is_input_locked = false
-	if camera:
-		camera.set_interaction_mode(false)
 	if touch_ui:
-		touch_ui.close_interaction_overlay()
+		touch_ui.update_tuner_feedback(tuner_ref.current_frequency if tuner_ref else 0.72, 1.0, true)
+	_cleanup_interaction_state()
 	if corroded_panel:
 		corroded_panel.power_on()
 		current_world_state = WorldLoopState.PANEL_POWERED
@@ -930,12 +950,7 @@ func _on_peel_gesture_dragged(progress: float) -> void:
 func _on_peel_gesture_released() -> void:
 	if corroded_panel and corroded_panel.current_step == CorrodedPanel.Step.PEELING:
 		corroded_panel.cancel_interaction()
-		if player:
-			player.is_input_locked = false
-		if camera:
-			camera.set_interaction_mode(false)
-		if touch_ui:
-			touch_ui.close_interaction_overlay()
+	_cleanup_interaction_state()
 
 func _on_core_tap_pressed() -> void:
 	if corroded_panel:
@@ -8953,16 +8968,6 @@ func _run_v8_desktop_controls_assertions() -> void:
 		ev.echo = false
 		Input.parse_input_event(ev)
 		Input.flush_buffered_events()
-		if k == KEY_W or k == KEY_UP:
-			if pressed: Input.action_press("ui_up") else: Input.action_release("ui_up")
-		elif k == KEY_S or k == KEY_DOWN:
-			if pressed: Input.action_press("ui_down") else: Input.action_release("ui_down")
-		elif k == KEY_A or k == KEY_LEFT:
-			if pressed: Input.action_press("ui_left") else: Input.action_release("ui_left")
-		elif k == KEY_D or k == KEY_RIGHT:
-			if pressed: Input.action_press("ui_right") else: Input.action_release("ui_right")
-		elif k == KEY_SPACE or k == KEY_SHIFT:
-			if pressed: Input.action_press("ui_select") else: Input.action_release("ui_select")
 
 	# ASSERTION 1: WASD On-Foot Screen/Camera-Relative Mapping via Real Input Polling
 	print("[ASSERTION 1] Testing WASD On-Foot Camera-Relative Direction via Real Key Polling...")
@@ -8974,23 +8979,23 @@ func _run_v8_desktop_controls_assertions() -> void:
 	var exp_forward := Vector3(-sin(yaw_rad), 0.0, -cos(yaw_rad)).normalized()
 	var exp_right := Vector3(cos(yaw_rad), 0.0, -sin(yaw_rad)).normalized()
 
-	# W alone -> feeds into player._physics_process -> velocity in -exp_forward
+	# W alone -> feeds into player._physics_process -> velocity in +exp_forward (away from camera / screen-up)
 	_inject_key.call(KEY_W, true)
 	player.velocity = Vector3.ZERO
 	player._physics_process(0.1)
 	assert(player.velocity.length() > 0.0, "FAIL 1: Real W key poll must accelerate runner")
-	assert(player.velocity.normalized().is_equal_approx(-exp_forward), "FAIL 1: W must produce -forward camera-relative direction")
+	assert(player.velocity.normalized().is_equal_approx(exp_forward), "FAIL 1: W must produce +forward camera-relative direction")
 	_inject_key.call(KEY_W, false)
 
-	# S alone -> feeds into player._physics_process -> velocity in +exp_forward
+	# S alone -> feeds into player._physics_process -> velocity in -exp_forward (toward camera / screen-down)
 	_inject_key.call(KEY_S, true)
 	player.velocity = Vector3.ZERO
 	player._physics_process(0.1)
 	assert(player.velocity.length() > 0.0, "FAIL 1: Real S key poll must accelerate runner")
-	assert(player.velocity.normalized().is_equal_approx(exp_forward), "FAIL 1: S must produce +forward camera-relative direction")
+	assert(player.velocity.normalized().is_equal_approx(-exp_forward), "FAIL 1: S must produce -forward camera-relative direction")
 	_inject_key.call(KEY_S, false)
 
-	# A alone -> feeds into player._physics_process -> velocity in -exp_right
+	# A alone -> feeds into player._physics_process -> velocity in -exp_right (screen-left)
 	_inject_key.call(KEY_A, true)
 	player.velocity = Vector3.ZERO
 	player._physics_process(0.1)
@@ -8998,7 +9003,7 @@ func _run_v8_desktop_controls_assertions() -> void:
 	assert(player.velocity.normalized().is_equal_approx(-exp_right), "FAIL 1: A must produce -right camera-relative direction")
 	_inject_key.call(KEY_A, false)
 
-	# D alone -> feeds into player._physics_process -> velocity in +exp_right
+	# D alone -> feeds into player._physics_process -> velocity in +exp_right (screen-right)
 	_inject_key.call(KEY_D, true)
 	player.velocity = Vector3.ZERO
 	player._physics_process(0.1)
@@ -9374,8 +9379,95 @@ func _run_v8_desktop_controls_assertions() -> void:
 	touch_ui.close_interaction_overlay()
 	print("  -> Assertion 16 PASS: Emulated mouse companion gesture rejection verified!")
 
+	# ASSERTION 17: ESC Key Cancels Active Interaction & Authoritatively Unlocks State
+	print("\n[ASSERTION 17] Testing ESC Key Cancels Interaction & Restores Traversal...")
+	reset_slice()
+	await get_tree().process_frame
+	player.global_position = signal_tuner.global_position + Vector3(0.0, 0.0, 1.5)
+	signal_tuner.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+
+	# Start tuner interaction
+	_on_action_pressed()
+	await get_tree().create_timer(0.1).timeout
+	assert(signal_tuner.current_state == SignalTuner.TunerState.TUNING, "FAIL 17: Tuner entered TUNING state")
+	assert(player.is_input_locked == true, "FAIL 17: Player input locked during tuning")
+	assert(camera._is_interaction_mode == true, "FAIL 17: Camera in interaction mode")
+	assert(touch_ui.gesture_panel.visible == true, "FAIL 17: Gesture panel overlay visible")
+
+	# Press ESC
+	var esc_key := InputEventKey.new()
+	esc_key.physical_keycode = KEY_ESCAPE
+	esc_key.keycode = KEY_ESCAPE
+	esc_key.pressed = true
+	esc_key.echo = false
+	touch_ui._input(esc_key)
+	await get_tree().process_frame
+
+	assert(signal_tuner.current_state != SignalTuner.TunerState.TUNING, "FAIL 17: Tuner exited TUNING state on ESC")
+	assert(player.is_input_locked == false, "FAIL 17: Player input authoritatively unlocked on ESC")
+	assert(camera._is_interaction_mode == false, "FAIL 17: Camera interaction mode exited on ESC")
+	assert(touch_ui.gesture_panel.visible == false, "FAIL 17: Gesture overlay closed on ESC")
+	print("  -> Assertion 17 PASS: ESC cancellation and authoritative unlock verified!")
+
+	# ASSERTION 18: Visible Tuner HUD Feedback Updates Readout & Lock Status
+	print("\n[ASSERTION 18] Testing Visible Tuner HUD Feedback Readout & Meter...")
+	touch_ui.show_gesture_overlay("TUNE_SIGNAL")
+	touch_ui.update_tuner_feedback(0.15, 0.0, false)
+	assert(touch_ui.tuner_readout_label != null, "FAIL 18: Tuner readout label created")
+	assert("FREQ: 0.150 MHz" in touch_ui.tuner_readout_label.text, "FAIL 18: Initial frequency shown in readout label")
+	assert("░░░░░░░░░░" in touch_ui.tuner_readout_label.text, "FAIL 18: Signal meter rendered in readout label")
+
+	touch_ui.update_tuner_feedback(0.72, 0.95, false)
+	assert("LOCK ZONE: HOLD" in touch_ui.tuner_readout_label.text, "FAIL 18: Lock zone indicator shown when accuracy >= 0.90")
+
+	touch_ui.update_tuner_feedback(0.72, 1.0, true)
+	assert("SIGNAL LOCKED" in touch_ui.tuner_readout_label.text, "FAIL 18: Locked state displayed in readout label")
+	touch_ui.close_interaction_overlay()
+	print("  -> Assertion 18 PASS: Visible Tuner HUD feedback verified!")
+
+	# ASSERTION 19: Authoritative Release Path Unlocks Player on Mouse Release
+	print("\n[ASSERTION 19] Testing Authoritative Release Lifecycle on Mouse Up...")
+	reset_slice()
+	await get_tree().process_frame
+	player.global_position = signal_tuner.global_position + Vector3(0.0, 0.0, 1.5)
+	signal_tuner.update_player_distance(player.global_position)
+	_evaluate_target_selection()
+
+	# Start interaction
+	_on_action_pressed()
+	await get_tree().create_timer(0.1).timeout
+	assert(player.is_input_locked == true, "FAIL 19: Player locked during tuning")
+
+	# Mouse down & drag on overlay
+	var mouse_down_ev := InputEventMouseButton.new()
+	mouse_down_ev.device = 0
+	mouse_down_ev.button_index = MOUSE_BUTTON_LEFT
+	mouse_down_ev.pressed = true
+	mouse_down_ev.position = Vector2(480.0, 270.0)
+	touch_ui._gui_input(mouse_down_ev)
+
+	var mouse_move_ev := InputEventMouseMotion.new()
+	mouse_move_ev.device = 0
+	mouse_move_ev.position = Vector2(520.0, 270.0)
+	mouse_move_ev.relative = Vector2(40.0, 0.0)
+	touch_ui._gui_input(mouse_move_ev)
+
+	# Release mouse drag without completing lock
+	var mouse_up_ev := InputEventMouseButton.new()
+	mouse_up_ev.device = 0
+	mouse_up_ev.button_index = MOUSE_BUTTON_LEFT
+	mouse_up_ev.pressed = false
+	touch_ui._input(mouse_up_ev)
+	await get_tree().process_frame
+
+	assert(player.is_input_locked == false, "FAIL 19: Releasing tuner drag MUST unlock player immediately")
+	assert(camera._is_interaction_mode == false, "FAIL 19: Releasing tuner drag MUST exit camera interaction mode")
+	assert(touch_ui.gesture_panel.visible == false, "FAIL 19: Releasing tuner drag MUST close gesture overlay")
+	print("  -> Assertion 19 PASS: Authoritative release lifecycle verified!")
+
 	print("\n=========================================================================")
-	print("[ALL V8 DESKTOP CONTROLS & INPUT OWNERSHIP ASSERTIONS (1-16) PASSED 100% GREEN!]")
+	print("[ALL V8 DESKTOP CONTROLS & INPUT OWNERSHIP ASSERTIONS (1-19) PASSED 100% GREEN!]")
 	print("=========================================================================\n")
 	get_tree().quit(0)
 
