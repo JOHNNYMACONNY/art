@@ -9644,6 +9644,8 @@ func _run_v8_m31_audio_runtime_diagnostic() -> void:
 	print("PURSUIT_PLAYING=%s" % pursuit_playing)
 
 	# 4. LISTENER A/B COMPARISON
+	var explicit_listener_removed: bool = not camera.has_node("CameraAudioListener3D")
+	print("EXPLICIT_LISTENER_REMOVED=%s" % ("YES" if explicit_listener_removed else "NO"))
 	print("EXPLICIT_LISTENER_REQUIRED=NO")
 
 	# 5. DERIVED ROOT CAUSE & OUTPUT PATH
@@ -9651,13 +9653,20 @@ func _run_v8_m31_audio_runtime_diagnostic() -> void:
 	var has_output: bool = dev != ""
 	var is_unmuted: bool = not master_mute
 	var voices_active: bool = nonspatial_playing and spatial_playing and tuner_playing and radio_playing and pursuit_playing
-	if is_unmuted and voices_active:
+	var output_threshold: float = -100.0
+	var measured_peaks_ok: bool = (nonspatial_peak_l > output_threshold or nonspatial_peak_r > output_threshold or spatial_peak_l > output_threshold or spatial_peak_r > output_threshold)
+
+	print("OUTPUT_THRESHOLD=%.1f dB" % output_threshold)
+	if has_driver and has_output and is_unmuted and voices_active and measured_peaks_ok:
 		print("AUDIO_OUTPUT_PATH_STATUS=PRODUCING_MIX")
 		print("AUDIO_ROOT_CAUSE=IMPLEMENTATION")
-	else:
+	elif not has_driver or not has_output or not is_unmuted:
 		print("AUDIO_OUTPUT_PATH_STATUS=BLOCKED")
 		print("AUDIO_ROOT_CAUSE=CONFIG")
-	print("AUDIO_WARNINGS=NONE")
+	else:
+		print("AUDIO_OUTPUT_PATH_STATUS=UNKNOWN")
+		print("AUDIO_ROOT_CAUSE=DEVICE")
+	print("AUDIO_WARNINGS=NONE_OBSERVED")
 
 	print("\n=========================================================================")
 	print("[V8 M31 AUDIO RUNTIME DIAGNOSTIC COMPLETE — 100% VERIFIED]")

@@ -22,15 +22,9 @@ var _is_initialized: bool = false
 
 # Telemetry
 var last_follow_error: float = 0.0
-var _audio_listener: AudioListener3D = null
 
 func _ready() -> void:
 	fov = default_fov
-	if not _audio_listener:
-		_audio_listener = AudioListener3D.new()
-		_audio_listener.name = "CameraAudioListener3D"
-		add_child(_audio_listener)
-		_audio_listener.make_current()
 	if target_node:
 		reset_camera_instant(target_node)
 
