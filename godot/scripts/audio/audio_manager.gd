@@ -754,6 +754,14 @@ func _play_echo_tail() -> void:
 	_echo_voice.play()
 	print("[AUDIO_ECHO] Tail playing")
 
+## Authoritative normalized float (-1.0..+1.0) to signed 8-bit PCM integer (-128..127)
+static func encode_pcm8(sample: float) -> int:
+	var s: float = clampf(sample, -1.0, 1.0)
+	if s >= 0.0:
+		return int(round(s * 127.0))
+	else:
+		return int(round(s * 128.0))
+
 func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
@@ -766,7 +774,7 @@ func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> Audi
 	for i in range(sample_count):
 		var t := float(i) / 22050.0
 		var sample := sin(2.0 * PI * freq * t) * volume
-		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+		data.encode_s8(i, encode_pcm8(sample))
 	wav.data = data
 	return wav
 
@@ -784,7 +792,7 @@ func _create_sweep_wav(start_f: float, end_f: float, duration: float, volume: fl
 		# Integral of linear frequency: phase(t) = 2*PI*(start_f * t + (f_diff / (2*T)) * t^2)
 		var phase: float = 2.0 * PI * (start_f * t + (f_diff / (2.0 * duration)) * t * t)
 		var sample: float = sin(phase) * volume
-		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+		data.encode_s8(i, encode_pcm8(sample))
 	wav.data = data
 	return wav
 
@@ -801,7 +809,7 @@ func _create_dual_beep_wav(freq: float, duration: float, volume: float = 0.5) ->
 		var beep_t: float = float(i % half_count) / 22050.0
 		var envelope: float = 1.0 if (i % half_count) < int(float(half_count) * 0.7) else 0.0
 		var sample: float = sin(2.0 * PI * freq * beep_t) * volume * envelope
-		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+		data.encode_s8(i, encode_pcm8(sample))
 	wav.data = data
 	return wav
 
@@ -816,7 +824,7 @@ func _create_harmonic_chime_wav(f1: float, f2: float, duration: float, volume: f
 		var t := float(i) / 22050.0
 		var decay: float = 1.0 - (t / duration)
 		var sample: float = (sin(2.0 * PI * f1 * t) * 0.6 + sin(2.0 * PI * f2 * t) * 0.4) * volume * decay
-		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+		data.encode_s8(i, encode_pcm8(sample))
 	wav.data = data
 	return wav
 
@@ -833,7 +841,7 @@ func _create_harmonic_drone_wav(f1: float, f2: float, duration: float, volume: f
 	for i in range(sample_count):
 		var t := float(i) / 22050.0
 		var sample: float = (sin(2.0 * PI * f1 * t) * 0.7 + sin(2.0 * PI * f2 * t) * 0.3) * volume
-		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+		data.encode_s8(i, encode_pcm8(sample))
 	wav.data = data
 	return wav
 
@@ -848,8 +856,8 @@ func _create_noise_wav(duration: float, volume: float = 0.3) -> AudioStreamWAV:
 	var data := PackedByteArray()
 	data.resize(sample_count)
 	for i in range(sample_count):
-		var sample := (randf() * 2.0 - 1.0) * volume
-		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+		var sample: float = (randf() * 2.0 - 1.0) * volume
+		data.encode_s8(i, encode_pcm8(sample))
 	wav.data = data
 	return wav
 
@@ -877,10 +885,10 @@ func _create_echo_onset_wav() -> AudioStreamWAV:
 		# Reversed envelope: loud attack, decays to near-zero
 		var env := (1.0 - norm_t) * (1.0 - norm_t)
 		# Harmonic stack: 220 + 330 + sparse noise for electrical texture
-		var sig := (sin(2.0 * PI * 220.0 * t) * 0.5
+		var sig: float = (sin(2.0 * PI * 220.0 * t) * 0.5
 			+ sin(2.0 * PI * 330.0 * t) * 0.3
 			+ (randf() * 2.0 - 1.0) * 0.2) * env * 0.55
-		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+		data.encode_s8(i, encode_pcm8(sig))
 	wav.data = data
 	return wav
 
@@ -906,13 +914,13 @@ func _create_echo_peak_wav() -> AudioStreamWAV:
 			env = 1.0 - ((norm_t - 0.15) / 0.85)
 		env = maxf(0.0, env)
 		# Comb-filter texture: two detuned oscillators (185Hz + 187Hz) = 2Hz beating
-		var comb := sin(2.0 * PI * 185.0 * t) * 0.4 + sin(2.0 * PI * 187.0 * t) * 0.4
+		var comb: float = sin(2.0 * PI * 185.0 * t) * 0.4 + sin(2.0 * PI * 187.0 * t) * 0.4
 		# Amplitude modulation at ~3 Hz for fragmentary pulsing quality
-		var am := 0.6 + 0.4 * sin(2.0 * PI * 3.0 * t)
+		var am: float = 0.6 + 0.4 * sin(2.0 * PI * 3.0 * t)
 		# Sparse noise texture to imply signal corruption
-		var noise := (randf() * 2.0 - 1.0) * 0.15
-		var sig := (comb * am + noise) * env * 0.45
-		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+		var noise: float = (randf() * 2.0 - 1.0) * 0.15
+		var sig: float = (comb * am + noise) * env * 0.45
+		data.encode_s8(i, encode_pcm8(sig))
 	wav.data = data
 	return wav
 
@@ -931,12 +939,12 @@ func _create_echo_tail_wav() -> AudioStreamWAV:
 		var t := float(i) / 22050.0
 		var norm_t := t / duration
 		# Simple exponential decay to guarantee silence at end
-		var env := exp(-norm_t * 5.0)
+		var env: float = exp(-norm_t * 5.0)
 		# High-frequency shimmer: 3400Hz + 5100Hz harmonics
-		var sig := (sin(2.0 * PI * 3400.0 * t) * 0.6
+		var sig: float = (sin(2.0 * PI * 3400.0 * t) * 0.6
 			+ sin(2.0 * PI * 5100.0 * t) * 0.25
 			+ (randf() * 2.0 - 1.0) * 0.1) * env * 0.45
-		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+		data.encode_s8(i, encode_pcm8(sig))
 	wav.data = data
 	return wav
 
@@ -956,12 +964,12 @@ func _create_fractured_carrier_wav(duration: float = 1.0, volume: float = 0.3) -
 	for i in range(sample_count):
 		var t := float(i) / 22050.0
 		# Subtle carrier with gentle flutter
-		var f1 := 175.0 + 3.0 * sin(2.0 * PI * 4.0 * t)
-		var carrier := sin(2.0 * PI * f1 * t) * 0.45 + sin(2.0 * PI * (f1 * 1.5) * t) * 0.25
+		var f1: float = 175.0 + 3.0 * sin(2.0 * PI * 4.0 * t)
+		var carrier: float = sin(2.0 * PI * f1 * t) * 0.45 + sin(2.0 * PI * (f1 * 1.5) * t) * 0.25
 		# Fracture grain modulation
-		var flutter := 0.7 + 0.3 * sin(2.0 * PI * 8.0 * t)
-		var crackle := (randf() * 2.0 - 1.0) * 0.12
-		var sig := (carrier * flutter + crackle) * volume
-		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+		var flutter: float = 0.7 + 0.3 * sin(2.0 * PI * 8.0 * t)
+		var crackle: float = (randf() * 2.0 - 1.0) * 0.12
+		var sig: float = (carrier * flutter + crackle) * volume
+		data.encode_s8(i, encode_pcm8(sig))
 	wav.data = data
 	return wav

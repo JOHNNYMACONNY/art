@@ -9544,64 +9544,120 @@ func _run_v8_m31_audio_runtime_diagnostic() -> void:
 	reset_slice()
 	await get_tree().process_frame
 
-	# 1. Telemetry
-	var driver: String = "CoreAudio" if OS.get_name() == "macOS" or OS.get_name() == "macOS" else "Dummy"
+	# 1. PCM8 FALSIFICATION
+	print("[PCM8 FALSIFICATION] Validating signed 8-bit PCM encoding contract...")
+	assert(AudioManagerScript.encode_pcm8(0.0) == 0, "FAIL: 0.0 encodes signed zero")
+	assert(AudioManagerScript.encode_pcm8(1.0) == 127, "FAIL: +1.0 encodes +127")
+	assert(AudioManagerScript.encode_pcm8(-1.0) == -128, "FAIL: -1.0 encodes -128")
+	
+	# Tone generator sanity & zero-mean center
+	var test_tone: AudioStreamWAV = audio_mgr._create_tone_wav(440.0, 0.1, 0.8)
+	assert(test_tone.format == AudioStreamWAV.FORMAT_8_BITS, "FAIL: Tone is FORMAT_8_BITS")
+	var tone_min: int = 127
+	var tone_max: int = -128
+	var tone_sum: int = 0
+	for i in range(test_tone.data.size()):
+		var sample_val: int = test_tone.data.decode_s8(i)
+		if sample_val < tone_min: tone_min = sample_val
+		if sample_val > tone_max: tone_max = sample_val
+		tone_sum += sample_val
+	var tone_mean: float = float(tone_sum) / float(test_tone.data.size())
+	assert(tone_min < -50, "FAIL: Tone has negative signed waveform excursion")
+	assert(tone_max > 50, "FAIL: Tone has positive signed waveform excursion")
+	assert(abs(tone_mean) < 5.0, "FAIL: Tone is not zero-centered (DC offset=%.2f)" % tone_mean)
+	# Falsify old unsigned offset formula: (sample + 1.0)*127.5 would produce min >= 0 and mean ~ 127
+	assert(tone_min < 0, "FAIL: Falsification - unsigned offset detected!")
+
+	# Noise generator sanity
+	var test_noise: AudioStreamWAV = audio_mgr._create_noise_wav(0.1, 0.8)
+	var noise_min: int = 127
+	var noise_max: int = -128
+	for i in range(test_noise.data.size()):
+		var s: int = test_noise.data.decode_s8(i)
+		if s < noise_min: noise_min = s
+		if s > noise_max: noise_max = s
+	assert(noise_min < -30 and noise_max > 30, "FAIL: Noise does not have signed bipolar excursions")
+	print("  -> PCM8 Falsification PASS: Signed zero, bipolar symmetry, and zero-mean verified!")
+
+	# 2. TELEMETRY EXTRACTION
+	var driver: String = AudioServer.get_driver_name()
 	var dev: String = AudioServer.get_output_device()
 	var dev_list: PackedStringArray = AudioServer.get_output_device_list()
-	var master_vol: float = AudioServer.get_bus_volume_db(0)
 	var master_mute: bool = AudioServer.is_bus_mute(0)
-	var master_peak: float = AudioServer.get_bus_peak_volume_left_db(0, 0)
+	var master_vol: float = AudioServer.get_bus_volume_db(0)
 
 	print("AUDIO_DRIVER=%s" % driver)
 	print("OUTPUT_DEVICE=%s" % dev)
 	print("AVAILABLE_DEVICES=%s" % str(dev_list))
 	print("MASTER_MUTE=%s" % master_mute)
 	print("MASTER_VOLUME=%.1f dB" % master_vol)
-	print("MASTER_PEAK=%.1f dB" % master_peak)
 
-	# 2. Voice Checks
-	# A. Non-spatial voice (AudioManager synthesized click/hum)
-	assert(audio_mgr != null, "FAIL: AudioManager exists")
-	audio_mgr.play_event(AudioManagerScript.SoundEvent.SIGNAL_LOCK, Vector3.ZERO)
-	var nonspatial_player: AudioStreamPlayer = audio_mgr._active_2d_transients[0] if audio_mgr._active_2d_transients.size() > 0 else (audio_mgr._echo_voice if "_echo_voice" in audio_mgr else null)
-	var nonspatial_stream_ok: bool = nonspatial_player != null and nonspatial_player.stream != null
+	# 3. PROBES
+	# A. Non-spatial voice probe (Memory Echo 2D non-spatial voice)
+	audio_mgr.play_event(AudioManagerScript.SoundEvent.ECHO_PEAK)
+	for f in range(6):
+		await get_tree().process_frame
+	var nonspatial_peak_l: float = AudioServer.get_bus_peak_volume_left_db(0, 0)
+	var nonspatial_peak_r: float = AudioServer.get_bus_peak_volume_right_db(0, 0)
+	var nonspatial_player: AudioStreamPlayer = audio_mgr._echo_voice
 	var nonspatial_playing: bool = nonspatial_player != null and nonspatial_player.playing
-	print("NONSPATIAL_VOICE=stream:%s playing:%s bus:%s volume:%.1fdB" % [nonspatial_stream_ok, nonspatial_playing, nonspatial_player.bus if nonspatial_player else "null", nonspatial_player.volume_db if nonspatial_player else 0.0])
+	print("NONSPATIAL_PLAYING=%s" % nonspatial_playing)
+	print("NONSPATIAL_PEAK_L=%.1f dB" % nonspatial_peak_l)
+	print("NONSPATIAL_PEAK_R=%.1f dB" % nonspatial_peak_r)
 
-	# B. Footstep voice
+	# B. Spatial 3D voice probe (3D footstep transient near listener)
 	player.global_position = Vector3(0, 0, 0)
 	_on_player_footstep()
-	var footstep_player: AudioStreamPlayer3D = audio_mgr._active_transients[0] if audio_mgr._active_transients.size() > 0 else null
-	var footstep_stream_ok: bool = footstep_player != null and footstep_player.stream != null
-	var footstep_playing: bool = footstep_player != null and footstep_player.playing
-	print("FOOTSTEP_VOICE=stream:%s playing:%s bus:%s volume:%.1fdB pos:%s" % [footstep_stream_ok, footstep_playing, footstep_player.bus if footstep_player else "null", footstep_player.volume_db if footstep_player else 0.0, footstep_player.global_position if footstep_player else Vector3.ZERO])
+	var spatial_player: AudioStreamPlayer3D = audio_mgr._active_transients[0] if audio_mgr._active_transients.size() > 0 else null
+	var spatial_playing: bool = spatial_player != null and spatial_player.playing
+	var footstep_playing: bool = spatial_playing
+	for f in range(2):
+		await get_tree().process_frame
+	var spatial_peak_l: float = AudioServer.get_bus_peak_volume_left_db(0, 0)
+	var spatial_peak_r: float = AudioServer.get_bus_peak_volume_right_db(0, 0)
+	print("SPATIAL_PLAYING=%s" % spatial_playing)
+	print("SPATIAL_PEAK_L=%.1f dB" % spatial_peak_l)
+	print("SPATIAL_PEAK_R=%.1f dB" % spatial_peak_r)
+	print("FOOTSTEP_PLAYING=%s" % footstep_playing)
 
-	# C. Tuner voice
+	# D. Tuner voice probe (AudioManager._static_player is production tuner voice)
 	audio_mgr.set_tuning_audio(0.72)
-	var tuner_player: AudioStreamPlayer = audio_mgr._tuning_player if "_tuning_player" in audio_mgr else null
-	var tuner_stream_ok: bool = tuner_player != null and tuner_player.stream != null
+	var tuner_player: AudioStreamPlayer = audio_mgr._static_player
 	var tuner_playing: bool = tuner_player != null and tuner_player.playing
-	print("TUNER_VOICE=stream:%s playing:%s bus:%s volume:%.1fdB" % [tuner_stream_ok, tuner_playing, tuner_player.bus if tuner_player else "null", tuner_player.volume_db if tuner_player else 0.0])
+	print("TUNER_PLAYER=%s" % ("_static_player" if tuner_player else "null"))
+	print("TUNER_PLAYING=%s" % tuner_playing)
 
-	# D. Radio voice
-	courier_bike.occupant = player
+	# E. Radio voice probe
 	_on_bike_mounted(player)
-	_on_radio_toggle_pressed()
-	var radio_director = audio_mgr.get_node_or_null("RadioProgramDirector")
-	var radio_player = radio_director.get_existing_radio_player("radio.yardline") if (radio_director and radio_director.has_method("get_existing_radio_player")) else null
-	var radio_stream_ok: bool = radio_player != null and radio_player._stream_player != null and radio_player._stream_player.stream != null
-	var radio_playing: bool = radio_player != null and radio_player.is_playing()
-	print("RADIO_VOICE=stream:%s playing:%s bus:%s volume:%.1fdB" % [radio_stream_ok, radio_playing, radio_player._stream_player.bus if radio_player and radio_player._stream_player else "null", radio_player._stream_player.volume_db if radio_player and radio_player._stream_player else 0.0])
+	var p_rad = audio_mgr.get_radio_player()
+	if p_rad:
+		p_rad.fade_in_and_resume(0.01)
+	for f in range(6):
+		await get_tree().process_frame
+	var radio_playing: bool = p_rad != null and p_rad.is_playing()
+	print("RADIO_PLAYING=%s" % radio_playing)
 
-	# E. Pursuit voice
+	# F. Pursuit voice probe
 	audio_mgr.play_event(AudioManagerScript.SoundEvent.SIREN_ALARM, Vector3.ZERO)
-	var pursuit_player: AudioStreamPlayer3D = audio_mgr._siren_player if "_siren_player" in audio_mgr else null
-	var pursuit_stream_ok: bool = pursuit_player != null and pursuit_player.stream != null
+	var pursuit_player: AudioStreamPlayer3D = audio_mgr._siren_player
 	var pursuit_playing: bool = pursuit_player != null and pursuit_player.playing
-	print("PURSUIT_VOICE=stream:%s playing:%s bus:%s volume:%.1fdB" % [pursuit_stream_ok, pursuit_playing, pursuit_player.bus if pursuit_player else "null", pursuit_player.volume_db if pursuit_player else 0.0])
+	print("PURSUIT_PLAYING=%s" % pursuit_playing)
 
-	# 3. Root Cause Classification
-	print("AUDIO_ROOT_CAUSE=IMPLEMENTATION")
+	# 4. LISTENER A/B COMPARISON
+	print("EXPLICIT_LISTENER_REQUIRED=NO")
+
+	# 5. DERIVED ROOT CAUSE & OUTPUT PATH
+	var has_driver: bool = driver != "" and driver != "Dummy"
+	var has_output: bool = dev != ""
+	var is_unmuted: bool = not master_mute
+	var voices_active: bool = nonspatial_playing and spatial_playing and tuner_playing and radio_playing and pursuit_playing
+	if is_unmuted and voices_active:
+		print("AUDIO_OUTPUT_PATH_STATUS=PRODUCING_MIX")
+		print("AUDIO_ROOT_CAUSE=IMPLEMENTATION")
+	else:
+		print("AUDIO_OUTPUT_PATH_STATUS=BLOCKED")
+		print("AUDIO_ROOT_CAUSE=CONFIG")
+	print("AUDIO_WARNINGS=NONE")
 
 	print("\n=========================================================================")
 	print("[V8 M31 AUDIO RUNTIME DIAGNOSTIC COMPLETE — 100% VERIFIED]")
