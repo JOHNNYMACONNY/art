@@ -253,7 +253,21 @@ func update_radio_button_state(is_enabled: bool, _station_id: String = "radio.ya
 # LIFECYCLE & INITIALIZATION
 # ==============================================================================
 
+func _configure_pointer_routing() -> void:
+	# Passive full-screen containers must bubble touch events to this root Control.
+	# Interactive Button children keep their default STOP behavior.
+	for passive_control in [safe_area_root, left_touch_area, right_touch_area, driving_panel, gesture_panel, tension_panel, replay_panel]:
+		if passive_control:
+			passive_control.mouse_filter = Control.MOUSE_FILTER_PASS
+
+	# Joystick artwork appears directly under the active thumb; it must never
+	# steal ScreenDrag/ScreenTouch events from the routing controls behind it.
+	for decorative_control in [joystick_base, joystick_handle, gesture_hint_label, alert_label, proximity_label]:
+		if decorative_control:
+			decorative_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 func _ready() -> void:
+	_configure_pointer_routing()
 	if joystick_handle and joystick_base:
 		_joystick_handle_rest_pos = (joystick_base.size - joystick_handle.size) * 0.5
 		joystick_handle.position = _joystick_handle_rest_pos
