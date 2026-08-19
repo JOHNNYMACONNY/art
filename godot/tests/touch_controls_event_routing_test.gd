@@ -35,10 +35,12 @@ func _run() -> void:
 	root.push_input(touch_down, true)
 	await process_frame
 
+	# Keep the drag inside the now-visible 120px joystick base. This verifies
+	# that the passive joystick artwork cannot steal the active touch stream.
 	var touch_drag := InputEventScreenDrag.new()
 	touch_drag.index = 7
-	touch_drag.position = Vector2(220, 390)
-	touch_drag.relative = Vector2(80, 0)
+	touch_drag.position = Vector2(180, 390)
+	touch_drag.relative = Vector2(40, 0)
 	root.push_input(touch_drag, true)
 	await process_frame
 	await physics_frame
@@ -53,7 +55,7 @@ func _run() -> void:
 	var touch_up := InputEventScreenTouch.new()
 	touch_up.index = 7
 	touch_up.pressed = false
-	touch_up.position = Vector2(220, 390)
+	touch_up.position = Vector2(180, 390)
 	root.push_input(touch_up, true)
 	await process_frame
 
