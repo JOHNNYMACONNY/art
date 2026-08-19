@@ -126,7 +126,8 @@ jobs:
               marker,
               marker
               + 'renderer/rendering_method="gl_compatibility"\n'
-              + 'renderer/rendering_method.mobile="gl_compatibility"\n',
+              + 'renderer/rendering_method.mobile="gl_compatibility"\n'
+              + 'textures/vram_compression/import_etc2_astc=true\n',
               1,
           )
           project.write_text(text)
