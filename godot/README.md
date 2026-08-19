@@ -13,3 +13,5 @@ This directory contains the Godot 4.7 Desktop Golden Block prototype for evaluat
 ## Browser playtest
 
 GitHub Actions exports the project with the `Web Playtest` preset. The CI job builds an isolated WebGL/Compatibility copy, smoke-tests the generated static bundle, and uploads the browser-ready build as an artifact. The source project remains configured for its desktop Forward+ target.
+
+For an explicit ChatGPT-driven verification pass, comment `/playtest` on an open pull request. The workflow builds that PR's current head and reports PASS/FAIL back to the PR conversation.
