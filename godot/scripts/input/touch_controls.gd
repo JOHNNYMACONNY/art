@@ -473,6 +473,34 @@ func set_action_button_highlight(highlighted: bool) -> void:
 		action_button.modulate = Color(1.2, 1.2, 0.4, 1.0) if highlighted else Color(1.0, 1.0, 1.0, 0.7)
 
 var _peel_accumulated_y: float = 0.0
+var tuner_readout_label: Label = null
+
+func _ensure_tuner_readout() -> void:
+	if tuner_readout_label == null and gesture_panel:
+		tuner_readout_label = Label.new()
+		tuner_readout_label.name = "TunerReadoutLabel"
+		tuner_readout_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tuner_readout_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tuner_readout_label.position = Vector2(0, 36)
+		tuner_readout_label.size = Vector2(480, 64)
+		gesture_panel.add_child(tuner_readout_label)
+
+func update_tuner_feedback(freq: float, accuracy: float, is_locked: bool = false) -> void:
+	_ensure_tuner_readout()
+	if tuner_readout_label == null:
+		return
+	tuner_readout_label.visible = gesture_panel != null and gesture_panel.visible and _current_gesture_type == "TUNE_SIGNAL"
+	if not tuner_readout_label.visible:
+		return
+	var clamped_accuracy := clampf(accuracy, 0.0, 1.0)
+	var filled := int(round(clamped_accuracy * 10.0))
+	var bar := "█".repeat(filled) + "░".repeat(10 - filled)
+	if is_locked:
+		tuner_readout_label.text = "SIGNAL LOCKED · TUNE %.3f · [%s]" % [freq, bar]
+	elif clamped_accuracy >= 0.90:
+		tuner_readout_label.text = "TUNE %.3f · SIGNAL [%s] %.0f%% · LOCK ZONE — HOLD" % [freq, bar, clamped_accuracy * 100.0]
+	else:
+		tuner_readout_label.text = "TUNE %.3f · SIGNAL [%s] %.0f%%" % [freq, bar, clamped_accuracy * 100.0]
 
 func show_gesture_overlay(gesture_type: String) -> void:
 	_current_gesture_type = gesture_type
@@ -483,13 +511,20 @@ func show_gesture_overlay(gesture_type: String) -> void:
 	if core_tap_button: core_tap_button.visible = (gesture_type == "EXPOSE_CORE")
 	if gesture_hint_label:
 		match gesture_type:
-			"TUNE_SIGNAL": gesture_hint_label.text = "[ SWIPE ↔ TO TUNE FREQUENCY ]"
+			"TUNE_SIGNAL": gesture_hint_label.text = "[ HOLD LEFT MOUSE · DRAG ← / → TO TUNE ]"
 			"PEEL_PANEL": gesture_hint_label.text = "[ SWIPE DOWN TO PEEL PANEL ]"
 			"EXPOSE_CORE": gesture_hint_label.text = "[ TAP CORE TO EXTRACT ]"
+	if gesture_type == "TUNE_SIGNAL":
+		_ensure_tuner_readout()
+		update_tuner_feedback(0.15, 0.0)
+	elif tuner_readout_label:
+		tuner_readout_label.visible = false
 
 func close_interaction_overlay() -> void:
 	if gesture_panel:
 		gesture_panel.visible = false
+	if tuner_readout_label:
+		tuner_readout_label.visible = false
 	_is_peeling = false
 	_is_tuning = false
 	_is_mouse_interacting = false
@@ -552,6 +587,13 @@ func _input(event: InputEvent) -> void:
 		var key_ev := event as InputEventKey
 		_update_keyboard_vehicle_state(key_ev)
 		if key_ev.pressed and not key_ev.echo:
+			if _is_key(key_ev, KEY_ESCAPE) and gesture_panel and gesture_panel.visible:
+				if _current_gesture_type == "TUNE_SIGNAL":
+					tuner_interaction_released.emit()
+				elif _current_gesture_type == "PEEL_PANEL":
+					peel_gesture_released.emit()
+				get_viewport().set_input_as_handled()
+				return
 			if _is_key(key_ev, KEY_E):
 				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
 					core_tap_pressed.emit()

@@ -866,10 +866,18 @@ func _on_tuner_interaction_released() -> void:
 	if audio_mgr:
 		audio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)
 		audio_mgr.set_tuning_audio(0.0)
+	if player:
+		player.is_input_locked = false
+	if camera:
+		camera.set_interaction_mode(false)
+	if touch_ui:
+		touch_ui.close_interaction_overlay()
 
-func _on_tuner_frequency_changed(_freq: float, accuracy: float) -> void:
+func _on_tuner_frequency_changed(freq: float, accuracy: float) -> void:
 	if audio_mgr:
 		audio_mgr.set_tuning_audio(accuracy)
+	if touch_ui:
+		touch_ui.update_tuner_feedback(freq, accuracy)
 
 func _on_tuner_signal_locked(tuner_ref: SignalTuner) -> void:
 	print("[WORLD_LOOP] SIGNAL LOCKED! Powering up Corroded Panel...")
