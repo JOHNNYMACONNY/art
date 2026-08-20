@@ -1,0 +1,78 @@
+name: ChatGPT PR40 bounded repair
+
+on:
+  push:
+    branches:
+      - chatgpt/desktop-controls-29
+    paths:
+      - .github/workflows/chatgpt-pr40-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/desktop-controls-29
+          fetch-depth: 0
+
+      - name: Apply exact tuner lifecycle and feedback repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          controller_path = Path('godot/scripts/prototype/scrap_test_block.gd')
+          controller = controller_path.read_text()
+          old_controller = '''func _on_tuner_interaction_released() -> void:\n\tif signal_tuner:\n\t\tsignal_tuner.cancel_interaction()\n\tif audio_mgr:\n\t\taudio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)\n\t\taudio_mgr.set_tuning_audio(0.0)\n\nfunc _on_tuner_frequency_changed(_freq: float, accuracy: float) -> void:\n\tif audio_mgr:\n\t\taudio_mgr.set_tuning_audio(accuracy)\n'''
+          new_controller = '''func _on_tuner_interaction_released() -> void:\n\tif signal_tuner:\n\t\tsignal_tuner.cancel_interaction()\n\tif audio_mgr:\n\t\taudio_mgr.stop_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM)\n\t\taudio_mgr.set_tuning_audio(0.0)\n\tif player:\n\t\tplayer.is_input_locked = false\n\tif camera:\n\t\tcamera.set_interaction_mode(false)\n\tif touch_ui:\n\t\ttouch_ui.close_interaction_overlay()\n\nfunc _on_tuner_frequency_changed(freq: float, accuracy: float) -> void:\n\tif audio_mgr:\n\t\taudio_mgr.set_tuning_audio(accuracy)\n\tif touch_ui:\n\t\ttouch_ui.update_tuner_feedback(freq, accuracy)\n'''
+          if controller.count(old_controller) != 1:
+              raise SystemExit('controller tuner lifecycle anchor mismatch')
+          controller = controller.replace(old_controller, new_controller, 1)
+          controller_path.write_text(controller)
+
+          ui_path = Path('godot/scripts/input/touch_controls.gd')
+          ui = ui_path.read_text()
+
+          old_vars = '''var _peel_accumulated_y: float = 0.0\n\nfunc show_gesture_overlay(gesture_type: String) -> void:\n'''
+          new_vars = '''var _peel_accumulated_y: float = 0.0\nvar tuner_readout_label: Label = null\n\nfunc _ensure_tuner_readout() -> void:\n\tif tuner_readout_label == null and gesture_panel:\n\t\ttuner_readout_label = Label.new()\n\t\ttuner_readout_label.name = "TunerReadoutLabel"\n\t\ttuner_readout_label.mouse_filter = Control.MOUSE_FILTER_IGNORE\n\t\ttuner_readout_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER\n\t\ttuner_readout_label.position = Vector2(0, 36)\n\t\ttuner_readout_label.size = Vector2(480, 64)\n\t\tgesture_panel.add_child(tuner_readout_label)\n\nfunc update_tuner_feedback(freq: float, accuracy: float, is_locked: bool = false) -> void:\n\t_ensure_tuner_readout()\n\tif tuner_readout_label == null:\n\t\treturn\n\ttuner_readout_label.visible = gesture_panel != null and gesture_panel.visible and _current_gesture_type == "TUNE_SIGNAL"\n\tif not tuner_readout_label.visible:\n\t\treturn\n\tvar clamped_accuracy := clampf(accuracy, 0.0, 1.0)\n\tvar filled := int(round(clamped_accuracy * 10.0))\n\tvar bar := "█".repeat(filled) + "░".repeat(10 - filled)\n\tif is_locked:\n\t\ttuner_readout_label.text = "SIGNAL LOCKED · TUNE %.3f · [%s]" % [freq, bar]\n\telif clamped_accuracy >= 0.90:\n\t\ttuner_readout_label.text = "TUNE %.3f · SIGNAL [%s] %.0f%% · LOCK ZONE — HOLD" % [freq, bar, clamped_accuracy * 100.0]\n\telse:\n\t\ttuner_readout_label.text = "TUNE %.3f · SIGNAL [%s] %.0f%%" % [freq, bar, clamped_accuracy * 100.0]\n\nfunc show_gesture_overlay(gesture_type: String) -> void:\n'''
+          if ui.count(old_vars) != 1:
+              raise SystemExit('UI tuner readout insertion anchor mismatch')
+          ui = ui.replace(old_vars, new_vars, 1)
+
+          old_show = '''\tif gesture_hint_label:\n\t\tmatch gesture_type:\n\t\t\t"TUNE_SIGNAL": gesture_hint_label.text = "[ SWIPE ↔ TO TUNE FREQUENCY ]"\n\t\t\t"PEEL_PANEL": gesture_hint_label.text = "[ SWIPE DOWN TO PEEL PANEL ]"\n\t\t\t"EXPOSE_CORE": gesture_hint_label.text = "[ TAP CORE TO EXTRACT ]"\n\nfunc close_interaction_overlay() -> void:\n'''
+          new_show = '''\tif gesture_hint_label:\n\t\tmatch gesture_type:\n\t\t\t"TUNE_SIGNAL": gesture_hint_label.text = "[ HOLD LEFT MOUSE · DRAG ← / → TO TUNE ]"\n\t\t\t"PEEL_PANEL": gesture_hint_label.text = "[ SWIPE DOWN TO PEEL PANEL ]"\n\t\t\t"EXPOSE_CORE": gesture_hint_label.text = "[ TAP CORE TO EXTRACT ]"\n\tif gesture_type == "TUNE_SIGNAL":\n\t\t_ensure_tuner_readout()\n\t\tupdate_tuner_feedback(0.15, 0.0)\n\telif tuner_readout_label:\n\t\ttuner_readout_label.visible = false\n\nfunc close_interaction_overlay() -> void:\n'''
+          if ui.count(old_show) != 1:
+              raise SystemExit('UI gesture overlay anchor mismatch')
+          ui = ui.replace(old_show, new_show, 1)
+
+          old_close = '''func close_interaction_overlay() -> void:\n\tif gesture_panel:\n\t\tgesture_panel.visible = false\n\t_is_peeling = false\n'''
+          new_close = '''func close_interaction_overlay() -> void:\n\tif gesture_panel:\n\t\tgesture_panel.visible = false\n\tif tuner_readout_label:\n\t\ttuner_readout_label.visible = false\n\t_is_peeling = false\n'''
+          if ui.count(old_close) != 1:
+              raise SystemExit('UI close overlay anchor mismatch')
+          ui = ui.replace(old_close, new_close, 1)
+
+          old_key = '''\telif event is InputEventKey:\n\t\tvar key_ev := event as InputEventKey\n\t\t_update_keyboard_vehicle_state(key_ev)\n\t\tif key_ev.pressed and not key_ev.echo:\n\t\t\tif _is_key(key_ev, KEY_E):\n'''
+          new_key = '''\telif event is InputEventKey:\n\t\tvar key_ev := event as InputEventKey\n\t\t_update_keyboard_vehicle_state(key_ev)\n\t\tif key_ev.pressed and not key_ev.echo:\n\t\t\tif _is_key(key_ev, KEY_ESCAPE) and gesture_panel and gesture_panel.visible:\n\t\t\t\tif _current_gesture_type == "TUNE_SIGNAL":\n\t\t\t\t\ttuner_interaction_released.emit()\n\t\t\t\telif _current_gesture_type == "PEEL_PANEL":\n\t\t\t\t\tpeel_gesture_released.emit()\n\t\t\t\tget_viewport().set_input_as_handled()\n\t\t\t\treturn\n\t\t\tif _is_key(key_ev, KEY_E):\n'''
+          if ui.count(old_key) != 1:
+              raise SystemExit('UI ESC insertion anchor mismatch')
+          ui = ui.replace(old_key, new_key, 1)
+          ui_path.write_text(ui)
+          PY
+
+      - name: Remove one-shot workflow and commit bounded repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/chatgpt-pr40-repair.yml
+          git config user.name "chatgpt-implementation-plane"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add godot/scripts/prototype/scrap_test_block.gd godot/scripts/input/touch_controls.gd .github/workflows/chatgpt-pr40-repair.yml
+          git diff --cached --check
+          git commit -m "fix(input): unwind tuner cancel and expose live feedback (#29)"
+          git push origin HEAD:chatgpt/desktop-controls-29
