@@ -19,18 +19,36 @@ permissions:
 
 jobs:
   export-web:
-    name: Export browser playtest
+    name: Export browser playtest (${{ matrix.source }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        source: ${{ fromJSON(github.event_name == 'pull_request' && '["merge","head"]' || '["head"]') }}
     env:
       GODOT_VERSION: "4.7.1"
       GODOT_RELEASE: "4.7.1-stable"
       GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
       WEB_PROJECT: "${{ github.workspace }}/.godot-web-project"
+      SOURCE_SHA: ${{ matrix.source == 'head' && github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
     steps:
-      - name: Checkout
+      - name: Checkout verified source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          printf 'verification target: %s\n' "${{ matrix.source }}"
+          printf 'expected source SHA: %s\n' "$SOURCE_SHA"
+          printf 'checked out SHA: %s\n' "$actual_sha"
+          test "$actual_sha" = "$SOURCE_SHA"
 
       - name: Cache Godot editor and export templates
         id: godot-cache
@@ -177,6 +195,8 @@ jobs:
           test -s build/web/index.js
           test -s build/web/index.wasm
           test -s build/web/index.pck
+          printf '%s\n' "$SOURCE_SHA" > build/web/PLAYTEST_BUILD.txt
+          test "$(cat build/web/PLAYTEST_BUILD.txt)" = "$SOURCE_SHA"
 
       - name: Static hosting smoke test
         shell: bash
@@ -197,11 +217,12 @@ jobs:
           curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/index.js
           curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/index.wasm
           curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/index.pck
+          curl --fail --silent --show-error http://127.0.0.1:8080/PLAYTEST_BUILD.txt | grep -Fx "$SOURCE_SHA"
 
       - name: Upload browser playtest
         uses: actions/upload-artifact@v4
         with:
-          name: godot-web-playtest-${{ github.sha }}
+          name: godot-web-playtest-${{ matrix.source }}-${{ env.SOURCE_SHA }}
           path: build/web
           if-no-files-found: error
           retention-days: 14
@@ -218,12 +239,12 @@ jobs:
       - name: Download verified Web build
         uses: actions/download-artifact@v4
         with:
-          name: godot-web-playtest-${{ github.sha }}
+          name: godot-web-playtest-head-${{ github.sha }}
           path: publish
 
-      - name: Stamp source revision
+      - name: Verify source revision stamp
         shell: bash
-        run: printf '%s\n' "$GITHUB_SHA" > publish/PLAYTEST_BUILD.txt
+        run: grep -Fx "$GITHUB_SHA" publish/PLAYTEST_BUILD.txt
 
       - name: Publish playtest-web branch
         shell: bash
