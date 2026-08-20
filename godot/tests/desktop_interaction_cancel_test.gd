@@ -1,7 +1,8 @@
 extends SceneTree
 
-# Regression for the #29 owner-playtest trap:
-# entering tuner from E, then releasing/cancelling without lock must always restore control.
+# Real Viewport regression for #29 desktop tuner interaction.
+# Proves physical mouse delivery, cancellation cleanup, visible feedback,
+# real frequency movement, dwell-to-lock progression, and panel power-up.
 var _scene_under_test: Node = null
 
 func _init() -> void:
@@ -26,14 +27,17 @@ func _key_event(key: Key, pressed: bool, echo: bool = false) -> InputEventKey:
 	event.echo = echo
 	return event
 
+func _push_key(key: Key) -> void:
+	root.push_input(_key_event(key, true), true)
+	root.push_input(_key_event(key, false), true)
+
 func _enter_tuner(touch_ui: Node, player: Node, tuner: SignalTuner) -> bool:
 	player.global_position = tuner.global_position + Vector3(0.0, 0.0, 1.5)
 	tuner.update_player_distance(player.global_position)
 	_scene_under_test._process(0.016)
 	if _scene_under_test._active_target != tuner:
 		return false
-	touch_ui._input(_key_event(KEY_E, true))
-	touch_ui._input(_key_event(KEY_E, false))
+	_push_key(KEY_E)
 	return true
 
 func _assert_tuner_open(touch_ui: Node, player: Node, tuner: SignalTuner, camera: ChinatownCamera3D) -> String:
@@ -58,6 +62,30 @@ func _assert_tuner_closed(touch_ui: Node, player: Node, tuner: SignalTuner, came
 		return "Gesture overlay remained visible after cancel"
 	return ""
 
+func _mouse_down_at(position: Vector2) -> void:
+	var event := InputEventMouseButton.new()
+	event.device = 0
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = true
+	event.position = position
+	root.push_input(event, true)
+
+func _mouse_motion(position: Vector2, relative: Vector2) -> void:
+	var event := InputEventMouseMotion.new()
+	event.device = 0
+	event.position = position
+	event.relative = relative
+	event.button_mask = MOUSE_BUTTON_MASK_LEFT
+	root.push_input(event, true)
+
+func _mouse_up_at(position: Vector2) -> void:
+	var event := InputEventMouseButton.new()
+	event.device = 0
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = false
+	event.position = position
+	root.push_input(event, true)
+
 func _run() -> void:
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
@@ -78,8 +106,7 @@ func _run() -> void:
 		await _fail("Main scene is missing tuner interaction dependencies")
 		return
 
-	# 1. Reproduce the owner trap: a physical mouse drag that does not lock signal,
-	# then mouse release, must close the interaction and return movement/camera control.
+	# 1. Real Viewport mouse release must unwind the complete interaction lock.
 	if not _enter_tuner(touch_ui, player, tuner):
 		await _fail("Could not select tuner through normal target authority")
 		return
@@ -89,33 +116,19 @@ func _run() -> void:
 		await _fail(open_error)
 		return
 
-	var mouse_down := InputEventMouseButton.new()
-	mouse_down.device = 0
-	mouse_down.button_index = MOUSE_BUTTON_LEFT
-	mouse_down.pressed = true
-	mouse_down.position = Vector2(480, 270)
-	touch_ui._gui_input(mouse_down)
-	var mouse_motion := InputEventMouseMotion.new()
-	mouse_motion.device = 0
-	mouse_motion.position = Vector2(490, 270)
-	mouse_motion.relative = Vector2(10, 0)
-	touch_ui._gui_input(mouse_motion)
-	var mouse_up := InputEventMouseButton.new()
-	mouse_up.device = 0
-	mouse_up.button_index = MOUSE_BUTTON_LEFT
-	mouse_up.pressed = false
-	mouse_up.position = Vector2(490, 270)
-	# Real Control events may traverse both GUI and global input callbacks.
-	touch_ui._gui_input(mouse_up)
-	touch_ui._input(mouse_up)
+	var gesture_center: Vector2 = touch_ui.gesture_panel.get_global_rect().get_center()
+	_mouse_down_at(gesture_center)
+	await process_frame
+	_mouse_motion(gesture_center + Vector2(10, 0), Vector2(10, 0))
+	await process_frame
+	_mouse_up_at(gesture_center + Vector2(10, 0))
 	await process_frame
 	var release_error := _assert_tuner_closed(touch_ui, player, tuner, camera)
 	if not release_error.is_empty():
 		await _fail("Mouse-release cancel trap: %s" % release_error)
 		return
 
-	# 2. ESC is an explicit deterministic desktop cancel path. Repeat it to prove
-	# no stale lock/camera/overlay state accumulates across enter/cancel cycles.
+	# 2. ESC through the real Viewport route is deterministic and repeatable.
 	for cycle in range(2):
 		if not _enter_tuner(touch_ui, player, tuner):
 			await _fail("Could not re-enter tuner on ESC cycle %d" % (cycle + 1))
@@ -125,28 +138,76 @@ func _run() -> void:
 		if not open_error.is_empty():
 			await _fail("ESC cycle %d open state: %s" % [cycle + 1, open_error])
 			return
-		touch_ui._input(_key_event(KEY_ESCAPE, true))
-		touch_ui._input(_key_event(KEY_ESCAPE, false))
+		_push_key(KEY_ESCAPE)
 		await process_frame
 		var escape_error := _assert_tuner_closed(touch_ui, player, tuner, camera)
 		if not escape_error.is_empty():
 			await _fail("ESC cycle %d: %s" % [cycle + 1, escape_error])
 			return
 
-	# 3. Panel peel gets the same explicit ESC cancel language without changing
+	# 3. Real Viewport mouse drag must move the actual SignalTuner and visible readout.
+	if not _enter_tuner(touch_ui, player, tuner):
+		await _fail("Could not enter tuner for real drag progression proof")
+		return
+	await process_frame
+	gesture_center = touch_ui.gesture_panel.get_global_rect().get_center()
+	var start_frequency := tuner.current_frequency
+	_mouse_down_at(gesture_center)
+	await process_frame
+	# About 300px from the 0.15 reset point maps into the 0.72 target zone
+	# through SignalTuner's production saturating drag curve.
+	_mouse_motion(gesture_center + Vector2(180, 0), Vector2(300, 0))
+	await process_frame
+	await physics_frame
+
+	if tuner.current_frequency <= start_frequency + 0.20:
+		await _fail("Real Viewport mouse motion did not materially change tuner frequency")
+		return
+	if abs(tuner.current_frequency - tuner.target_frequency) > tuner.lock_tolerance:
+		await _fail("Real mouse drag did not reach target lock zone (freq=%.3f target=%.3f)" % [tuner.current_frequency, tuner.target_frequency])
+		return
+	if touch_ui.tuner_readout_label == null or not touch_ui.tuner_readout_label.visible:
+		await _fail("Tuner readout was not visible during real mouse tuning")
+		return
+	if not touch_ui.tuner_readout_label.text.contains("TUNE") or not touch_ui.tuner_readout_label.text.contains("SIGNAL"):
+		await _fail("Tuner readout did not expose live TUNE/SIGNAL feedback")
+		return
+	if touch_ui.tuner_readout_label.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+		await _fail("Decorative tuner readout can intercept pointer delivery")
+		return
+
+	# Keep the physical mouse held while production dwell logic runs.
+	await create_timer(tuner.dwell_time_required + 0.15).timeout
+	await process_frame
+	if tuner.current_state != tuner.TunerState.LOCKED:
+		await _fail("Production dwell did not transition tuner to LOCKED")
+		return
+	if not panel.is_powered:
+		await _fail("Signal lock did not power the Corroded Panel")
+		return
+	if player.is_input_locked or camera._is_interaction_mode or touch_ui.gesture_panel.visible:
+		await _fail("Successful tuner lock did not cleanly restore player/camera/UI authority")
+		return
+
+	# Release after lock must be harmless and must not regress the powered state.
+	_mouse_up_at(gesture_center + Vector2(180, 0))
+	await process_frame
+	if not panel.is_powered or tuner.current_state != tuner.TunerState.LOCKED:
+		await _fail("Post-lock mouse release regressed successful tuner progression")
+		return
+
+	# 4. Panel peel gets the same explicit ESC cancel language without changing
 	# extraction rules. Set up the already-proven powered/approached seam directly.
 	panel.is_powered = true
 	panel.is_player_in_range = true
 	panel.current_step = panel.Step.APPROACHED
 	_scene_under_test._active_target = panel
-	touch_ui._input(_key_event(KEY_E, true))
-	touch_ui._input(_key_event(KEY_E, false))
+	_push_key(KEY_E)
 	await process_frame
 	if panel.current_step != panel.Step.PEELING or not player.is_input_locked or not touch_ui.gesture_panel.visible:
 		await _fail("Panel did not enter peel interaction before ESC cancel proof")
 		return
-	touch_ui._input(_key_event(KEY_ESCAPE, true))
-	touch_ui._input(_key_event(KEY_ESCAPE, false))
+	_push_key(KEY_ESCAPE)
 	await process_frame
 	if panel.current_step == panel.Step.PEELING or player.is_input_locked or camera._is_interaction_mode or touch_ui.gesture_panel.visible:
 		await _fail("ESC did not deterministically cancel panel peel interaction")
