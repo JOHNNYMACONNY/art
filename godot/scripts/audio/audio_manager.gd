@@ -197,6 +197,23 @@ func _ready() -> void:
 	_radio_interference_player.volume_db = -80.0
 	add_child(_radio_interference_player)
 
+## #31: Bounded runtime output diagnostics. This is an on-demand snapshot only;
+## get_output_latency() may be expensive and must never be polled per-frame.
+func get_runtime_audio_diagnostics() -> Dictionary:
+	var master_idx: int = AudioServer.get_bus_index(&"Master")
+	var driver_name: String = AudioServer.get_driver_name()
+	return {
+		"driver_name": driver_name,
+		"output_device": AudioServer.output_device,
+		"output_devices": AudioServer.get_output_device_list(),
+		"mix_rate": AudioServer.get_mix_rate(),
+		"output_latency": AudioServer.get_output_latency(),
+		"master_bus_index": master_idx,
+		"master_muted": AudioServer.is_bus_mute(master_idx) if master_idx >= 0 else true,
+		"master_volume_db": AudioServer.get_bus_volume_db(master_idx) if master_idx >= 0 else -80.0,
+		"headless_dummy_driver": driver_name.to_lower() == "dummy",
+	}
+
 func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 	var now := Time.get_ticks_msec()
 	if EVENT_COOLDOWNS_MSEC.has(event):
