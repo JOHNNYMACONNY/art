@@ -1,0 +1,71 @@
+name: Commit PR40 Source Fix
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/commit-pr40-source-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  commit-source:
+    if: github.event.pull_request.head.ref == 'chatgpt/desktop-controls-29'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+
+      - name: Apply exact V2 replacements already proven green
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path('.github/workflows/apply-pr40-review-fixes-v2.yml').read_text()
+          marker = "          python3 - <<'PY'\n"
+          start = source.index(marker) + len(marker)
+          end = source.index("\n          PY", start)
+          lines = source[start:end].splitlines()
+          body = "\n".join(line[10:] if line.startswith("          ") else line for line in lines)
+          exec(compile(body, 'apply-pr40-review-fixes-v2.yml::<replacement-body>', 'exec'), {})
+          PY
+          # This workflow is intentionally source-only. The connected GitHub plane
+          # applies the workflow-file fix separately because GITHUB_TOKEN may not.
+          git checkout -- .github/workflows/godot-web-playtest.yml
+
+      - name: Install Godot 4.7.1 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Verify repaired input path
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/desktop_control_alias_ownership_test.gd
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/desktop_controls_event_routing_test.gd
+
+      - name: Commit only gameplay source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "chatgpt-automation"
+          git config user.email "chatgpt-automation@users.noreply.github.com"
+          git add godot/scripts/input/touch_controls.gd
+          test "$(git diff --cached --name-only)" = "godot/scripts/input/touch_controls.gd"
+          git commit -m "fix(29): preserve independent desktop key aliases"
+          git push origin HEAD:refs/heads/chatgpt/desktop-controls-29
