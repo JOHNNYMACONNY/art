@@ -11,54 +11,67 @@ permissions:
   contents: write
 
 jobs:
-  inject-tests:
+  prove-red:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
 
-      - name: Add exact focused regressions
+      - name: Install Godot
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
 
-          def replace_once(path: str, old: str, new: str) -> None:
-              p = Path(path)
-              text = p.read_text()
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f"{path}: expected marker once, found {count}")
-              p.write_text(text.replace(old, new, 1))
-
-          controls = "godot/tests/desktop_controls_event_routing_test.gd"
-          replace_once(
-              controls,
-              '''\ttouch_ui.radio_toggle_pressed.connect(func(): radio_count[0] += 1)\n\n\ttouch_ui._input(_key_event(KEY_W, true))''',
-              '''\ttouch_ui.radio_toggle_pressed.connect(func(): radio_count[0] += 1)\n\n\t# A focused touch Button must not receive the same Space key that driving\n\t# consumes as handbrake. Exercise the real Viewport propagation path.\n\ttouch_ui.radio_button.grab_focus()\n\tawait process_frame\n\tif not touch_ui.radio_button.has_focus():\n\t\tawait _fail("Radio button could not acquire focus for Space propagation proof")\n\t\treturn\n\troot.push_input(_key_event(KEY_SPACE, true), true)\n\troot.push_input(_key_event(KEY_SPACE, false), true)\n\tawait process_frame\n\tif radio_count[0] != 0:\n\t\tawait _fail("Vehicle Space leaked into focused RadioButton and toggled radio")\n\t\treturn\n\ttouch_ui.radio_button.release_focus()\n\n\ttouch_ui._input(_key_event(KEY_W, true))''',
-          )
-
-          interaction = "godot/tests/desktop_interaction_cancel_test.gd"
-          replace_once(
-              interaction,
-              '''\t_mouse_motion(gesture_center + Vector2(10, 0), Vector2(10, 0))\n\tawait process_frame\n\t_mouse_up_at(gesture_center + Vector2(10, 0))''',
-              '''\t_mouse_motion(gesture_center + Vector2(10, 0), Vector2(10, 0))\n\tawait process_frame\n\t# Releasing an unrelated mouse button while left remains the interaction\n\t# owner must not cancel the active tuner drag.\n\tvar unrelated_up := InputEventMouseButton.new()\n\tunrelated_up.device = 0\n\tunrelated_up.button_index = MOUSE_BUTTON_RIGHT\n\tunrelated_up.pressed = false\n\tunrelated_up.position = gesture_center + Vector2(10, 0)\n\troot.push_input(unrelated_up, true)\n\tawait process_frame\n\topen_error = _assert_tuner_open(touch_ui, player, tuner, camera)\n\tif not open_error.is_empty():\n\t\tawait _fail("Unrelated mouse-button release cancelled left-mouse tuner drag: %s" % open_error)\n\t\treturn\n\t_mouse_up_at(gesture_center + Vector2(10, 0))''',
-          )
-          PY
-
-      - name: Commit tests only
+      - name: Prove both regressions RED
         shell: bash
         run: |
           set -euo pipefail
+          set +e
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/desktop_controls_event_routing_test.gd > /tmp/focused-button.log 2>&1
+          rc_button=$?
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/desktop_interaction_cancel_test.gd > /tmp/mouse-release.log 2>&1
+          rc_mouse=$?
+          set -e
+
+          cat /tmp/focused-button.log
+          cat /tmp/mouse-release.log
+          test "$rc_button" -ne 0
+          test "$rc_mouse" -ne 0
+          grep -F "Vehicle Space leaked into focused RadioButton and toggled radio" /tmp/focused-button.log
+          grep -F "Unrelated mouse-button release cancelled left-mouse tuner drag" /tmp/mouse-release.log
+
+          {
+            echo "PR40_P2_RED_PROOF"
+            echo "source_sha=$GITHUB_SHA"
+            echo "focused_button_rc=$rc_button"
+            echo "mouse_release_rc=$rc_mouse"
+            grep -F "Vehicle Space leaked into focused RadioButton and toggled radio" /tmp/focused-button.log | head -1
+            grep -F "Unrelated mouse-button release cancelled left-mouse tuner drag" /tmp/mouse-release.log | head -1
+          } > godot/tests/.pr40-p2-red-evidence.txt
+
+      - name: Commit RED evidence only
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .godot-bin godot.zip
+          git clean -fd -- godot ':!godot/tests/.pr40-p2-red-evidence.txt'
           git config user.name "chatgpt-automation"
           git config user.email "chatgpt-automation@users.noreply.github.com"
-          git add godot/tests/desktop_controls_event_routing_test.gd godot/tests/desktop_interaction_cancel_test.gd
-          printf '%s\n' godot/tests/desktop_controls_event_routing_test.gd godot/tests/desktop_interaction_cancel_test.gd | sort >/tmp/expected
-          git diff --cached --name-only | sort >/tmp/actual
-          diff -u /tmp/expected /tmp/actual
-          git commit -m "test(29): reproduce focused input edge cases"
+          git add godot/tests/.pr40-p2-red-evidence.txt
+          test "$(git diff --cached --name-only)" = "godot/tests/.pr40-p2-red-evidence.txt"
+          git commit -m "test(29): record focused P2 RED evidence"
           git push origin HEAD:refs/heads/chatgpt/desktop-controls-29
