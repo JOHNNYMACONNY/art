@@ -5,6 +5,7 @@ extends SceneTree
 # processing is disabled before the test explicitly advances fixed 16ms steps,
 # avoiding the previous timer + manual _process double-step artifact.
 # This dedicated regression is also the reference oracle for the legacy Ticket05 repair.
+# Keep this path in the focused workflow so legacy-oracle repairs are verified before publish.
 var _scene_under_test: Node = null
 
 func _init() -> void:
