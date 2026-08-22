@@ -1,0 +1,29 @@
+{
+  "planVersion": 1,
+  "operations": [
+    {
+      "path": "godot/scripts/input/touch_controls.gd",
+      "message": "fix: preserve touch and desktop tuner guidance",
+      "replacements": [
+        {
+          "old": "\t\t\t\"TUNE_SIGNAL\": gesture_hint_label.text = \"[ HOLD LEFT MOUSE · DRAG ← / → TO TUNE ]\"",
+          "new": "\t\t\t\"TUNE_SIGNAL\": gesture_hint_label.text = \"[ SWIPE ↔ OR HOLD LEFT MOUSE · DRAG ← / → TO TUNE ]\""
+        }
+      ]
+    },
+    {
+      "path": "godot/scripts/prototype/scrap_test_block.gd",
+      "message": "test: align legacy input oracles with physical routes",
+      "replacements": [
+        {
+          "old": "\t# Verify real GAS & BRAKE touch button routes\n\ttouch_ui.gas_button.button_down.emit()\n\tassert(_throttle_input == 1.0, \"FAIL: GAS button_down must set throttle input to 1.0\")\n\ttouch_ui.gas_button.button_up.emit()\n\tassert(_throttle_input == 0.0, \"FAIL: GAS button_up must reset throttle input to 0.0\")\n\ttouch_ui.brake_button.button_down.emit()\n\tassert(_throttle_input == -1.0, \"FAIL: BRAKE button_down must set throttle input to -1.0\")\n\ttouch_ui.brake_button.button_up.emit()\n\tassert(_throttle_input == 0.0, \"FAIL: BRAKE button_up must reset throttle input to 0.0\")",
+          "new": "\t# Verify real GAS & BRAKE touch routes with the same ScreenTouch events\n\t# consumed by the production gui_input handlers.\n\tvar gas_touch := InputEventScreenTouch.new()\n\tgas_touch.index = 101\n\tgas_touch.position = Vector2(1.0, 1.0)\n\tgas_touch.pressed = true\n\ttouch_ui.gas_button.gui_input.emit(gas_touch)\n\tassert(_throttle_input == 1.0, \"FAIL: GAS ScreenTouch press must set throttle input to 1.0\")\n\tgas_touch.pressed = false\n\ttouch_ui.gas_button.gui_input.emit(gas_touch)\n\tassert(_throttle_input == 0.0, \"FAIL: GAS ScreenTouch release must reset throttle input to 0.0\")\n\tvar brake_touch := InputEventScreenTouch.new()\n\tbrake_touch.index = 102\n\tbrake_touch.position = Vector2(1.0, 1.0)\n\tbrake_touch.pressed = true\n\ttouch_ui.brake_button.gui_input.emit(brake_touch)\n\tassert(_throttle_input == -1.0, \"FAIL: BRAKE ScreenTouch press must set throttle input to -1.0\")\n\tbrake_touch.pressed = false\n\ttouch_ui.brake_button.gui_input.emit(brake_touch)\n\tassert(_throttle_input == 0.0, \"FAIL: BRAKE ScreenTouch release must reset throttle input to 0.0\")"
+        },
+        {
+          "old": "\tassert(touch_ui.gesture_hint_label.text == \"[ SWIPE ↔ TO TUNE FREQUENCY ]\", \"FAIL: UI hint text must be [ SWIPE ↔ TO TUNE FREQUENCY ]\")\n\tprint(\"[TICKET 03 TEST 1 PASSED] UI prompt hint verified: [ SWIPE ↔ TO TUNE FREQUENCY ]\")",
+          "new": "\tvar tuner_hint: String = touch_ui.gesture_hint_label.text\n\tassert(tuner_hint.contains(\"SWIPE\"), \"FAIL: Tuner hint must preserve touch swipe guidance\")\n\tassert(tuner_hint.contains(\"LEFT MOUSE\") and tuner_hint.contains(\"DRAG\"), \"FAIL: Tuner hint must expose desktop mouse-drag guidance\")\n\tprint(\"[TICKET 03 TEST 1 PASSED] UI prompt exposes touch + desktop tuning affordances: %s\" % tuner_hint)"
+        }
+      ]
+    }
+  ]
+}
