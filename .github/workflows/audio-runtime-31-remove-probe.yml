@@ -1,0 +1,50 @@
+name: Audio Runtime 31 Remove Production Probe
+
+on:
+  push:
+    branches:
+      - "chatgpt/audio-runtime-31"
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, '[remove-audio-probe]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Verify expected AudioManager blob
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object godot/scripts/audio/audio_manager.gd)" = "1c747954d506540cbb1a163b7e382bb12e815e16"
+      - name: Remove production debug tone API
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("godot/scripts/audio/audio_manager.gd")
+          text = path.read_text()
+          start = text.index("## #31: Dev-only non-spatial probe through the same Master output path.\n")
+          end = text.index("func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:\n", start)
+          text = text[:start] + text[end:]
+          if "func play_debug_output_probe(" in text:
+              raise SystemExit("production debug probe removal failed")
+          path.write_text(text)
+          PY
+          git diff --check
+          git diff -- godot/scripts/audio/audio_manager.gd
+      - name: Commit repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add godot/scripts/audio/audio_manager.gd
+          git commit -m "refactor(audio): keep output probe test-only [remove-audio-probe]"
+          git push origin HEAD:chatgpt/audio-runtime-31
