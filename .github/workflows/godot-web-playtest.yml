@@ -158,6 +158,16 @@ jobs:
             --path "$WEB_PROJECT" \
             --script res://tests/desktop_controls_event_routing_test.gd
 
+      - name: Run desktop alias ownership regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path "$WEB_PROJECT" \
+            --script res://tests/desktop_control_alias_ownership_test.gd
+
       - name: Run desktop vehicle authority regression
         shell: bash
         run: |
@@ -363,7 +373,7 @@ jobs:
             set -e
             if [[ $rc -ne 0 ]]; then
               echo "$suite" | tee -a baseline_failures.txt
-              echo "PRE_EXISTING_PLATFORM_FAILURE $suite" | tee -a compatibility_classification.log
+              echo "HEAD_FAILURE_BASE_ALSO_FAILS__EQUIVALENCE_UNPROVEN $suite" | tee -a compatibility_classification.log
             else
               echo "$suite" | tee -a true_regressions.txt
               echo "BRANCH_REGRESSION $suite" | tee -a compatibility_classification.log
@@ -375,10 +385,14 @@ jobs:
           if [[ -s true_regressions.txt ]]; then
             echo "Branch introduced regression(s):" | tee -a compatibility_classification.log
             cat true_regressions.txt | tee -a compatibility_classification.log
-            exit 1
+          fi
+          if [[ -s baseline_failures.txt ]]; then
+            echo "Base also failed these suites; equivalence is unproven, so exact-head verification fails closed:" | tee -a compatibility_classification.log
+            cat baseline_failures.txt | tee -a compatibility_classification.log
           fi
 
-          echo "No branch-only regressions. Every exact-head failure reproduced on the untouched PR base and is classified as a pre-existing Linux/headless platform failure." | tee -a compatibility_classification.log
+          echo "Exact-head compatibility failed: every canonical suite must exit 0 on the candidate head." | tee -a compatibility_classification.log
+          exit 1
 
       - name: Upload compatibility evidence
         if: always()
