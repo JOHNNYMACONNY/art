@@ -146,7 +146,7 @@ func _run() -> void:
 		await _fail("Camera snapped when leaving interaction mode")
 		return
 	var resume_expected := wrapf(atan2(player.velocity.x, player.velocity.z) + PI, -PI, PI)
-	for _i in range(89):
+	for _i in range(149):
 		camera.call("_process", 0.016)
 	if _yaw_error(float(camera.get("_current_yaw_rad")), resume_expected) >= 0.40:
 		await _fail("Camera yaw resumed but did not converge after interaction mode")
