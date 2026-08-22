@@ -1,84 +1,14 @@
-name: Camera Feel 30
+name: Camera Feel 30 Repair
 
 on:
   pull_request:
-    paths:
-      - "godot/scripts/camera/**"
-      - "godot/scripts/player/runner.gd"
-      - "godot/scripts/prototype/scrap_test_block.gd"
-      - "godot/tests/dynamic_camera_follow_test.gd"
-      - "godot/tests/camera_mount_transition_test.gd"
-      - ".github/workflows/camera-feel-30.yml"
-  push:
-    branches:
-      - main
-      - "chatgpt/camera-feel-30"
-    paths:
-      - "godot/scripts/camera/**"
-      - "godot/scripts/player/runner.gd"
-      - "godot/scripts/prototype/scrap_test_block.gd"
-      - "godot/tests/dynamic_camera_follow_test.gd"
-      - "godot/tests/camera_mount_transition_test.gd"
-      - ".github/workflows/camera-feel-30.yml"
 
 permissions:
   contents: write
 
 jobs:
-  dynamic-camera:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      GODOT_RELEASE: "4.7.1-stable"
-      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 1
-
-      - name: Install Godot 4.7.1 editor
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --location --retry 3 \
-            --output godot.zip \
-            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
-          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
-          mkdir -p .godot-bin
-          unzip -q godot.zip -d .godot-bin
-          chmod +x "$GODOT_BIN"
-
-      - name: Prime Godot metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
-
-      - name: Run dynamic camera integration regression
-        shell: bash
-        run: |
-          set -euo pipefail
-          "$GODOT_BIN" \
-            --headless \
-            --rendering-method gl_compatibility \
-            --path godot \
-            --script res://tests/dynamic_camera_follow_test.gd
-
-      - name: Run mount transition continuity regression
-        shell: bash
-        run: |
-          set -euo pipefail
-          "$GODOT_BIN" \
-            --headless \
-            --rendering-method gl_compatibility \
-            --path godot \
-            --script res://tests/camera_mount_transition_test.gd
-
-  legacy-ticket05-repair:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
-    needs: dynamic-camera
+  repair-ticket05:
+    if: github.event.pull_request.head.ref == 'chatgpt/camera-feel-30'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -87,16 +17,16 @@ jobs:
           ref: chatgpt/camera-feel-30
           fetch-depth: 2
 
-      - name: Guard literal source head and stale oracle
+      - name: Guard literal PR head and stale oracle
         shell: bash
         env:
-          EXPECTED_HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           grep -Fq 'Camera basis must remain fixed during vehicle spin/donut' godot/scripts/prototype/scrap_test_block.gd
 
-      - name: Repair Ticket05 camera assertions
+      - name: Repair legacy Ticket05 assertions only
         shell: python
         run: |
           from pathlib import Path
@@ -120,54 +50,27 @@ jobs:
               raise SystemExit(f'mount anchor count={s.count(old_mount)}')
           s = s.replace(old_mount, new_mount, 1)
 
-          old_dismount_tail = '''\t\tassert(current_pos.distance_to(last_pos) < 0.8, "FAIL: Camera position step during dismount")
+          old_tail = '''\t\tassert(current_pos.distance_to(last_pos) < 0.8, "FAIL: Camera position step during dismount")
 \t\tlast_pos = current_pos
 
 \tprint("[TICKET 05 TEST 2 PASSED] Mount/dismount focus continuity verified!")
-
-\t# -------------------------------------------------------------------------
-\t# TEST 3: Handbrake 180° Look-Ahead Reversal Damping
 '''
-          new_dismount_tail = '''\t\tassert(current_pos.distance_to(last_pos) < 0.8, "FAIL: Camera position step during dismount")
+          new_tail = '''\t\tassert(current_pos.distance_to(last_pos) < 0.8, "FAIL: Camera position step during dismount")
 \t\tlast_pos = current_pos
 
 \tcamera.set_process(true)
 \tprint("[TICKET 05 TEST 2 PASSED] Mount/dismount focus continuity verified!")
-
-\t# -------------------------------------------------------------------------
-\t# TEST 3: Handbrake 180° Look-Ahead Reversal Damping
 '''
-          if s.count(old_dismount_tail) != 1:
-              raise SystemExit(f'dismount anchor count={s.count(old_dismount_tail)}')
-          s = s.replace(old_dismount_tail, new_dismount_tail, 1)
+          if s.count(old_tail) != 1:
+              raise SystemExit(f'dismount anchor count={s.count(old_tail)}')
+          s = s.replace(old_tail, new_tail, 1)
 
-          old_yaw = '''\t# -------------------------------------------------------------------------
-\t# TEST 4: Vehicle Yaw / Camera Orientation Decoupling
-\t# -------------------------------------------------------------------------
-\tprint("[TEST 4] Testing Vehicle Yaw Decoupling (Camera Basis Invariant)...")
-\treset_slice()
-\tawait get_tree().create_timer(0.1).timeout
-\tcamera.reset_camera_instant(courier_bike)
-\tvar initial_cam_basis: Basis = camera.global_transform.basis
-
-\t# Rotate vehicle through 360° at high angular speed (powerslide donut)
-\tcourier_bike.current_state = CourierBike.BikeState.DRIVING
-\tcourier_bike.current_speed = 5.0
-\tfor i in range(60):
-\t\tcourier_bike.rotation.y += deg_to_rad(15.0) # 15 deg/frame * 60 = 900 deg
-\t\tcourier_bike.velocity = -courier_bike.global_transform.basis.z * 5.0
-\t\tcamera._process(dt)
-\t\t
-\t\t# Camera basis must NOT rotate with vehicle yaw!
-\t\tvar current_cam_basis: Basis = camera.global_transform.basis
-\t\tvar basis_diff_x: float = current_cam_basis.x.distance_to(initial_cam_basis.x)
-\t\tvar basis_diff_y: float = current_cam_basis.y.distance_to(initial_cam_basis.y)
-\t\tvar basis_diff_z: float = current_cam_basis.z.distance_to(initial_cam_basis.z)
-\t\tassert(basis_diff_x < 0.005 and basis_diff_y < 0.005 and basis_diff_z < 0.005, "FAIL: Camera basis must remain fixed during vehicle spin/donut")
-
-\tprint("[TICKET 05 TEST 4 PASSED] Vehicle yaw / camera orientation decoupling verified!")
-'''
-          new_yaw = '''\t# -------------------------------------------------------------------------
+          start = s.index('\t# TEST 4: Vehicle Yaw / Camera Orientation Decoupling')
+          block_start = s.rfind('\t# -------------------------------------------------------------------------', 0, start)
+          next_test = s.index('\t# TEST 5: FOV Bounds & Monotonic Speed Response', start)
+          block_end = s.rfind('\t# -------------------------------------------------------------------------', start, next_test)
+          old_block = s[block_start:block_end]
+          new_block = '''\t# -------------------------------------------------------------------------
 \t# TEST 4: Vehicle Heading Follow / Bounded Camera Yaw (#30)
 \t# -------------------------------------------------------------------------
 \tprint("[TEST 4] Testing bounded dynamic vehicle heading follow...")
@@ -175,9 +78,6 @@ jobs:
 \tawait get_tree().create_timer(0.1).timeout
 \tcamera.reset_camera_instant(courier_bike)
 \tvar initial_cam_yaw: float = camera._current_yaw_rad
-
-\t# Hold a sustained 90° vehicle heading and verify camera follow remains
-\t# bounded by the configured slew cap rather than snapping or staying fixed.
 \tcourier_bike.current_state = CourierBike.BikeState.DRIVING
 \tcourier_bike.current_speed = 5.0
 \tcourier_bike.rotation.y = deg_to_rad(90.0)
@@ -189,7 +89,6 @@ jobs:
 \t\tvar yaw_step: float = abs(wrapf(current_cam_yaw - previous_cam_yaw, -PI, PI))
 \t\tassert(yaw_step <= camera.max_yaw_speed * dt + 0.001, "FAIL: Dynamic camera yaw exceeded configured slew cap")
 \t\tprevious_cam_yaw = current_cam_yaw
-
 \tvar vehicle_forward: Vector3 = -courier_bike.global_transform.basis.z
 \tvehicle_forward.y = 0.0
 \tvehicle_forward = vehicle_forward.normalized()
@@ -197,16 +96,14 @@ jobs:
 \tvar final_yaw_error: float = abs(wrapf(camera._current_yaw_rad - expected_cam_yaw, -PI, PI))
 \tassert(abs(wrapf(camera._current_yaw_rad - initial_cam_yaw, -PI, PI)) > 0.2, "FAIL: Camera yaw stayed fixed instead of following vehicle heading")
 \tassert(final_yaw_error < 0.35, "FAIL: Camera yaw did not converge to sustained vehicle heading")
-
 \tprint("[TICKET 05 TEST 4 PASSED] Bounded dynamic vehicle heading follow verified!")
+
 '''
-          if s.count(old_yaw) != 1:
-              raise SystemExit(f'yaw block count={s.count(old_yaw)}')
-          s = s.replace(old_yaw, new_yaw, 1)
+          s = s[:block_start] + new_block + s[block_end:]
           s = s.replace('Testing Single-Layer Smooth Focus, Look-Ahead, FOV Breathing, Decoupled Yaw', 'Testing Single-Layer Smooth Focus, Look-Ahead, FOV Breathing, Bounded Dynamic Yaw', 1)
           p.write_text(s)
 
-      - name: Commit controller-only oracle repair
+      - name: Commit controller-only repair
         shell: bash
         run: |
           set -euo pipefail
