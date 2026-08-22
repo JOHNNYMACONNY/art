@@ -17,13 +17,11 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 1
-      - name: Verify expected red head
+      - name: Verify expected red audio-manager blob
         shell: bash
-        env:
-          EXPECTED_HEAD: bc656e2bfcf20f51a7bc6f5a903049b7e6880ecf
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test "$(git hash-object godot/scripts/audio/audio_manager.gd)" = "c4cb78112a1222142a9418832f8be5574921d433"
       - name: Add bounded runtime diagnostics and debug output probe
         shell: bash
         run: |
