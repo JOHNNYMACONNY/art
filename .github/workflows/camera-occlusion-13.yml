@@ -10,6 +10,7 @@ on:
       - "godot/scenes/props/**"
       - "godot/tests/camera_occlusion_readability_test.gd"
       - "godot/tests/camera_occluder_authoring_test.gd"
+      - "godot/tests/camera_occlusion_render_evidence.gd"
       - ".github/workflows/camera-occlusion-13.yml"
 
 permissions:
@@ -81,3 +82,28 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/camera_occluder_authoring_test.gd
+
+      - name: Capture rendered occlusion evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf godot/verification/feel/camera_occlusion_13_runtime
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/camera_occlusion_render_evidence.gd
+          test -s godot/verification/feel/camera_occlusion_13_runtime/01_clear_baseline.png
+          test -s godot/verification/feel/camera_occlusion_13_runtime/02_occluded_without_cutaway.png
+          test -s godot/verification/feel/camera_occlusion_13_runtime/03_cutaway_enabled.png
+          test -s godot/verification/feel/camera_occlusion_13_runtime/04_restored_after_clear.png
+          test -s godot/verification/feel/camera_occlusion_13_runtime/metrics.json
+
+      - name: Upload rendered occlusion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: camera-occlusion-13-evidence-${{ env.SOURCE_SHA }}
+          path: godot/verification/feel/camera_occlusion_13_runtime
+          if-no-files-found: warn
+          retention-days: 14
