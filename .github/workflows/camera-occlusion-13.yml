@@ -9,6 +9,7 @@ on:
       - "godot/scripts/camera/**"
       - "godot/scenes/props/**"
       - "godot/tests/camera_occlusion_readability_test.gd"
+      - "godot/tests/camera_occluder_authoring_test.gd"
       - ".github/workflows/camera-occlusion-13.yml"
 
 permissions:
@@ -61,7 +62,7 @@ jobs:
           set -euo pipefail
           "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
 
-      - name: Run camera occlusion contract
+      - name: Run camera occlusion behavior contract
         shell: bash
         run: |
           set -euo pipefail
@@ -70,3 +71,13 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/camera_occlusion_readability_test.gd
+
+      - name: Run camera occluder authoring contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/camera_occluder_authoring_test.gd
