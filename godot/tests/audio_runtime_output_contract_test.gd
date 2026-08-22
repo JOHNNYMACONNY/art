@@ -30,17 +30,40 @@ func _require_player(player: Node, label: String) -> bool:
 		return false
 	return true
 
+func _pcm_span(stream: AudioStreamWAV) -> int:
+	if stream == null or stream.data.is_empty():
+		return 0
+	var minimum_byte := 255
+	var maximum_byte := 0
+	for sample_byte in stream.data:
+		minimum_byte = mini(minimum_byte, int(sample_byte))
+		maximum_byte = maxi(maximum_byte, int(sample_byte))
+	return maximum_byte - minimum_byte
+
+func _play_test_master_probe(duration: float = 0.20) -> AudioStreamPlayer:
+	var player := AudioStreamPlayer.new()
+	player.name = "AudioRuntimeTestProbe"
+	player.bus = &"Master"
+	player.volume_db = -6.0
+	player.stream = _manager.call("_create_tone_wav", 660.0, clampf(duration, 0.05, 1.0), 0.5)
+	_manager.add_child(player)
+	player.play()
+	return player
+
 func _run() -> void:
 	_manager = AudioManagerScript.new()
 	root.add_child(_manager)
 	await process_frame
 
-	# RED on current main: #31 needs an explicit, bounded output diagnostic/probe seam.
+	# RED on original main: #31 needs an explicit, bounded output diagnostic seam.
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
 		await _fail("Runtime audio diagnostics seam is absent")
 		return
-	if not _manager.has_method("play_debug_output_probe"):
-		await _fail("Dev-only output probe seam is absent")
+
+	# The audible probe is test-only. Production AudioManager must not expose a
+	# generic debug tone method that could remain callable in release exports.
+	if _manager.has_method("play_debug_output_probe"):
+		await _fail("Debug output probe leaked into the production AudioManager API")
 		return
 
 	var report: Dictionary = _manager.call("get_runtime_audio_diagnostics")
@@ -74,26 +97,22 @@ func _run() -> void:
 	# Headless CI is expected to use Godot's Dummy driver; that is diagnostic
 	# evidence, not physical-audibility proof. The synthesized PCM must still be real.
 	var tone: AudioStreamWAV = _manager.call("_create_tone_wav", 440.0, 0.10, 0.5)
-	if tone == null or tone.data.is_empty():
-		await _fail("Procedural fallback tone contains no PCM data")
-		return
-	var minimum_byte := 255
-	var maximum_byte := 0
-	for sample_byte in tone.data:
-		minimum_byte = mini(minimum_byte, int(sample_byte))
-		maximum_byte = maxi(maximum_byte, int(sample_byte))
-	if maximum_byte - minimum_byte < 32:
+	if _pcm_span(tone) < 32:
 		await _fail("Procedural fallback tone has insufficient PCM amplitude")
 		return
+	tone = null
 
-	# Direct non-spatial Master probe.
-	var probe_player = _manager.call("play_debug_output_probe", 0.20)
-	if not await _require_player(probe_player, "Debug output probe"):
+	# Direct non-spatial Master probe lives only in this test. Validate the exact
+	# stream being played, not a separate synthesized sample.
+	var probe_player := _play_test_master_probe(0.20)
+	if not await _require_player(probe_player, "Test output probe"):
 		return
-	await create_timer(0.30).timeout
-	if is_instance_valid(probe_player):
-		await _fail("Debug output probe did not self-clean")
+	if not probe_player.stream is AudioStreamWAV or _pcm_span(probe_player.stream as AudioStreamWAV) < 32:
+		await _fail("Test output probe is playing silent/insufficient PCM")
 		return
+	probe_player.stop()
+	probe_player.free()
+	probe_player = null
 
 	# Normal gameplay activation paths must reach live Master-routed players too.
 	_manager.call("play_event", AudioManagerScript.SoundEvent.FOOTSTEP, Vector3.ZERO)
@@ -103,6 +122,7 @@ func _run() -> void:
 		return
 	if not await _require_player(active_transients.back(), "Footstep"):
 		return
+	await create_timer(0.12).timeout
 
 	_manager.call("set_tuning_audio", 0.40)
 	var tuner_player := _manager.get_node_or_null("StaticNoisePlayer")
@@ -136,8 +156,18 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (probe + footstep + tuner + radio + pursuit structurally active; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (test probe + footstep + tuner + radio + pursuit structurally active; physical audibility remains external)")
+
+	# Drop local object references before tearing down the manager to keep the
+	# command-line contract leak-free.
+	active_transients = []
+	tuner_player = null
+	radio_stream_player = null
+	radio_player = null
+	siren_player = null
+	tension_player = null
 	_manager.queue_free()
+	await process_frame
 	await process_frame
 	await process_frame
 	quit(0)
