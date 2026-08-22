@@ -6,6 +6,7 @@ on:
       - "godot/scripts/camera/**"
       - "godot/scripts/player/runner.gd"
       - "godot/tests/dynamic_camera_follow_test.gd"
+      - "godot/tests/camera_mount_transition_test.gd"
       - ".github/workflows/camera-feel-30.yml"
   push:
     branches:
@@ -15,6 +16,7 @@ on:
       - "godot/scripts/camera/**"
       - "godot/scripts/player/runner.gd"
       - "godot/tests/dynamic_camera_follow_test.gd"
+      - "godot/tests/camera_mount_transition_test.gd"
       - ".github/workflows/camera-feel-30.yml"
 
 permissions:
@@ -61,3 +63,13 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/dynamic_camera_follow_test.gd
+
+      - name: Run mount transition continuity regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/camera_mount_transition_test.gd
