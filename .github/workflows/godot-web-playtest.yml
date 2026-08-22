@@ -19,18 +19,36 @@ permissions:
 
 jobs:
   export-web:
-    name: Export browser playtest
+    name: Export browser playtest (${{ matrix.source }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        source: ${{ fromJSON(github.event_name == 'pull_request' && '["merge","head"]' || '["head"]') }}
     env:
       GODOT_VERSION: "4.7.1"
       GODOT_RELEASE: "4.7.1-stable"
       GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
       WEB_PROJECT: "${{ github.workspace }}/.godot-web-project"
+      SOURCE_SHA: ${{ matrix.source == 'head' && github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
     steps:
-      - name: Checkout
+      - name: Checkout verified source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          printf 'verification target: %s\n' "${{ matrix.source }}"
+          printf 'expected source SHA: %s\n' "$SOURCE_SHA"
+          printf 'checked out SHA: %s\n' "$actual_sha"
+          test "$actual_sha" = "$SOURCE_SHA"
 
       - name: Cache Godot editor and export templates
         id: godot-cache
@@ -130,6 +148,46 @@ jobs:
             --path "$WEB_PROJECT" \
             --script res://tests/touch_controls_event_routing_test.gd
 
+      - name: Run desktop controls regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path "$WEB_PROJECT" \
+            --script res://tests/desktop_controls_event_routing_test.gd
+
+      - name: Run desktop alias ownership regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path "$WEB_PROJECT" \
+            --script res://tests/desktop_control_alias_ownership_test.gd
+
+      - name: Run desktop vehicle authority regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path "$WEB_PROJECT" \
+            --script res://tests/desktop_vehicle_authority_test.gd
+
+      - name: Run desktop interaction cancel regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path "$WEB_PROJECT" \
+            --script res://tests/desktop_interaction_cancel_test.gd
+
       - name: Export Web playtest
         shell: bash
         run: |
@@ -147,6 +205,8 @@ jobs:
           test -s build/web/index.js
           test -s build/web/index.wasm
           test -s build/web/index.pck
+          printf '%s\n' "$SOURCE_SHA" > build/web/PLAYTEST_BUILD.txt
+          test "$(cat build/web/PLAYTEST_BUILD.txt)" = "$SOURCE_SHA"
 
       - name: Static hosting smoke test
         shell: bash
@@ -167,12 +227,184 @@ jobs:
           curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/index.js
           curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/index.wasm
           curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/index.pck
+          curl --fail --silent --show-error http://127.0.0.1:8080/PLAYTEST_BUILD.txt | grep -Fx "$SOURCE_SHA"
 
       - name: Upload browser playtest
         uses: actions/upload-artifact@v4
         with:
-          name: godot-web-playtest-${{ github.sha }}
+          name: godot-web-playtest-${{ matrix.source }}-${{ env.SOURCE_SHA }}
           path: build/web
+          if-no-files-found: error
+          retention-days: 14
+
+  compatibility-head:
+    name: Exact-head canonical compatibility matrix
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+
+    steps:
+      - name: Checkout literal PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify literal PR head
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          printf 'expected source SHA: %s\n' "$SOURCE_SHA"
+          printf 'checked out SHA: %s\n' "$actual_sha"
+          test "$actual_sha" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache-compat
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1 editor
+        if: steps.godot-cache-compat.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-head Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: Run and classify canonical 30-suite matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          suites=(
+            --run-v1-assertions
+            --run-v2-assertions
+            --run-v3-assertions
+            --run-v4-assertions
+            --run-v5-assertions
+            --run-v6-assertions
+            --run-v7-ticket01-assertions
+            --run-v7-ticket02-assertions
+            --run-v7-ticket02-1-assertions
+            --run-v7-ticket03-assertions
+            --run-v7-ticket03-stress-retest
+            --run-v7-ticket04-1-assertions
+            --run-v7-ticket04-2-assertions
+            --run-v7-ticket04-3-assertions
+            --run-v7-ticket05-assertions
+            --run-v7-ticket06-assertions
+            --run-v8-m03-aftermath-assertions
+            --run-v8-m04-echo-assertions
+            --run-v8-m05-hero-identity-assertions
+            --run-v8-m06-vehicle-class-assertions
+            --run-v8-m07-world-life-assertions
+            --run-v8-m15-fast-retry-assertions
+            --run-v8-safe-area-assertions
+            --run-v8-thumb-reach-assertions
+            --run-v8-multitouch-assertions
+            --run-v8-m21-audio-registry-assertions
+            --run-v8-m22-radio-program-assertions
+            --run-v8-m23-vehicle-radio-assertions
+            --run-v8-m24-radio-mix-assertions
+            --run-v8-m25-echo-radio-interference-assertions
+          )
+
+          : > compatibility_matrix.log
+          : > branch_failures.txt
+          : > baseline_failures.txt
+          : > true_regressions.txt
+          : > compatibility_classification.log
+
+          echo "Exact head: $SOURCE_SHA" | tee -a compatibility_classification.log
+          echo "Comparison base: $BASE_SHA" | tee -a compatibility_classification.log
+          echo "Godot: $($GODOT_BIN --version)" | tee -a compatibility_classification.log
+
+          for suite in "${suites[@]}"; do
+            echo "===== HEAD ${suite} =====" | tee -a compatibility_matrix.log
+            set +e
+            timeout 180s "$GODOT_BIN" --headless --path godot -- "$suite" 2>&1 | tee -a compatibility_matrix.log
+            rc=${PIPESTATUS[0]}
+            set -e
+            if [[ $rc -ne 0 ]]; then
+              echo "$suite" | tee -a branch_failures.txt
+            fi
+          done
+
+          if [[ ! -s branch_failures.txt ]]; then
+            echo "30/30 exact-head canonical regression commands exited 0." | tee -a compatibility_classification.log
+            exit 0
+          fi
+
+          echo "Exact-head failures detected; reproducing only those commands against the untouched PR base in the same Linux/Godot environment." | tee -a compatibility_classification.log
+          cat branch_failures.txt | tee -a compatibility_classification.log
+
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          baseline_dir="${RUNNER_TEMP}/desktop-controls-base"
+          rm -rf "$baseline_dir"
+          git worktree add --detach "$baseline_dir" "$BASE_SHA"
+          "$GODOT_BIN" --headless --editor --path "$baseline_dir/godot" --quit
+          test -s "$baseline_dir/godot/.godot/global_script_class_cache.cfg"
+
+          while IFS= read -r suite; do
+            [[ -n "$suite" ]] || continue
+            echo "===== BASE ${suite} =====" | tee -a compatibility_matrix.log
+            set +e
+            timeout 180s "$GODOT_BIN" --headless --path "$baseline_dir/godot" -- "$suite" 2>&1 | tee -a compatibility_matrix.log
+            rc=${PIPESTATUS[0]}
+            set -e
+            if [[ $rc -ne 0 ]]; then
+              echo "$suite" | tee -a baseline_failures.txt
+              echo "HEAD_FAILURE_BASE_ALSO_FAILS__EQUIVALENCE_UNPROVEN $suite" | tee -a compatibility_classification.log
+            else
+              echo "$suite" | tee -a true_regressions.txt
+              echo "BRANCH_REGRESSION $suite" | tee -a compatibility_classification.log
+            fi
+          done < branch_failures.txt
+
+          git worktree remove --force "$baseline_dir"
+
+          if [[ -s true_regressions.txt ]]; then
+            echo "Branch introduced regression(s):" | tee -a compatibility_classification.log
+            cat true_regressions.txt | tee -a compatibility_classification.log
+          fi
+          if [[ -s baseline_failures.txt ]]; then
+            echo "Base also failed these suites; equivalence is unproven, so exact-head verification fails closed:" | tee -a compatibility_classification.log
+            cat baseline_failures.txt | tee -a compatibility_classification.log
+          fi
+
+          echo "Exact-head compatibility failed: every canonical suite must exit 0 on the candidate head." | tee -a compatibility_classification.log
+          exit 1
+
+      - name: Upload compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-compatibility-head-${{ env.SOURCE_SHA }}
+          path: |
+            compatibility_matrix.log
+            compatibility_classification.log
+            branch_failures.txt
+            baseline_failures.txt
+            true_regressions.txt
           if-no-files-found: error
           retention-days: 14
 
@@ -188,12 +420,12 @@ jobs:
       - name: Download verified Web build
         uses: actions/download-artifact@v4
         with:
-          name: godot-web-playtest-${{ github.sha }}
+          name: godot-web-playtest-head-${{ github.sha }}
           path: publish
 
-      - name: Stamp source revision
+      - name: Verify source revision stamp
         shell: bash
-        run: printf '%s\n' "$GITHUB_SHA" > publish/PLAYTEST_BUILD.txt
+        run: grep -Fx "$GITHUB_SHA" publish/PLAYTEST_BUILD.txt
 
       - name: Publish playtest-web branch
         shell: bash
