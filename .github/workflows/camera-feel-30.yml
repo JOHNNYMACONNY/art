@@ -75,7 +75,7 @@ jobs:
             --script res://tests/camera_mount_transition_test.gd
 
   canonical-cleanup:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/chatgpt/camera-feel-30'
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     needs: dynamic-camera
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -89,7 +89,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
           test -f .github/workflows/camera-30-canonical-repair.yml
           grep -Fq -- '--run-v7-ticket05-assertions' .github/workflows/godot-web-playtest.yml
 
@@ -215,8 +215,7 @@ jobs:
         run: |
           set -euo pipefail
           git add .github/workflows/godot-web-playtest.yml .github/workflows/camera-feel-30.yml
-          git rm --cached --ignore-unmatch .github/workflows/camera-30-canonical-repair.yml >/dev/null 2>&1 || true
-          git add -u .github/workflows/camera-30-canonical-repair.yml
+          git rm .github/workflows/camera-30-canonical-repair.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "test(camera): replace stale Ticket05 matrix oracle"
