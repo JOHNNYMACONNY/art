@@ -5,6 +5,7 @@ on:
     paths:
       - "godot/scripts/camera/**"
       - "godot/scripts/player/runner.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
       - "godot/tests/dynamic_camera_follow_test.gd"
       - "godot/tests/camera_mount_transition_test.gd"
       - ".github/workflows/camera-feel-30.yml"
@@ -15,6 +16,7 @@ on:
     paths:
       - "godot/scripts/camera/**"
       - "godot/scripts/player/runner.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
       - "godot/tests/dynamic_camera_follow_test.gd"
       - "godot/tests/camera_mount_transition_test.gd"
       - ".github/workflows/camera-feel-30.yml"
@@ -74,7 +76,7 @@ jobs:
             --path godot \
             --script res://tests/camera_mount_transition_test.gd
 
-  canonical-cleanup:
+  legacy-ticket05-repair:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     needs: dynamic-camera
     runs-on: ubuntu-latest
@@ -85,138 +87,130 @@ jobs:
           ref: chatgpt/camera-feel-30
           fetch-depth: 2
 
-      - name: Guard cleanup source
+      - name: Guard literal PR head and stale oracle
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-          test -f .github/workflows/camera-30-canonical-repair.yml
-          grep -Fq -- '--run-v7-ticket05-assertions' .github/workflows/godot-web-playtest.yml
+          grep -Fq 'Camera basis must remain fixed during vehicle spin/donut' godot/scripts/prototype/scrap_test_block.gd
 
-      - name: Replace stale Ticket05 matrix slot
+      - name: Repair Ticket05 camera assertions
         shell: python
         run: |
           from pathlib import Path
-          p = Path('.github/workflows/godot-web-playtest.yml')
+          p = Path('godot/scripts/prototype/scrap_test_block.gd')
           s = p.read_text()
 
-          old_suite = '            --run-v7-ticket05-assertions\n'
-          new_suite = '            --run-current-camera-contract\n'
-          if s.count(old_suite) != 1:
-              raise SystemExit(f'Ticket05 suite count={s.count(old_suite)}')
-          s = s.replace(old_suite, new_suite, 1)
+          old_mount = '''\tassert(courier_bike.current_state == CourierBike.BikeState.MOUNTING, "FAIL: Bike must enter MOUNTING")
+\tcamera.set_target(courier_bike)
+\t
+\tvar last_pos: Vector3 = camera.global_position
+'''
+          new_mount = '''\tassert(courier_bike.current_state == CourierBike.BikeState.MOUNTING, "FAIL: Bike must enter MOUNTING")
+\t# Single-owner deterministic simulation: lifecycle timers may advance scene
+\t# state, but this Ticket05 test alone advances Camera3D at fixed dt below.
+\tcamera.set_process(false)
+\tcamera.set_target(courier_bike)
+\t
+\tvar last_pos: Vector3 = camera.global_position
+'''
+          if s.count(old_mount) != 1:
+              raise SystemExit(f'mount anchor count={s.count(old_mount)}')
+          s = s.replace(old_mount, new_mount, 1)
 
-          anchor = '''          for suite in "${suites[@]}"; do\n'''
-          helper = '''          run_suite() {\n            local project_path="$1"\n            local suite="$2"\n            if [[ "$suite" == "--run-current-camera-contract" ]]; then\n              if [[ ! -f "$project_path/tests/dynamic_camera_follow_test.gd" || ! -f "$project_path/tests/camera_mount_transition_test.gd" ]]; then\n                echo "BASE_NOT_APPLICABLE__CURRENT_CAMERA_CONTRACT $project_path" | tee -a compatibility_matrix.log\n                return 0\n              fi\n              timeout 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path "$project_path" --script res://tests/dynamic_camera_follow_test.gd 2>&1 | tee -a compatibility_matrix.log\n              local rc=${PIPESTATUS[0]}\n              [[ $rc -eq 0 ]] || return $rc\n              timeout 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path "$project_path" --script res://tests/camera_mount_transition_test.gd 2>&1 | tee -a compatibility_matrix.log\n              return ${PIPESTATUS[0]}\n            fi\n            timeout 180s "$GODOT_BIN" --headless --path "$project_path" -- "$suite" 2>&1 | tee -a compatibility_matrix.log\n            return ${PIPESTATUS[0]}\n          }\n\n'''
-          if s.count(anchor) != 1:
-              raise SystemExit(f'head loop anchor count={s.count(anchor)}')
-          s = s.replace(anchor, helper + anchor, 1)
+          old_dismount_tail = '''\t\tassert(current_pos.distance_to(last_pos) < 0.8, "FAIL: Camera position step during dismount")
+\t\tlast_pos = current_pos
 
-          old_head = '''            timeout 180s "$GODOT_BIN" --headless --path godot -- "$suite" 2>&1 | tee -a compatibility_matrix.log\n            rc=${PIPESTATUS[0]}\n'''
-          new_head = '''            run_suite godot "$suite"\n            rc=$?\n'''
-          if s.count(old_head) != 1:
-              raise SystemExit(f'head invocation count={s.count(old_head)}')
-          s = s.replace(old_head, new_head, 1)
+\tprint("[TICKET 05 TEST 2 PASSED] Mount/dismount focus continuity verified!")
 
-          old_base = '''            timeout 180s "$GODOT_BIN" --headless --path "$baseline_dir/godot" -- "$suite" 2>&1 | tee -a compatibility_matrix.log\n            rc=${PIPESTATUS[0]}\n'''
-          new_base = '''            run_suite "$baseline_dir/godot" "$suite"\n            rc=$?\n'''
-          if s.count(old_base) != 1:
-              raise SystemExit(f'base invocation count={s.count(old_base)}')
-          s = s.replace(old_base, new_base, 1)
+\t# -------------------------------------------------------------------------
+\t# TEST 3: Handbrake 180° Look-Ahead Reversal Damping
+'''
+          new_dismount_tail = '''\t\tassert(current_pos.distance_to(last_pos) < 0.8, "FAIL: Camera position step during dismount")
+\t\tlast_pos = current_pos
 
+\tcamera.set_process(true)
+\tprint("[TICKET 05 TEST 2 PASSED] Mount/dismount focus continuity verified!")
+
+\t# -------------------------------------------------------------------------
+\t# TEST 3: Handbrake 180° Look-Ahead Reversal Damping
+'''
+          if s.count(old_dismount_tail) != 1:
+              raise SystemExit(f'dismount anchor count={s.count(old_dismount_tail)}')
+          s = s.replace(old_dismount_tail, new_dismount_tail, 1)
+
+          old_yaw = '''\t# -------------------------------------------------------------------------
+\t# TEST 4: Vehicle Yaw / Camera Orientation Decoupling
+\t# -------------------------------------------------------------------------
+\tprint("[TEST 4] Testing Vehicle Yaw Decoupling (Camera Basis Invariant)...")
+\treset_slice()
+\tawait get_tree().create_timer(0.1).timeout
+\tcamera.reset_camera_instant(courier_bike)
+\tvar initial_cam_basis: Basis = camera.global_transform.basis
+
+\t# Rotate vehicle through 360° at high angular speed (powerslide donut)
+\tcourier_bike.current_state = CourierBike.BikeState.DRIVING
+\tcourier_bike.current_speed = 5.0
+\tfor i in range(60):
+\t\tcourier_bike.rotation.y += deg_to_rad(15.0) # 15 deg/frame * 60 = 900 deg
+\t\tcourier_bike.velocity = -courier_bike.global_transform.basis.z * 5.0
+\t\tcamera._process(dt)
+\t\t
+\t\t# Camera basis must NOT rotate with vehicle yaw!
+\t\tvar current_cam_basis: Basis = camera.global_transform.basis
+\t\tvar basis_diff_x: float = current_cam_basis.x.distance_to(initial_cam_basis.x)
+\t\tvar basis_diff_y: float = current_cam_basis.y.distance_to(initial_cam_basis.y)
+\t\tvar basis_diff_z: float = current_cam_basis.z.distance_to(initial_cam_basis.z)
+\t\tassert(basis_diff_x < 0.005 and basis_diff_y < 0.005 and basis_diff_z < 0.005, "FAIL: Camera basis must remain fixed during vehicle spin/donut")
+
+\tprint("[TICKET 05 TEST 4 PASSED] Vehicle yaw / camera orientation decoupling verified!")
+'''
+          new_yaw = '''\t# -------------------------------------------------------------------------
+\t# TEST 4: Vehicle Heading Follow / Bounded Camera Yaw (#30)
+\t# -------------------------------------------------------------------------
+\tprint("[TEST 4] Testing bounded dynamic vehicle heading follow...")
+\treset_slice()
+\tawait get_tree().create_timer(0.1).timeout
+\tcamera.reset_camera_instant(courier_bike)
+\tvar initial_cam_yaw: float = camera._current_yaw_rad
+
+\t# Hold a sustained 90° vehicle heading and verify camera follow remains
+\t# bounded by the configured slew cap rather than snapping or staying fixed.
+\tcourier_bike.current_state = CourierBike.BikeState.DRIVING
+\tcourier_bike.current_speed = 5.0
+\tcourier_bike.rotation.y = deg_to_rad(90.0)
+\tcourier_bike.velocity = -courier_bike.global_transform.basis.z * 5.0
+\tvar previous_cam_yaw: float = camera._current_yaw_rad
+\tfor i in range(90):
+\t\tcamera._process(dt)
+\t\tvar current_cam_yaw: float = camera._current_yaw_rad
+\t\tvar yaw_step: float = abs(wrapf(current_cam_yaw - previous_cam_yaw, -PI, PI))
+\t\tassert(yaw_step <= camera.max_yaw_speed * dt + 0.001, "FAIL: Dynamic camera yaw exceeded configured slew cap")
+\t\tprevious_cam_yaw = current_cam_yaw
+
+\tvar vehicle_forward: Vector3 = -courier_bike.global_transform.basis.z
+\tvehicle_forward.y = 0.0
+\tvehicle_forward = vehicle_forward.normalized()
+\tvar expected_cam_yaw: float = wrapf(atan2(vehicle_forward.x, vehicle_forward.z) + PI, -PI, PI)
+\tvar final_yaw_error: float = abs(wrapf(camera._current_yaw_rad - expected_cam_yaw, -PI, PI))
+\tassert(abs(wrapf(camera._current_yaw_rad - initial_cam_yaw, -PI, PI)) > 0.2, "FAIL: Camera yaw stayed fixed instead of following vehicle heading")
+\tassert(final_yaw_error < 0.35, "FAIL: Camera yaw did not converge to sustained vehicle heading")
+
+\tprint("[TICKET 05 TEST 4 PASSED] Bounded dynamic vehicle heading follow verified!")
+'''
+          if s.count(old_yaw) != 1:
+              raise SystemExit(f'yaw block count={s.count(old_yaw)}')
+          s = s.replace(old_yaw, new_yaw, 1)
+          s = s.replace('Testing Single-Layer Smooth Focus, Look-Ahead, FOV Breathing, Decoupled Yaw', 'Testing Single-Layer Smooth Focus, Look-Ahead, FOV Breathing, Bounded Dynamic Yaw', 1)
           p.write_text(s)
 
-      - name: Restore final Camera Feel workflow and remove temporary repair workflow
+      - name: Commit controller-only oracle repair
         shell: bash
         run: |
           set -euo pipefail
-          rm .github/workflows/camera-30-canonical-repair.yml
-          cat > .github/workflows/camera-feel-30.yml <<'EOF'
-          name: Camera Feel 30
-
-          on:
-            pull_request:
-              paths:
-                - "godot/scripts/camera/**"
-                - "godot/scripts/player/runner.gd"
-                - "godot/tests/dynamic_camera_follow_test.gd"
-                - "godot/tests/camera_mount_transition_test.gd"
-                - ".github/workflows/camera-feel-30.yml"
-            push:
-              branches:
-                - main
-                - "chatgpt/camera-feel-30"
-              paths:
-                - "godot/scripts/camera/**"
-                - "godot/scripts/player/runner.gd"
-                - "godot/tests/dynamic_camera_follow_test.gd"
-                - "godot/tests/camera_mount_transition_test.gd"
-                - ".github/workflows/camera-feel-30.yml"
-
-          permissions:
-            contents: read
-
-          jobs:
-            dynamic-camera:
-              runs-on: ubuntu-latest
-              timeout-minutes: 20
-              env:
-                GODOT_RELEASE: "4.7.1-stable"
-                GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
-
-              steps:
-                - uses: actions/checkout@v4
-                  with:
-                    ref: ${{ github.sha }}
-                    fetch-depth: 1
-
-                - name: Install Godot 4.7.1 editor
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    curl --fail --location --retry 3 \
-                      --output godot.zip \
-                      https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
-                    echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
-                    mkdir -p .godot-bin
-                    unzip -q godot.zip -d .godot-bin
-                    chmod +x "$GODOT_BIN"
-
-                - name: Prime Godot metadata
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
-
-                - name: Run dynamic camera integration regression
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    "$GODOT_BIN" \
-                      --headless \
-                      --rendering-method gl_compatibility \
-                      --path godot \
-                      --script res://tests/dynamic_camera_follow_test.gd
-
-                - name: Run mount transition continuity regression
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    "$GODOT_BIN" \
-                      --headless \
-                      --rendering-method gl_compatibility \
-                      --path godot \
-                      --script res://tests/camera_mount_transition_test.gd
-          EOF
-          sed -i 's/^          //' .github/workflows/camera-feel-30.yml
-
-      - name: Commit bounded cleanup
-        shell: bash
-        run: |
-          set -euo pipefail
-          git add .github/workflows/godot-web-playtest.yml .github/workflows/camera-feel-30.yml
-          git rm .github/workflows/camera-30-canonical-repair.yml
+          git add godot/scripts/prototype/scrap_test_block.gd
+          test "$(git diff --cached --name-only)" = "godot/scripts/prototype/scrap_test_block.gd"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "test(camera): replace stale Ticket05 matrix oracle"
+          git commit -m "test(camera): align Ticket05 with dynamic heading follow"
           git push origin HEAD:chatgpt/camera-feel-30
