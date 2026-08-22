@@ -1,0 +1,55 @@
+name: Audio Runtime 31 Repair
+
+on:
+  push:
+    branches:
+      - "chatgpt/audio-runtime-31"
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, '[audio-runtime-repair]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Verify expected red head
+        shell: bash
+        env:
+          EXPECTED_HEAD: bc656e2bfcf20f51a7bc6f5a903049b7e6880ecf
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - name: Add bounded runtime diagnostics and debug output probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("godot/scripts/audio/audio_manager.gd")
+          text = path.read_text()
+          anchor = "func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:\n"
+          if anchor not in text:
+              raise SystemExit("audio manager insertion anchor missing")
+          if "func get_runtime_audio_diagnostics()" in text or "func play_debug_output_probe(" in text:
+              raise SystemExit("runtime audio seam already present")
+
+          addition = '''## #31: Bounded runtime output diagnostics. This is an on-demand snapshot only;\n## get_output_latency() may be expensive and must never be polled per-frame.\nfunc get_runtime_audio_diagnostics() -> Dictionary:\n\tvar master_idx: int = AudioServer.get_bus_index(&"Master")\n\tvar driver_name: String = AudioServer.get_driver_name()\n\treturn {\n\t\t"driver_name": driver_name,\n\t\t"output_device": AudioServer.output_device,\n\t\t"output_devices": AudioServer.get_output_device_list(),\n\t\t"mix_rate": AudioServer.get_mix_rate(),\n\t\t"output_latency": AudioServer.get_output_latency(),\n\t\t"master_bus_index": master_idx,\n\t\t"master_muted": AudioServer.is_bus_mute(master_idx) if master_idx >= 0 else true,\n\t\t"master_volume_db": AudioServer.get_bus_volume_db(master_idx) if master_idx >= 0 else -80.0,\n\t\t"headless_dummy_driver": driver_name.to_lower() == "dummy",\n\t}\n\n## #31: Dev-only non-spatial probe through the same Master output path.\n## It is intentionally unavailable in non-debug builds and self-cleans after <= 1 second.\nfunc play_debug_output_probe(duration: float = 0.25) -> AudioStreamPlayer:\n\tif not OS.is_debug_build():\n\t\treturn null\n\tvar bounded_duration: float = clampf(duration, 0.05, 1.0)\n\tvar player := AudioStreamPlayer.new()\n\tplayer.name = "AudioRuntimeDebugProbe"\n\tplayer.bus = &"Master"\n\tplayer.volume_db = -6.0\n\tplayer.stream = _create_tone_wav(660.0, bounded_duration, 0.5)\n\t_active_2d_transients.append(player)\n\tadd_child(player)\n\tplayer.play()\n\n\tvar tree := get_tree()\n\tif tree:\n\t\tvar cleanup := func():\n\t\t\tif is_instance_valid(player):\n\t\t\t\t_active_2d_transients.erase(player)\n\t\t\t\tplayer.queue_free()\n\t\ttree.create_timer(bounded_duration + 0.05).timeout.connect(cleanup)\n\treturn player\n\n'''
+          path.write_text(text.replace(anchor, addition + anchor, 1))
+          PY
+          git diff --check
+          git diff -- godot/scripts/audio/audio_manager.gd
+      - name: Commit repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add godot/scripts/audio/audio_manager.gd
+          git commit -m "feat(audio): add runtime output diagnostics [audio-runtime-repair]"
+          git push origin HEAD:chatgpt/audio-runtime-31
