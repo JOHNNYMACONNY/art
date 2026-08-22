@@ -27,7 +27,7 @@ func _fail(message: String) -> void:
 func _make_occluder(name: String, position: Vector3, tagged: bool = true) -> Dictionary:
 	var root_node := Node3D.new()
 	root_node.name = name
-	root_node.global_position = position
+	root_node.position = position
 	if tagged:
 		root_node.add_to_group("camera_occluder")
 	_fixture_root.add_child(root_node)
@@ -76,7 +76,7 @@ func _run() -> void:
 
 	_target = Node3D.new()
 	_target.name = "Target"
-	_target.global_position = Vector3.ZERO
+	_target.position = Vector3.ZERO
 	_fixture_root.add_child(_target)
 
 	_camera = CameraScript.new()
