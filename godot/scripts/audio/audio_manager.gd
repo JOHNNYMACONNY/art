@@ -197,6 +197,47 @@ func _ready() -> void:
 	_radio_interference_player.volume_db = -80.0
 	add_child(_radio_interference_player)
 
+## #31: Bounded runtime output diagnostics. This is an on-demand snapshot only;
+## get_output_latency() may be expensive and must never be polled per-frame.
+func get_runtime_audio_diagnostics() -> Dictionary:
+	var master_idx: int = AudioServer.get_bus_index(&"Master")
+	var driver_name: String = AudioServer.get_driver_name()
+	return {
+		"driver_name": driver_name,
+		"output_device": AudioServer.output_device,
+		"output_devices": AudioServer.get_output_device_list(),
+		"mix_rate": AudioServer.get_mix_rate(),
+		"output_latency": AudioServer.get_output_latency(),
+		"master_bus_index": master_idx,
+		"master_muted": AudioServer.is_bus_mute(master_idx) if master_idx >= 0 else true,
+		"master_volume_db": AudioServer.get_bus_volume_db(master_idx) if master_idx >= 0 else -80.0,
+		"headless_dummy_driver": driver_name.to_lower() == "dummy",
+	}
+
+## #31: Dev-only non-spatial probe through the same Master output path.
+## It is intentionally unavailable in non-debug builds and self-cleans after <= 1 second.
+func play_debug_output_probe(duration: float = 0.25) -> AudioStreamPlayer:
+	if not OS.is_debug_build():
+		return null
+	var bounded_duration: float = clampf(duration, 0.05, 1.0)
+	var player := AudioStreamPlayer.new()
+	player.name = "AudioRuntimeDebugProbe"
+	player.bus = &"Master"
+	player.volume_db = -6.0
+	player.stream = _create_tone_wav(660.0, bounded_duration, 0.5)
+	_active_2d_transients.append(player)
+	add_child(player)
+	player.play()
+
+	var tree := get_tree()
+	if tree:
+		var cleanup := func():
+			if is_instance_valid(player):
+				_active_2d_transients.erase(player)
+				player.queue_free()
+		tree.create_timer(bounded_duration + 0.05).timeout.connect(cleanup)
+	return player
+
 func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 	var now := Time.get_ticks_msec()
 	if EVENT_COOLDOWNS_MSEC.has(event):
