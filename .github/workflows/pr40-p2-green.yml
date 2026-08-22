@@ -1,0 +1,84 @@
+name: PR40 P2 GREEN
+
+on:
+  push:
+    branches:
+      - chatgpt/desktop-controls-29
+    paths:
+      - ".github/workflows/pr40-p2-green.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Apply exact source repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("godot/scripts/input/touch_controls.gd")
+          text = path.read_text()
+
+          replacements = [
+              (
+                  "\t\tif not mouse_ev.pressed and _is_mouse_interacting:\n",
+                  "\t\tif mouse_ev.button_index == MOUSE_BUTTON_LEFT and not mouse_ev.pressed and _is_mouse_interacting:\n",
+              ),
+              (
+                  "\telif event is InputEventKey:\n\t\tvar key_ev := event as InputEventKey\n\t\t_update_keyboard_vehicle_state(key_ev)\n\t\tif key_ev.pressed and not key_ev.echo:\n",
+                  "\telif event is InputEventKey:\n\t\tvar key_ev := event as InputEventKey\n\t\tvar vehicle_key_consumed := _update_keyboard_vehicle_state(key_ev)\n\t\tif vehicle_key_consumed:\n\t\t\tget_viewport().set_input_as_handled()\n\t\tif key_ev.pressed and not key_ev.echo:\n",
+              ),
+          ]
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected replacement exactly once, found {count}: {old!r}")
+              text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+
+      - name: Install Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+
+      - name: Prove focused regressions GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/desktop_controls_event_routing_test.gd
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/desktop_interaction_cancel_test.gd
+
+      - name: Commit source repair only
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .godot-bin godot.zip
+          git clean -fd -- godot ':!godot/tests/.pr40-p2-red-evidence.txt'
+          git config user.name "chatgpt-automation"
+          git config user.email "chatgpt-automation@users.noreply.github.com"
+          git add godot/scripts/input/touch_controls.gd
+          test "$(git diff --cached --name-only)" = "godot/scripts/input/touch_controls.gd"
+          git commit -m "fix(29): consume driving keys and preserve left-mouse ownership"
+          git push origin HEAD:refs/heads/chatgpt/desktop-controls-29
