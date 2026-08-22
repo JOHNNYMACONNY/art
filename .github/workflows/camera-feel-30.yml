@@ -77,7 +77,7 @@ jobs:
             --script res://tests/camera_mount_transition_test.gd
 
   legacy-ticket05-repair:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     needs: dynamic-camera
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -87,11 +87,13 @@ jobs:
           ref: chatgpt/camera-feel-30
           fetch-depth: 2
 
-      - name: Guard literal PR head and stale oracle
+      - name: Guard literal source head and stale oracle
         shell: bash
+        env:
+          EXPECTED_HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           grep -Fq 'Camera basis must remain fixed during vehicle spin/donut' godot/scripts/prototype/scrap_test_block.gd
 
       - name: Repair Ticket05 camera assertions
