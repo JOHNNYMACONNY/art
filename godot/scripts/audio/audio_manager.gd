@@ -214,30 +214,6 @@ func get_runtime_audio_diagnostics() -> Dictionary:
 		"headless_dummy_driver": driver_name.to_lower() == "dummy",
 	}
 
-## #31: Dev-only non-spatial probe through the same Master output path.
-## It is intentionally unavailable in non-debug builds and self-cleans after <= 1 second.
-func play_debug_output_probe(duration: float = 0.25) -> AudioStreamPlayer:
-	if not OS.is_debug_build():
-		return null
-	var bounded_duration: float = clampf(duration, 0.05, 1.0)
-	var player := AudioStreamPlayer.new()
-	player.name = "AudioRuntimeDebugProbe"
-	player.bus = &"Master"
-	player.volume_db = -6.0
-	player.stream = _create_tone_wav(660.0, bounded_duration, 0.5)
-	_active_2d_transients.append(player)
-	add_child(player)
-	player.play()
-
-	var tree := get_tree()
-	if tree:
-		var cleanup := func():
-			if is_instance_valid(player):
-				_active_2d_transients.erase(player)
-				player.queue_free()
-		tree.create_timer(bounded_duration + 0.05).timeout.connect(cleanup)
-	return player
-
 func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 	var now := Time.get_ticks_msec()
 	if EVENT_COOLDOWNS_MSEC.has(event):
