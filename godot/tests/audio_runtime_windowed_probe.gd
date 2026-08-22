@@ -23,6 +23,16 @@ func _finish(exit_code: int) -> void:
 	await process_frame
 	quit(exit_code)
 
+func _play_test_master_probe(audio_manager: Node, duration: float = 0.80) -> AudioStreamPlayer:
+	var player := AudioStreamPlayer.new()
+	player.name = "AudioRuntimeWindowedTestProbe"
+	player.bus = &"Master"
+	player.volume_db = -6.0
+	player.stream = audio_manager.call("_create_tone_wav", 660.0, clampf(duration, 0.05, 1.0), 0.5)
+	audio_manager.add_child(player)
+	player.play()
+	return player
+
 func _run() -> void:
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
@@ -39,6 +49,11 @@ func _run() -> void:
 	var runner := _scene.get_node_or_null("Runner")
 	if audio_manager == null or runner == null:
 		push_error("[AUDIO_RUNTIME_31_WINDOWED] Main scene is missing AudioManager/Runner")
+		await _finish(1)
+		return
+
+	if audio_manager.has_method("play_debug_output_probe"):
+		push_error("[AUDIO_RUNTIME_31_WINDOWED] Production AudioManager unexpectedly exposes a debug tone API")
 		await _finish(1)
 		return
 
@@ -63,12 +78,15 @@ func _run() -> void:
 		return
 
 	_set_status("1/5 DIRECT MASTER TONE — 660 Hz")
-	var probe = audio_manager.call("play_debug_output_probe", 0.80)
-	if probe == null:
-		push_error("[AUDIO_RUNTIME_31_WINDOWED] Debug probe unavailable; use a debug/editor Godot build")
+	var probe := _play_test_master_probe(audio_manager, 0.80)
+	if probe.stream == null or not probe.playing:
+		push_error("[AUDIO_RUNTIME_31_WINDOWED] Test-only Master probe did not start")
 		await _finish(4)
 		return
 	await create_timer(1.0).timeout
+	if is_instance_valid(probe):
+		probe.stop()
+		probe.free()
 
 	_set_status("2/5 FOOTSTEPS — four clicks")
 	for _i in range(4):
