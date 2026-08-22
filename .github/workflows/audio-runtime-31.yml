@@ -5,6 +5,7 @@ on:
     paths:
       - "godot/scripts/audio/**"
       - "godot/tests/audio_runtime_output_contract_test.gd"
+      - "godot/tests/audio_runtime_windowed_probe.gd"
       - ".github/workflows/audio-runtime-31.yml"
   push:
     branches:
@@ -13,6 +14,7 @@ on:
     paths:
       - "godot/scripts/audio/**"
       - "godot/tests/audio_runtime_output_contract_test.gd"
+      - "godot/tests/audio_runtime_windowed_probe.gd"
       - ".github/workflows/audio-runtime-31.yml"
 
 permissions:
