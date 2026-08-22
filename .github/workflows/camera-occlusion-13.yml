@@ -87,9 +87,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          command -v xvfb-run
           rm -rf godot/verification/feel/camera_occlusion_13_runtime
-          "$GODOT_BIN" \
-            --headless \
+          xvfb-run -a "$GODOT_BIN" \
+            --audio-driver Dummy \
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/camera_occlusion_render_evidence.gd
