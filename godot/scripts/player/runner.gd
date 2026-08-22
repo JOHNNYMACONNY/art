@@ -21,9 +21,6 @@ var joystick_vector := Vector2.ZERO
 var is_input_locked: bool = false
 var is_mounted: bool = false
 
-# Screen-to-World direction relative to 45 deg yaw camera
-var _camera_yaw_deg: float = 45.0
-
 signal footstep_triggered
 
 var _step_timer: float = 0.0
@@ -33,12 +30,12 @@ func _physics_process(delta: float) -> void:
 	if is_mounted:
 		# Posture handled via set_mounted_posture
 		return
-		
+
 	if is_input_locked:
 		velocity = Vector3.ZERO
 		_reset_standing_pose()
 		return
-		
+
 	# Touch joystick has authority while active; otherwise accept physical/logical desktop keys.
 	var input_dir := joystick_vector
 	if input_dir.length() < 0.05:
@@ -55,37 +52,51 @@ func _physics_process(delta: float) -> void:
 		input_dir = Vector2(kb_x, kb_y)
 		if input_dir.length() > 1.0:
 			input_dir = input_dir.normalized()
-			
+
 	if input_dir.length() > 0.05:
-		# Convert screen-relative 2D input (Up = -Y screen) to 3D world direction
-		var yaw_rad := deg_to_rad(_camera_yaw_deg)
-		var forward := Vector3(-sin(yaw_rad), 0.0, -cos(yaw_rad)).normalized()
-		var right := Vector3(cos(yaw_rad), 0.0, -sin(yaw_rad)).normalized()
-		
-		var move_dir := (right * input_dir.x + forward * input_dir.y).normalized()
-		var target_vel := move_dir * (move_speed * input_dir.length())
-		
+		# Preserve analog touch magnitude while deriving direction from the live camera basis.
+		var input_strength: float = minf(input_dir.length(), 1.0)
+		var normalized_input := input_dir.normalized()
+
+		# Project the active camera's basis onto the horizontal plane. If no camera is
+		# active yet, retain the historical 45-degree frame as a startup fallback.
+		var camera_3d := get_viewport().get_camera_3d() if is_inside_tree() else null
+		var forward_xz := Vector3(-0.707107, 0.0, -0.707107)
+		var right_xz := Vector3(0.707107, 0.0, -0.707107)
+		if camera_3d:
+			var camera_basis := camera_3d.global_transform.basis
+			var forward_candidate := Vector3(-camera_basis.z.x, 0.0, -camera_basis.z.z)
+			if forward_candidate.length_squared() > 0.001:
+				forward_xz = forward_candidate.normalized()
+			var right_candidate := Vector3(camera_basis.x.x, 0.0, camera_basis.x.z)
+			if right_candidate.length_squared() > 0.001:
+				right_xz = right_candidate.normalized()
+
+		# Screen space: Up = -Y, Down = +Y, Left = -X, Right = +X.
+		var move_dir := (right_xz * normalized_input.x + forward_xz * (-normalized_input.y)).normalized()
+		var target_vel := move_dir * (move_speed * input_strength)
+
 		velocity = velocity.move_toward(target_vel, acceleration * delta)
-		
+
 		# 8-Way visual mesh facing direction
 		if mesh_pivot:
 			var target_angle := atan2(-move_dir.x, -move_dir.z)
 			var snap_step: float = PI / 4.0
 			var snapped_angle: float = round(target_angle / snap_step) * snap_step
 			mesh_pivot.rotation.y = lerp_angle(mesh_pivot.rotation.y, snapped_angle, delta * 15.0)
-			
+
 		# Procedural running stride animation
 		_anim_time += delta * velocity.length() * 2.2
 		var leg_swing: float = sin(_anim_time) * 0.55
 		var arm_swing: float = sin(_anim_time) * 0.45
-		
+
 		if left_leg: left_leg.rotation.x = leg_swing
 		if right_leg: right_leg.rotation.x = -leg_swing
 		if left_arm: left_arm.rotation.x = -arm_swing
 		if right_arm: right_arm.rotation.x = arm_swing
 		if torso_node: torso_node.position.y = 1.15 + abs(sin(_anim_time * 2.0)) * 0.04
 		if head_node: head_node.position.y = 1.62 + abs(sin(_anim_time * 2.0)) * 0.03
-			
+
 		# Trigger footstep audio event periodically
 		_step_timer += delta * velocity.length()
 		if _step_timer > 3.0:
@@ -95,7 +106,7 @@ func _physics_process(delta: float) -> void:
 		velocity = velocity.move_toward(Vector3.ZERO, friction * delta)
 		_step_timer = 0.0
 		_reset_standing_pose()
-		
+
 	move_and_slide()
 
 func set_joystick_input(vec: Vector2) -> void:
@@ -105,7 +116,7 @@ func set_mounted_posture(mounted: bool) -> void:
 	is_mounted = mounted
 	if not mesh_pivot:
 		return
-		
+
 	if mounted:
 		# Riding motorcycle posture: seated, forward crouch, hands reaching forward to grips
 		if torso_node:

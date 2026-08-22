@@ -291,7 +291,22 @@ jobs:
           "$GODOT_BIN" --headless --editor --path godot --quit
           test -s godot/.godot/global_script_class_cache.cfg
 
-      - name: Run and classify canonical 30-suite matrix
+      - name: Run current camera contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/dynamic_camera_follow_test.gd
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/camera_mount_transition_test.gd
+
+      - name: Run and classify canonical 29-suite legacy matrix
         shell: bash
         run: |
           set -euo pipefail
@@ -310,7 +325,6 @@ jobs:
             --run-v7-ticket04-1-assertions
             --run-v7-ticket04-2-assertions
             --run-v7-ticket04-3-assertions
-            --run-v7-ticket05-assertions
             --run-v7-ticket06-assertions
             --run-v8-m03-aftermath-assertions
             --run-v8-m04-echo-assertions
@@ -350,7 +364,7 @@ jobs:
           done
 
           if [[ ! -s branch_failures.txt ]]; then
-            echo "30/30 exact-head canonical regression commands exited 0." | tee -a compatibility_classification.log
+            echo "29/29 exact-head legacy canonical regression commands exited 0; current camera contracts passed separately." | tee -a compatibility_classification.log
             exit 0
           fi
 
@@ -391,7 +405,7 @@ jobs:
             cat baseline_failures.txt | tee -a compatibility_classification.log
           fi
 
-          echo "Exact-head compatibility failed: every canonical suite must exit 0 on the candidate head." | tee -a compatibility_classification.log
+          echo "Exact-head compatibility failed: every retained legacy suite and both current camera contracts must exit 0 on the candidate head." | tee -a compatibility_classification.log
           exit 1
 
       - name: Upload compatibility evidence
