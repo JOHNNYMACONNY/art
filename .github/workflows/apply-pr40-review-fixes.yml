@@ -1,0 +1,279 @@
+name: Apply PR40 Review Fixes
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/apply-pr40-review-fixes.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.ref == 'chatgpt/desktop-controls-29'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+
+      - name: Apply exact guarded replacements
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected replacement exactly once, found {count}")
+              p.write_text(text.replace(old, new, 1))
+
+          touch = "godot/scripts/input/touch_controls.gd"
+          replace_once(touch, '''var _keyboard_forward_pressed: bool = false
+          var _keyboard_reverse_pressed: bool = false
+          var _keyboard_left_pressed: bool = false
+          var _keyboard_right_pressed: bool = false
+          var _keyboard_handbrake_pressed: bool = false''', '''var _keyboard_forward_pressed: bool = false
+          var _keyboard_reverse_pressed: bool = false
+          var _keyboard_left_pressed: bool = false
+          var _keyboard_right_pressed: bool = false
+          var _keyboard_handbrake_pressed: bool = false
+          # Track physical/logical aliases independently so releasing W cannot cancel a
+          # still-held Up arrow (and likewise for the other directional alias pairs).
+          var _keyboard_w_pressed: bool = false
+          var _keyboard_up_pressed: bool = false
+          var _keyboard_s_pressed: bool = false
+          var _keyboard_down_pressed: bool = false
+          var _keyboard_a_pressed: bool = false
+          var _keyboard_left_arrow_pressed: bool = false
+          var _keyboard_d_pressed: bool = false
+          var _keyboard_right_arrow_pressed: bool = false''')
+
+          replace_once(touch, '''func _reset_keyboard_driving_inputs() -> void:
+          \t_keyboard_forward_pressed = false
+          \t_keyboard_reverse_pressed = false
+          \t_keyboard_left_pressed = false
+          \t_keyboard_right_pressed = false
+          \t_keyboard_handbrake_pressed = false
+
+          func _sync_keyboard_driving_inputs_from_input() -> void:
+          \t_keyboard_forward_pressed = Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_UP)
+          \t_keyboard_reverse_pressed = Input.is_physical_key_pressed(KEY_S) or Input.is_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_DOWN)
+          \t_keyboard_left_pressed = Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_LEFT)
+          \t_keyboard_right_pressed = Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_RIGHT)
+          \t_keyboard_handbrake_pressed = Input.is_physical_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_SPACE)''', '''func _refresh_keyboard_direction_groups() -> void:
+          \t_keyboard_forward_pressed = _keyboard_w_pressed or _keyboard_up_pressed
+          \t_keyboard_reverse_pressed = _keyboard_s_pressed or _keyboard_down_pressed
+          \t_keyboard_left_pressed = _keyboard_a_pressed or _keyboard_left_arrow_pressed
+          \t_keyboard_right_pressed = _keyboard_d_pressed or _keyboard_right_arrow_pressed
+
+          func _reset_keyboard_driving_inputs() -> void:
+          \t_keyboard_forward_pressed = false
+          \t_keyboard_reverse_pressed = false
+          \t_keyboard_left_pressed = false
+          \t_keyboard_right_pressed = false
+          \t_keyboard_handbrake_pressed = false
+          \t_keyboard_w_pressed = false
+          \t_keyboard_up_pressed = false
+          \t_keyboard_s_pressed = false
+          \t_keyboard_down_pressed = false
+          \t_keyboard_a_pressed = false
+          \t_keyboard_left_arrow_pressed = false
+          \t_keyboard_d_pressed = false
+          \t_keyboard_right_arrow_pressed = false
+
+          func _sync_keyboard_driving_inputs_from_input() -> void:
+          \t_keyboard_w_pressed = Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_W)
+          \t_keyboard_up_pressed = Input.is_physical_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_UP)
+          \t_keyboard_s_pressed = Input.is_physical_key_pressed(KEY_S) or Input.is_key_pressed(KEY_S)
+          \t_keyboard_down_pressed = Input.is_physical_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_DOWN)
+          \t_keyboard_a_pressed = Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_A)
+          \t_keyboard_left_arrow_pressed = Input.is_physical_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_LEFT)
+          \t_keyboard_d_pressed = Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_D)
+          \t_keyboard_right_arrow_pressed = Input.is_physical_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_RIGHT)
+          \t_refresh_keyboard_direction_groups()
+          \t_keyboard_handbrake_pressed = Input.is_physical_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_SPACE)''')
+
+          replace_once(touch, '''func _update_keyboard_vehicle_state(event: InputEventKey) -> bool:
+          \tif current_mode != UIMode.VEHICLE_DRIVING or event.echo:
+          \t\treturn false
+          \tif _is_key(event, KEY_W, KEY_UP):
+          \t\t_keyboard_forward_pressed = event.pressed
+          \t\t_emit_net_throttle()
+          \t\treturn true
+          \tif _is_key(event, KEY_S, KEY_DOWN):
+          \t\t_keyboard_reverse_pressed = event.pressed
+          \t\t_emit_net_throttle()
+          \t\treturn true
+          \tif _is_key(event, KEY_A, KEY_LEFT):
+          \t\t_keyboard_left_pressed = event.pressed
+          \t\t_emit_net_steer()
+          \t\treturn true
+          \tif _is_key(event, KEY_D, KEY_RIGHT):
+          \t\t_keyboard_right_pressed = event.pressed
+          \t\t_emit_net_steer()
+          \t\treturn true
+          \tif _is_key(event, KEY_SPACE):
+          \t\t_keyboard_handbrake_pressed = event.pressed
+          \t\t_emit_net_handbrake()
+          \t\treturn true
+          \treturn false''', '''func _update_keyboard_vehicle_state(event: InputEventKey) -> bool:
+          \tif current_mode != UIMode.VEHICLE_DRIVING or event.echo:
+          \t\treturn false
+          \tif _is_key(event, KEY_W):
+          \t\t_keyboard_w_pressed = event.pressed
+          \t\t_refresh_keyboard_direction_groups()
+          \t\t_emit_net_throttle()
+          \t\treturn true
+          \tif _is_key(event, KEY_UP):
+          \t\t_keyboard_up_pressed = event.pressed
+          \t\t_refresh_keyboard_direction_groups()
+          \t\t_emit_net_throttle()
+          \t\treturn true
+          \tif _is_key(event, KEY_S):
+          \t\t_keyboard_s_pressed = event.pressed
+          \t\t_refresh_keyboard_direction_groups()
+          \t\t_emit_net_throttle()
+          \t\treturn true
+          \tif _is_key(event, KEY_DOWN):
+          \t\t_keyboard_down_pressed = event.pressed
+          \t\t_refresh_keyboard_direction_groups()
+          \t\t_emit_net_throttle()
+          \t\treturn true
+          \tif _is_key(event, KEY_A):
+          \t\t_keyboard_a_pressed = event.pressed
+          \t\t_refresh_keyboard_direction_groups()
+          \t\t_emit_net_steer()
+          \t\treturn true
+          \tif _is_key(event, KEY_LEFT):
+          \t\t_keyboard_left_arrow_pressed = event.pressed
+          \t\t_refresh_keyboard_direction_groups()
+          \t\t_emit_net_steer()
+          \t\treturn true
+          \tif _is_key(event, KEY_D):
+          \t\t_keyboard_d_pressed = event.pressed
+          \t\t_refresh_keyboard_direction_groups()
+          \t\t_emit_net_steer()
+          \t\treturn true
+          \tif _is_key(event, KEY_RIGHT):
+          \t\t_keyboard_right_arrow_pressed = event.pressed
+          \t\t_refresh_keyboard_direction_groups()
+          \t\t_emit_net_steer()
+          \t\treturn true
+          \tif _is_key(event, KEY_SPACE):
+          \t\t_keyboard_handbrake_pressed = event.pressed
+          \t\t_emit_net_handbrake()
+          \t\treturn true
+          \treturn false''')
+
+          workflow = ".github/workflows/godot-web-playtest.yml"
+          replace_once(workflow, '''      - name: Run desktop controls regression
+                shell: bash
+                run: |
+                  set -euo pipefail
+                  "$GODOT_BIN" \\
+                    --headless \\
+                    --rendering-method gl_compatibility \\
+                    --path "$WEB_PROJECT" \\
+                    --script res://tests/desktop_controls_event_routing_test.gd
+
+              - name: Run desktop vehicle authority regression''', '''      - name: Run desktop controls regression
+                shell: bash
+                run: |
+                  set -euo pipefail
+                  "$GODOT_BIN" \\
+                    --headless \\
+                    --rendering-method gl_compatibility \\
+                    --path "$WEB_PROJECT" \\
+                    --script res://tests/desktop_controls_event_routing_test.gd
+
+              - name: Run desktop alias ownership regression
+                shell: bash
+                run: |
+                  set -euo pipefail
+                  "$GODOT_BIN" \\
+                    --headless \\
+                    --rendering-method gl_compatibility \\
+                    --path "$WEB_PROJECT" \\
+                    --script res://tests/desktop_control_alias_ownership_test.gd
+
+              - name: Run desktop vehicle authority regression''')
+
+          replace_once(workflow, '''            if [[ $rc -ne 0 ]]; then
+                        echo "$suite" | tee -a baseline_failures.txt
+                        echo "PRE_EXISTING_PLATFORM_FAILURE $suite" | tee -a compatibility_classification.log
+                      else
+                        echo "$suite" | tee -a true_regressions.txt
+                        echo "BRANCH_REGRESSION $suite" | tee -a compatibility_classification.log
+                      fi''', '''            if [[ $rc -ne 0 ]]; then
+                        echo "$suite" | tee -a baseline_failures.txt
+                        echo "HEAD_FAILURE_BASE_ALSO_FAILS__EQUIVALENCE_UNPROVEN $suite" | tee -a compatibility_classification.log
+                      else
+                        echo "$suite" | tee -a true_regressions.txt
+                        echo "BRANCH_REGRESSION $suite" | tee -a compatibility_classification.log
+                      fi''')
+
+          replace_once(workflow, '''          if [[ -s true_regressions.txt ]]; then
+                    echo "Branch introduced regression(s):" | tee -a compatibility_classification.log
+                    cat true_regressions.txt | tee -a compatibility_classification.log
+                    exit 1
+                  fi
+
+                  echo "No branch-only regressions. Every exact-head failure reproduced on the untouched PR base and is classified as a pre-existing Linux/headless platform failure." | tee -a compatibility_classification.log''', '''          if [[ -s true_regressions.txt ]]; then
+                    echo "Branch introduced regression(s):" | tee -a compatibility_classification.log
+                    cat true_regressions.txt | tee -a compatibility_classification.log
+                  fi
+                  if [[ -s baseline_failures.txt ]]; then
+                    echo "Base also failed these suites; equivalence is not proven, so exact-head verification still fails closed:" | tee -a compatibility_classification.log
+                    cat baseline_failures.txt | tee -a compatibility_classification.log
+                  fi
+
+                  echo "Exact-head compatibility failed: every canonical suite must exit 0 on the candidate head." | tee -a compatibility_classification.log
+                  exit 1''')
+          PY
+
+      - name: Install Godot 4.7.1 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Verify repaired input path
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/desktop_control_alias_ownership_test.gd
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/desktop_controls_event_routing_test.gd
+
+      - name: Commit guarded repair and remove temporary workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/desktop-control-alias-red.yml
+          rm -f .github/workflows/apply-pr40-review-fixes.yml
+          git config user.name "chatgpt-automation"
+          git config user.email "chatgpt-automation@users.noreply.github.com"
+          git add godot/scripts/input/touch_controls.gd \
+            godot/tests/desktop_control_alias_ownership_test.gd \
+            .github/workflows/godot-web-playtest.yml \
+            .github/workflows/desktop-control-alias-red.yml \
+            .github/workflows/apply-pr40-review-fixes.yml
+          git commit -m "fix(controls): preserve independent desktop key aliases"
+          git push origin HEAD:refs/heads/chatgpt/desktop-controls-29
