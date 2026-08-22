@@ -1,6 +1,0 @@
-PR40_P2_RED_PROOF
-source_sha=e7b6b0f50711213950a95d825f3c97c1ae8e9e90
-focused_button_rc=1
-mouse_release_rc=1
-ERROR: [DESKTOP_CONTROLS] Vehicle Space leaked into focused RadioButton and toggled radio
-ERROR: [DESKTOP_INTERACTION_CANCEL] Unrelated mouse-button release cancelled left-mouse tuner drag: Tuner did not enter TUNING
