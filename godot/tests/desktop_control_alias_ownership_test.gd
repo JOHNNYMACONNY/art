@@ -1,7 +1,7 @@
 extends SceneTree
 
-# Regression for independent desktop driving-key aliases. Holding W+Up (or D+Right)
-# must keep the normalized direction active until the final alias is released.
+# Regression for independent desktop driving-key aliases. Equivalent direction keys
+# must keep normalized intent active until the final held alias is released.
 var _scene_under_test: Node = null
 
 func _init() -> void:
@@ -62,6 +62,21 @@ func _run() -> void:
 		await _fail("Forward throttle did not clear after final alias release")
 		return
 
+	# S and Down are aliases for brake/reverse.
+	touch_ui._input(_key_event(KEY_S, true))
+	touch_ui._input(_key_event(KEY_DOWN, true))
+	if not is_equal_approx(throttle[0], -1.0):
+		await _fail("S+Down did not hold -1 throttle")
+		return
+	touch_ui._input(_key_event(KEY_S, false))
+	if not is_equal_approx(throttle[0], -1.0):
+		await _fail("Releasing S cancelled still-held Down alias")
+		return
+	touch_ui._input(_key_event(KEY_DOWN, false))
+	if not is_equal_approx(throttle[0], 0.0):
+		await _fail("Reverse throttle did not clear after final alias release")
+		return
+
 	# D and Right are aliases for right steering with the same ownership contract.
 	touch_ui._input(_key_event(KEY_D, true))
 	touch_ui._input(_key_event(KEY_RIGHT, true))
@@ -75,6 +90,21 @@ func _run() -> void:
 	touch_ui._input(_key_event(KEY_RIGHT, false))
 	if not is_equal_approx(steer[0], 0.0):
 		await _fail("Right steering did not clear after final alias release")
+		return
+
+	# A and Left are aliases for left steering.
+	touch_ui._input(_key_event(KEY_A, true))
+	touch_ui._input(_key_event(KEY_LEFT, true))
+	if not is_equal_approx(steer[0], -1.0):
+		await _fail("A+Left did not hold -1 steering")
+		return
+	touch_ui._input(_key_event(KEY_A, false))
+	if not is_equal_approx(steer[0], -1.0):
+		await _fail("Releasing A cancelled still-held Left alias")
+		return
+	touch_ui._input(_key_event(KEY_LEFT, false))
+	if not is_equal_approx(steer[0], 0.0):
+		await _fail("Left steering did not clear after final alias release")
 		return
 
 	print("[DESKTOP_ALIAS_OWNERSHIP] PASS")
