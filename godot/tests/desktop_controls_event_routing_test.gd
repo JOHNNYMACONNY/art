@@ -139,6 +139,21 @@ func _run() -> void:
 	touch_ui.dismount_pressed.connect(func(): dismount_count[0] += 1)
 	touch_ui.radio_toggle_pressed.connect(func(): radio_count[0] += 1)
 
+	# A focused touch Button must not receive the same Space key that driving
+	# consumes as handbrake. Exercise the real Viewport propagation path.
+	touch_ui.radio_button.grab_focus()
+	await process_frame
+	if not touch_ui.radio_button.has_focus():
+		await _fail("Radio button could not acquire focus for Space propagation proof")
+		return
+	root.push_input(_key_event(KEY_SPACE, true), true)
+	root.push_input(_key_event(KEY_SPACE, false), true)
+	await process_frame
+	if radio_count[0] != 0:
+		await _fail("Vehicle Space leaked into focused RadioButton and toggled radio")
+		return
+	touch_ui.radio_button.release_focus()
+
 	touch_ui._input(_key_event(KEY_W, true))
 	if not is_equal_approx(throttle[0], 1.0):
 		await _fail("Vehicle W did not emit normalized +1 throttle")

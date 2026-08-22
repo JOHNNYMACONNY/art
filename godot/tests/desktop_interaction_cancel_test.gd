@@ -121,6 +121,19 @@ func _run() -> void:
 	await process_frame
 	_mouse_motion(gesture_center + Vector2(10, 0), Vector2(10, 0))
 	await process_frame
+	# Releasing an unrelated mouse button while left remains the interaction
+	# owner must not cancel the active tuner drag.
+	var unrelated_up := InputEventMouseButton.new()
+	unrelated_up.device = 0
+	unrelated_up.button_index = MOUSE_BUTTON_RIGHT
+	unrelated_up.pressed = false
+	unrelated_up.position = gesture_center + Vector2(10, 0)
+	root.push_input(unrelated_up, true)
+	await process_frame
+	open_error = _assert_tuner_open(touch_ui, player, tuner, camera)
+	if not open_error.is_empty():
+		await _fail("Unrelated mouse-button release cancelled left-mouse tuner drag: %s" % open_error)
+		return
 	_mouse_up_at(gesture_center + Vector2(10, 0))
 	await process_frame
 	var release_error := _assert_tuner_closed(touch_ui, player, tuner, camera)
