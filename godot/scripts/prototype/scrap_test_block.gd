@@ -1476,15 +1476,26 @@ func _run_v6_assertions() -> void:
 	assert(courier_bike.current_state == CourierBike.BikeState.DRIVING, "FAIL: Bike must enter DRIVING")
 	courier_bike.rotation.y = PI
 	
-	# Verify real GAS & BRAKE touch button routes
-	touch_ui.gas_button.button_down.emit()
-	assert(_throttle_input == 1.0, "FAIL: GAS button_down must set throttle input to 1.0")
-	touch_ui.gas_button.button_up.emit()
-	assert(_throttle_input == 0.0, "FAIL: GAS button_up must reset throttle input to 0.0")
-	touch_ui.brake_button.button_down.emit()
-	assert(_throttle_input == -1.0, "FAIL: BRAKE button_down must set throttle input to -1.0")
-	touch_ui.brake_button.button_up.emit()
-	assert(_throttle_input == 0.0, "FAIL: BRAKE button_up must reset throttle input to 0.0")
+	# Verify real GAS & BRAKE touch routes with the same ScreenTouch events
+	# consumed by the production gui_input handlers.
+	var gas_touch := InputEventScreenTouch.new()
+	gas_touch.index = 101
+	gas_touch.position = Vector2(1.0, 1.0)
+	gas_touch.pressed = true
+	touch_ui.gas_button.gui_input.emit(gas_touch)
+	assert(_throttle_input == 1.0, "FAIL: GAS ScreenTouch press must set throttle input to 1.0")
+	gas_touch.pressed = false
+	touch_ui.gas_button.gui_input.emit(gas_touch)
+	assert(_throttle_input == 0.0, "FAIL: GAS ScreenTouch release must reset throttle input to 0.0")
+	var brake_touch := InputEventScreenTouch.new()
+	brake_touch.index = 102
+	brake_touch.position = Vector2(1.0, 1.0)
+	brake_touch.pressed = true
+	touch_ui.brake_button.gui_input.emit(brake_touch)
+	assert(_throttle_input == -1.0, "FAIL: BRAKE ScreenTouch press must set throttle input to -1.0")
+	brake_touch.pressed = false
+	touch_ui.brake_button.gui_input.emit(brake_touch)
+	assert(_throttle_input == 0.0, "FAIL: BRAKE ScreenTouch release must reset throttle input to 0.0")
 	
 	# 5. Route Switch -> SignalGate slams -> Detour -> Evasion
 	touch_ui.set_mode(TouchControlsUI.UIMode.VEHICLE_DRIVING)
@@ -2212,8 +2223,10 @@ func _run_v7_ticket03_assertions() -> void:
 	
 	await get_tree().create_timer(0.2).timeout
 	assert(signal_tuner.current_state == SignalTuner.TunerState.TUNING, "FAIL: Tuner must enter TUNING state")
-	assert(touch_ui.gesture_hint_label.text == "[ SWIPE ↔ TO TUNE FREQUENCY ]", "FAIL: UI hint text must be [ SWIPE ↔ TO TUNE FREQUENCY ]")
-	print("[TICKET 03 TEST 1 PASSED] UI prompt hint verified: [ SWIPE ↔ TO TUNE FREQUENCY ]")
+	var tuner_hint: String = touch_ui.gesture_hint_label.text
+	assert(tuner_hint.contains("SWIPE"), "FAIL: Tuner hint must preserve touch swipe guidance")
+	assert(tuner_hint.contains("LEFT MOUSE") and tuner_hint.contains("DRAG"), "FAIL: Tuner hint must expose desktop mouse-drag guidance")
+	print("[TICKET 03 TEST 1 PASSED] UI prompt exposes touch + desktop tuning affordances: %s" % tuner_hint)
 	
 	# 2. Simulate InputEventScreenTouch & InputEventScreenDrag for horizontal tuning
 	var touch_down := InputEventScreenTouch.new()
@@ -8926,3 +8939,4 @@ func _run_v8_m25_echo_radio_interference_assertions() -> void:
 	print("[ALL V8 M25 FIRST HYBRID ECHO/RADIO INTERFERENCE ASSERTIONS (1-10) PASSED 100% GREEN!]")
 	print("=========================================================================\n")
 	get_tree().quit(0)
+
