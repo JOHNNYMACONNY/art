@@ -97,7 +97,7 @@ func _run() -> void:
 		await _fail("On-foot camera yaw did not follow sustained movement")
 		return
 
-	# 4. Physical W remains screen-forward after camera yaw materially rotates.
+	# 4. Physical W and touch-up both remain screen-forward after material camera yaw.
 	camera.set("dynamic_yaw_enabled", false)
 	camera.set("_current_yaw_rad", PI / 2.0)
 	camera.call("set_target", player)
@@ -113,9 +113,18 @@ func _run() -> void:
 	if player_dir.length_squared() < 0.5 or player_dir.dot(cam_fwd_xz) <= 0.95:
 		await _fail("Physical W is not live-camera-relative after camera rotation")
 		return
+
+	player.velocity = Vector3.ZERO
+	player.set_joystick_input(Vector2(0.0, -1.0))
+	player._physics_process(0.1)
+	player.set_joystick_input(Vector2.ZERO)
+	var touch_dir := Vector3(player.velocity.x, 0.0, player.velocity.z).normalized()
+	if touch_dir.length_squared() < 0.5 or touch_dir.dot(cam_fwd_xz) <= 0.95:
+		await _fail("Touch joystick up is not live-camera-relative after camera rotation")
+		return
 	camera.set("dynamic_yaw_enabled", true)
 
-	# 5. Interaction mode freezes yaw; exit resumes within configured slew cap.
+	# 5. Interaction mode freezes yaw; exit makes bounded progress and converges.
 	camera.call("reset_camera_instant", player)
 	var before_interaction := float(camera.get("_current_yaw_rad"))
 	camera.call("set_interaction_mode", true, player)
@@ -130,8 +139,17 @@ func _run() -> void:
 	camera.call("_process", 0.016)
 	var resume_step := _yaw_error(float(camera.get("_current_yaw_rad")), before_resume)
 	var max_yaw_speed := float(camera.get("max_yaw_speed"))
+	if resume_step <= 0.0001:
+		await _fail("Camera yaw stayed frozen after leaving interaction mode")
+		return
 	if resume_step > max_yaw_speed * 0.016 + 0.001:
 		await _fail("Camera snapped when leaving interaction mode")
+		return
+	var resume_expected := wrapf(atan2(player.velocity.x, player.velocity.z) + PI, -PI, PI)
+	for _i in range(89):
+		camera.call("_process", 0.016)
+	if _yaw_error(float(camera.get("_current_yaw_rad")), resume_expected) >= 0.40:
+		await _fail("Camera yaw resumed but did not converge after interaction mode")
 		return
 
 	print("[DYNAMIC_CAMERA_AB] PASS")
