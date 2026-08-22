@@ -628,7 +628,7 @@ func _input(event: InputEvent) -> void:
 		# clear touch ownership or progress the same interaction twice.
 		if mouse_ev.device == InputEvent.DEVICE_ID_EMULATION:
 			return
-		if not mouse_ev.pressed and _is_mouse_interacting:
+		if mouse_ev.button_index == MOUSE_BUTTON_LEFT and not mouse_ev.pressed and _is_mouse_interacting:
 			_is_mouse_interacting = false
 			if _is_peeling:
 				peel_gesture_released.emit()
@@ -638,7 +638,9 @@ func _input(event: InputEvent) -> void:
 				_is_tuning = false
 	elif event is InputEventKey:
 		var key_ev := event as InputEventKey
-		_update_keyboard_vehicle_state(key_ev)
+		var vehicle_key_consumed := _update_keyboard_vehicle_state(key_ev)
+		if vehicle_key_consumed:
+			get_viewport().set_input_as_handled()
 		if key_ev.pressed and not key_ev.echo:
 			if _is_key(key_ev, KEY_ESCAPE) and gesture_panel and gesture_panel.visible:
 				if _current_gesture_type == "TUNE_SIGNAL":
