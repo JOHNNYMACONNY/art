@@ -1,0 +1,60 @@
+name: Dynamic Camera A/B Regression
+
+on:
+  push:
+    branches:
+      - chatgpt/desktop-controls-dynamic-camera-ab
+    paths:
+      - "godot/**"
+      - ".github/workflows/dynamic-camera-ab.yml"
+  pull_request:
+    paths:
+      - "godot/scripts/camera/**"
+      - "godot/scripts/player/runner.gd"
+      - "godot/tests/dynamic_camera_follow_test.gd"
+      - ".github/workflows/dynamic-camera-ab.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dynamic-camera:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Install Godot 4.7.1 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+
+      - name: Run dynamic camera integration regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/dynamic_camera_follow_test.gd
