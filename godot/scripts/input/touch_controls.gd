@@ -511,7 +511,7 @@ func show_gesture_overlay(gesture_type: String) -> void:
 	if core_tap_button: core_tap_button.visible = (gesture_type == "EXPOSE_CORE")
 	if gesture_hint_label:
 		match gesture_type:
-			"TUNE_SIGNAL": gesture_hint_label.text = "[ HOLD LEFT MOUSE · DRAG ← / → TO TUNE ]"
+			"TUNE_SIGNAL": gesture_hint_label.text = "[ SWIPE ↔ OR HOLD LEFT MOUSE · DRAG ← / → TO TUNE ]"
 			"PEEL_PANEL": gesture_hint_label.text = "[ SWIPE DOWN TO PEEL PANEL ]"
 			"EXPOSE_CORE": gesture_hint_label.text = "[ TAP CORE TO EXTRACT ]"
 	if gesture_type == "TUNE_SIGNAL":
