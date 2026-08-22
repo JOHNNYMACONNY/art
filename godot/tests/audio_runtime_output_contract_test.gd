@@ -12,7 +12,23 @@ func _fail(message: String) -> void:
 	if is_instance_valid(_manager):
 		_manager.queue_free()
 	await process_frame
+	await process_frame
 	quit(1)
+
+func _require_player(player: Node, label: String) -> bool:
+	if player == null or not is_instance_valid(player):
+		await _fail("%s player is unavailable" % label)
+		return false
+	if player.stream == null:
+		await _fail("%s player has no stream" % label)
+		return false
+	if StringName(player.bus) != &"Master":
+		await _fail("%s player is not routed to Master" % label)
+		return false
+	if not player.playing:
+		await _fail("%s player did not enter playing state" % label)
+		return false
+	return true
 
 func _run() -> void:
 	_manager = AudioManagerScript.new()
@@ -70,22 +86,58 @@ func _run() -> void:
 		await _fail("Procedural fallback tone has insufficient PCM amplitude")
 		return
 
+	# Direct non-spatial Master probe.
 	var probe_player = _manager.call("play_debug_output_probe", 0.20)
-	if probe_player == null or not is_instance_valid(probe_player):
-		await _fail("Debug output probe did not return a live player")
+	if not await _require_player(probe_player, "Debug output probe"):
 		return
-	if StringName(probe_player.bus) != &"Master":
-		await _fail("Debug output probe is not routed to Master")
+	await create_timer(0.30).timeout
+	if is_instance_valid(probe_player):
+		await _fail("Debug output probe did not self-clean")
 		return
-	if probe_player.stream == null:
-		await _fail("Debug output probe has no stream")
+
+	# Normal gameplay activation paths must reach live Master-routed players too.
+	_manager.call("play_event", AudioManagerScript.SoundEvent.FOOTSTEP, Vector3.ZERO)
+	var active_transients: Array = _manager.get("_active_transients")
+	if active_transients.is_empty():
+		await _fail("Footstep event did not create a transient voice")
 		return
-	if not probe_player.playing:
-		await _fail("Debug output probe did not enter playing state")
+	if not await _require_player(active_transients.back(), "Footstep"):
+		return
+
+	_manager.call("set_tuning_audio", 0.40)
+	var tuner_player := _manager.get_node_or_null("StaticNoisePlayer")
+	if not await _require_player(tuner_player, "Tuner"):
+		return
+
+	_manager.call("play_radio_station")
+	await process_frame
+	var radio_player: Node = _manager.call("get_radio_player")
+	if not bool(radio_player.call("is_playing")) or not bool(radio_player.call("is_stream_playing")):
+		await _fail("Radio fallback did not enter active stream playback")
+		return
+	var radio_stream_player := radio_player.get_node_or_null("RadioAudioStreamPlayer")
+	if not await _require_player(radio_stream_player, "Radio fallback"):
+		return
+
+	_manager.call("set_pursuit_pressure", 10.0, Vector3.ZERO)
+	var siren_player := _manager.get_node_or_null("SirenAlarmPlayer")
+	var tension_player := _manager.get_node_or_null("PursuitTensionPlayer")
+	if not await _require_player(siren_player, "Pursuit siren"):
+		return
+	if not await _require_player(tension_player, "Pursuit tension"):
+		return
+
+	_manager.call("reset_audio_instant")
+	if tuner_player.playing or siren_player.playing or tension_player.playing:
+		await _fail("Authoritative reset left a continuous output voice playing")
+		return
+	if bool(_manager.call("is_radio_playing")):
+		await _fail("Authoritative reset left radio playback active")
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (structural/runtime activation only; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (probe + footstep + tuner + radio + pursuit structurally active; physical audibility remains external)")
 	_manager.queue_free()
+	await process_frame
 	await process_frame
 	quit(0)
