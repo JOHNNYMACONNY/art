@@ -15,13 +15,11 @@ extends Camera3D
 @export var vehicle_yaw_rate: float = 2.8 # s⁻¹
 @export var foot_yaw_rate: float = 1.5 # s⁻¹
 @export var max_yaw_speed: float = 2.5 # rad/s max slew
-@export var target_handoff_yaw_hold: float = 0.35 # s; matches mount transition window
 
 const RIG_GROUND_RADIUS: float = 16.9705627 # sqrt(12^2 + 12^2)
 const RIG_ELEVATION_HEIGHT: float = 18.0
 
 var _current_yaw_rad: float = PI / 4.0
-var _target_handoff_yaw_remaining: float = 0.0
 var _interaction_target: Node3D = null
 var _is_interaction_mode: bool = false
 var _focus_height_offset: Vector3 = Vector3(0.0, 0.5, 0.0)
@@ -40,12 +38,9 @@ func _ready() -> void:
 		reset_camera_instant(target_node)
 
 func set_target(new_target: Node3D) -> void:
-	var target_changed := new_target != target_node
 	target_node = new_target
 	if not _is_initialized and new_target != null:
 		reset_camera_instant(new_target)
-	elif target_changed and new_target != null:
-		_target_handoff_yaw_remaining = maxf(target_handoff_yaw_hold, 0.0)
 
 func set_interaction_mode(active: bool, focus_node: Node3D = null) -> void:
 	_is_interaction_mode = active
@@ -56,7 +51,6 @@ func reset_camera_instant(target: Node3D) -> void:
 	_is_interaction_mode = false
 	_interaction_target = null
 	_current_yaw_rad = PI / 4.0
-	_target_handoff_yaw_remaining = 0.0
 	fov = default_fov
 	if target:
 		_smoothed_focus_pos = target.global_position
@@ -127,9 +121,7 @@ func _process(delta: float) -> void:
 	# -------------------------------------------------------------------------
 	# STAGE 4: Dynamic heading follow + preserved polar 3/4 rig
 	# -------------------------------------------------------------------------
-	if _target_handoff_yaw_remaining > 0.0:
-		_target_handoff_yaw_remaining = maxf(_target_handoff_yaw_remaining - delta, 0.0)
-	elif dynamic_yaw_enabled and not _is_interaction_mode:
+	if dynamic_yaw_enabled and not _is_interaction_mode:
 		var target_yaw: float = _current_yaw_rad
 		var yaw_rate: float = 0.0
 
