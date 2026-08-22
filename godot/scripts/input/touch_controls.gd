@@ -84,6 +84,16 @@ var _keyboard_reverse_pressed: bool = false
 var _keyboard_left_pressed: bool = false
 var _keyboard_right_pressed: bool = false
 var _keyboard_handbrake_pressed: bool = false
+# Direction aliases are tracked independently so releasing one alias cannot
+# cancel a still-held equivalent key.
+var _keyboard_w_pressed: bool = false
+var _keyboard_up_pressed: bool = false
+var _keyboard_s_pressed: bool = false
+var _keyboard_down_pressed: bool = false
+var _keyboard_a_pressed: bool = false
+var _keyboard_left_arrow_pressed: bool = false
+var _keyboard_d_pressed: bool = false
+var _keyboard_right_arrow_pressed: bool = false
 
 const MOUSE_POINTER_INDEX: int = -999
 
@@ -145,18 +155,37 @@ func _emit_net_steer() -> void:
 func _emit_net_handbrake() -> void:
 	driving_handbrake_updated.emit(_is_handbrake_pressed or _keyboard_handbrake_pressed)
 
+func _refresh_keyboard_direction_groups() -> void:
+	_keyboard_forward_pressed = _keyboard_w_pressed or _keyboard_up_pressed
+	_keyboard_reverse_pressed = _keyboard_s_pressed or _keyboard_down_pressed
+	_keyboard_left_pressed = _keyboard_a_pressed or _keyboard_left_arrow_pressed
+	_keyboard_right_pressed = _keyboard_d_pressed or _keyboard_right_arrow_pressed
+
 func _reset_keyboard_driving_inputs() -> void:
 	_keyboard_forward_pressed = false
 	_keyboard_reverse_pressed = false
 	_keyboard_left_pressed = false
 	_keyboard_right_pressed = false
 	_keyboard_handbrake_pressed = false
+	_keyboard_w_pressed = false
+	_keyboard_up_pressed = false
+	_keyboard_s_pressed = false
+	_keyboard_down_pressed = false
+	_keyboard_a_pressed = false
+	_keyboard_left_arrow_pressed = false
+	_keyboard_d_pressed = false
+	_keyboard_right_arrow_pressed = false
 
 func _sync_keyboard_driving_inputs_from_input() -> void:
-	_keyboard_forward_pressed = Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_UP)
-	_keyboard_reverse_pressed = Input.is_physical_key_pressed(KEY_S) or Input.is_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_DOWN)
-	_keyboard_left_pressed = Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_LEFT)
-	_keyboard_right_pressed = Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_RIGHT)
+	_keyboard_w_pressed = Input.is_physical_key_pressed(KEY_W) or Input.is_key_pressed(KEY_W)
+	_keyboard_up_pressed = Input.is_physical_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_UP)
+	_keyboard_s_pressed = Input.is_physical_key_pressed(KEY_S) or Input.is_key_pressed(KEY_S)
+	_keyboard_down_pressed = Input.is_physical_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_DOWN)
+	_keyboard_a_pressed = Input.is_physical_key_pressed(KEY_A) or Input.is_key_pressed(KEY_A)
+	_keyboard_left_arrow_pressed = Input.is_physical_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_LEFT)
+	_keyboard_d_pressed = Input.is_physical_key_pressed(KEY_D) or Input.is_key_pressed(KEY_D)
+	_keyboard_right_arrow_pressed = Input.is_physical_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_RIGHT)
+	_refresh_keyboard_direction_groups()
 	_keyboard_handbrake_pressed = Input.is_physical_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_SPACE)
 
 func reset_driving_inputs() -> void:
@@ -541,20 +570,44 @@ func _is_key(event: InputEventKey, first: Key, second: Key = KEY_NONE) -> bool:
 func _update_keyboard_vehicle_state(event: InputEventKey) -> bool:
 	if current_mode != UIMode.VEHICLE_DRIVING or event.echo:
 		return false
-	if _is_key(event, KEY_W, KEY_UP):
-		_keyboard_forward_pressed = event.pressed
+	if _is_key(event, KEY_W):
+		_keyboard_w_pressed = event.pressed
+		_refresh_keyboard_direction_groups()
 		_emit_net_throttle()
 		return true
-	if _is_key(event, KEY_S, KEY_DOWN):
-		_keyboard_reverse_pressed = event.pressed
+	if _is_key(event, KEY_UP):
+		_keyboard_up_pressed = event.pressed
+		_refresh_keyboard_direction_groups()
 		_emit_net_throttle()
 		return true
-	if _is_key(event, KEY_A, KEY_LEFT):
-		_keyboard_left_pressed = event.pressed
+	if _is_key(event, KEY_S):
+		_keyboard_s_pressed = event.pressed
+		_refresh_keyboard_direction_groups()
+		_emit_net_throttle()
+		return true
+	if _is_key(event, KEY_DOWN):
+		_keyboard_down_pressed = event.pressed
+		_refresh_keyboard_direction_groups()
+		_emit_net_throttle()
+		return true
+	if _is_key(event, KEY_A):
+		_keyboard_a_pressed = event.pressed
+		_refresh_keyboard_direction_groups()
 		_emit_net_steer()
 		return true
-	if _is_key(event, KEY_D, KEY_RIGHT):
-		_keyboard_right_pressed = event.pressed
+	if _is_key(event, KEY_LEFT):
+		_keyboard_left_arrow_pressed = event.pressed
+		_refresh_keyboard_direction_groups()
+		_emit_net_steer()
+		return true
+	if _is_key(event, KEY_D):
+		_keyboard_d_pressed = event.pressed
+		_refresh_keyboard_direction_groups()
+		_emit_net_steer()
+		return true
+	if _is_key(event, KEY_RIGHT):
+		_keyboard_right_arrow_pressed = event.pressed
+		_refresh_keyboard_direction_groups()
 		_emit_net_steer()
 		return true
 	if _is_key(event, KEY_SPACE):
