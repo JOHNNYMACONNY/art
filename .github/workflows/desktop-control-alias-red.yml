@@ -8,10 +8,14 @@ on:
       - "godot/tests/desktop_control_alias_ownership_test.gd"
       - "godot/scripts/input/touch_controls.gd"
       - ".github/workflows/desktop-control-alias-red.yml"
+  pull_request:
+    paths:
+      - "godot/tests/desktop_control_alias_ownership_test.gd"
+      - "godot/scripts/input/touch_controls.gd"
+      - ".github/workflows/desktop-control-alias-red.yml"
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
   alias-ownership:
@@ -20,12 +24,11 @@ jobs:
     env:
       GODOT_RELEASE: "4.7.1-stable"
       GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
-      GH_TOKEN: ${{ github.token }}
 
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 1
 
       - name: Install Godot 4.7.1 editor
@@ -47,8 +50,6 @@ jobs:
           "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
 
       - name: Run desktop alias ownership regression
-        id: alias_test
-        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -57,14 +58,3 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/desktop_control_alias_ownership_test.gd
-
-      - name: Record intentional RED evidence
-        if: steps.alias_test.outcome == 'failure'
-        shell: bash
-        run: |
-          gh api "repos/${GITHUB_REPOSITORY}/issues/40/comments" \
-            -f body="TDD RED — desktop alias ownership regression failed on exact head ${GITHUB_SHA} before production fix. Releasing one alias cancels a still-held W/Up or D/Right alias."
-
-      - name: Preserve regression failure
-        if: steps.alias_test.outcome == 'failure'
-        run: exit 1
