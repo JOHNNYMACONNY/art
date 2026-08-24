@@ -1,6 +1,7 @@
 extends SceneTree
 
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
+const VehicleFeedbackContract = preload("res://tests/vehicle_feedback_contract_test.gd")
 
 var _manager: Node = null
 
@@ -55,7 +56,6 @@ func _run() -> void:
 	root.add_child(_manager)
 	await process_frame
 
-	# RED on original main: #31 needs an explicit, bounded output diagnostic seam.
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
 		await _fail("Runtime audio diagnostics seam is absent")
 		return
@@ -102,8 +102,6 @@ func _run() -> void:
 		return
 	tone = null
 
-	# Direct non-spatial Master probe lives only in this test. Validate the exact
-	# stream being played, not a separate synthesized sample.
 	var probe_player := _play_test_master_probe(0.20)
 	if not await _require_player(probe_player, "Test output probe"):
 		return
@@ -114,7 +112,7 @@ func _run() -> void:
 	probe_player.free()
 	probe_player = null
 
-	# Normal gameplay activation paths must reach live Master-routed players too.
+	# Existing gameplay activation paths remain covered before the new product seam.
 	_manager.call("play_event", AudioManagerScript.SoundEvent.FOOTSTEP, Vector3.ZERO)
 	var active_transients: Array = _manager.get("_active_transients")
 	if active_transients.is_empty():
@@ -155,11 +153,15 @@ func _run() -> void:
 		await _fail("Authoritative reset left radio playback active")
 		return
 
-	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (test probe + footstep + tuner + radio + pursuit structurally active; physical audibility remains external)")
+	# CTW Feel 04 regression: same exact-head audio gate, real Courier Bike telemetry.
+	var vehicle_error: String = VehicleFeedbackContract.verify(_manager)
+	if not vehicle_error.is_empty():
+		await _fail("CTW Feel 04: %s" % vehicle_error)
+		return
 
-	# Drop local object references before tearing down the manager to keep the
-	# command-line contract leak-free.
+	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
+	print("[AUDIO_RUNTIME_31] PASS (output contract + CTW Feel 04 structurally active; physical audibility remains external)")
+
 	active_transients = []
 	tuner_player = null
 	radio_stream_player = null
