@@ -20,6 +20,7 @@ signal dismounted
 signal brake_screech_triggered(pos: Vector3)
 signal dismount_rejected(reason: DismountRejectReason, current_speed: float, speed_limit: float)
 signal collision_contact(head_on_ratio: float, impact_speed: float, collision_pos: Vector3)
+signal vehicle_feedback_updated(telemetry: Dictionary, vehicle_pos: Vector3)
 
 enum BikeState {
 	PARKED,
@@ -49,12 +50,17 @@ var steering_angle: float = 0.0
 var is_handbrake_active: bool = false
 var _brake_screech_cooldown: float = 0.0
 var _gear_settle_timer: float = 0.0
+var _feedback_throttle: float = 0.0
+var _feedback_audio_manager: Node = null
+var _feedback_active: bool = false
+var _slip_dust: GPUParticles3D = null
 const GEAR_SETTLE_DURATION: float = 0.12
 
 func _ready() -> void:
 	if mount_interactable:
 		mount_interactable.interaction_priority = 2.0
 		mount_interactable.is_powered = true
+	_ensure_slip_dust()
 
 func _physics_process(delta: float) -> void:
 	if _brake_screech_cooldown > 0.0:
@@ -104,11 +110,15 @@ func _physics_process(delta: float) -> void:
 						current_speed = move_toward(current_speed, 0.0, impact_decay * delta)
 						collision_contact.emit(head_on_ratio, pre_impact_speed, col.get_position())
 						
+		_update_vehicle_feedback_presentation()
+		
 		if occupant:
 			occupant.global_position = to_global(rider_socket.position)
 			occupant.global_basis = global_basis
 			occupant.velocity = Vector3.ZERO
 			occupant.is_input_locked = true
+	else:
+		_clear_vehicle_feedback_presentation()
 
 func _process(_delta: float) -> void:
 	if occupant:
@@ -161,6 +171,7 @@ func request_dismount() -> bool:
 		
 	current_state = BikeState.DISMOUNTING
 	state_changed.emit("DISMOUNTING")
+	_clear_vehicle_feedback_presentation()
 	
 	if mount_interactable:
 		mount_interactable.is_powered = false
@@ -188,6 +199,7 @@ func request_dismount() -> bool:
 	return true
 
 func force_dismount() -> void:
+	_clear_vehicle_feedback_presentation()
 	if occupant:
 		var p_col := occupant.get_node_or_null("CollisionShape3D") as CollisionShape3D
 		if p_col: p_col.set_deferred("disabled", false)
@@ -201,6 +213,7 @@ func force_dismount() -> void:
 	velocity = Vector3.ZERO
 	current_gear = GearState.FORWARD
 	is_handbrake_active = false
+	_feedback_throttle = 0.0
 	_gear_settle_timer = 0.0
 	if visual_root: visual_root.rotation = Vector3.ZERO
 	current_state = BikeState.PARKED
@@ -257,6 +270,7 @@ func set_drive_inputs(throttle: float, steering: float, delta: float, handbrake:
 		
 	steering_angle = clampf(steering, -1.0, 1.0)
 	is_handbrake_active = handbrake
+	_feedback_throttle = clampf(throttle, -1.0, 1.0)
 	
 	if current_gear == GearState.FORWARD:
 		if throttle > 0.0:
@@ -299,3 +313,104 @@ func set_drive_inputs(throttle: float, steering: float, delta: float, handbrake:
 			current_speed = move_toward(current_speed, 0.0, coast_friction * delta)
 			if is_zero_approx(current_speed):
 				current_gear = GearState.FORWARD
+
+## CTW Feel 04 — observation-only presentation telemetry. This reads the state
+## already produced by the handling model and never mutates physics values.
+func get_vehicle_feedback_telemetry(throttle: float = _feedback_throttle) -> Dictionary:
+	var speed_abs: float = abs(current_speed)
+	var speed_ratio: float = clampf(speed_abs / maxf(max_speed, 0.001), 0.0, 1.0)
+	var right_dir: Vector3 = global_transform.basis.x.normalized()
+	var lateral_speed: float = abs(velocity.dot(right_dir))
+	var slip_ratio: float = clampf(lateral_speed / maxf(speed_abs, 2.0), 0.0, 1.0)
+	var load_ratio: float = clampf(abs(throttle), 0.0, 1.0)
+	var traction_state := "STABLE"
+	if is_handbrake_active and speed_abs >= 2.0 and slip_ratio >= 0.24:
+		traction_state = "FULL_SLIP"
+	elif slip_ratio >= 0.12:
+		traction_state = "NEAR_SLIP"
+	var slip_intensity: float = clampf((slip_ratio - 0.08) / 0.35, 0.0, 1.0)
+	if traction_state == "FULL_SLIP":
+		slip_intensity = maxf(slip_intensity, 0.78)
+	return {
+		"speed_ratio": speed_ratio,
+		"load_ratio": load_ratio,
+		"lateral_speed": lateral_speed,
+		"slip_ratio": slip_ratio,
+		"slip_intensity": slip_intensity,
+		"traction_state": traction_state,
+		"handbrake": is_handbrake_active,
+	}
+
+func get_vehicle_feedback_visual_snapshot() -> Dictionary:
+	return {
+		"dust_available": _slip_dust != null,
+		"dust_emitting": _slip_dust.emitting if _slip_dust else false,
+		"dust_amount": _slip_dust.amount if _slip_dust else 0,
+		"dust_position": _slip_dust.position if _slip_dust else Vector3.ZERO,
+	}
+
+func _update_vehicle_feedback_presentation() -> void:
+	var telemetry := get_vehicle_feedback_telemetry()
+	vehicle_feedback_updated.emit(telemetry, global_position)
+	_feedback_active = true
+	_update_slip_dust(telemetry)
+
+	if not is_instance_valid(_feedback_audio_manager):
+		_feedback_audio_manager = get_tree().get_first_node_in_group("audio_manager")
+	if _feedback_audio_manager and _feedback_audio_manager.has_method("update_vehicle_feedback"):
+		_feedback_audio_manager.call("update_vehicle_feedback", telemetry, global_position)
+
+func _clear_vehicle_feedback_presentation() -> void:
+	if _slip_dust:
+		_slip_dust.emitting = false
+	if not _feedback_active:
+		return
+	_feedback_active = false
+	_feedback_throttle = 0.0
+	if is_instance_valid(_feedback_audio_manager) and _feedback_audio_manager.has_method("clear_vehicle_feedback"):
+		_feedback_audio_manager.call("clear_vehicle_feedback")
+
+func _ensure_slip_dust() -> void:
+	if _slip_dust:
+		return
+	_slip_dust = GPUParticles3D.new()
+	_slip_dust.name = "SlipDustParticles"
+	_slip_dust.position = Vector3(0.0, -0.34, 0.72)
+	_slip_dust.amount = 12
+	_slip_dust.lifetime = 0.48
+	_slip_dust.randomness = 0.35
+	_slip_dust.emitting = false
+	_slip_dust.visibility_aabb = AABB(Vector3(-2.5, -1.0, -2.5), Vector3(5.0, 3.0, 5.0))
+
+	var process_material := ParticleProcessMaterial.new()
+	process_material.direction = Vector3(0.0, 0.25, 1.0)
+	process_material.spread = 32.0
+	process_material.initial_velocity_min = 1.2
+	process_material.initial_velocity_max = 2.6
+	process_material.gravity = Vector3(0.0, -0.7, 0.0)
+	process_material.scale_min = 0.10
+	process_material.scale_max = 0.24
+	process_material.color = Color(0.48, 0.41, 0.31, 0.48)
+	_slip_dust.process_material = process_material
+
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.24, 0.24)
+	var dust_material := StandardMaterial3D.new()
+	dust_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dust_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	dust_material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	dust_material.albedo_color = Color(0.52, 0.45, 0.34, 0.42)
+	quad.material = dust_material
+	_slip_dust.draw_pass_1 = quad
+	add_child(_slip_dust)
+
+func _update_slip_dust(telemetry: Dictionary) -> void:
+	if not _slip_dust:
+		return
+	var traction_state: String = String(telemetry.get("traction_state", "STABLE"))
+	var slip_intensity: float = clampf(float(telemetry.get("slip_intensity", 0.0)), 0.0, 1.0)
+	var should_emit: bool = traction_state == "NEAR_SLIP" or traction_state == "FULL_SLIP"
+	_slip_dust.emitting = should_emit
+	if should_emit:
+		_slip_dust.amount = 18 if traction_state == "FULL_SLIP" else 10
+		_slip_dust.speed_scale = lerpf(0.85, 1.25, slip_intensity)
