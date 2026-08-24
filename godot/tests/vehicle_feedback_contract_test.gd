@@ -3,24 +3,18 @@ extends RefCounted
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 const CourierBikeScript = preload("res://scripts/vehicles/courier_bike.gd")
 
-static func _pcm_span(stream: AudioStreamWAV) -> int:
-	if stream == null or stream.data.is_empty():
-		return 0
-	var minimum_byte := 255
-	var maximum_byte := 0
-	for sample_byte in stream.data:
-		minimum_byte = mini(minimum_byte, int(sample_byte))
-		maximum_byte = maxi(maximum_byte, int(sample_byte))
-	return maximum_byte - minimum_byte
-
-static func _latest_transient_pcm_span(manager: Node) -> int:
+static func _latest_transient_gain_db(manager: Node) -> float:
 	var transients: Array = manager.get("_active_transients")
-	if transients.is_empty():
-		return 0
-	var player := transients.back() as AudioStreamPlayer3D
-	if player == null or not player.stream is AudioStreamWAV:
-		return 0
-	return _pcm_span(player.stream as AudioStreamWAV)
+	if not transients.is_empty():
+		var player_3d := transients.back() as AudioStreamPlayer3D
+		if player_3d:
+			return player_3d.volume_db
+	var transients_2d: Array = manager.get("_active_2d_transients")
+	if not transients_2d.is_empty():
+		var player_2d := transients_2d.back() as AudioStreamPlayer
+		if player_2d:
+			return player_2d.volume_db
+	return -80.0
 
 static func verify(manager: Node) -> String:
 	var bike := CourierBikeScript.new()
@@ -127,19 +121,18 @@ static func verify(manager: Node) -> String:
 		bike.free()
 		return "Matched-speed hard impact did not communicate materially greater event energy than a glance"
 
-	# Scaled impact energy must reach the audible waveform, not live only in a
-	# diagnostic snapshot. Two hard impacts at different speeds use the same event
-	# family, so a larger PCM span proves actual energy scaling rather than routing.
+	# Scaled impact energy must reach output gain, not live only in diagnostics.
+	# Same hard-event family + different speed isolates energy scaling from routing.
 	var timestamps: Dictionary = manager.get("_last_event_timestamps")
 	timestamps.clear()
 	manager.call("on_collision_contact", 0.90, 4.0, Vector3.ZERO)
-	var low_speed_hard_span := _latest_transient_pcm_span(manager)
+	var low_speed_hard_gain := _latest_transient_gain_db(manager)
 	timestamps.clear()
 	manager.call("on_collision_contact", 0.90, 10.0, Vector3.ZERO)
-	var high_speed_hard_span := _latest_transient_pcm_span(manager)
-	if low_speed_hard_span <= 0 or high_speed_hard_span < low_speed_hard_span + 12:
+	var high_speed_hard_gain := _latest_transient_gain_db(manager)
+	if high_speed_hard_gain < low_speed_hard_gain + 2.0:
 		bike.free()
-		return "Hard-impact waveform energy did not scale materially with impact speed"
+		return "Hard-impact output gain did not scale materially with impact speed"
 
 	# E7: pursuit remains perceptually critical during both traction and impact.
 	manager.call("set_pursuit_pressure", 8.0, Vector3.ZERO)
