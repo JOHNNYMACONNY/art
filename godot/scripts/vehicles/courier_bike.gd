@@ -323,12 +323,18 @@ func get_vehicle_feedback_telemetry(throttle: float = _feedback_throttle) -> Dic
 	var lateral_speed: float = abs(velocity.dot(right_dir))
 	var slip_ratio: float = clampf(lateral_speed / maxf(speed_abs, 2.0), 0.0, 1.0)
 	var load_ratio: float = clampf(abs(throttle), 0.0, 1.0)
+	var braking: bool = (
+		(current_gear == GearState.FORWARD and throttle < -0.05 and current_speed > 0.05)
+		or (current_gear == GearState.REVERSE and throttle > 0.05 and current_speed < -0.05)
+	)
 	var traction_state := "STABLE"
 	if is_handbrake_active and speed_abs >= 2.0 and slip_ratio >= 0.24:
 		traction_state = "FULL_SLIP"
 	elif slip_ratio >= 0.12:
 		traction_state = "NEAR_SLIP"
 	var slip_intensity: float = clampf((slip_ratio - 0.08) / 0.35, 0.0, 1.0)
+	if braking and slip_ratio > 0.05:
+		slip_intensity = clampf(slip_intensity + 0.14, 0.0, 1.0)
 	if traction_state == "FULL_SLIP":
 		slip_intensity = maxf(slip_intensity, 0.78)
 	return {
@@ -339,6 +345,7 @@ func get_vehicle_feedback_telemetry(throttle: float = _feedback_throttle) -> Dic
 		"slip_intensity": slip_intensity,
 		"traction_state": traction_state,
 		"handbrake": is_handbrake_active,
+		"braking": braking,
 	}
 
 func get_vehicle_feedback_visual_snapshot() -> Dictionary:
