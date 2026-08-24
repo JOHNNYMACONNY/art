@@ -1,7 +1,7 @@
 extends SceneTree
 
-# Native/windowed owner diagnostic for issue #31 plus CTW Feel 04 rendered proof.
-# Launch WITHOUT --headless so Godot uses a real display/rendering driver.
+# Native/windowed owner diagnostic for issue #31 plus CTW Feel 04 qualification.
+# Launch WITHOUT --headless so Godot uses a real display/audio driver.
 
 var _scene: Node = null
 
@@ -181,6 +181,69 @@ func _run_vehicle_feedback_rendered_proof() -> void:
 	print("[CTW_FEEL_04_RENDERED] PASS metrics=%s baseline=%s slip=%s" % [metrics, baseline_path, slip_path])
 	await _finish(0)
 
+func _run_vehicle_feedback_listen_sequence(audio_manager: Node, bike: CourierBike) -> void:
+	# Human qualification sequence for issue #14. No assertions here can decide
+	# audibility or perceptual preference; the listener reports the result.
+	audio_manager.call("reset_audio_instant")
+	bike.current_speed = 7.0
+	bike.velocity = -bike.global_transform.basis.z * 7.0
+	bike.is_handbrake_active = false
+
+	_set_status("CTW 1/9 STABLE ENGINE — light load")
+	audio_manager.call("update_vehicle_feedback", bike.get_vehicle_feedback_telemetry(0.15), bike.global_position)
+	await create_timer(1.1).timeout
+
+	_set_status("CTW 2/9 STABLE ENGINE — high load, same speed")
+	audio_manager.call("update_vehicle_feedback", bike.get_vehicle_feedback_telemetry(0.75), bike.global_position)
+	await create_timer(1.1).timeout
+
+	_set_status("CTW 3/9 NEAR SLIP — bounded scrub onset")
+	bike.velocity = (-bike.global_transform.basis.z * 7.0) + (bike.global_transform.basis.x * 1.15)
+	audio_manager.call("update_vehicle_feedback", bike.get_vehicle_feedback_telemetry(0.45), bike.global_position)
+	await create_timer(1.1).timeout
+
+	_set_status("CTW 4/9 FULL HANDBRAKE SLIP — stronger scrub")
+	bike.is_handbrake_active = true
+	bike.velocity = (-bike.global_transform.basis.z * 7.0) + (bike.global_transform.basis.x * 2.8)
+	var full_slip := bike.get_vehicle_feedback_telemetry(0.20)
+	audio_manager.call("update_vehicle_feedback", full_slip, bike.global_position)
+	await create_timer(1.1).timeout
+
+	_set_status("CTW 5/9 RECOVERY CATCH — scrub resolves")
+	bike.is_handbrake_active = false
+	bike.velocity = -bike.global_transform.basis.z * 7.0
+	audio_manager.call("update_vehicle_feedback", bike.get_vehicle_feedback_telemetry(0.45), bike.global_position)
+	await create_timer(0.9).timeout
+
+	_set_status("CTW 6/9 MATCHED-SPEED GLANCE IMPACT")
+	audio_manager.call("on_collision_contact", 0.20, 8.0, bike.global_position)
+	await create_timer(0.9).timeout
+
+	_set_status("CTW 7/9 MATCHED-SPEED HARD IMPACT")
+	audio_manager.call("on_collision_contact", 0.90, 8.0, bike.global_position)
+	await create_timer(1.0).timeout
+
+	_set_status("CTW 8/9 PURSUIT + FULL SLIP — threat must dominate")
+	bike.is_handbrake_active = true
+	bike.velocity = (-bike.global_transform.basis.z * 7.0) + (bike.global_transform.basis.x * 2.8)
+	full_slip = bike.get_vehicle_feedback_telemetry(0.20)
+	audio_manager.call("set_pursuit_pressure", 8.0, bike.global_position + Vector3(2.0, 0.0, 2.0))
+	audio_manager.call("update_vehicle_feedback", full_slip, bike.global_position)
+	await create_timer(1.5).timeout
+
+	_set_status("CTW 9/9 MEMORY ECHO -> DISTURBANCE — critical handoff must remain clear")
+	audio_manager.call("set_mix_state", AudioManager.MixState.MEMORY_ECHO)
+	audio_manager.call("update_vehicle_feedback", full_slip, bike.global_position)
+	await create_timer(1.0).timeout
+	audio_manager.call("set_mix_state", AudioManager.MixState.DISTURBANCE)
+	audio_manager.call("update_vehicle_feedback", full_slip, bike.global_position)
+	await create_timer(1.1).timeout
+
+	audio_manager.call("reset_audio_instant")
+	bike.is_handbrake_active = false
+	bike.velocity = Vector3.ZERO
+	bike.current_speed = 0.0
+
 func _run() -> void:
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
@@ -199,8 +262,9 @@ func _run() -> void:
 
 	var audio_manager := _scene.get_node_or_null("AudioManager")
 	var runner := _scene.get_node_or_null("Runner")
-	if audio_manager == null or runner == null:
-		push_error("[AUDIO_RUNTIME_31_WINDOWED] Main scene is missing AudioManager/Runner")
+	var bike := _scene.get_node_or_null("CourierBike") as CourierBike
+	if audio_manager == null or runner == null or bike == null:
+		push_error("[AUDIO_RUNTIME_31_WINDOWED] Main scene is missing AudioManager/Runner/CourierBike")
 		await _finish(1)
 		return
 
@@ -229,7 +293,7 @@ func _run() -> void:
 		await _finish(3)
 		return
 
-	_set_status("1/5 DIRECT MASTER TONE — 660 Hz")
+	_set_status("LEGACY 1/5 DIRECT MASTER TONE — 660 Hz")
 	var probe := _play_test_master_probe(audio_manager, 0.80)
 	if probe.stream == null or not probe.playing:
 		push_error("[AUDIO_RUNTIME_31_WINDOWED] Test-only Master probe did not start")
@@ -240,25 +304,25 @@ func _run() -> void:
 		probe.stop()
 		probe.free()
 
-	_set_status("2/5 FOOTSTEPS — four clicks")
+	_set_status("LEGACY 2/5 FOOTSTEPS — four clicks")
 	for _i in range(4):
 		audio_manager.call("play_event", AudioManager.SoundEvent.FOOTSTEP, runner.global_position)
 		await create_timer(0.22).timeout
 
-	_set_status("3/5 TUNER STATIC")
+	_set_status("LEGACY 3/5 TUNER STATIC")
 	audio_manager.call("set_tuning_audio", 0.40)
 	await create_timer(1.25).timeout
 	audio_manager.call("set_tuning_audio", 0.0)
 
-	_set_status("4/5 RADIO PROCEDURAL FALLBACK")
+	_set_status("LEGACY 4/5 RADIO PROCEDURAL FALLBACK")
 	audio_manager.call("play_radio_station")
 	await create_timer(2.0).timeout
 
-	_set_status("5/5 PURSUIT SIREN + TENSION over radio")
+	_set_status("LEGACY 5/5 PURSUIT SIREN + TENSION over radio")
 	audio_manager.call("set_pursuit_pressure", 10.0, runner.global_position + Vector3(2.0, 0.0, 2.0))
 	await create_timer(1.75).timeout
 
-	audio_manager.call("reset_audio_instant")
-	_set_status("COMPLETE — all voices reset; report which cues were audible")
+	await _run_vehicle_feedback_listen_sequence(audio_manager, bike)
+	_set_status("COMPLETE — reset clean; report legacy + CTW cues on headphones and small speaker")
 	await create_timer(0.75).timeout
 	await _finish(0)
