@@ -2,6 +2,8 @@ extends SceneTree
 
 # Integration regression for #29's full authority path:
 # keyboard -> TouchControlsUI normalized intent -> ScrapTestBlock -> existing vehicle physics seam.
+const PursuerInterceptContract = preload("res://tests/pursuer_intercept_contract_test.gd")
+
 var _scene_under_test: Node = null
 
 func _init() -> void:
@@ -39,6 +41,14 @@ func _mount_vehicle_direct(vehicle: Node, player: Node) -> bool:
 	return vehicle.request_mount(player)
 
 func _run() -> void:
+	# CTW Feel 06 owns a pure destination-selection A/B contract. Its synthetic
+	# nodes attach under the SceneTree root so production global transforms are
+	# valid, but it never touches the live prototype scene fixture.
+	var intercept_error: String = PursuerInterceptContract.verify(root)
+	if not intercept_error.is_empty():
+		await _fail("CTW Feel 06: %s" % intercept_error)
+		return
+
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
 		await _fail("Could not load scrap_test_block.tscn")
@@ -57,8 +67,8 @@ func _run() -> void:
 		await _fail("Main scene is missing TouchControlsUI, Runner, CourierBike, or ScrapHauler")
 		return
 
-	# CTW Feel 04 TDD seam: normalized vehicle intent must remain observable by
-	# feedback systems without mutating the existing Courier Bike handling path.
+	# CTW Feel 04 seam: normalized vehicle intent remains observable by feedback
+	# systems without mutating the existing Courier Bike handling path.
 	if not bike.has_method("get_vehicle_feedback_telemetry"):
 		await _fail("Courier Bike vehicle-feedback telemetry seam is absent")
 		return
