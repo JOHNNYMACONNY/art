@@ -40,7 +40,7 @@ func update_feedback(telemetry: Dictionary, pos: Vector3, priority_duck: bool) -
 	var traction_state: String = String(telemetry.get("traction_state", "STABLE"))
 	var slip_intensity: float = clampf(float(telemetry.get("slip_intensity", 0.0)), 0.0, 1.0)
 
-	_update_engine(speed_ratio, load_ratio, pos)
+	_update_engine(speed_ratio, load_ratio, pos, priority_duck)
 	_update_traction(traction_state, slip_intensity, pos, priority_duck)
 
 	var was_slipping := _previous_traction_state == "NEAR_SLIP" or _previous_traction_state == "FULL_SLIP"
@@ -85,7 +85,7 @@ func snapshot() -> Dictionary:
 		"last_collision_intensity": _last_collision_intensity,
 	}
 
-func _update_engine(speed_ratio: float, load_ratio: float, pos: Vector3) -> void:
+func _update_engine(speed_ratio: float, load_ratio: float, pos: Vector3, priority_duck: bool) -> void:
 	if not _engine_player:
 		return
 	_engine_player.global_position = pos
@@ -98,7 +98,10 @@ func _update_engine(speed_ratio: float, load_ratio: float, pos: Vector3) -> void
 	# Load contributes independently of road speed so acceleration/coast at the
 	# same speed remain distinguishable without pushing the engine to max gain.
 	_engine_player.pitch_scale = clampf(0.76 + speed_ratio * 1.05 + load_ratio * 0.28, 0.72, 2.12)
-	_engine_player.volume_db = clampf(-25.0 + speed_ratio * 11.0 + load_ratio * 7.0, -25.0, -6.0)
+	var engine_db: float = clampf(-25.0 + speed_ratio * 11.0 + load_ratio * 7.0, -25.0, -6.0)
+	if priority_duck:
+		engine_db = minf(engine_db, -12.0)
+	_engine_player.volume_db = engine_db
 
 func _update_traction(traction_state: String, slip_intensity: float, pos: Vector3, priority_duck: bool) -> void:
 	if not _traction_player:
