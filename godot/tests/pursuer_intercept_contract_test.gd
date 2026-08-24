@@ -28,6 +28,7 @@ static func verify(pursuer: Node, target: Node3D) -> String:
 	var original_target_node = pursuer.target_node
 	var original_detours: Array[Vector3] = pursuer.detour_waypoints.duplicate()
 	var original_detour_index := int(pursuer.current_detour_index)
+	var original_intercept_enabled := bool(pursuer.bounded_intercept_enabled)
 
 	pursuer.global_position = Vector3.ZERO
 	target.global_position = Vector3(0.0, 0.0, 18.0)
@@ -37,8 +38,20 @@ static func verify(pursuer: Node, target: Node3D) -> String:
 	pursuer.detour_waypoints.clear()
 	pursuer.current_detour_index = -1
 
-	var direct := target.global_position
-	var candidate: Vector3 = pursuer.call("get_bounded_chase_destination", direct, target.get("velocity"))
+	# A = direct world target, B = bounded observable-velocity interception.
+	# Both use the exact same live pursuer and target fixture so movement tuning,
+	# collisions, steering and target motion are held constant.
+	pursuer.bounded_intercept_enabled = false
+	var direct: Vector3 = pursuer.call("get_navigation_destination")
+	if direct.distance_to(target.global_position) > 0.001:
+		return "A baseline did not resolve to the current world target position"
+
+	pursuer.bounded_intercept_enabled = true
+	var candidate: Vector3 = pursuer.call("get_navigation_destination")
+	var helper_candidate: Vector3 = pursuer.call("get_bounded_chase_destination", direct, target.get("velocity"))
+	if candidate.distance_to(helper_candidate) > 0.001:
+		return "B navigation destination diverged from the bounded prediction helper"
+
 	var lead := candidate - direct
 	lead.y = 0.0
 	if lead.length() <= 0.5:
@@ -49,12 +62,19 @@ static func verify(pursuer: Node, target: Node3D) -> String:
 		return "Bounded lead did not follow observable current target velocity"
 
 	# Compare against the target's short observable continuation. The candidate
-	# should reduce the heading error versus tail-following without teleporting.
+	# should reduce heading error versus tail-following without teleporting.
 	var observable_future := direct + Vector3(9.0, 0.0, 0.0) * 0.35
 	var direct_error := _heading_error(pursuer.global_position, direct, observable_future)
 	var candidate_error := _heading_error(pursuer.global_position, candidate, observable_future)
-	if candidate_error >= direct_error - deg_to_rad(3.0):
+	var improvement := direct_error - candidate_error
+	if improvement < deg_to_rad(3.0):
 		return "Bounded lead did not create a measurable cut-off heading improvement"
+	print("[CTW_FEEL_06] A/B lead_m=%.3f direct_error_deg=%.3f bounded_error_deg=%.3f improvement_deg=%.3f" % [
+		lead.length(),
+		rad_to_deg(direct_error),
+		rad_to_deg(candidate_error),
+		rad_to_deg(improvement),
+	])
 
 	# Low target speed collapses to the direct baseline.
 	var low_speed: Vector3 = pursuer.call("get_bounded_chase_destination", direct, Vector3(0.25, 0.0, 0.0))
@@ -77,7 +97,8 @@ static func verify(pursuer: Node, target: Node3D) -> String:
 
 	# Authored Signal Gate detours remain authoritative over prediction.
 	var waypoint := Vector3(6.0, 0.0, 12.0)
-	pursuer.detour_waypoints = [waypoint]
+	var detour_fixture: Array[Vector3] = [waypoint]
+	pursuer.detour_waypoints = detour_fixture
 	pursuer.current_detour_index = 0
 	pursuer.current_state = PursuerScript.PursuerState.DETOURING
 	var detour_destination: Vector3 = pursuer.call("get_navigation_destination")
@@ -98,4 +119,5 @@ static func verify(pursuer: Node, target: Node3D) -> String:
 	pursuer.target_node = original_target_node
 	pursuer.detour_waypoints = original_detours
 	pursuer.current_detour_index = original_detour_index
+	pursuer.bounded_intercept_enabled = original_intercept_enabled
 	return ""
