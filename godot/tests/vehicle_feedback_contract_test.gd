@@ -96,18 +96,19 @@ static func verify(manager: Node) -> String:
 		bike.free()
 		return "Stable frames retriggered the recovery catch"
 
-	# E5: matched routing, materially different impact energy.
-	manager.call("on_collision_contact", 0.20, 4.0, Vector3.ZERO)
+	# E5: issue #14 requires matched-speed glance vs hard/head-on proof.
+	const MATCHED_IMPACT_SPEED := 8.0
+	manager.call("on_collision_contact", 0.20, MATCHED_IMPACT_SPEED, Vector3.ZERO)
 	var glance: Dictionary = manager.call("get_vehicle_feedback_snapshot")
 	var glance_energy: float = float(glance.get("last_collision_intensity", 0.0))
-	manager.call("on_collision_contact", 0.90, 10.0, Vector3.ZERO)
+	manager.call("on_collision_contact", 0.90, MATCHED_IMPACT_SPEED, Vector3.ZERO)
 	var hard: Dictionary = manager.call("get_vehicle_feedback_snapshot")
 	var hard_energy: float = float(hard.get("last_collision_intensity", 0.0))
-	if glance_energy <= 0.0 or hard_energy < glance_energy + 0.30:
+	if glance_energy <= 0.0 or hard_energy < glance_energy + 0.20:
 		bike.free()
-		return "Hard impact did not communicate materially greater event energy than a glance"
+		return "Matched-speed hard impact did not communicate materially greater event energy than a glance"
 
-	# E7 + Memory Echo: critical/signature layers remain above vehicle texture.
+	# E7: pursuit remains perceptually critical during both traction and impact.
 	manager.call("set_pursuit_pressure", 8.0, Vector3.ZERO)
 	manager.call("update_vehicle_feedback", full_slip, Vector3.ZERO)
 	var pursuit_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
@@ -119,13 +120,32 @@ static func verify(manager: Node) -> String:
 	if float(pursuit_snapshot.get("traction_volume_db", 0.0)) > -18.0:
 		bike.free()
 		return "Traction texture did not duck beneath pursuit priority"
+	manager.call("on_collision_contact", 0.90, MATCHED_IMPACT_SPEED, Vector3.ZERO)
+	if not siren.playing or not tension.playing:
+		bike.free()
+		return "Hard impact interrupted pursuit-critical layers"
+	var pursuit_transients: Array = manager.get("_active_transients")
+	if pursuit_transients.size() > int(manager.MAX_CONCURRENT_TRANSIENTS):
+		bike.free()
+		return "Pursuit + impact overlap exceeded the transient voice budget"
 
+	# Signature transition: Memory Echo vehicle texture stays subordinate, then
+	# disturbance takes priority without waking an unducked traction layer.
 	manager.call("set_mix_state", AudioManagerScript.MixState.MEMORY_ECHO)
 	manager.call("update_vehicle_feedback", full_slip, Vector3.ZERO)
 	var echo_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
 	if float(echo_snapshot.get("traction_volume_db", 0.0)) > -18.0:
 		bike.free()
 		return "Traction texture did not remain subordinate during Memory Echo"
+	manager.call("set_mix_state", AudioManagerScript.MixState.DISTURBANCE)
+	manager.call("update_vehicle_feedback", full_slip, Vector3.ZERO)
+	var disturbance_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	if float(disturbance_snapshot.get("traction_volume_db", 0.0)) > -18.0:
+		bike.free()
+		return "Traction texture did not remain subordinate after Memory Echo -> disturbance"
+	if siren == null or not siren.playing:
+		bike.free()
+		return "Disturbance did not retain the critical siren layer after Memory Echo overlap"
 
 	# Existing voice budget/cooldowns and authoritative reset remain the owners.
 	manager.call("reset_audio_instant")
