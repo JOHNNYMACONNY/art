@@ -55,9 +55,9 @@ func _run() -> void:
 	var player := _scene_under_test.get_node_or_null("Runner")
 	var bike := _scene_under_test.get_node_or_null("CourierBike")
 	var hauler := _scene_under_test.get_node_or_null("ScrapHauler")
-	var pursuer := _scene_under_test.get_node_or_null("Pursuer")
+	var pursuer = _scene_under_test.get("pursuer")
 	if touch_ui == null or player == null or bike == null or hauler == null or pursuer == null:
-		await _fail("Main scene is missing TouchControlsUI, Runner, CourierBike, ScrapHauler, or Pursuer")
+		await _fail("Main scene is missing TouchControlsUI, Runner, CourierBike, ScrapHauler, or runtime PursuerPrototype")
 		return
 
 	# CTW Feel 06 TDD: destination prediction is independently testable without
