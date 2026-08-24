@@ -41,6 +41,15 @@ func _mount_vehicle_direct(vehicle: Node, player: Node) -> bool:
 	return vehicle.request_mount(player)
 
 func _run() -> void:
+	# CTW Feel 06 owns a pure destination-selection A/B contract. Run it before
+	# loading the live prototype scene so it cannot perturb the vehicle-authority
+	# fixture or create teardown hangs. Retained V4/V5/M15 suites cover the live
+	# pursuit/gate/evasion/retry lifecycle separately.
+	var intercept_error: String = PursuerInterceptContract.verify()
+	if not intercept_error.is_empty():
+		await _fail("CTW Feel 06: %s" % intercept_error)
+		return
+
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
 		await _fail("Could not load scrap_test_block.tscn")
@@ -55,16 +64,8 @@ func _run() -> void:
 	var player := _scene_under_test.get_node_or_null("Runner")
 	var bike := _scene_under_test.get_node_or_null("CourierBike")
 	var hauler := _scene_under_test.get_node_or_null("ScrapHauler")
-	var pursuer = _scene_under_test.get("pursuer")
-	if touch_ui == null or player == null or bike == null or hauler == null or pursuer == null:
-		await _fail("Main scene is missing TouchControlsUI, Runner, CourierBike, ScrapHauler, or runtime PursuerPrototype")
-		return
-
-	# CTW Feel 06 TDD: destination prediction is independently testable without
-	# changing pursuit speed/acceleration or the existing vehicle authority path.
-	var intercept_error: String = PursuerInterceptContract.verify(pursuer, bike)
-	if not intercept_error.is_empty():
-		await _fail("CTW Feel 06: %s" % intercept_error)
+	if touch_ui == null or player == null or bike == null or hauler == null:
+		await _fail("Main scene is missing TouchControlsUI, Runner, CourierBike, or ScrapHauler")
 		return
 
 	# CTW Feel 04 seam: normalized vehicle intent remains observable by feedback
