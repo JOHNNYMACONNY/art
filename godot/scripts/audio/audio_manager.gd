@@ -477,12 +477,12 @@ func _transient_instance_id(player: Node) -> int:
 func _apply_collision_output_gain(intensity: float, previous_3d_id: int, previous_2d_id: int) -> void:
 	var gain_db: float = lerpf(-8.0, 0.0, clampf(intensity, 0.0, 1.0))
 	if not _active_transients.is_empty():
-		var player_3d := _active_transients.back()
+		var player_3d: AudioStreamPlayer3D = _active_transients.back()
 		if _transient_instance_id(player_3d) != previous_3d_id:
 			player_3d.volume_db = gain_db
 			return
 	if not _active_2d_transients.is_empty():
-		var player_2d := _active_2d_transients.back()
+		var player_2d: AudioStreamPlayer = _active_2d_transients.back()
 		if _transient_instance_id(player_2d) != previous_2d_id:
 			player_2d.volume_db = gain_db
 
