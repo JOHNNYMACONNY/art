@@ -19,7 +19,6 @@ static func _latest_transient_gain_db(manager: Node) -> float:
 static func verify(manager: Node) -> String:
 	var bike := CourierBikeScript.new()
 
-	# Capability seam: intentionally RED on main@05d8161.
 	if not bike.has_method("get_vehicle_feedback_telemetry"):
 		bike.free()
 		return "Courier Bike vehicle-feedback telemetry seam is absent"
@@ -58,15 +57,28 @@ static func verify(manager: Node) -> String:
 	var high_load_pitch: float = engine.pitch_scale
 	var high_load_volume: float = engine.volume_db
 
-	# Same speed, less load: engine must not remain a raw speed-only mapping.
 	var low_load: Dictionary = bike.call("get_vehicle_feedback_telemetry", 0.15)
 	manager.call("update_vehicle_feedback", low_load, Vector3.ZERO)
 	if not (high_load_pitch > engine.pitch_scale or high_load_volume > engine.volume_db):
 		bike.free()
 		return "Engine feedback remained speed-only; load made no audible-control difference"
 
-	# E4: stable -> near-slip -> full handbrake slide -> one-shot recovery catch.
+	# Review repair: braking must contribute to traction intensity without changing
+	# the handling state. Same speed/lateral slip isolates the braking contribution.
 	bike.velocity = Vector3(1.15, 0.0, -7.0)
+	var neutral_slip: Dictionary = bike.call("get_vehicle_feedback_telemetry", 0.0)
+	var braking_slip: Dictionary = bike.call("get_vehicle_feedback_telemetry", -0.65)
+	if not bool(braking_slip.get("braking", false)):
+		bike.free()
+		return "Forward braking state is absent from vehicle-feedback telemetry"
+	if float(braking_slip.get("slip_intensity", 0.0)) < float(neutral_slip.get("slip_intensity", 0.0)) + 0.08:
+		bike.free()
+		return "Braking state did not strengthen traction scrub intensity at matched slip"
+	if bike.current_speed != before_speed:
+		bike.free()
+		return "Braking telemetry sampling mutated Courier Bike speed"
+
+	# E4: stable -> near-slip -> full handbrake slide -> one-shot recovery catch.
 	var near_slip: Dictionary = bike.call("get_vehicle_feedback_telemetry", 0.45)
 	if String(near_slip.get("traction_state", "")) != "NEAR_SLIP":
 		bike.free()
@@ -109,7 +121,7 @@ static func verify(manager: Node) -> String:
 		bike.free()
 		return "Stable frames retriggered the recovery catch"
 
-	# E5: issue #14 requires matched-speed glance vs hard/head-on proof.
+	# E5: matched-speed glance vs hard/head-on proof.
 	const MATCHED_IMPACT_SPEED := 8.0
 	manager.call("on_collision_contact", 0.20, MATCHED_IMPACT_SPEED, Vector3.ZERO)
 	var glance: Dictionary = manager.call("get_vehicle_feedback_snapshot")
@@ -121,8 +133,6 @@ static func verify(manager: Node) -> String:
 		bike.free()
 		return "Matched-speed hard impact did not communicate materially greater event energy than a glance"
 
-	# Scaled impact energy must reach output gain, not live only in diagnostics.
-	# Same hard-event family + different speed isolates energy scaling from routing.
 	var timestamps: Dictionary = manager.get("_last_event_timestamps")
 	timestamps.clear()
 	manager.call("on_collision_contact", 0.90, 4.0, Vector3.ZERO)
@@ -134,8 +144,18 @@ static func verify(manager: Node) -> String:
 		bike.free()
 		return "Hard-impact output gain did not scale materially with impact speed"
 
-	# E7: pursuit remains perceptually critical during both traction and impact.
+	# E7: pursuit remains perceptually critical during both continuous vehicle
+	# layers and impact. Exercise the loudest legal engine state under priority.
 	manager.call("set_pursuit_pressure", 8.0, Vector3.ZERO)
+	bike.current_speed = bike.max_speed
+	bike.velocity = Vector3(0.0, 0.0, -bike.max_speed)
+	var critical_engine: Dictionary = bike.call("get_vehicle_feedback_telemetry", 1.0)
+	manager.call("update_vehicle_feedback", critical_engine, Vector3.ZERO)
+	var engine_priority_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	if float(engine_priority_snapshot.get("engine_volume_db", 0.0)) > -12.0:
+		bike.free()
+		return "Engine layer did not duck beneath pursuit priority at maximum propulsion load"
+
 	manager.call("update_vehicle_feedback", full_slip, Vector3.ZERO)
 	var pursuit_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
 	var siren := manager.get_node_or_null("SirenAlarmPlayer") as AudioStreamPlayer3D
@@ -156,9 +176,13 @@ static func verify(manager: Node) -> String:
 		bike.free()
 		return "Pursuit + impact overlap exceeded the transient voice budget"
 
-	# Signature transition: Memory Echo vehicle texture stays subordinate, then
-	# disturbance takes priority without waking an unducked traction layer.
+	# Signature transition: both continuous vehicle layers remain subordinate.
 	manager.call("set_mix_state", AudioManagerScript.MixState.MEMORY_ECHO)
+	manager.call("update_vehicle_feedback", critical_engine, Vector3.ZERO)
+	var echo_engine_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	if float(echo_engine_snapshot.get("engine_volume_db", 0.0)) > -12.0:
+		bike.free()
+		return "Engine layer did not remain subordinate during Memory Echo"
 	manager.call("update_vehicle_feedback", full_slip, Vector3.ZERO)
 	var echo_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
 	if float(echo_snapshot.get("traction_volume_db", 0.0)) > -18.0:
@@ -174,7 +198,6 @@ static func verify(manager: Node) -> String:
 		bike.free()
 		return "Disturbance did not retain the critical siren layer after Memory Echo overlap"
 
-	# Existing voice budget/cooldowns and authoritative reset remain the owners.
 	manager.call("reset_audio_instant")
 	var reset_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
 	if bool(reset_snapshot.get("engine_playing", true)) or bool(reset_snapshot.get("traction_playing", true)):
