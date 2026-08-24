@@ -41,11 +41,10 @@ func _mount_vehicle_direct(vehicle: Node, player: Node) -> bool:
 	return vehicle.request_mount(player)
 
 func _run() -> void:
-	# CTW Feel 06 owns a pure destination-selection A/B contract. Run it before
-	# loading the live prototype scene so it cannot perturb the vehicle-authority
-	# fixture or create teardown hangs. Retained V4/V5/M15 suites cover the live
-	# pursuit/gate/evasion/retry lifecycle separately.
-	var intercept_error: String = PursuerInterceptContract.verify()
+	# CTW Feel 06 owns a pure destination-selection A/B contract. Its synthetic
+	# nodes attach under the SceneTree root so production global transforms are
+	# valid, but it never touches the live prototype scene fixture.
+	var intercept_error: String = PursuerInterceptContract.verify(root)
 	if not intercept_error.is_empty():
 		await _fail("CTW Feel 06: %s" % intercept_error)
 		return
