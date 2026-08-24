@@ -3,6 +3,25 @@ extends RefCounted
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 const CourierBikeScript = preload("res://scripts/vehicles/courier_bike.gd")
 
+static func _pcm_span(stream: AudioStreamWAV) -> int:
+	if stream == null or stream.data.is_empty():
+		return 0
+	var minimum_byte := 255
+	var maximum_byte := 0
+	for sample_byte in stream.data:
+		minimum_byte = mini(minimum_byte, int(sample_byte))
+		maximum_byte = maxi(maximum_byte, int(sample_byte))
+	return maximum_byte - minimum_byte
+
+static func _latest_transient_pcm_span(manager: Node) -> int:
+	var transients: Array = manager.get("_active_transients")
+	if transients.is_empty():
+		return 0
+	var player := transients.back() as AudioStreamPlayer3D
+	if player == null or not player.stream is AudioStreamWAV:
+		return 0
+	return _pcm_span(player.stream as AudioStreamWAV)
+
 static func verify(manager: Node) -> String:
 	var bike := CourierBikeScript.new()
 
@@ -108,6 +127,20 @@ static func verify(manager: Node) -> String:
 		bike.free()
 		return "Matched-speed hard impact did not communicate materially greater event energy than a glance"
 
+	# Scaled impact energy must reach the audible waveform, not live only in a
+	# diagnostic snapshot. Two hard impacts at different speeds use the same event
+	# family, so a larger PCM span proves actual energy scaling rather than routing.
+	var timestamps: Dictionary = manager.get("_last_event_timestamps")
+	timestamps.clear()
+	manager.call("on_collision_contact", 0.90, 4.0, Vector3.ZERO)
+	var low_speed_hard_span := _latest_transient_pcm_span(manager)
+	timestamps.clear()
+	manager.call("on_collision_contact", 0.90, 10.0, Vector3.ZERO)
+	var high_speed_hard_span := _latest_transient_pcm_span(manager)
+	if low_speed_hard_span <= 0 or high_speed_hard_span < low_speed_hard_span + 12:
+		bike.free()
+		return "Hard-impact waveform energy did not scale materially with impact speed"
+
 	# E7: pursuit remains perceptually critical during both traction and impact.
 	manager.call("set_pursuit_pressure", 8.0, Vector3.ZERO)
 	manager.call("update_vehicle_feedback", full_slip, Vector3.ZERO)
@@ -120,6 +153,7 @@ static func verify(manager: Node) -> String:
 	if float(pursuit_snapshot.get("traction_volume_db", 0.0)) > -18.0:
 		bike.free()
 		return "Traction texture did not duck beneath pursuit priority"
+	timestamps.clear()
 	manager.call("on_collision_contact", 0.90, MATCHED_IMPACT_SPEED, Vector3.ZERO)
 	if not siren.playing or not tension.playing:
 		bike.free()
