@@ -471,16 +471,47 @@ func clear_pursuit_pressure(preserve_radio_duck: bool = false) -> void:
 	if not preserve_radio_duck:
 		set_radio_duck(0.0, 0.0)
 
-## Handle neutral collision telemetry from CourierBike
+func _transient_instance_id(player: Node) -> int:
+	return player.get_instance_id() if is_instance_valid(player) else 0
+
+func _apply_collision_output_gain(intensity: float, previous_3d_id: int, previous_2d_id: int) -> void:
+	var gain_db: float = lerpf(-8.0, 0.0, clampf(intensity, 0.0, 1.0))
+	if not _active_transients.is_empty():
+		var player_3d := _active_transients.back()
+		if _transient_instance_id(player_3d) != previous_3d_id:
+			player_3d.volume_db = gain_db
+			return
+	if not _active_2d_transients.is_empty():
+		var player_2d := _active_2d_transients.back()
+		if _transient_instance_id(player_2d) != previous_2d_id:
+			player_2d.volume_db = gain_db
+
+## Handle neutral collision telemetry from CourierBike. Routing, cooldowns and
+## voice-budget ownership stay in play_event(); only the newly-created collision
+## voice receives energy-derived output gain.
 func on_collision_contact(head_on_ratio: float, impact_speed: float, pos: Vector3) -> void:
+	var impact_intensity: float = 0.5
 	if _vehicle_feedback_layer:
 		_vehicle_feedback_layer.call("record_collision", head_on_ratio, impact_speed)
+		var snapshot: Dictionary = _vehicle_feedback_layer.call("snapshot")
+		impact_intensity = float(snapshot.get("last_collision_intensity", impact_intensity))
 	if impact_speed < 1.0:
 		return
+
+	var event: SoundEvent
 	if head_on_ratio < 0.35:
-		play_event(SoundEvent.COLLISION_GLANCE, pos)
-	elif head_on_ratio >= 0.35 and impact_speed >= 3.0:
-		play_event(SoundEvent.COLLISION_HEAD_ON, pos)
+		event = SoundEvent.COLLISION_GLANCE
+	elif impact_speed >= 3.0:
+		event = SoundEvent.COLLISION_HEAD_ON
+	else:
+		return
+
+	var event_count_before: int = get_event_count(event)
+	var previous_3d_id: int = _transient_instance_id(_active_transients.back()) if not _active_transients.is_empty() else 0
+	var previous_2d_id: int = _transient_instance_id(_active_2d_transients.back()) if not _active_2d_transients.is_empty() else 0
+	play_event(event, pos)
+	if get_event_count(event) > event_count_before:
+		_apply_collision_output_gain(impact_intensity, previous_3d_id, previous_2d_id)
 
 ## Authoritative instant reset: halts all streams and clears all transient nodes
 func reset_audio_instant() -> void:
