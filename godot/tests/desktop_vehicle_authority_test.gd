@@ -57,6 +57,12 @@ func _run() -> void:
 		await _fail("Main scene is missing TouchControlsUI, Runner, CourierBike, or ScrapHauler")
 		return
 
+	# CTW Feel 04 TDD seam: normalized vehicle intent must remain observable by
+	# feedback systems without mutating the existing Courier Bike handling path.
+	if not bike.has_method("get_vehicle_feedback_telemetry"):
+		await _fail("Courier Bike vehicle-feedback telemetry seam is absent")
+		return
+
 	# Courier Bike: E must traverse target selection + action authority, not a test-only mount shortcut.
 	player.global_position = bike.global_position + Vector3(0.5, 0.0, 0.5)
 	bike.mount_interactable.update_player_distance(player.global_position)

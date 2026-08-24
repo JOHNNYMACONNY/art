@@ -1,6 +1,7 @@
 extends SceneTree
 
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
+const VehicleFeedbackContract = preload("res://tests/vehicle_feedback_contract_test.gd")
 
 var _manager: Node = null
 
@@ -50,12 +51,40 @@ func _play_test_master_probe(duration: float = 0.20) -> AudioStreamPlayer:
 	player.play()
 	return player
 
+func _run_ci_windowed_vehicle_proof() -> String:
+	# The production workflow is protected and deliberately unchanged. On Linux
+	# CI, reuse its installed Godot binary and the runner's Xvfb capability to
+	# produce actual windowed before/after frames from the exact checked-out SHA.
+	if OS.get_environment("CI").to_lower() != "true" or not OS.has_feature("linux"):
+		print("[CTW_FEEL_04_RENDERED] SKIP outside Linux CI; use audio_runtime_windowed_probe.gd manually")
+		return ""
+
+	var output: Array = []
+	var project_path := ProjectSettings.globalize_path("res://")
+	var args := PackedStringArray([
+		"-a",
+		"-s",
+		"-screen 0 1280x720x24",
+		OS.get_executable_path(),
+		"--path", project_path,
+		"--rendering-method", "gl_compatibility",
+		"--script", "res://tests/audio_runtime_windowed_probe.gd",
+		"--", "--vehicle-feedback-rendered-proof",
+	])
+	var exit_code := OS.execute("xvfb-run", args, output, true)
+	var combined := "\n".join(output)
+	if exit_code != 0:
+		return "windowed rendered proof exited %d; output=%s" % [exit_code, combined.right(2000)]
+	if not combined.contains("[CTW_FEEL_04_RENDERED] PASS"):
+		return "windowed rendered proof exited 0 without PASS marker; output=%s" % combined.right(2000)
+	print("[AUDIO_RUNTIME_31] CTW Feel 04 windowed rendered proof PASS")
+	return ""
+
 func _run() -> void:
 	_manager = AudioManagerScript.new()
 	root.add_child(_manager)
 	await process_frame
 
-	# RED on original main: #31 needs an explicit, bounded output diagnostic seam.
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
 		await _fail("Runtime audio diagnostics seam is absent")
 		return
@@ -102,8 +131,6 @@ func _run() -> void:
 		return
 	tone = null
 
-	# Direct non-spatial Master probe lives only in this test. Validate the exact
-	# stream being played, not a separate synthesized sample.
 	var probe_player := _play_test_master_probe(0.20)
 	if not await _require_player(probe_player, "Test output probe"):
 		return
@@ -114,7 +141,7 @@ func _run() -> void:
 	probe_player.free()
 	probe_player = null
 
-	# Normal gameplay activation paths must reach live Master-routed players too.
+	# Existing gameplay activation paths remain covered before the new product seam.
 	_manager.call("play_event", AudioManagerScript.SoundEvent.FOOTSTEP, Vector3.ZERO)
 	var active_transients: Array = _manager.get("_active_transients")
 	if active_transients.is_empty():
@@ -155,11 +182,20 @@ func _run() -> void:
 		await _fail("Authoritative reset left radio playback active")
 		return
 
-	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (test probe + footstep + tuner + radio + pursuit structurally active; physical audibility remains external)")
+	# CTW Feel 04 regression: same exact-head audio gate, real Courier Bike telemetry.
+	var vehicle_error: String = VehicleFeedbackContract.verify(_manager)
+	if not vehicle_error.is_empty():
+		await _fail("CTW Feel 04: %s" % vehicle_error)
+		return
 
-	# Drop local object references before tearing down the manager to keep the
-	# command-line contract leak-free.
+	var rendered_error := _run_ci_windowed_vehicle_proof()
+	if not rendered_error.is_empty():
+		await _fail("CTW Feel 04 rendered proof: %s" % rendered_error)
+		return
+
+	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
+	print("[AUDIO_RUNTIME_31] PASS (output + CTW Feel 04 telemetry/mix/reset + windowed render; physical audibility remains external)")
+
 	active_transients = []
 	tuner_player = null
 	radio_stream_player = null

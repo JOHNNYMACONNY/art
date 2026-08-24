@@ -1,0 +1,212 @@
+extends RefCounted
+
+const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
+const CourierBikeScript = preload("res://scripts/vehicles/courier_bike.gd")
+
+static func _latest_transient_gain_db(manager: Node) -> float:
+	var transients: Array = manager.get("_active_transients")
+	if not transients.is_empty():
+		var player_3d := transients.back() as AudioStreamPlayer3D
+		if player_3d:
+			return player_3d.volume_db
+	var transients_2d: Array = manager.get("_active_2d_transients")
+	if not transients_2d.is_empty():
+		var player_2d := transients_2d.back() as AudioStreamPlayer
+		if player_2d:
+			return player_2d.volume_db
+	return -80.0
+
+static func verify(manager: Node) -> String:
+	var bike := CourierBikeScript.new()
+
+	if not bike.has_method("get_vehicle_feedback_telemetry"):
+		bike.free()
+		return "Courier Bike vehicle-feedback telemetry seam is absent"
+	if not manager.has_method("update_vehicle_feedback"):
+		bike.free()
+		return "AudioManager vehicle-feedback update seam is absent"
+	if not manager.has_method("get_vehicle_feedback_snapshot"):
+		bike.free()
+		return "AudioManager vehicle-feedback diagnostic snapshot is absent"
+	if not manager.has_method("clear_vehicle_feedback"):
+		bike.free()
+		return "AudioManager vehicle-feedback clear seam is absent"
+
+	# E1: stable propulsion/load derives from observation-only bike telemetry.
+	bike.current_speed = 7.0
+	bike.velocity = Vector3(0.0, 0.0, -7.0)
+	bike.is_handbrake_active = false
+	var before_speed: float = bike.current_speed
+	var before_velocity: Vector3 = bike.velocity
+	var stable: Dictionary = bike.call("get_vehicle_feedback_telemetry", 0.70)
+	if String(stable.get("traction_state", "")) != "STABLE":
+		bike.free()
+		return "Straight propulsion did not classify STABLE"
+	if float(stable.get("load_ratio", 0.0)) < 0.35:
+		bike.free()
+		return "Propulsion load was not represented in telemetry"
+	if bike.current_speed != before_speed or bike.velocity != before_velocity:
+		bike.free()
+		return "Telemetry sampling mutated Courier Bike handling state"
+
+	manager.call("update_vehicle_feedback", stable, Vector3.ZERO)
+	var engine := manager.get_node_or_null("EngineRevPlayer") as AudioStreamPlayer3D
+	if engine == null or not engine.playing:
+		bike.free()
+		return "Stable propulsion did not activate the engine feedback voice"
+	var high_load_pitch: float = engine.pitch_scale
+	var high_load_volume: float = engine.volume_db
+
+	var low_load: Dictionary = bike.call("get_vehicle_feedback_telemetry", 0.15)
+	manager.call("update_vehicle_feedback", low_load, Vector3.ZERO)
+	if not (high_load_pitch > engine.pitch_scale or high_load_volume > engine.volume_db):
+		bike.free()
+		return "Engine feedback remained speed-only; load made no audible-control difference"
+
+	# Review repair: braking must contribute to traction intensity without changing
+	# the handling state. Same speed/lateral slip isolates the braking contribution.
+	bike.velocity = Vector3(1.15, 0.0, -7.0)
+	var neutral_slip: Dictionary = bike.call("get_vehicle_feedback_telemetry", 0.0)
+	var braking_slip: Dictionary = bike.call("get_vehicle_feedback_telemetry", -0.65)
+	if not bool(braking_slip.get("braking", false)):
+		bike.free()
+		return "Forward braking state is absent from vehicle-feedback telemetry"
+	if float(braking_slip.get("slip_intensity", 0.0)) < float(neutral_slip.get("slip_intensity", 0.0)) + 0.08:
+		bike.free()
+		return "Braking state did not strengthen traction scrub intensity at matched slip"
+	if bike.current_speed != before_speed:
+		bike.free()
+		return "Braking telemetry sampling mutated Courier Bike speed"
+
+	# E4: stable -> near-slip -> full handbrake slide -> one-shot recovery catch.
+	var near_slip: Dictionary = bike.call("get_vehicle_feedback_telemetry", 0.45)
+	if String(near_slip.get("traction_state", "")) != "NEAR_SLIP":
+		bike.free()
+		return "Moderate lateral slip did not classify NEAR_SLIP"
+	manager.call("update_vehicle_feedback", near_slip, Vector3.ZERO)
+	var traction := manager.get_node_or_null("TractionScrubPlayer") as AudioStreamPlayer3D
+	if traction == null or not traction.playing:
+		bike.free()
+		return "Near-slip did not activate bounded traction scrub"
+	var near_slip_db: float = traction.volume_db
+
+	bike.is_handbrake_active = true
+	bike.velocity = Vector3(2.8, 0.0, -7.0)
+	var full_slip: Dictionary = bike.call("get_vehicle_feedback_telemetry", 0.20)
+	if String(full_slip.get("traction_state", "")) != "FULL_SLIP":
+		bike.free()
+		return "Handbrake slide did not classify FULL_SLIP"
+	manager.call("update_vehicle_feedback", full_slip, Vector3.ZERO)
+	if traction.volume_db < near_slip_db + 2.0:
+		bike.free()
+		return "Full-slip scrub is not meaningfully stronger than near-slip scrub"
+
+	bike.is_handbrake_active = false
+	bike.velocity = Vector3(0.0, 0.0, -7.0)
+	stable = bike.call("get_vehicle_feedback_telemetry", 0.55)
+	manager.call("update_vehicle_feedback", stable, Vector3.ZERO)
+	var recovered: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	if String(recovered.get("state", "")) != "RECOVERY" or traction.playing:
+		bike.free()
+		return "Slip release did not produce a clean recovery-catch transition"
+	if not AudioManagerScript.SoundEvent.has("TRACTION_RECOVERY"):
+		bike.free()
+		return "TRACTION_RECOVERY semantic event is absent"
+	var recovery_event: int = int(AudioManagerScript.SoundEvent["TRACTION_RECOVERY"])
+	if int(manager.call("get_event_count", recovery_event)) != 1:
+		bike.free()
+		return "Recovery catch did not fire exactly once"
+	manager.call("update_vehicle_feedback", stable, Vector3.ZERO)
+	if int(manager.call("get_event_count", recovery_event)) != 1:
+		bike.free()
+		return "Stable frames retriggered the recovery catch"
+
+	# E5: matched-speed glance vs hard/head-on proof.
+	const MATCHED_IMPACT_SPEED := 8.0
+	manager.call("on_collision_contact", 0.20, MATCHED_IMPACT_SPEED, Vector3.ZERO)
+	var glance: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	var glance_energy: float = float(glance.get("last_collision_intensity", 0.0))
+	manager.call("on_collision_contact", 0.90, MATCHED_IMPACT_SPEED, Vector3.ZERO)
+	var hard: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	var hard_energy: float = float(hard.get("last_collision_intensity", 0.0))
+	if glance_energy <= 0.0 or hard_energy < glance_energy + 0.20:
+		bike.free()
+		return "Matched-speed hard impact did not communicate materially greater event energy than a glance"
+
+	var timestamps: Dictionary = manager.get("_last_event_timestamps")
+	timestamps.clear()
+	manager.call("on_collision_contact", 0.90, 4.0, Vector3.ZERO)
+	var low_speed_hard_gain := _latest_transient_gain_db(manager)
+	timestamps.clear()
+	manager.call("on_collision_contact", 0.90, 10.0, Vector3.ZERO)
+	var high_speed_hard_gain := _latest_transient_gain_db(manager)
+	if high_speed_hard_gain < low_speed_hard_gain + 2.0:
+		bike.free()
+		return "Hard-impact output gain did not scale materially with impact speed"
+
+	# E7: pursuit remains perceptually critical during both continuous vehicle
+	# layers and impact. Exercise the loudest legal engine state under priority.
+	manager.call("set_pursuit_pressure", 8.0, Vector3.ZERO)
+	bike.current_speed = bike.max_speed
+	bike.velocity = Vector3(0.0, 0.0, -bike.max_speed)
+	var critical_engine: Dictionary = bike.call("get_vehicle_feedback_telemetry", 1.0)
+	manager.call("update_vehicle_feedback", critical_engine, Vector3.ZERO)
+	var engine_priority_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	if float(engine_priority_snapshot.get("engine_volume_db", 0.0)) > -12.0:
+		bike.free()
+		return "Engine layer did not duck beneath pursuit priority at maximum propulsion load"
+
+	manager.call("update_vehicle_feedback", full_slip, Vector3.ZERO)
+	var pursuit_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	var siren := manager.get_node_or_null("SirenAlarmPlayer") as AudioStreamPlayer3D
+	var tension := manager.get_node_or_null("PursuitTensionPlayer") as AudioStreamPlayer
+	if siren == null or not siren.playing or tension == null or not tension.playing:
+		bike.free()
+		return "Pursuit critical layers were not active for overlap proof"
+	if float(pursuit_snapshot.get("traction_volume_db", 0.0)) > -18.0:
+		bike.free()
+		return "Traction texture did not duck beneath pursuit priority"
+	timestamps.clear()
+	manager.call("on_collision_contact", 0.90, MATCHED_IMPACT_SPEED, Vector3.ZERO)
+	if not siren.playing or not tension.playing:
+		bike.free()
+		return "Hard impact interrupted pursuit-critical layers"
+	var pursuit_transients: Array = manager.get("_active_transients")
+	if pursuit_transients.size() > int(manager.MAX_CONCURRENT_TRANSIENTS):
+		bike.free()
+		return "Pursuit + impact overlap exceeded the transient voice budget"
+
+	# Signature transition: both continuous vehicle layers remain subordinate.
+	manager.call("set_mix_state", AudioManagerScript.MixState.MEMORY_ECHO)
+	manager.call("update_vehicle_feedback", critical_engine, Vector3.ZERO)
+	var echo_engine_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	if float(echo_engine_snapshot.get("engine_volume_db", 0.0)) > -12.0:
+		bike.free()
+		return "Engine layer did not remain subordinate during Memory Echo"
+	manager.call("update_vehicle_feedback", full_slip, Vector3.ZERO)
+	var echo_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	if float(echo_snapshot.get("traction_volume_db", 0.0)) > -18.0:
+		bike.free()
+		return "Traction texture did not remain subordinate during Memory Echo"
+	manager.call("set_mix_state", AudioManagerScript.MixState.DISTURBANCE)
+	manager.call("update_vehicle_feedback", full_slip, Vector3.ZERO)
+	var disturbance_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	if float(disturbance_snapshot.get("traction_volume_db", 0.0)) > -18.0:
+		bike.free()
+		return "Traction texture did not remain subordinate after Memory Echo -> disturbance"
+	if siren == null or not siren.playing:
+		bike.free()
+		return "Disturbance did not retain the critical siren layer after Memory Echo overlap"
+
+	manager.call("reset_audio_instant")
+	var reset_snapshot: Dictionary = manager.call("get_vehicle_feedback_snapshot")
+	if bool(reset_snapshot.get("engine_playing", true)) or bool(reset_snapshot.get("traction_playing", true)):
+		bike.free()
+		return "Authoritative reset left vehicle feedback playing"
+	var active_transients: Array = manager.get("_active_transients")
+	if not active_transients.is_empty():
+		bike.free()
+		return "Authoritative reset left vehicle transients alive"
+
+	bike.free()
+	return ""

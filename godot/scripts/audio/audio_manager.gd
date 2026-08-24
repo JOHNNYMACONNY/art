@@ -6,6 +6,7 @@ const AudioReferenceResolverScript = preload("res://scripts/audio/audio_referenc
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
 const RadioProgramDirectorScript = preload("res://scripts/audio/radio/radio_program_director.gd")
 const RadioProgramPlayerScript = preload("res://scripts/audio/radio/radio_program_player.gd")
+const VehicleFeedbackLayerScript = preload("res://scripts/audio/vehicle_feedback_layer.gd")
 
 # Echos in the Scrap - Audio Engine & Sound Synthesis Manager
 # Features procedural AudioStreamWAV synthesis, transient voice throttling,
@@ -38,7 +39,9 @@ enum SoundEvent {
 	ECHO_TAIL,
 	## M07 — Living Scrap Yard ambient life events
 	AMBIENT_WORK_CLINK,
-	AMBIENT_SERVO_HUM
+	AMBIENT_SERVO_HUM,
+	## CTW Feel 04 — appended to preserve all existing event ordinals
+	TRACTION_RECOVERY
 }
 
 enum MixState {
@@ -65,6 +68,8 @@ var _siren_player: AudioStreamPlayer3D = null
 var _tension_player: AudioStreamPlayer = null
 ## M04: dedicated echo voice (non-spatial — echo is inside-the-head by design)
 var _echo_voice: AudioStreamPlayer = null
+## CTW Feel 04: bounded presentation helper; AudioManager remains lifecycle owner.
+var _vehicle_feedback_layer: Node = null
 
 ## Radio Subsystem (#22)
 var _radio_director: RefCounted = null
@@ -130,6 +135,7 @@ static func event_to_slot_id(event: SoundEvent) -> String:
 	return EVENT_TO_SLOT_MAP.get(event, "")
 
 func _ready() -> void:
+	add_to_group("audio_manager")
 	_engine_stream = _create_noise_wav(0.5, 0.4)
 	_engine_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_hum_stream = _create_tone_wav(120.0, 0.5, 0.3)
@@ -196,6 +202,12 @@ func _ready() -> void:
 	_radio_interference_player.stream = _radio_interference_stream
 	_radio_interference_player.volume_db = -80.0
 	add_child(_radio_interference_player)
+
+	## CTW Feel 04: one bounded continuous helper and traction voice.
+	_vehicle_feedback_layer = VehicleFeedbackLayerScript.new()
+	_vehicle_feedback_layer.name = "VehicleFeedbackLayer"
+	add_child(_vehicle_feedback_layer)
+	_vehicle_feedback_layer.call("configure", self, _engine_player, SoundEvent.TRACTION_RECOVERY)
 
 ## #31: Bounded runtime output diagnostics. This is an on-demand snapshot only;
 ## get_output_latency() may be expensive and must never be polled per-frame.
@@ -295,6 +307,8 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 		SoundEvent.AMBIENT_SERVO_HUM:
 			if current_mix_state != MixState.DISTURBANCE and current_mix_state != MixState.PURSUIT_PRESSURE:
 				_play_synth_sweep(pos, 220.0, 310.0, 0.25, 0.2)
+		SoundEvent.TRACTION_RECOVERY:
+			_play_synth_sweep(pos, 420.0, 620.0, 0.12, 0.22)
 
 func stop_event(event: SoundEvent) -> void:
 	if event == SoundEvent.PROXIMITY_HUM and _hum_player:
@@ -325,6 +339,11 @@ func set_hum_pitch(pitch: float) -> void:
 		_hum_player.pitch_scale = clampf(pitch, 0.5, 2.5)
 
 func set_engine_audio(speed_ratio: float, pos: Vector3) -> void:
+	# The legacy speed-only seam remains authoritative for other vehicles. Once
+	# Courier Bike telemetry is actively driving the richer layer, do not let the
+	# controller's compatibility call overwrite load-sensitive pitch/gain.
+	if _vehicle_feedback_layer and bool(_vehicle_feedback_layer.call("is_active")):
+		return
 	if _engine_player:
 		_engine_player.global_position = pos
 		if speed_ratio > 0.01:
@@ -334,6 +353,34 @@ func set_engine_audio(speed_ratio: float, pos: Vector3) -> void:
 		else:
 			if _engine_player.playing:
 				_engine_player.stop()
+
+func update_vehicle_feedback(telemetry: Dictionary, pos: Vector3) -> void:
+	if not _vehicle_feedback_layer:
+		return
+	var priority_duck: bool = _current_pursuit_pressure > 0.01 or current_mix_state in [
+		MixState.EXTRACTION_IMPACT,
+		MixState.DISTURBANCE,
+		MixState.PURSUIT_PRESSURE,
+		MixState.ROUTE_SWITCH_IMPACT,
+		MixState.MEMORY_ECHO,
+	]
+	_vehicle_feedback_layer.call("update_feedback", telemetry, pos, priority_duck)
+
+func get_vehicle_feedback_snapshot() -> Dictionary:
+	if _vehicle_feedback_layer:
+		return _vehicle_feedback_layer.call("snapshot")
+	return {
+		"active": false,
+		"state": "IDLE",
+		"engine_playing": false,
+		"traction_playing": false,
+		"traction_volume_db": -80.0,
+		"last_collision_intensity": 0.0,
+	}
+
+func clear_vehicle_feedback() -> void:
+	if _vehicle_feedback_layer:
+		_vehicle_feedback_layer.call("clear_feedback")
 
 func set_tuning_audio(accuracy: float) -> void:
 	if _static_player:
@@ -424,17 +471,53 @@ func clear_pursuit_pressure(preserve_radio_duck: bool = false) -> void:
 	if not preserve_radio_duck:
 		set_radio_duck(0.0, 0.0)
 
-## Handle neutral collision telemetry from CourierBike
+func _transient_instance_id(player: Node) -> int:
+	return player.get_instance_id() if is_instance_valid(player) else 0
+
+func _apply_collision_output_gain(intensity: float, previous_3d_id: int, previous_2d_id: int) -> void:
+	var gain_db: float = lerpf(-8.0, 0.0, clampf(intensity, 0.0, 1.0))
+	if not _active_transients.is_empty():
+		var player_3d: AudioStreamPlayer3D = _active_transients.back()
+		if _transient_instance_id(player_3d) != previous_3d_id:
+			player_3d.volume_db = gain_db
+			return
+	if not _active_2d_transients.is_empty():
+		var player_2d: AudioStreamPlayer = _active_2d_transients.back()
+		if _transient_instance_id(player_2d) != previous_2d_id:
+			player_2d.volume_db = gain_db
+
+## Handle neutral collision telemetry from CourierBike. Routing, cooldowns and
+## voice-budget ownership stay in play_event(); only the newly-created collision
+## voice receives energy-derived output gain.
 func on_collision_contact(head_on_ratio: float, impact_speed: float, pos: Vector3) -> void:
+	var impact_intensity: float = 0.5
+	if _vehicle_feedback_layer:
+		_vehicle_feedback_layer.call("record_collision", head_on_ratio, impact_speed)
+		var snapshot: Dictionary = _vehicle_feedback_layer.call("snapshot")
+		impact_intensity = float(snapshot.get("last_collision_intensity", impact_intensity))
 	if impact_speed < 1.0:
 		return
+
+	var event: SoundEvent
 	if head_on_ratio < 0.35:
-		play_event(SoundEvent.COLLISION_GLANCE, pos)
-	elif head_on_ratio >= 0.35 and impact_speed >= 3.0:
-		play_event(SoundEvent.COLLISION_HEAD_ON, pos)
+		event = SoundEvent.COLLISION_GLANCE
+	elif impact_speed >= 3.0:
+		event = SoundEvent.COLLISION_HEAD_ON
+	else:
+		return
+
+	var event_count_before: int = get_event_count(event)
+	var previous_3d_id: int = _transient_instance_id(_active_transients.back()) if not _active_transients.is_empty() else 0
+	var previous_2d_id: int = _transient_instance_id(_active_2d_transients.back()) if not _active_2d_transients.is_empty() else 0
+	play_event(event, pos)
+	if get_event_count(event) > event_count_before:
+		_apply_collision_output_gain(impact_intensity, previous_3d_id, previous_2d_id)
 
 ## Authoritative instant reset: halts all streams and clears all transient nodes
 func reset_audio_instant() -> void:
+	# CTW Feel 04 continuous layer yields to this existing reset owner.
+	clear_vehicle_feedback()
+
 	# Clean up all active transient players
 	for player in _active_transients:
 		if is_instance_valid(player):
