@@ -2,8 +2,8 @@ class_name PursuerPrototype
 extends CharacterBody3D
 
 # Pursuer Prototype Threat Entity for Echos in the Scrap (V8 M03)
-# Direct vector pursuit steering toward active target with detour waypoint rerouting,
-# graceful de-escalation retreat, and deterministic lifecycle reset.
+# Physical pursuit steering with authored Signal Gate detours, bounded observable
+# target-velocity interception, graceful de-escalation, and deterministic reset.
 
 signal intercepted_target
 signal de_escalation_started
@@ -21,6 +21,18 @@ enum PursuerState {
 @export var acceleration: float = 14.0
 @export var steering_speed: float = 4.0
 @export var intercept_distance: float = 1.5
+
+# CTW Feel 06 — destination-only A/B. These values never retune motion authority.
+# The lead uses current observable velocity only and collapses toward the direct
+# chase baseline at low target speed / close range.
+@export var bounded_intercept_enabled: bool = true
+@export var intercept_lead_horizon_min: float = 0.15
+@export var intercept_lead_horizon_max: float = 0.45
+@export var intercept_lead_distance_cap: float = 4.0
+@export var intercept_prediction_close_range: float = 3.0
+@export var intercept_prediction_full_range: float = 15.0
+@export var intercept_prediction_min_target_speed: float = 0.75
+@export var intercept_prediction_full_target_speed: float = 10.0
 
 @onready var visual_root: Node3D = $VisualRoot
 @onready var siren_mesh: MeshInstance3D = $VisualRoot/SirenMesh
@@ -118,6 +130,53 @@ func set_detour_path(waypoints: Array[Vector3]) -> void:
 		
 	print("[PURSUER] Detour reroute path set (%d forward waypoints)..." % detour_waypoints.size())
 
+## CTW Feel 06 — pure destination candidate. It has no target input history and
+## therefore cannot preserve stale steering intent after a sharp reversal.
+func get_bounded_chase_destination(target_position: Vector3, target_velocity: Vector3) -> Vector3:
+	var flat_to_target := target_position - global_position
+	flat_to_target.y = 0.0
+	var target_distance: float = flat_to_target.length()
+
+	var flat_velocity := target_velocity
+	flat_velocity.y = 0.0
+	var target_speed: float = flat_velocity.length()
+
+	if target_distance <= intercept_prediction_close_range or target_speed <= intercept_prediction_min_target_speed:
+		return target_position
+
+	var distance_span: float = maxf(intercept_prediction_full_range - intercept_prediction_close_range, 0.001)
+	var speed_span: float = maxf(intercept_prediction_full_target_speed - intercept_prediction_min_target_speed, 0.001)
+	var distance_factor: float = clampf((target_distance - intercept_prediction_close_range) / distance_span, 0.0, 1.0)
+	var speed_factor: float = clampf((target_speed - intercept_prediction_min_target_speed) / speed_span, 0.0, 1.0)
+	var qualification: float = minf(distance_factor, speed_factor)
+	if qualification <= 0.0:
+		return target_position
+
+	var horizon: float = lerpf(intercept_lead_horizon_min, intercept_lead_horizon_max, qualification)
+	# Scaling by qualification lets lead distance approach zero smoothly while the
+	# actual horizon remains inside the specified 0.15–0.45 s experiment range.
+	var lead_vector: Vector3 = flat_velocity * horizon * qualification
+	if lead_vector.length() > intercept_lead_distance_cap:
+		lead_vector = lead_vector.normalized() * intercept_lead_distance_cap
+	return target_position + lead_vector
+
+## Single destination authority for the active chase. Authored DETOURING waypoints
+## always win; prediction only participates in direct CHASING.
+func get_navigation_destination() -> Vector3:
+	if current_detour_index >= 0 and current_detour_index < detour_waypoints.size():
+		return detour_waypoints[current_detour_index]
+	if target_node == null:
+		return global_position
+
+	var direct_destination: Vector3 = target_node.global_position
+	if not bounded_intercept_enabled:
+		return direct_destination
+
+	var target_velocity := Vector3.ZERO
+	if target_node is CharacterBody3D:
+		target_velocity = (target_node as CharacterBody3D).velocity
+	return get_bounded_chase_destination(direct_destination, target_velocity)
+
 func _physics_process(delta: float) -> void:
 	if not is_active:
 		return
@@ -164,9 +223,8 @@ func _physics_process(delta: float) -> void:
 	if not target_node:
 		return
 		
-	var destination: Vector3 = target_node.global_position
+	var destination: Vector3 = get_navigation_destination()
 	if current_detour_index >= 0 and current_detour_index < detour_waypoints.size():
-		destination = detour_waypoints[current_detour_index]
 		if global_position.distance_to(destination) < 3.0:
 			current_detour_index += 1
 			print("[PURSUER] Detour waypoint reached. Advancing to index %d..." % current_detour_index)
