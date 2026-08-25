@@ -6,6 +6,7 @@ const MissionScrapJobContract = preload("res://tests/mission_scrap_job_contract_
 const CivicRepossessionContract = preload("res://tests/civic_repossession_mission_contract_test.gd")
 const CityThatForgotContract = preload("res://tests/city_that_forgot_mission_contract_test.gd")
 const CivicMissionScript = preload("res://scripts/missions/civic_repossession_mission.gd")
+const CityMissionScript = preload("res://scripts/missions/city_that_forgot_mission.gd")
 const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
 
 var _last_joystick_vector := Vector2.ZERO
@@ -90,6 +91,27 @@ func _run() -> void:
 		await _fail("Mission/Narrative 02 did not remain LOCKED before Mission 01 completion")
 		return
 
+	var city_runtime := _scene_under_test.get_node_or_null("CityThatForgotRuntime")
+	if city_runtime == null:
+		await _fail("Mission/Narrative 03 production runtime is missing")
+		return
+	if city_runtime.get("_bound") != true:
+		await _fail("Mission/Narrative 03 runtime did not bind to retained gameplay systems")
+		return
+	if city_runtime.mission.phase != CityMissionScript.Phase.LOCKED:
+		await _fail("Mission/Narrative 03 did not remain LOCKED before Civic Repossession completion")
+		return
+	var silent_core := _scene_under_test.get_node_or_null("SilentCore")
+	if silent_core == null:
+		await _fail("Mission/Narrative 03 Silent Core is missing from the production slice")
+		return
+	if bool(silent_core.get("is_powered")):
+		await _fail("Silent Core is powered before Mission 03 unlock")
+		return
+	if silent_core.begin_interaction(player.global_position):
+		await _fail("Silent Core accepted interaction before Mission 03 unlock")
+		return
+
 	var safe_root := touch_ui.get_node_or_null("SafeAreaRoot")
 	var mission_hud := safe_root.get_node_or_null("MissionHUD") if safe_root != null else null
 	if mission_hud == null:
@@ -108,7 +130,7 @@ func _run() -> void:
 			await _fail("Mission HUD contains a control that can steal gameplay touch input")
 			return
 	if safe_root.find_children("MissionHUD", "PanelContainer", true, false).size() != 1:
-		await _fail("Mission/Narrative 02 created a parallel mission HUD instead of reusing Mission 01 UI")
+		await _fail("Mission chain created a parallel mission HUD instead of reusing Mission 01 UI")
 		return
 	if "COURIER BIKE" not in objective.text or not contact.text.begins_with("LIRA //"):
 		await _fail("Mission/Narrative 01 cold-start briefing is not visible in the production scene")
@@ -238,6 +260,9 @@ func _run() -> void:
 	if "SCRAP HAULER" not in objective.text or not contact.text.begins_with("MAYOR BURN //"):
 		await _fail("Mayor Burn handoff is not visible on the shared mission HUD")
 		return
+	if city_runtime.mission.phase != CityMissionScript.Phase.LOCKED:
+		await _fail("Mission 03 unlocked before Civic Repossession completion")
+		return
 
 	_stage = "mission2_mount"
 	hauler.mounted.emit(player)
@@ -281,12 +306,105 @@ func _run() -> void:
 		await _fail("Civic Repossession payoff is not visible after delivery")
 		return
 
+	_stage = "mission3_unlock"
+	await process_frame
+	if city_runtime.mission.phase != CityMissionScript.Phase.REACH_SILENT_CORE:
+		await _fail("Civic Repossession completion did not unlock The City That Forgot")
+		return
+	if title.text != "THE CITY THAT FORGOT // SISTER KAEL":
+		await _fail("Mission 03 did not take ownership of the existing shared MissionHUD")
+		return
+	if "SILENT CORE" not in objective.text or not contact.text.begins_with("SISTER KAEL //"):
+		await _fail("Sister Kael / Silent Core handoff is not visible on the shared HUD")
+		return
+	if not bool(silent_core.get("is_powered")):
+		await _fail("Silent Core did not power on for the Mission 03 objective")
+		return
+	if safe_root.find_children("MissionHUD", "PanelContainer", true, false).size() != 1:
+		await _fail("Mission 03 created a parallel MissionHUD")
+		return
+
+	_stage = "mission3_action"
+	player.global_position = silent_core.global_position
+	silent_core.update_player_distance(player.global_position)
+	_scene_under_test.call("_evaluate_target_selection")
+	if _scene_under_test.get("_active_target") != silent_core:
+		await _fail("Retained target arbitration did not select the Silent Core")
+		return
+	touch_ui.action_button_pressed.emit()
+	await process_frame
+	if city_runtime.mission.phase != CityMissionScript.Phase.ECHO_ACTIVE:
+		await _fail("Retained Action route did not activate the Silent Core")
+		return
+	if int(silent_core.get("activation_count")) != 1:
+		await _fail("Silent Core activation was not exactly once")
+		return
+	var echo_controller = _scene_under_test.get("echo_controller")
+	if echo_controller == null:
+		await _fail("Mission 03 did not reuse the retained Memory Echo controller")
+		return
+	if echo_controller.get_trigger_count() != 1:
+		await _fail("Mission 03 authored Echo did not trigger exactly once")
+		return
+	var echo_data = echo_controller.get("_echo_data")
+	if echo_data == null or echo_data.mission_ref != "mission_03_city_that_forgot":
+		await _fail("Mission 03 Echo did not carry the authored HS-7 mission payload")
+		return
+	touch_ui.action_button_pressed.emit()
+	await process_frame
+	if echo_controller.get_trigger_count() != 1 or int(silent_core.get("activation_count")) != 1:
+		await _fail("Repeated Action input duplicated the Mission 03 Echo")
+		return
+
+	_stage = "mission3_echo_complete"
+	echo_controller.call("_process", 1.0)
+	echo_controller.call("_process", 2.0)
+	echo_controller.call("_process", 1.0)
+	await process_frame
+	if city_runtime.mission.phase != CityMissionScript.Phase.ESCAPE:
+		await _fail("Authored HS-7 Echo completion did not start Mission 03 escape")
+		return
+	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT):
+		await _fail("Mission 03 Echo completion did not hand off to retained pursuit authority")
+		return
+
+	_stage = "mission3_intercept"
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.INTERCEPTED)
+	await process_frame
+	if city_runtime.mission.phase != CityMissionScript.Phase.FAILED or "RETRY PURSUIT" not in objective.text:
+		await _fail("Retained interception did not fail Mission 03")
+		return
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE)
+	await process_frame
+	if city_runtime.mission.phase != CityMissionScript.Phase.ESCAPE:
+		await _fail("Retained fast retry did not resume Mission 03 escape")
+		return
+
+	_stage = "mission3_evasion"
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.EVADED)
+	await process_frame
+	if city_runtime.mission.phase != CityMissionScript.Phase.COMPLETE:
+		await _fail("Retained evasion did not complete Mission 03")
+		return
+	if "CITY THAT FORGOT" not in objective.text or not contact.text.begins_with("SISTER KAEL //"):
+		await _fail("Mission 03 narrative aftermath is not visible on the shared HUD")
+		return
+	if city_runtime.mission.reward_credits != 0:
+		await _fail("Mission 03 production runtime introduced an out-of-scope economy reward")
+		return
+
 	_stage = "full_replay"
 	_scene_under_test.call("reset_slice")
 	await process_frame
 	await process_frame
 	if civic_runtime.mission.phase != CivicMissionScript.Phase.LOCKED:
 		await _fail("Full replay did not relock Civic Repossession behind Mission 01")
+		return
+	if city_runtime.mission.phase != CityMissionScript.Phase.LOCKED:
+		await _fail("Full replay did not relock Mission 03 behind Civic Repossession")
+		return
+	if bool(silent_core.get("is_powered")) or int(silent_core.get("activation_count")) != 0:
+		await _fail("Full replay leaked Silent Core power or activation state")
 		return
 	if return_zone.visible:
 		await _fail("Full replay left the Civic Repossession return zone visible")
@@ -331,8 +449,12 @@ func _run() -> void:
 	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT):
 		await _fail("Pre-mounted Hauler reconciliation did not enter retained pursuit authority")
 		return
+	if city_runtime.mission.phase != CityMissionScript.Phase.LOCKED:
+		await _fail("Mission 03 unlocked during Civic Repossession pre-mounted recovery")
+		return
 
 	print("[MISSION_NARRATIVE_01] CONTRACT + RUNTIME WIRING PASS")
 	print("[MISSION_NARRATIVE_02] CONTRACT + RUNTIME WIRING PASS")
+	print("[MISSION_NARRATIVE_03] CONTRACT + RUNTIME WIRING PASS")
 	print("[MOBILE_TOUCH_ROUTING] PASS")
 	await _finish(0)
