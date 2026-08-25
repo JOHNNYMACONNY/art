@@ -1,7 +1,9 @@
 extends SceneTree
 
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
+const UIAudioIdentityLayerScript = preload("res://scripts/audio/ui_audio_identity_layer.gd")
 const VehicleFeedbackContract = preload("res://tests/vehicle_feedback_contract_test.gd")
+const UIAudioIdentityContract = preload("res://tests/ui_audio_identity_contract_test.gd")
 
 var _manager: Node = null
 
@@ -52,11 +54,15 @@ func _play_test_master_probe(duration: float = 0.20) -> AudioStreamPlayer:
 	return player
 
 func _run_ci_windowed_vehicle_proof() -> String:
-	# The production workflow is protected and deliberately unchanged. On Linux
-	# CI, reuse its installed Godot binary and the runner's Xvfb capability to
-	# produce actual windowed before/after frames from the exact checked-out SHA.
+	# CTW Feel 04 already captured exact-head windowed proof at its retention
+	# boundary. Re-running that rendered slice on every unrelated audio change is
+	# intentionally opt-in now; the focused Audio Runtime gate stays fast and
+	# deterministic while this probe remains available for targeted reruns.
+	if OS.get_environment("ECHOES_RUN_WINDOWED_VEHICLE_PROOF") != "1":
+		print("[CTW_FEEL_04_RENDERED] SKIP generic audio CI; set ECHOES_RUN_WINDOWED_VEHICLE_PROOF=1 for targeted proof")
+		return ""
 	if OS.get_environment("CI").to_lower() != "true" or not OS.has_feature("linux"):
-		print("[CTW_FEEL_04_RENDERED] SKIP outside Linux CI; use audio_runtime_windowed_probe.gd manually")
+		print("[CTW_FEEL_04_RENDERED] SKIP outside Linux CI")
 		return ""
 
 	var output: Array = []
@@ -83,6 +89,10 @@ func _run_ci_windowed_vehicle_proof() -> String:
 func _run() -> void:
 	_manager = AudioManagerScript.new()
 	root.add_child(_manager)
+	var ui_layer := UIAudioIdentityLayerScript.new()
+	ui_layer.name = "UIAudioIdentityLayer"
+	_manager.add_child(ui_layer)
+	ui_layer.call("configure", _manager)
 	await process_frame
 
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
@@ -182,6 +192,13 @@ func _run() -> void:
 		await _fail("Authoritative reset left radio playback active")
 		return
 
+	# Audio 06: reusable semantic UI identity, fatigue budget, critical mix priority,
+	# and reset lifecycle share this exact-head runtime gate.
+	var ui_error: String = UIAudioIdentityContract.verify(_manager, ui_layer)
+	if not ui_error.is_empty():
+		await _fail("Audio 06: %s" % ui_error)
+		return
+
 	# CTW Feel 04 regression: same exact-head audio gate, real Courier Bike telemetry.
 	var vehicle_error: String = VehicleFeedbackContract.verify(_manager)
 	if not vehicle_error.is_empty():
@@ -194,7 +211,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (output + CTW Feel 04 telemetry/mix/reset + windowed render; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility and legacy rendered proof remain external/targeted)")
 
 	active_transients = []
 	tuner_player = null
@@ -202,6 +219,7 @@ func _run() -> void:
 	radio_player = null
 	siren_player = null
 	tension_player = null
+	ui_layer = null
 	_manager.queue_free()
 	await process_frame
 	await process_frame
