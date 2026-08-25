@@ -261,5 +261,20 @@ func _run() -> void:
 	gas_release.pressed = false
 	touch_ui.gas_button.gui_input.emit(gas_release)
 
+	# 7. Replay synchronously resets AudioManager, so its semantic confirmation
+	# is intentionally deferred by the scene connection. The cue must therefore
+	# exist after reset rather than being created just before reset and killed.
+	ui_audio.call("reset_accounting")
+	touch_ui.replay_pressed.emit()
+	await process_frame
+	await process_frame
+	if _ui_attempt_count(ui_audio, "ui.replay_retry_confirm") != 1:
+		await _fail("Replay did not produce exactly one deferred confirmation attempt after reset")
+		return
+	var replay_snapshot: Dictionary = ui_audio.call("snapshot")
+	if int(replay_snapshot.get("active_voice_count", 0)) <= 0:
+		await _fail("Replay confirmation was killed by authoritative reset ordering")
+		return
+
 	print("[DESKTOP_CONTROLS] PASS")
 	await _finish(0)
