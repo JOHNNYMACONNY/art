@@ -54,12 +54,12 @@
   "rendered_evidence_classification": {
     "current_camera": "retained dynamic camera accepted in owner play and covered by existing camera/rendered regression evidence; occlusion candidate reverted",
     "vehicle_feedback": "retained exact-head Feel 04 windowed full-slip proof with bounded pixel-delta checks",
-    "wave1_closure": "ticket 17 uses exact-head code/integration verification plus retained rendered evidence from accepted constituent tickets; it does not add a second heavy rendered playthrough gate",
+    "wave1_closure": "ticket 17 uses an exact-head closure-only E1-E7 integration comparison plus the canonical current regression matrix and retained rendered evidence from accepted constituent tickets",
     "policy": "manual/physical play is optimization evidence unless a future ticket explicitly makes it the acceptance boundary"
   },
   "performance_classification": {
     "ticket_17_runtime_change": "NONE",
-    "ci_overhead": "integrated headless E1-E7 comparison only; no nested rendered sweep is added to normal Web export",
+    "ci_overhead": "the nested E1-E7 comparison is scoped to the dedicated Wave 1 closure branch; future main/ticket builds retain the normal canonical regression path",
     "rule": "Any current compatibility regression fails the functional Wave gate; ticket 17 itself adds verification-only code."
   },
   "remaining_blockers": [
