@@ -127,9 +127,9 @@ func _ensure_hud() -> void:
 	_mission_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_mission_panel.z_index = 40
 	_mission_panel.offset_left = 24.0
-	_mission_panel.offset_top = 24.0
+	_mission_panel.offset_top = 78.0
 	_mission_panel.offset_right = 500.0
-	_mission_panel.offset_bottom = 138.0
+	_mission_panel.offset_bottom = 200.0
 	safe_root.add_child(_mission_panel)
 
 	var margin := MarginContainer.new()
