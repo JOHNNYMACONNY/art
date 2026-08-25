@@ -22,7 +22,7 @@ const CRITICAL_MIX_STATES: Array[int] = [
 
 var _manager: Node = null
 var _active_ui_players: Array[AudioStreamPlayer] = []
-var _player_slots: Dictionary = {} # instance_id -> slot_id
+var _player_slots: Dictionary = {}
 var _last_slot_timestamp_msec: Dictionary = {}
 var _attempted_counts: Dictionary = {}
 var _accepted_counts: Dictionary = {}
@@ -106,7 +106,10 @@ func on_action_confirmed() -> void:
 func on_core_confirmed() -> void:
 	play_semantic("ui.nav_confirm")
 
-func on_radio_step_requested() -> void:
+func on_radio_toggle_requested() -> void:
+	play_semantic("ui.mode_switch")
+
+func on_radio_station_step_requested() -> void:
 	play_semantic("ui.radio_station_step")
 
 func on_replay_requested() -> void:
@@ -125,8 +128,6 @@ func _should_suppress(meta: Dictionary) -> bool:
 	return mix_state in CRITICAL_MIX_STATES
 
 func _create_fallback_stream(slot_id: String) -> AudioStream:
-	# Deliberately dry, short reclaimed-electronics signatures rather than a
-	# generic bright sci-fi UI palette. All synthesis stays below ~180 ms.
 	match slot_id:
 		"ui.nav_move":
 			return _manager.call("_create_tone_wav", 430.0, 0.025, 0.12)
