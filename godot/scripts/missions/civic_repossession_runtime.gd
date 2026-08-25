@@ -6,7 +6,6 @@ extends Node
 const MissionScript = preload("res://scripts/missions/civic_repossession_mission.gd")
 const ScrapJobMissionScript = preload("res://scripts/missions/scrap_job_mission.gd")
 const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
-const CityThatForgotRuntimeScript = preload("res://scripts/missions/city_that_forgot_runtime.gd")
 const RETURN_ZONE_POSITION := Vector3(7.0, 0.08, 8.0)
 const RETURN_ZONE_RADIUS := 2.6
 
@@ -24,9 +23,6 @@ var _contact_label: Label = null
 
 func _ready() -> void:
 	_root_controller = get_parent()
-	# This runtime is itself entering the production root during parent setup.
-	# Defer sibling insertion until that setup pass has finished.
-	call_deferred("_ensure_mission_three_runtime")
 	call_deferred("_try_bind_runtime")
 
 func _process(_delta: float) -> void:
@@ -76,13 +72,6 @@ func _process(_delta: float) -> void:
 
 	if changed:
 		_refresh_hud()
-
-func _ensure_mission_three_runtime() -> void:
-	if _root_controller == null or _root_controller.get_node_or_null("CityThatForgotRuntime") != null:
-		return
-	var runtime := CityThatForgotRuntimeScript.new()
-	runtime.name = "CityThatForgotRuntime"
-	_root_controller.add_child(runtime)
 
 func _try_bind_runtime() -> void:
 	if _bound or _root_controller == null:
