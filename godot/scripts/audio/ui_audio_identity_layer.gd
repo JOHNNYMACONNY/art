@@ -109,6 +109,11 @@ func on_core_confirmed() -> void:
 func on_radio_toggle_requested() -> void:
 	play_semantic("ui.mode_switch")
 
+# Existing scene hook name retained to keep the scene mutation narrow. The
+# current R/button action toggles radio state; it does not step stations.
+func on_radio_step_requested() -> void:
+	on_radio_toggle_requested()
+
 func on_radio_station_step_requested() -> void:
 	play_semantic("ui.radio_station_step")
 
