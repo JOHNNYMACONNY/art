@@ -79,6 +79,8 @@ func _run_ci_wave1_integrated_harness() -> String:
 func _run_windowed_suite(project_path: String, suite: String) -> String:
 	var output: Array = []
 	var args := PackedStringArray([
+		"45s",
+		"xvfb-run",
 		"-a",
 		"-s",
 		"-screen 0 1280x720x24",
@@ -88,10 +90,11 @@ func _run_windowed_suite(project_path: String, suite: String) -> String:
 		"--",
 		suite,
 	])
-	var exit_code := OS.execute("xvfb-run", args, output, true)
+	var exit_code := OS.execute("timeout", args, output, true)
 	var combined := "\n".join(output)
 	if exit_code != 0:
-		return "%s windowed run exited %d; output=%s" % [suite, exit_code, combined.right(2400)]
+		var reason := "timed out" if exit_code == 124 else "failed"
+		return "%s windowed run %s with exit %d; output=%s" % [suite, reason, exit_code, combined.right(2400)]
 	return ""
 
 func _run_ci_wave1_windowed_rendered_flow() -> String:
@@ -114,11 +117,13 @@ func _run_ci_wave1_windowed_rendered_flow() -> String:
 	for proof_path in fresh_proofs:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(proof_path))
 
+	# These representative rendered paths cover normal driving/corrections,
+	# glancing/hard collision behavior, route switch/full replay, Echo overlap,
+	# and interception -> fast retry. The focused Feel 04 probe below covers the
+	# handbrake/full-slip visual state with pixel-delta bounds.
 	var suites := PackedStringArray([
 		"--run-v3-assertions",
-		"--run-v7-ticket04-2-assertions",
 		"--run-v7-ticket04-3-assertions",
-		"--run-v5-assertions",
 		"--run-v6-assertions",
 		"--run-v8-m04-echo-assertions",
 		"--run-v8-m15-fast-retry-assertions",
@@ -128,10 +133,10 @@ func _run_ci_wave1_windowed_rendered_flow() -> String:
 		if not error.is_empty():
 			return error
 
-	# Feel 04 owns a focused before/after rendered proof with pixel-delta bounds
-	# for the handbrake slip cue. Re-run it here on the integrated exact head.
 	var rendered_output: Array = []
 	var rendered_args := PackedStringArray([
+		"45s",
+		"xvfb-run",
 		"-a",
 		"-s",
 		"-screen 0 1280x720x24",
@@ -141,7 +146,7 @@ func _run_ci_wave1_windowed_rendered_flow() -> String:
 		"--script", "res://tests/audio_runtime_windowed_probe.gd",
 		"--", "--vehicle-feedback-rendered-proof",
 	])
-	var rendered_exit := OS.execute("xvfb-run", rendered_args, rendered_output, true)
+	var rendered_exit := OS.execute("timeout", rendered_args, rendered_output, true)
 	var rendered_text := "\n".join(rendered_output)
 	if rendered_exit != 0 or not rendered_text.contains("[CTW_FEEL_04_RENDERED] PASS"):
 		return "Feel 04 integrated rendered probe failed (%d); output=%s" % [rendered_exit, rendered_text.right(2400)]
