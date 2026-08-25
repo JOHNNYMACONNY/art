@@ -111,4 +111,37 @@ static func verify() -> String:
 	if retry.failure_count != 1:
 		return "Failure accounting is incorrect"
 
+	# Production tuner/panel signals are one-shot. Wrong-order use stays rejected
+	# until the authored bike/traversal prerequisite is met, then retained world
+	# state must catch the mission up rather than requiring a full replay.
+	var consumed_one_shots = MissionScript.new()
+	if not consumed_one_shots.start():
+		return "One-shot reconciliation fixture did not start"
+	if consumed_one_shots.reconcile_retained_progress(true, true, true, false):
+		return "Retained one-shot state skipped the Courier Bike prerequisite"
+	if consumed_one_shots.phase != MissionScript.Phase.GET_BIKE:
+		return "Retained one-shot state mutated GET_BIKE"
+	if not consumed_one_shots.on_courier_bike_mounted():
+		return "One-shot reconciliation fixture did not accept bike mount"
+	if not consumed_one_shots.on_tuner_arrived():
+		return "One-shot reconciliation fixture did not accept tuner arrival"
+	if not consumed_one_shots.reconcile_retained_progress(true, true, true, false):
+		return "Solved tuner/panel/pursuit state did not reconcile after prerequisites"
+	if consumed_one_shots.phase != MissionScript.Phase.ROUTE_DECISION:
+		return "One-shot reconciliation did not catch up through route decision"
+
+	# The golden-slice root controller owns interception and resets the pursuer
+	# entity immediately. Controller-authoritative INTERCEPTED must fail the job;
+	# the next controller-authoritative active pursuit must resume fast retry.
+	if not consumed_one_shots.reconcile_retained_progress(true, true, false, true):
+		return "Controller-authoritative interception did not fail the authored job"
+	if consumed_one_shots.phase != MissionScript.Phase.FAILED:
+		return "Controller-authoritative interception did not enter FAILED"
+	if not consumed_one_shots.reconcile_retained_progress(true, true, true, false):
+		return "Controller-authoritative retry pursuit did not resume the authored job"
+	if consumed_one_shots.phase != MissionScript.Phase.ROUTE_DECISION:
+		return "Controller-authoritative retry did not return to route decision"
+	if consumed_one_shots.failure_count != 1:
+		return "Controller-authoritative failure accounting is incorrect"
+
 	return ""
