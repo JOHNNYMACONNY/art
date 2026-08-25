@@ -2,16 +2,16 @@ class_name MemoryEchoController
 extends Node
 
 ## Echos in the Scrap — M04B Memory Echo Controller
-## State machine for the extraction Echo reveal sequence.
+## State machine for bounded Memory Echo reveal sequences.
 ## Arc: IDLE → ONSET → PEAK → RELEASE → DONE
 ## Total window: ~1.83s. Player retains movement control throughout.
 ##
-## Canon safety (04.3): content payload is deliberately fragmentary and
-## tagged PROPOSED. No lore facts, names, factions, or timeline committed.
-## Placeholder implementation names must not become canon by accident.
+## The original extraction trigger remains fail-closed and uses FIRST_ECHO_DATA.
+## Authored missions may supply a validated local EchoData payload through the
+## same visual/audio lifecycle; no parallel HS-7 presentation system exists.
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Data boundary (04.2): local/runtime only — no Nostr, AI, networking, persistence.
+# Data boundary: local/runtime only — no Nostr, AI, networking, persistence.
 # ─────────────────────────────────────────────────────────────────────────────
 
 class EchoData:
@@ -42,6 +42,15 @@ const FIRST_ECHO_DATA := {
 	"content": "[PROPOSED] signal // fragment 0x--- // memory location unknown // do not retransmit"
 }
 
+const AUTHORED_PAYLOAD_KEYS := [
+	"echo_id",
+	"action",
+	"zone",
+	"intensity",
+	"mission_ref",
+	"content",
+]
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Phase state machine
 # ─────────────────────────────────────────────────────────────────────────────
@@ -60,7 +69,7 @@ signal echo_completed
 var current_phase: EchoPhase = EchoPhase.IDLE
 var is_armed_for_extraction: bool = false
 var _echo_data: EchoData = null
-var _triggered_count: int = 0  # Counts lifetime triggers for replay re-arm check
+var _triggered_count: int = 0  # Counts triggers until authoritative replay reset
 var _phase_timer: float = 0.0
 
 # Phase durations (seconds)
@@ -122,13 +131,14 @@ func _setup_visual_overlay() -> void:
 	_text_container.add_theme_stylebox_override("panel", style)
 	_canvas_layer.add_child(_text_container)
 	
-	_text_label = Label.new()
-	_text_label.name = "EchoTextLabel"
-	_text_label.text = ""
-	_text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_text_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_text_label.add_theme_color_override("font_color", Color(0.4, 0.95, 1.0, 1.0))
-	_text_label.add_theme_font_size_override("font_size", 14)
+	var label := Label.new()
+	label.name = "EchoTextLabel"
+	label.text = ""
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", Color(0.4, 0.95, 1.0, 1.0))
+	label.add_theme_font_size_override("font_size", 14)
+	_text_label = label
 	_text_container.add_child(_text_label)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -143,11 +153,11 @@ func setup(audio_manager: AudioManager) -> void:
 func arm_for_extraction() -> void:
 	is_armed_for_extraction = true
 
-## Trigger the echo sequence. Strictly requires extraction arming (fails closed if un-armed).
-## M04B: Consumes/invalidates arm token on EVERY invocation (even rejected ones) and allows ONLY IDLE.
+## Trigger the original extraction echo sequence. Strictly requires extraction
+## arming and remains IDLE-only. The arm token is consumed on every invocation.
 func trigger_echo() -> bool:
 	var was_armed := is_armed_for_extraction
-	is_armed_for_extraction = false # Strictly invalidate arm token on every call
+	is_armed_for_extraction = false
 	
 	if not was_armed:
 		print("[ECHO] trigger_echo rejected: controller not armed for extraction")
@@ -155,18 +165,41 @@ func trigger_echo() -> bool:
 	if current_phase != EchoPhase.IDLE:
 		print("[ECHO] trigger_echo rejected: phase is %s (must be IDLE)" % EchoPhase.keys()[current_phase])
 		return false
-		
-	_echo_data = _build_first_echo()
-	_triggered_count += 1
-	print("[ECHO] Memory Echo triggered (count: %d, id: %s)" % [_triggered_count, _echo_data.echo_id])
-	_enter_onset()
+	return _begin_echo(_build_first_echo())
+
+## Trigger a validated authored payload through the same retained Echo lifecycle.
+## This is intentionally narrow: local Dictionary input, required fields, IDLE-only,
+## and no authority over mission state, persistence, pursuit, or networking.
+func trigger_authored_echo(payload: Dictionary) -> bool:
+	if current_phase != EchoPhase.IDLE:
+		print("[ECHO] authored trigger rejected: phase is %s (must be IDLE)" % EchoPhase.keys()[current_phase])
+		return false
+	var data := _build_authored_echo(payload)
+	if data == null:
+		print("[ECHO] authored trigger rejected: invalid payload")
+		return false
+	return _begin_echo(data)
+
+## Prepare a completed retained Echo controller for a later authored Echo in the
+## same campaign/replay. Unlike reset_echo(), this preserves trigger accounting.
+## It is deliberately DONE-only so active presentations cannot be interrupted.
+func prepare_next_echo() -> bool:
+	if current_phase != EchoPhase.DONE:
+		print("[ECHO] prepare_next_echo rejected: phase is %s (must be DONE)" % EchoPhase.keys()[current_phase])
+		return false
+	_phase_timer = 0.0
+	is_armed_for_extraction = false
+	current_phase = EchoPhase.IDLE
+	_echo_data = null
+	_purge_visual_overlay()
+	print("[ECHO] Completed Echo prepared for next authored beat")
 	return true
 
 ## Returns true if the echo has ever been triggered and has since completed.
 func has_completed() -> bool:
 	return current_phase == EchoPhase.DONE
 
-## Returns total lifetime trigger count (for once-per-replay assertion).
+## Returns total trigger count until the authoritative replay reset.
 func get_trigger_count() -> int:
 	return _triggered_count
 
@@ -182,8 +215,10 @@ func reset_echo() -> void:
 	# Stop echo voice in audio manager
 	if _audio_mgr and _audio_mgr._echo_voice:
 		_audio_mgr._echo_voice.stop()
-		
-	# Cleanly hide and reset visual overlay
+	_purge_visual_overlay()
+	print("[ECHO] Echo reset to IDLE cleanly (overlay purged)")
+
+func _purge_visual_overlay() -> void:
 	if _canvas_layer:
 		_canvas_layer.visible = false
 	if _flash_rect:
@@ -193,8 +228,6 @@ func reset_echo() -> void:
 		_text_container.modulate.a = 0.0
 	if _text_label:
 		_text_label.text = ""
-		
-	print("[ECHO] Echo reset to IDLE cleanly (overlay purged)")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Process tick
@@ -225,11 +258,11 @@ func _process(delta: float) -> void:
 				_on_release_complete()
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Internal phase transitions
+# Internal data construction / phase transitions
 # ─────────────────────────────────────────────────────────────────────────────
 
 func _build_first_echo() -> EchoData:
-	var d := EchoData.new(
+	return EchoData.new(
 		FIRST_ECHO_DATA["echo_id"],
 		FIRST_ECHO_DATA["action"],
 		FIRST_ECHO_DATA["zone"],
@@ -237,7 +270,42 @@ func _build_first_echo() -> EchoData:
 		FIRST_ECHO_DATA["mission_ref"],
 		FIRST_ECHO_DATA["content"]
 	)
-	return d
+
+func _build_authored_echo(payload: Dictionary) -> EchoData:
+	for key in AUTHORED_PAYLOAD_KEYS:
+		if not payload.has(key):
+			return null
+	if typeof(payload["echo_id"]) != TYPE_STRING \
+	or typeof(payload["action"]) != TYPE_STRING \
+	or typeof(payload["zone"]) != TYPE_STRING \
+	or typeof(payload["mission_ref"]) != TYPE_STRING \
+	or typeof(payload["content"]) != TYPE_STRING:
+		return null
+	var intensity_type := typeof(payload["intensity"])
+	if intensity_type != TYPE_FLOAT and intensity_type != TYPE_INT:
+		return null
+	var intensity := float(payload["intensity"])
+	if intensity < 0.0 or intensity > 1.0:
+		return null
+	if String(payload["echo_id"]).is_empty() or String(payload["content"]).is_empty():
+		return null
+	return EchoData.new(
+		payload["echo_id"],
+		payload["action"],
+		payload["zone"],
+		intensity,
+		payload["mission_ref"],
+		payload["content"]
+	)
+
+func _begin_echo(data: EchoData) -> bool:
+	if data == null or current_phase != EchoPhase.IDLE:
+		return false
+	_echo_data = data
+	_triggered_count += 1
+	print("[ECHO] Memory Echo triggered (count: %d, id: %s)" % [_triggered_count, _echo_data.echo_id])
+	_enter_onset()
+	return true
 
 func _enter_onset() -> void:
 	current_phase = EchoPhase.ONSET
