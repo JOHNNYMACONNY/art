@@ -4,6 +4,7 @@ extends SceneTree
 const TouchSteeringConditioningContract = preload("res://tests/touch_steering_conditioning_contract_test.gd")
 const MissionScrapJobContract = preload("res://tests/mission_scrap_job_contract_test.gd")
 const CivicRepossessionContract = preload("res://tests/civic_repossession_mission_contract_test.gd")
+const CivicMissionScript = preload("res://scripts/missions/civic_repossession_mission.gd")
 const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
 
 var _last_joystick_vector := Vector2.ZERO
@@ -62,6 +63,20 @@ func _run() -> void:
 	if runtime == null or not bool(runtime.get("_bound")):
 		await _fail("Mission/Narrative 01 runtime did not bind to retained gameplay systems")
 		return
+
+	# Mission/Narrative 02 must be a real production-scene adapter over the
+	# retained Hauler/pursuit systems, not a contract-only state machine.
+	var civic_runtime := _scene_under_test.get_node_or_null("CivicRepossessionRuntime")
+	if civic_runtime == null:
+		await _fail("Mission/Narrative 02 production runtime is missing")
+		return
+	if not bool(civic_runtime.get("_bound")):
+		await _fail("Mission/Narrative 02 runtime did not bind to retained gameplay systems")
+		return
+	if civic_runtime.mission.phase != CivicMissionScript.Phase.LOCKED:
+		await _fail("Mission/Narrative 02 did not remain LOCKED before Mission 01 completion")
+		return
+
 	var safe_root := touch_ui.get_node_or_null("SafeAreaRoot")
 	var mission_hud := safe_root.get_node_or_null("MissionHUD") if safe_root != null else null
 	if mission_hud == null:
@@ -77,14 +92,35 @@ func _run() -> void:
 		return
 	for hud_control in [mission_hud, margin, stack, title, objective, contact]:
 		if hud_control.mouse_filter != Control.MOUSE_FILTER_IGNORE:
-			await _fail("Mission/Narrative 01 HUD contains a control that can steal gameplay touch input")
+			await _fail("Mission HUD contains a control that can steal gameplay touch input")
 			return
+	if safe_root.find_children("MissionHUD", "PanelContainer", true, false).size() != 1:
+		await _fail("Mission/Narrative 02 created a parallel mission HUD instead of reusing Mission 01 UI")
+		return
 	if "COURIER BIKE" not in objective.text or not contact.text.begins_with("LIRA //"):
 		await _fail("Mission/Narrative 01 cold-start briefing is not visible in the production scene")
 		return
 	var bike = _scene_under_test.get("courier_bike")
 	if bike == null or not bike.mounted.is_connected(Callable(runtime, "_on_courier_bike_mounted")):
 		await _fail("Retained Courier Bike mounted signal is not connected to the authored mission runtime")
+		return
+	var hauler = _scene_under_test.get("scrap_hauler")
+	if hauler == null:
+		await _fail("Retained Scrap Hauler runtime reference is absent")
+		return
+	if not hauler.mounted.is_connected(Callable(civic_runtime, "_on_hauler_mounted")):
+		await _fail("Retained Scrap Hauler mounted signal is not connected to Civic Repossession")
+		return
+	var signal_gate = _scene_under_test.get("signal_gate")
+	if signal_gate == null or not signal_gate.gate_triggered.is_connected(Callable(civic_runtime, "_on_signal_gate_triggered")):
+		await _fail("Retained Signal Gate is not connected to Civic Repossession")
+		return
+	var return_zone := _scene_under_test.get_node_or_null("CivicRepossessionReturnZone")
+	if return_zone == null:
+		await _fail("Civic Repossession return-zone marker is missing from the production scene")
+		return
+	if return_zone.visible:
+		await _fail("Civic Repossession return zone is visible before delivery phase")
 		return
 
 	touch_ui.joystick_vector_updated.connect(func(vec: Vector2): _last_joystick_vector = vec)
@@ -181,6 +217,78 @@ func _run() -> void:
 		await _fail("Controller-authoritative retry pursuit did not resume the route decision")
 		return
 
+	# Complete Mission 01 and prove the second job takes over the same HUD only
+	# after that authored completion boundary.
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.CALM)
+	if not runtime.mission.on_escape_complete():
+		await _fail("Mission 01 fixture could not reach COMPLETE before Civic Repossession")
+		return
+	runtime.call("_refresh_hud")
+	await process_frame
+	if civic_runtime.mission.phase != CivicMissionScript.Phase.GET_HAULER:
+		await _fail("Mission 01 completion did not unlock Civic Repossession in production")
+		return
+	if title.text != "CIVIC REPOSSESSION // MAYOR BURN":
+		await _fail("Civic Repossession did not take ownership of the shared mission title")
+		return
+	if "SCRAP HAULER" not in objective.text or not contact.text.begins_with("MAYOR BURN //"):
+		await _fail("Mayor Burn handoff is not visible on the shared mission HUD")
+		return
+
+	# Exercise the real Hauler signal and controller-owned pursuit state. The
+	# mission observes/reuses those authorities; it does not create a parallel chase.
+	hauler.mounted.emit(player)
+	await process_frame
+	if civic_runtime.mission.phase != CivicMissionScript.Phase.ESCAPE:
+		await _fail("Real Scrap Hauler mounted signal did not start Civic Repossession escape")
+		return
+	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT):
+		await _fail("Hauler theft did not enter the retained disturbance/pursuit authority")
+		return
+
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.INTERCEPTED)
+	await process_frame
+	if civic_runtime.mission.phase != CivicMissionScript.Phase.FAILED or "RETRY PURSUIT" not in objective.text:
+		await _fail("Controller-authoritative interception did not fail Civic Repossession")
+		return
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE)
+	await process_frame
+	if civic_runtime.mission.phase != CivicMissionScript.Phase.ESCAPE:
+		await _fail("Controller-authoritative fast retry did not resume Civic Repossession escape")
+		return
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.EVADED)
+	await process_frame
+	if civic_runtime.mission.phase != CivicMissionScript.Phase.DELIVERY:
+		await _fail("Controller-authoritative evasion did not advance Civic Repossession to delivery")
+		return
+	if not return_zone.visible:
+		await _fail("Civic Repossession return zone did not become visible for delivery")
+		return
+
+	hauler.global_position = return_zone.global_position
+	await process_frame
+	if civic_runtime.mission.phase != CivicMissionScript.Phase.COMPLETE:
+		await _fail("Delivering the real Scrap Hauler did not complete Civic Repossession")
+		return
+	if str(CivicMissionScript.PAYOFF_CREDITS) not in objective.text:
+		await _fail("Civic Repossession payoff is not visible after delivery")
+		return
+
+	# Full Replay must restore campaign ordering and shared HUD ownership.
+	_scene_under_test.call("reset_slice")
+	await process_frame
+	await process_frame
+	if civic_runtime.mission.phase != CivicMissionScript.Phase.LOCKED:
+		await _fail("Full replay did not relock Civic Repossession behind Mission 01")
+		return
+	if return_zone.visible:
+		await _fail("Full replay left the Civic Repossession return zone visible")
+		return
+	if title.text != "SCRAP JOB 01 // CITY PROPERTY" or "COURIER BIKE" not in objective.text:
+		await _fail("Full replay did not restore Mission 01 shared HUD ownership")
+		return
+
 	print("[MISSION_NARRATIVE_01] CONTRACT + RUNTIME WIRING PASS")
+	print("[MISSION_NARRATIVE_02] CONTRACT + RUNTIME WIRING PASS")
 	print("[MOBILE_TOUCH_ROUTING] PASS")
 	await _finish(0)
