@@ -30,7 +30,7 @@ func _process(_delta: float) -> void:
 		_try_bind_runtime()
 		return
 
-	var mission_one_complete := _mission_one_runtime != null \
+	var mission_one_complete: bool = _mission_one_runtime != null \
 	and _mission_one_runtime.mission.phase == ScrapJobMissionScript.Phase.COMPLETE
 
 	if mission.phase == MissionScript.Phase.LOCKED and mission_one_complete:
