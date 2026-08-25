@@ -3,6 +3,8 @@ extends SceneTree
 # Integration regression for #29's full authority path:
 # keyboard -> TouchControlsUI normalized intent -> ScrapTestBlock -> existing vehicle physics seam.
 const PursuerInterceptContract = preload("res://tests/pursuer_intercept_contract_test.gd")
+const Wave1RetentionRecord = preload("res://tests/wave1_retention_record_test.gd")
+const WAVE1_CLOSURE_BRANCH := "chatgpt/wave1-retention-17"
 
 var _scene_under_test: Node = null
 
@@ -40,7 +42,59 @@ func _mount_vehicle_direct(vehicle: Node, player: Node) -> bool:
 		vehicle.mount_interactable.update_player_distance(player.global_position)
 	return vehicle.request_mount(player)
 
+func _is_wave1_closure_ci() -> bool:
+	if OS.get_environment("CI").to_lower() != "true":
+		return false
+	var head_ref := OS.get_environment("GITHUB_HEAD_REF").strip_edges()
+	var ref_name := OS.get_environment("GITHUB_REF_NAME").strip_edges()
+	return head_ref == WAVE1_CLOSURE_BRANCH or ref_name == WAVE1_CLOSURE_BRANCH
+
+func _run_ci_wave1_integrated_harness() -> String:
+	# #17 is a one-time adversarial retention gate. Keep the expensive nested
+	# E1-E7 comparison on the dedicated closure branch so it does not become a
+	# permanent tax or freeze future intentional feel work after this PR merges.
+	if not _is_wave1_closure_ci():
+		print("[CTW_FEEL_07] Integrated E1-E7 closure harness SKIP outside Wave 1 closure branch")
+		return ""
+	var output: Array = []
+	var project_path := ProjectSettings.globalize_path("res://")
+	# The Web workflow explicitly checks out SOURCE_SHA. On pull_request events
+	# GITHUB_SHA may identify the synthetic merge ref, so prefer SOURCE_SHA to
+	# keep integrated evidence pinned to the exact source actually under test.
+	var verification_sha := OS.get_environment("SOURCE_SHA").strip_edges()
+	if verification_sha.is_empty():
+		verification_sha = OS.get_environment("GITHUB_SHA").strip_edges()
+	if verification_sha.is_empty():
+		verification_sha = "ci-exact-source"
+	var args := PackedStringArray([
+		"--headless",
+		"--rendering-method", "gl_compatibility",
+		"--path", project_path,
+		"--script", "res://scripts/verification/ctw_wave1_integrated_harness.gd",
+		"--",
+		"--run-ctw-feel-integrated",
+		"--feel-build-commit=%s" % verification_sha,
+	])
+	var exit_code := OS.execute(OS.get_executable_path(), args, output, true)
+	var combined := "\n".join(output)
+	if exit_code != 0:
+		return "integrated E1-E7 harness exited %d; output=%s" % [exit_code, combined.right(3000)]
+	if not combined.contains("[CTW_FEEL] INTEGRATED PASS"):
+		return "integrated E1-E7 harness exited 0 without PASS marker; output=%s" % combined.right(3000)
+	print("[CTW_FEEL_07] Integrated E1-E7 comparison PASS source=%s" % verification_sha)
+	return ""
+
 func _run() -> void:
+	var retention_error: String = Wave1RetentionRecord.verify()
+	if not retention_error.is_empty():
+		await _fail("CTW Feel 07: %s" % retention_error)
+		return
+
+	var integrated_error := _run_ci_wave1_integrated_harness()
+	if not integrated_error.is_empty():
+		await _fail("CTW Feel 07: %s" % integrated_error)
+		return
+
 	# CTW Feel 06 owns a pure destination-selection A/B contract. Its synthetic
 	# nodes attach under the SceneTree root so production global transforms are
 	# valid, but it never touches the live prototype scene fixture.
