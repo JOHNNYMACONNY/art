@@ -3,6 +3,7 @@ extends SceneTree
 # Exercises actual Viewport -> Control GUI routing, not direct method calls.
 const TouchSteeringConditioningContract = preload("res://tests/touch_steering_conditioning_contract_test.gd")
 const MissionScrapJobContract = preload("res://tests/mission_scrap_job_contract_test.gd")
+const CivicRepossessionContract = preload("res://tests/civic_repossession_mission_contract_test.gd")
 const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
 
 var _last_joystick_vector := Vector2.ZERO
@@ -31,6 +32,11 @@ func _run() -> void:
 	var mission_error: String = MissionScrapJobContract.verify()
 	if not mission_error.is_empty():
 		await _fail("Mission/Narrative 01: %s" % mission_error)
+		return
+
+	var civic_error: String = CivicRepossessionContract.verify()
+	if not civic_error.is_empty():
+		await _fail("Mission/Narrative 02: %s" % civic_error)
 		return
 
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
