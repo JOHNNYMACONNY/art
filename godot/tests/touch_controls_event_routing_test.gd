@@ -364,8 +364,15 @@ func _run() -> void:
 	if city_runtime.mission.phase != CityMissionScript.Phase.ESCAPE:
 		await _fail("Authored HS-7 Echo completion did not start Mission 03 escape")
 		return
+	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.EVADED):
+		await _fail("Mission 03 mutated or consumed stale Mission 02 evasion before retained de-escalation")
+		return
+	# Model the retained pursuer's authoritative de-escalation-completed transition.
+	# Only after CALM may Mission 03 ask the root controller for its fresh chase.
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.CALM)
+	await process_frame
 	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT):
-		await _fail("Mission 03 Echo completion did not hand off to retained pursuit authority")
+		await _fail("Mission 03 did not start a fresh retained pursuit after prior de-escalation reached CALM")
 		return
 
 	_stage = "mission3_intercept"
