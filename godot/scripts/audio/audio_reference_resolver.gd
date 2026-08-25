@@ -7,6 +7,7 @@ extends RefCounted
 ## Uses AudioStreamWAV.load_from_file() with bounded diagnostic reason codes.
 
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
+const UIAudioSemanticRegistryScript = preload("res://scripts/audio/ui_audio_semantic_registry.gd")
 
 const ENV_ALLOW_REFERENCE := "ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO"
 const ENV_MANIFEST_PATH := "ECHOES_REFERENCE_AUDIO_MANIFEST"
@@ -31,6 +32,14 @@ static var _cached_manifest: Dictionary = {}
 static var _manifest_loaded: bool = false
 static var _sandbox_root: String = ""
 static var _cached_streams: Dictionary = {}
+
+static func _has_semantic_slot(slot_id: String) -> bool:
+	return AudioRegistryScript.has_slot(slot_id) or UIAudioSemanticRegistryScript.has_slot(slot_id)
+
+static func _get_semantic_slot(slot_id: String) -> Dictionary:
+	if AudioRegistryScript.has_slot(slot_id):
+		return AudioRegistryScript.get_slot(slot_id)
+	return UIAudioSemanticRegistryScript.get_slot(slot_id)
 
 static func is_reference_enabled() -> bool:
 	if not OS.is_debug_build():
@@ -109,7 +118,6 @@ static func load_manifest(manifest_path: String = "") -> Dictionary:
 		return {}
 
 	var raw_slots: Dictionary = data["slots"]
-	# Validate all entries have String keys and String values
 	for k in raw_slots.keys():
 		if not (k is String) or not (raw_slots[k] is String):
 			push_warning("[AudioReferenceResolver] %s" % REASON_MANIFEST_INVALID_SCHEMA)
@@ -123,7 +131,7 @@ static func load_manifest(manifest_path: String = "") -> Dictionary:
 	var valid_slots: Dictionary = {}
 	for slot_id in raw_slots.keys():
 		var rel_path: String = raw_slots[slot_id]
-		if not AudioRegistryScript.has_slot(slot_id):
+		if not _has_semantic_slot(slot_id):
 			push_warning("[AudioReferenceResolver] %s: %s" % [slot_id, REASON_SLOT_UNKNOWN])
 			continue
 
@@ -162,7 +170,7 @@ static func resolve_stream(slot_id: String, override_manifest_path: String = "")
 	if not _cached_manifest.has(slot_id):
 		return null
 
-	var slot_def: Dictionary = AudioRegistryScript.get_slot(slot_id)
+	var slot_def: Dictionary = _get_semantic_slot(slot_id)
 	if not slot_def.is_empty():
 		var status: int = slot_def.get("asset_status", -1)
 		if not AudioRegistryScript.is_reference_allowed_for_status(status):
