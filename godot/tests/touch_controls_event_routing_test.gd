@@ -9,11 +9,19 @@ const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.g
 
 var _last_joystick_vector := Vector2.ZERO
 var _scene_under_test: Node = null
+var _stage: String = "init"
 
 func _init() -> void:
+	call_deferred("_watchdog")
 	call_deferred("_run")
 
+func _watchdog() -> void:
+	await create_timer(12.0).timeout
+	push_error("[MOBILE_TOUCH_ROUTING] WATCHDOG TIMEOUT stage=%s" % _stage)
+	quit(1)
+
 func _finish(exit_code: int) -> void:
+	_stage = "finish"
 	if is_instance_valid(_scene_under_test):
 		_scene_under_test.queue_free()
 		await process_frame
@@ -21,10 +29,11 @@ func _finish(exit_code: int) -> void:
 	quit(exit_code)
 
 func _fail(message: String) -> void:
-	push_error("[MOBILE_TOUCH_ROUTING] %s" % message)
+	push_error("[MOBILE_TOUCH_ROUTING] %s (stage=%s)" % [message, _stage])
 	await _finish(1)
 
 func _run() -> void:
+	_stage = "contracts"
 	var steering_error: String = TouchSteeringConditioningContract.verify()
 	if not steering_error.is_empty():
 		await _fail("CTW Feel 02: %s" % steering_error)
@@ -40,6 +49,7 @@ func _run() -> void:
 		await _fail("Mission/Narrative 02: %s" % civic_error)
 		return
 
+	_stage = "scene_instantiation"
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
 		await _fail("Could not load scrap_test_block.tscn")
@@ -51,21 +61,18 @@ func _run() -> void:
 	await physics_frame
 	await process_frame
 
+	_stage = "runtime_bindings"
 	var touch_ui := _scene_under_test.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var player := _scene_under_test.get_node_or_null("Runner")
 	if touch_ui == null or player == null:
 		await _fail("Main scene is missing TouchControlsUI or Runner")
 		return
 
-	# Mission/Narrative 01 is deliberately attached to the production scene and
-	# must share the established safe-area root instead of creating a parallel UI.
 	var runtime := _scene_under_test.get_node_or_null("MissionScrapJobRuntime")
 	if runtime == null or not bool(runtime.get("_bound")):
 		await _fail("Mission/Narrative 01 runtime did not bind to retained gameplay systems")
 		return
 
-	# Mission/Narrative 02 must be a real production-scene adapter over the
-	# retained Hauler/pursuit systems, not a contract-only state machine.
 	var civic_runtime := _scene_under_test.get_node_or_null("CivicRepossessionRuntime")
 	if civic_runtime == null:
 		await _fail("Mission/Narrative 02 production runtime is missing")
@@ -123,6 +130,7 @@ func _run() -> void:
 		await _fail("Civic Repossession return zone is visible before delivery phase")
 		return
 
+	_stage = "touch_routing"
 	touch_ui.joystick_vector_updated.connect(func(vec: Vector2): _last_joystick_vector = vec)
 	var start_position: Vector3 = player.global_position
 
@@ -133,8 +141,6 @@ func _run() -> void:
 	root.push_input(touch_down, true)
 	await process_frame
 
-	# Keep the drag inside the now-visible 120px joystick base. This verifies
-	# that the passive joystick artwork cannot steal the active touch stream.
 	var touch_drag := InputEventScreenDrag.new()
 	touch_drag.index = 7
 	touch_drag.position = Vector2(180, 390)
@@ -170,9 +176,7 @@ func _run() -> void:
 		await _fail("Joystick release did not clear PlayerRunner input")
 		return
 
-	# After the authored bike prerequisite, parking short and walking to the mast
-	# must not strand the mission in traversal. Keep the bike unoccupied here to
-	# exercise the exact edge case without disturbing retained vehicle state.
+	_stage = "mission1_tuner"
 	runtime.call("_on_courier_bike_mounted", player)
 	if bike.get("occupant") != null:
 		await _fail("Mission early-park test unexpectedly mounted the retained bike")
@@ -187,10 +191,7 @@ func _run() -> void:
 		await _fail("Walking the final meters to the tuner did not advance the authored objective")
 		return
 
-	# Reproduce the one-shot ordering hazard without re-emitting either consumed
-	# production signal: the retained world is already solved when the authored
-	# job reaches SPOOF_SIGNAL. Runtime polling must catch up from authoritative
-	# component/controller state in a single frame.
+	_stage = "mission1_reconcile"
 	var panel = _scene_under_test.get("corroded_panel")
 	if panel == null:
 		await _fail("Retained Corroded Panel runtime reference is absent")
@@ -203,9 +204,7 @@ func _run() -> void:
 		await _fail("Consumed tuner/panel state did not reconcile into the live route decision")
 		return
 
-	# Normal golden-slice interception is decided by ScrapTestBlock before the
-	# pursuer entity's own delayed signal can fire. Observe the controller state,
-	# then prove the next controller-active pursuit resumes the retained fast retry.
+	_stage = "mission1_retry"
 	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.INTERCEPTED)
 	await process_frame
 	if "JOB BURNED" not in objective.text or "RETRY PURSUIT" not in objective.text:
@@ -217,8 +216,7 @@ func _run() -> void:
 		await _fail("Controller-authoritative retry pursuit did not resume the route decision")
 		return
 
-	# Complete Mission 01 and prove the second job takes over the same HUD only
-	# after that authored completion boundary.
+	_stage = "mission2_unlock"
 	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.CALM)
 	if not runtime.mission.on_escape_complete():
 		await _fail("Mission 01 fixture could not reach COMPLETE before Civic Repossession")
@@ -235,8 +233,7 @@ func _run() -> void:
 		await _fail("Mayor Burn handoff is not visible on the shared mission HUD")
 		return
 
-	# Exercise the real Hauler signal and controller-owned pursuit state. The
-	# mission observes/reuses those authorities; it does not create a parallel chase.
+	_stage = "mission2_mount"
 	hauler.mounted.emit(player)
 	await process_frame
 	if civic_runtime.mission.phase != CivicMissionScript.Phase.ESCAPE:
@@ -246,6 +243,7 @@ func _run() -> void:
 		await _fail("Hauler theft did not enter the retained disturbance/pursuit authority")
 		return
 
+	_stage = "mission2_intercept"
 	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.INTERCEPTED)
 	await process_frame
 	if civic_runtime.mission.phase != CivicMissionScript.Phase.FAILED or "RETRY PURSUIT" not in objective.text:
@@ -256,6 +254,8 @@ func _run() -> void:
 	if civic_runtime.mission.phase != CivicMissionScript.Phase.ESCAPE:
 		await _fail("Controller-authoritative fast retry did not resume Civic Repossession escape")
 		return
+
+	_stage = "mission2_evasion"
 	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.EVADED)
 	await process_frame
 	if civic_runtime.mission.phase != CivicMissionScript.Phase.DELIVERY:
@@ -265,6 +265,7 @@ func _run() -> void:
 		await _fail("Civic Repossession return zone did not become visible for delivery")
 		return
 
+	_stage = "mission2_delivery"
 	hauler.global_position = return_zone.global_position
 	await process_frame
 	if civic_runtime.mission.phase != CivicMissionScript.Phase.COMPLETE:
@@ -274,7 +275,7 @@ func _run() -> void:
 		await _fail("Civic Repossession payoff is not visible after delivery")
 		return
 
-	# Full Replay must restore campaign ordering and shared HUD ownership.
+	_stage = "full_replay"
 	_scene_under_test.call("reset_slice")
 	await process_frame
 	await process_frame
