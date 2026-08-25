@@ -1,4 +1,6 @@
-# Wayfinder Map: Echos in the Scrapheap — Godot 4 Golden Slice
+# Wayfinder Map: Echos in the Scrapheap — Historical Architecture Map
+
+> **Status note (2026-08-24):** This file is retained for architecture/history and is **not the current milestone/status tracker**. Current implementation truth lives in `HANDOFF.md`, current GitHub PR/issue state, and machine-readable verification records such as `godot/verification/feel/wave1_retention_summary.json`. Labels such as `ACTIVE` below describe the historical snapshot in which this map was written and must not be used to infer present completion state.
 
 ## 1. Project Overview & Destination
 A playable, mobile-first Godot 4 3D vertical slice of **ECHOES IN THE SCRAPHEAP** featuring:
@@ -13,14 +15,16 @@ A playable, mobile-first Godot 4 3D vertical slice of **ECHOES IN THE SCRAPHEAP*
 ## 2. Architecture & Tech Stack
 - **Engine**: Godot 4.7.1 Stable Official (3D Forward+ / Mobile / Headless execution)
 - **Primary Codebase**: `godot/scripts/`
-  - `player/`: `player_character.gd`, `camera_3d.gd`
-  - `vehicles/`: `courier_bike.gd`
-  - `enemies/`: `pursuer_prototype.gd`
-  - `interactables/`: `signal_tuner.gd`, `corroded_panel.gd`, `signal_gate_interactable.gd`
-  - `audio/`: `audio_manager.gd`
-  - `input/`: `touch_controls.gd`
-  - `prototype/`: `scrap_test_block.gd`
-- **Audio Architecture**: Procedural analytical synthesis (frequency chirps, harmonic drone, square beep denial, filtered noise) managed through a centralized 3-tier perceptual hierarchy and bounded transient registry.
+  - `player/`: player and runner behavior
+  - `camera/`: retained dynamic 3/4 camera behavior
+  - `vehicles/`: Courier Bike and Scrap Hauler
+  - `entities/`: pursuer and ambient actors
+  - `interactions/`: tuner, panel, Signal Gate and shared interactions
+  - `audio/`: centralized AudioManager, radio and vehicle-feedback layers
+  - `input/`: touch/desktop input normalization
+  - `prototype/`: golden-slice orchestration
+  - `verification/`: deterministic CTW feel harnesses
+- **Audio Architecture**: centralized semantic/runtime audio with procedural fallbacks, reactive radio, bounded transient ownership and authoritative reset.
 
 ---
 
@@ -34,7 +38,7 @@ A playable, mobile-first Godot 4 3D vertical slice of **ECHOES IN THE SCRAPHEAP*
 - **V5**: Environmental evasion (Signal Gate slam, pursuer detour).
 - **V6**: Full Golden Slice integration & screenshot export pipeline.
 
-### V7: Golden Slice Hardening & Subsystem Polish (COMPLETE / VERIFIED)
+### V7: Golden Slice Hardening & Subsystem Polish (HISTORICALLY COMPLETE / VERIFIED)
 - **Ticket 01**: Gate solid collision & peel touch-release cancellation.
 - **Ticket 02 / 02.1**: Multi-touch isolation, dismount speed denial, chase detour balance.
 - **Ticket 03**: Saturating `tanh` tuner accumulator, near-lock enter/exit lifecycle.
@@ -42,18 +46,18 @@ A playable, mobile-first Godot 4 3D vertical slice of **ECHOES IN THE SCRAPHEAP*
 - **Ticket 05**: Chinatown Wars camera feel, single-layer smoothed focus, dual-rate look-ahead, speed FOV breathing.
 - **Ticket 06 (06.1–06.4)**: 3-tier audio hierarchy, pursuit pressure with hysteresis, true procedural sweeps, clean replay resets.
 
-### V8: Scrapheap World Identity, Mobile Touch UX & Threat Aftermath
-- **V8 M01**: Scrapheap World Identity, Dressing & Atmosphere (COMPLETE / VERIFIED).
+### V8: Scrapheap World Identity, Mobile Touch UX & Threat Aftermath — Historical Snapshot
+- **V8 M01**: Scrapheap World Identity, Dressing & Atmosphere (historically complete / verified).
   - `01.1`: Visual Language & Modular Scrap Kit.
   - `01.2`: World Dressing & Landmark Pass.
   - `01.3`: Lighting, Atmosphere & Silhouette Depth.
   - `01.4`: Readability & Mobile Performance Baseline.
-- **V8 M02**: Mobile Safe-Area, Touch Ergonomics, Global Pointer Ownership & Multi-Touch (COMPLETE / VERIFIED).
+- **V8 M02**: Mobile Safe-Area, Touch Ergonomics, Global Pointer Ownership & Multi-Touch (historically complete / verified).
   - `02.1A`: Safe-Area Viewport Scale & Offset Mapper.
   - `02.2A`: Compact 2-Column Right-Thumb Hierarchy, 16px Grid & Cutout Touch Rejection.
   - `02.3 & 02.3B`: Global Pointer Registry (`is_pointer_index_claimed`), Mouse Sentinel (-999), 18-Test Adversarial Matrix (A-R).
   - `02.4`: Multi-Viewport Telemetry, 8-Gameplay-State Capture Matrix & Scorecard.
-- **V8 M03**: Threat Aftermath & World Continuity (ACTIVE).
+- **V8 M03**: Threat Aftermath & World Continuity (**historical `ACTIVE` label; current status superseded by `HANDOFF.md`**).
   - `03.1`: Pursuer De-escalation & Retreat/Search Behavior.
   - `03.2`: Aftermath Pressure Decay & Audio Fade.
   - `03.3`: Deterministic Reset & Retrigger Lifecycle.
@@ -61,6 +65,18 @@ A playable, mobile-first Godot 4 3D vertical slice of **ECHOES IN THE SCRAPHEAP*
 
 ---
 
-## 4. Historical Context (Superseded)
+## 4. Current Continuity Pointer
+
+For the current retained gameplay configuration and next-state rules, use:
+
+1. `HANDOFF.md`
+2. `godot/verification/feel/wave1_retention_summary.json`
+3. current GitHub issue / PR / workflow state
+
+The CTW Feel Wave 1 functional retention record explicitly distinguishes retained, reverted and pending experiments. In particular, the current camera follow is retained while the separate occlusion experiment is non-retained; experimental touch steering conditioning remains disabled pending device qualification.
+
+---
+
+## 5. Historical Context (Superseded)
 > [!NOTE]
 > Early exploratory v0 drafts originally investigated Three.js / WebGL in `code/` for quick browser previews. All production development is fully unified in Godot 4 under `godot/`.
