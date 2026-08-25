@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3 uid="uid://c_scrap_test_block_001"]
+[gd_scene load_steps=28 format=3 uid="uid://c_scrap_test_block_001"]
 
 [ext_resource type="Script" path="res://scripts/prototype/scrap_test_block.gd" id="1_root"]
 
@@ -17,6 +17,7 @@
 [ext_resource type="Script" path="res://scripts/audio/ui_audio_identity_layer.gd" id="9_ui_audio"]
 [ext_resource type="Script" path="res://scripts/missions/scrap_job_mission_runtime.gd" id="10_mission_runtime"]
 [ext_resource type="Script" path="res://scripts/missions/civic_repossession_runtime.gd" id="11_civic_runtime"]
+[ext_resource type="Script" path="res://scripts/missions/city_that_forgot_runtime.gd" id="12_city_runtime"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -217,6 +218,9 @@ script = ExtResource("10_mission_runtime")
 
 [node name="CivicRepossessionRuntime" type="Node" parent="."]
 script = ExtResource("11_civic_runtime")
+
+[node name="CityThatForgotRuntime" type="Node" parent="."]
+script = ExtResource("12_city_runtime")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
