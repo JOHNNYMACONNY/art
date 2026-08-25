@@ -77,7 +77,7 @@ func _run() -> void:
 	if civic_runtime == null:
 		await _fail("Mission/Narrative 02 production runtime is missing")
 		return
-	if not bool(civic_runtime.get("_bound")):
+	if civic_runtime.get("_bound") != true:
 		await _fail("Mission/Narrative 02 runtime did not bind to retained gameplay systems")
 		return
 	if civic_runtime.mission.phase != CivicMissionScript.Phase.LOCKED:
