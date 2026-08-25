@@ -289,6 +289,43 @@ func _run() -> void:
 		await _fail("Full replay did not restore Mission 01 shared HUD ownership")
 		return
 
+	_stage = "premounted_hauler_reconcile"
+	if not runtime.mission.on_courier_bike_mounted():
+		await _fail("Pre-mounted Hauler fixture could not pass Mission 01 bike prerequisite")
+		return
+	if not runtime.mission.on_tuner_arrived():
+		await _fail("Pre-mounted Hauler fixture could not reach tuner objective")
+		return
+	if not runtime.mission.on_signal_locked():
+		await _fail("Pre-mounted Hauler fixture could not solve signal")
+		return
+	if not runtime.mission.on_core_extracted():
+		await _fail("Pre-mounted Hauler fixture could not extract core")
+		return
+	if not runtime.mission.on_pursuit_active():
+		await _fail("Pre-mounted Hauler fixture could not reach escape")
+		return
+	tuner.set("current_state", SignalTuner.TunerState.LOCKED)
+	panel.set("current_step", CorrodedPanel.Step.EXTRACTED)
+	hauler.set("occupant", player)
+	hauler.mounted.emit(player)
+	await process_frame
+	if civic_runtime.mission.phase != CivicMissionScript.Phase.LOCKED:
+		await _fail("Hauler use before Mission 01 completion incorrectly unlocked Civic Repossession")
+		return
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.CALM)
+	if not runtime.mission.on_escape_complete():
+		await _fail("Pre-mounted Hauler fixture could not complete Mission 01")
+		return
+	runtime.call("_refresh_hud")
+	await process_frame
+	if civic_runtime.mission.phase != CivicMissionScript.Phase.ESCAPE:
+		await _fail("Civic Repossession stranded after Mission 01 completed with the Hauler already occupied")
+		return
+	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT):
+		await _fail("Pre-mounted Hauler reconciliation did not enter retained pursuit authority")
+		return
+
 	print("[MISSION_NARRATIVE_01] CONTRACT + RUNTIME WIRING PASS")
 	print("[MISSION_NARRATIVE_02] CONTRACT + RUNTIME WIRING PASS")
 	print("[MOBILE_TOUCH_ROUTING] PASS")
