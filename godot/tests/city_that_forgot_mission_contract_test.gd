@@ -1,8 +1,13 @@
 extends RefCounted
 
 const MISSION_PATH := "res://scripts/missions/city_that_forgot_mission.gd"
+const MemoryEchoAuthoredPayloadContract = preload("res://tests/memory_echo_authored_payload_contract_test.gd")
 
 static func verify() -> String:
+	var echo_error: String = MemoryEchoAuthoredPayloadContract.verify()
+	if not echo_error.is_empty():
+		return "Memory Echo authored payload: %s" % echo_error
+
 	var mission_script = load(MISSION_PATH)
 	if mission_script == null:
 		return "The City That Forgot mission script is missing"
