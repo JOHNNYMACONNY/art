@@ -1,6 +1,8 @@
 extends SceneTree
 
 # Exercises actual Viewport -> Control GUI routing, not direct method calls.
+const TouchSteeringConditioningContract = preload("res://tests/touch_steering_conditioning_contract_test.gd")
+
 var _last_joystick_vector := Vector2.ZERO
 var _scene_under_test: Node = null
 
@@ -19,6 +21,11 @@ func _fail(message: String) -> void:
 	await _finish(1)
 
 func _run() -> void:
+	var steering_error: String = TouchSteeringConditioningContract.verify()
+	if not steering_error.is_empty():
+		await _fail("CTW Feel 02: %s" % steering_error)
+		return
+
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
 		await _fail("Could not load scrap_test_block.tscn")
