@@ -1,6 +1,7 @@
 extends SceneTree
 
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
+const UIAudioIdentityLayerScript = preload("res://scripts/audio/ui_audio_identity_layer.gd")
 const VehicleFeedbackContract = preload("res://tests/vehicle_feedback_contract_test.gd")
 const UIAudioIdentityContract = preload("res://tests/ui_audio_identity_contract_test.gd")
 
@@ -84,6 +85,10 @@ func _run_ci_windowed_vehicle_proof() -> String:
 func _run() -> void:
 	_manager = AudioManagerScript.new()
 	root.add_child(_manager)
+	var ui_layer := UIAudioIdentityLayerScript.new()
+	ui_layer.name = "UIAudioIdentityLayer"
+	_manager.add_child(ui_layer)
+	ui_layer.call("configure", _manager)
 	await process_frame
 
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
@@ -185,7 +190,7 @@ func _run() -> void:
 
 	# Audio 06: reusable semantic UI identity, fatigue budget, critical mix priority,
 	# and reset lifecycle share this exact-head runtime gate.
-	var ui_error: String = UIAudioIdentityContract.verify(_manager)
+	var ui_error: String = UIAudioIdentityContract.verify(_manager, ui_layer)
 	if not ui_error.is_empty():
 		await _fail("Audio 06: %s" % ui_error)
 		return
@@ -210,6 +215,7 @@ func _run() -> void:
 	radio_player = null
 	siren_player = null
 	tension_player = null
+	ui_layer = null
 	_manager.queue_free()
 	await process_frame
 	await process_frame
