@@ -96,8 +96,6 @@ func _run() -> void:
 		return
 
 	# 3. Touch/button and desktop E converge through one semantic action path.
-	# Each deliberate action must create exactly one UI-audio attempt; key-repeat
-	# echo and a browser-style emulated mouse companion must not duplicate it.
 	ui_audio.call("reset_accounting")
 	touch_ui.action_button.pressed.emit()
 	await process_frame
@@ -168,8 +166,6 @@ func _run() -> void:
 	touch_ui.dismount_pressed.connect(func(): dismount_count[0] += 1)
 	touch_ui.radio_toggle_pressed.connect(func(): radio_count[0] += 1)
 
-	# A focused touch Button must not receive the same Space key that driving
-	# consumes as handbrake. Exercise the real Viewport propagation path.
 	touch_ui.radio_button.grab_focus()
 	await process_frame
 	if not touch_ui.radio_button.has_focus():
@@ -202,7 +198,7 @@ func _run() -> void:
 		await _fail("Vehicle D did not emit normalized +1 steering")
 		return
 	touch_ui._input(_key_event(KEY_A, true))
-	if not is_equal_approx(steer[0], 0.0):
+	if not is_zero_approx(steer[0]):
 		await _fail("Vehicle A+D did not cancel to zero steering")
 		return
 	touch_ui._input(_key_event(KEY_D, false))
@@ -227,6 +223,9 @@ func _run() -> void:
 		await _fail("Vehicle E must emit exactly one dismount/context action")
 		return
 
+	# R is a radio power/state toggle in the current prototype, so its semantic
+	# cue is MODE_SWITCH. RADIO_STATION_STEP remains reserved for actual station
+	# stepping rather than conflating two different actions.
 	ui_audio.call("reset_accounting")
 	touch_ui._input(_key_event(KEY_R, true))
 	touch_ui._input(_key_event(KEY_R, true, true))
@@ -234,8 +233,11 @@ func _run() -> void:
 	if radio_count[0] != 1:
 		await _fail("Vehicle R must emit exactly one radio toggle")
 		return
-	if _ui_attempt_count(ui_audio, "ui.radio_station_step") != 1:
-		await _fail("Vehicle R press + repeat echo duplicated radio-step UI audio")
+	if _ui_attempt_count(ui_audio, "ui.mode_switch") != 1:
+		await _fail("Vehicle R press + repeat echo did not produce exactly one radio mode-switch UI cue")
+		return
+	if _ui_attempt_count(ui_audio, "ui.radio_station_step") != 0:
+		await _fail("Radio toggle incorrectly claimed the station-step semantic")
 		return
 
 	# 6. Touch ownership survives browser-synthesized companion mouse events.
