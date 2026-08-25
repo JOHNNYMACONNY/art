@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "ticket": 17,
+  "integrated_behavior_sha": "a10ac0ce235fa56ca8084cae05ad0959751a821b",
+  "immutable_baseline_behavior_sha": "09fa2b0ab8aebc8a2ae54b989bffad7720503e48",
+  "purpose": "Adversarial retention/reversion gate for CTW Feel Translation Wave 1. No gameplay behavior is introduced by ticket 17.",
+  "candidate_dispositions": {
+    "12": {
+      "name": "touch steering intent A/B",
+      "disposition": "PENDING",
+      "production_default": "linear steering",
+      "candidate": "0.06 radial deadzone + 1.5 response power behind disabled flag",
+      "reason": "Physical touch A/B is required before changing the default; the bounded candidate remains available but disabled."
+    },
+    "13": {
+      "name": "camera occlusion readability slice",
+      "disposition": "REVERTED",
+      "production_default": "retained dynamic Chinatown-Wars-style camera follow",
+      "candidate": "PR #44 occlusion cutaway experiment, test-only/unmerged",
+      "reason": "Current camera movement was accepted as good-enough in owner play; the separate occlusion experiment did not leave RED/test-only state and is not part of the retained Wave 1 system."
+    },
+    "14": {
+      "name": "traction, impact and vehicle audio feedback",
+      "disposition": "RETAINED",
+      "merge_commit": "bce075dcba65f78c93ed46950c145ee590b74a0b",
+      "reason": "Exact-head and merged-main automated telemetry, mix/reset, impact scaling and rendered slip-feedback gates passed."
+    },
+    "15": {
+      "name": "fast pursuit retry",
+      "disposition": "RETAINED",
+      "reason": "Issue #15 is closed and the canonical --run-v8-m15-fast-retry-assertions suite remains part of the current compatibility matrix."
+    },
+    "16": {
+      "name": "bounded pursuer interception",
+      "disposition": "RETAINED",
+      "merge_commit": "3f66483805606e523434409bf2ab86e9bfa88b4c",
+      "reason": "Destination-only bounded interception beat direct tail-following geometry while preserving motion authority, detour, evasion and retry regressions."
+    }
+  },
+  "retained_system": {
+    "touch": "linear normalized steering default; experimental conditioner disabled",
+    "bike": "existing Courier Bike handling physics plus retained Feel 04 presentation feedback",
+    "camera": "current dynamic 3/4 follow/look-ahead/FOV behavior; no Feel 03 occlusion cutaway",
+    "pursuit": "bounded observable-velocity interception with authored detour authority",
+    "retry": "fast pursuit retry preserving solved setup",
+    "audio": "retained vehicle feedback below pursuit/Memory Echo priority with authoritative reset"
+  },
+  "perceptual_gates": {
+    "camera_owner_playtest": "ACCEPTED_CURRENT_BASELINE__NOT_A_FRESH_PLAYER_GATE",
+    "touch_candidate": "NOT_REQUIRED_FOR_DEFAULT__CANDIDATE_PENDING",
+    "audio_physical_playback": "DEFERRED_NON_BLOCKING_BY_PRODUCT_CODE_VERIFICATION_POLICY",
+    "fresh_player": "PENDING"
+  },
+  "rendered_evidence_classification": {
+    "current_camera": "retained existing rendered/camera regression evidence; occlusion candidate reverted",
+    "vehicle_feedback": "automated windowed rendered slip proof retained from Feel 04 exact-head CI",
+    "full_integrated_flow": "current Web/export plus canonical V1-V8+ compatibility matrix required on ticket 17 exact head"
+  },
+  "performance_classification": {
+    "ticket_17_runtime_change": "NONE",
+    "rule": "Any current compatibility/performance regression fails the functional Wave gate; ticket 17 itself adds verification-only code."
+  },
+  "remaining_blockers": [
+    "Fresh/uncoached multi-player perceptual gate has not been run.",
+    "Experimental touch steering candidate remains pending physical touch-device A/B and is not the default.",
+    "Physical audio playback is deferred under the current code-first production policy and is not claimed as performed."
+  ],
+  "completion_state": "FUNCTIONAL_WAVE_VERIFIED__PERCEPTUAL_GATE_PENDING"
+}
