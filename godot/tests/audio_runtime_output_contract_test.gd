@@ -4,6 +4,7 @@ const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 const UIAudioIdentityLayerScript = preload("res://scripts/audio/ui_audio_identity_layer.gd")
 const VehicleFeedbackContract = preload("res://tests/vehicle_feedback_contract_test.gd")
 const UIAudioIdentityContract = preload("res://tests/ui_audio_identity_contract_test.gd")
+const AudioFirstRetentionContract = preload("res://tests/audio_first_retention_contract_test.gd")
 
 var _manager: Node = null
 
@@ -99,8 +100,6 @@ func _run() -> void:
 		await _fail("Runtime audio diagnostics seam is absent")
 		return
 
-	# The audible probe is test-only. Production AudioManager must not expose a
-	# generic debug tone method that could remain callable in release exports.
 	if _manager.has_method("play_debug_output_probe"):
 		await _fail("Debug output probe leaked into the production AudioManager API")
 		return
@@ -133,8 +132,6 @@ func _run() -> void:
 		await _fail("Master bus volume is effectively silent")
 		return
 
-	# Headless CI is expected to use Godot's Dummy driver; that is diagnostic
-	# evidence, not physical-audibility proof. The synthesized PCM must still be real.
 	var tone: AudioStreamWAV = _manager.call("_create_tone_wav", 440.0, 0.10, 0.5)
 	if _pcm_span(tone) < 32:
 		await _fail("Procedural fallback tone has insufficient PCM amplitude")
@@ -151,7 +148,6 @@ func _run() -> void:
 	probe_player.free()
 	probe_player = null
 
-	# Existing gameplay activation paths remain covered before the new product seam.
 	_manager.call("play_event", AudioManagerScript.SoundEvent.FOOTSTEP, Vector3.ZERO)
 	var active_transients: Array = _manager.get("_active_transients")
 	if active_transients.is_empty():
@@ -192,14 +188,19 @@ func _run() -> void:
 		await _fail("Authoritative reset left radio playback active")
 		return
 
-	# Audio 06: reusable semantic UI identity, fatigue budget, critical mix priority,
-	# and reset lifecycle share this exact-head runtime gate.
+	# Audio 07 is a retention/report gate only. Fail closed if the durable report
+	# does not match live registries, shipping boundaries, dispositions, or the
+	# truthful perceptual status of the integrated audio-first slice.
+	var retention_error: String = AudioFirstRetentionContract.verify()
+	if not retention_error.is_empty():
+		await _fail("Audio 07: %s" % retention_error)
+		return
+
 	var ui_error: String = UIAudioIdentityContract.verify(_manager, ui_layer)
 	if not ui_error.is_empty():
 		await _fail("Audio 06: %s" % ui_error)
 		return
 
-	# CTW Feel 04 regression: same exact-head audio gate, real Courier Bike telemetry.
 	var vehicle_error: String = VehicleFeedbackContract.verify(_manager)
 	if not vehicle_error.is_empty():
 		await _fail("CTW Feel 04: %s" % vehicle_error)
@@ -211,7 +212,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility and legacy rendered proof remain external/targeted)")
+	print("[AUDIO_RUNTIME_31] PASS (Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
 
 	active_transients = []
 	tuner_player = null

@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "ticket": 27,
+  "integrated_behavior_sha": "204a92b7e79ae5c35876633c2a37ac018ba5abdb",
+  "completion_state": "FUNCTIONAL_VERIFIED__PERCEPTUAL_GATE_PENDING",
+  "purpose": "Audio-first vertical-slice retention and replacement report. Ticket 27 introduces no gameplay behavior; it records the retained functional audio system, shipping boundary, replacement inventory, and still-pending physical listening gate.",
+  "candidate_dispositions": {
+    "21": {
+      "name": "semantic audio registry and dev-only local reference resolver",
+      "disposition": "FUNCTIONALLY_RETAINED",
+      "reason": "Semantic routing and fail-closed local override remain the stable source-of-truth path for incremental audio replacement."
+    },
+    "22": {
+      "name": "reactive Yardline radio program director",
+      "disposition": "FUNCTIONALLY_RETAINED",
+      "reason": "Deterministic anti-repeat/max-gap radio program behavior remains covered by the canonical current compatibility suite."
+    },
+    "23": {
+      "name": "vehicle radio lifecycle and persistence",
+      "disposition": "FUNCTIONALLY_RETAINED",
+      "reason": "Bike/Hauler entry, exit, radio state, and replay lifecycle remain covered by the current vehicle/audio regression path."
+    },
+    "24": {
+      "name": "pursuit and critical-event mix ownership",
+      "disposition": "FUNCTIONALLY_RETAINED",
+      "reason": "Critical pursuit/interception cues retain priority over vehicle, radio, ambience, and incidental UI through current mix-state contracts."
+    },
+    "25": {
+      "name": "Memory Echo hybrid radio interference",
+      "disposition": "FUNCTIONALLY_RETAINED",
+      "reason": "Echo onset/bed/completion/interference and disturbance handoff remain covered by exact current compatibility tests."
+    },
+    "26": {
+      "name": "semantic menu and UI audio identity",
+      "disposition": "FUNCTIONALLY_RETAINED",
+      "reason": "Bounded UI semantics, fatigue limits, critical-state suppression, input parity, and reset ordering passed exact-head and merged-main Audio Runtime/Web verification."
+    }
+  },
+  "playback_proof": {
+    "calm_yard_vehicle_entry": {
+      "automated_status": "COVERED",
+      "automated_evidence": ["Godot Web Playtest canonical compatibility matrix", "V3 vehicle assertions", "Audio Runtime output contract"],
+      "physical_status": "PENDING",
+      "note": "No fresh headphone/phone listening pass was performed for Audio 07."
+    },
+    "radio_driving": {
+      "automated_status": "COVERED",
+      "automated_evidence": ["Audio Runtime radio stream activation", "vehicle authority/radio lifecycle regressions"],
+      "physical_status": "PENDING",
+      "note": "Functional radio playback/state is verified; subjective mix/tone listening remains deferred."
+    },
+    "exit_reenter_persistence": {
+      "automated_status": "COVERED",
+      "automated_evidence": ["vehicle radio lifecycle regressions", "Godot Web Playtest compatibility matrix"],
+      "physical_status": "PENDING",
+      "note": "State continuity is code-verified; physical perception is not claimed."
+    },
+    "station_off_switching": {
+      "automated_status": "COVERED",
+      "automated_evidence": ["desktop/mobile radio input parity", "Audio Runtime radio lifecycle"],
+      "physical_status": "PENDING",
+      "note": "Current prototype exposes radio state toggle; station-step semantic is reserved separately and not conflated with toggle."
+    },
+    "disturbance_over_radio": {
+      "automated_status": "COVERED",
+      "automated_evidence": ["canonical disturbance/pursuit mix regressions", "Audio Runtime priority contracts"],
+      "physical_status": "PENDING",
+      "note": "Priority behavior is automated; subjective intelligibility listening remains deferred."
+    },
+    "active_pursuit_mix": {
+      "automated_status": "COVERED",
+      "automated_evidence": ["Audio Runtime pursuit siren/tension activation", "canonical pursuit/gate/evasion regressions"],
+      "physical_status": "PENDING",
+      "note": "Threat-priority logic is code-verified; loudness/taste judgment is not claimed."
+    },
+    "echo_hybrid_transition": {
+      "automated_status": "COVERED",
+      "automated_evidence": ["Memory Echo compatibility suites", "Audio Runtime critical-state suppression"],
+      "physical_status": "PENDING",
+      "note": "Echo/radio interaction is functionally retained; physical transition quality remains a perceptual gate."
+    },
+    "evasion_quiet_recovery": {
+      "automated_status": "COVERED",
+      "automated_evidence": ["V4/V6/V8 aftermath and reset regressions", "Godot Web Playtest compatibility matrix"],
+      "physical_status": "PENDING",
+      "note": "De-escalation/reset behavior is deterministic; subjective quiet-recovery feel is deferred."
+    },
+    "replay_reset": {
+      "automated_status": "COVERED",
+      "automated_evidence": ["Audio Runtime authoritative reset", "fast-retry/replay regressions", "UI replay confirmation post-reset ordering test"],
+      "physical_status": "PENDING",
+      "note": "No leaked runtime voices are functionally tolerated; physical listening is not claimed."
+    },
+    "local_reference_ab": {
+      "automated_status": "COVERED",
+      "automated_evidence": ["fail-closed AudioReferenceResolver contracts", "clean export/reference-disabled boundary"],
+      "physical_status": "NOT_RUN_LOCAL_ONLY",
+      "note": "No local reference WAVs or manifest are committed. Any future A/B remains developer-local and must never ship as hidden project content."
+    }
+  },
+  "replacement_report": {
+    "total_slots": 48,
+    "slots_by_status": {
+      "PROCEDURAL_FALLBACK": [
+        "player.footstep",
+        "player.bike_mount",
+        "player.bike_dismount",
+        "player.signal_lock_pulse",
+        "interaction.panel_pry",
+        "interaction.panel_peel",
+        "interaction.wire_clip",
+        "interaction.wire_spark",
+        "interaction.battery_insert",
+        "interaction.core_extracted",
+        "interaction.gate_triggered",
+        "vehicle.engine_rev",
+        "vehicle.brake_screech",
+        "vehicle.collision_glance",
+        "vehicle.collision_hard",
+        "pursuit.disturbance_alert",
+        "pursuit.siren_alarm",
+        "pursuit.pursuer_sweep",
+        "pursuit.evaded_stinger",
+        "pursuit.intercepted_impact",
+        "echo.onset",
+        "echo.bed_loop",
+        "echo.completion",
+        "echo.radio_interference",
+        "world.ambient_wind",
+        "world.radio_chatter",
+        "radio.yardline.song_01.intro",
+        "radio.yardline.song_01.body",
+        "radio.yardline.song_01.outro",
+        "radio.yardline.song_02.body",
+        "radio.yardline.song_03.body",
+        "radio.yardline.song_04.body",
+        "radio.yardline.dj_link_intro",
+        "radio.yardline.dj_link_outro",
+        "radio.yardline.dj_sweeper",
+        "radio.yardline.station_id_01",
+        "radio.yardline.station_id_02",
+        "radio.yardline.advert_01",
+        "radio.yardline.advert_02",
+        "radio.yardline.world_pursuit",
+        "radio.yardline.world_gate",
+        "ui.nav_move",
+        "ui.nav_confirm",
+        "ui.nav_back",
+        "ui.mode_switch",
+        "ui.reject",
+        "ui.radio_station_step",
+        "ui.replay_retry_confirm"
+      ],
+      "REFERENCE_ONLY": [],
+      "ORIGINAL_WIP": [],
+      "ORIGINAL_FINAL": [],
+      "LICENSED_FINAL": []
+    },
+    "missing_or_blocked": [],
+    "replacement_priority": [
+      "Keep semantic IDs and runtime ownership stable while replacing fallback media incrementally.",
+      "Prioritize signature Echo/threat/radio/vehicle identity assets before incidental UI polish when original/licensed media becomes available.",
+      "Do not convert a local reference into shipping media without an explicit rights-safe status transition."
+    ]
+  },
+  "shipping_boundary": {
+    "reference_media_committed": false,
+    "local_manifest_committed": false,
+    "clean_export_requires_reference": false,
+    "local_reference_mode": "DEV_OPT_IN_ONLY",
+    "shipping_rule": "REFERENCE_ONLY media and developer-local reference manifests are not part of clean export or source-controlled runtime content."
+  },
+  "performance_voice_policy": {
+    "ui_voice_cap": 3,
+    "ticket_27_runtime_gameplay_change": "NONE",
+    "retention_rule": "Retain only bounded ownership whose functional value exceeds complexity; current #21-#26 systems remain within existing regression and voice-lifecycle contracts."
+  },
+  "remaining_perceptual_gates": [
+    "Fresh physical playback of the ten-scenario Audio 07 matrix has not been performed.",
+    "Headphone/phone-speaker masking, fatigue, radio intelligibility, and Echo-transition taste remain perceptual judgments rather than code claims.",
+    "Developer-local reference A/B was not run because no local reference package is present in this implementation plane."
+  ],
+  "parent_20_state": "REMAINS_OPEN__PERCEPTUAL_GATE_PENDING"
+}
