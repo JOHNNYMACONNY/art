@@ -1,12 +1,25 @@
 extends RefCounted
 
 const MISSION_PATH := "res://scripts/missions/city_that_forgot_mission.gd"
+const PRODUCTION_SCENE_PATH := "res://scenes/prototype/scrap_test_block.tscn"
+const CIVIC_RUNTIME_PATH := "res://scripts/missions/civic_repossession_runtime.gd"
 const MemoryEchoAuthoredPayloadContract = preload("res://tests/memory_echo_authored_payload_contract_test.gd")
 
 static func verify() -> String:
 	var echo_error: String = MemoryEchoAuthoredPayloadContract.verify()
 	if not echo_error.is_empty():
 		return "Memory Echo authored payload: %s" % echo_error
+
+	var scene_source := FileAccess.get_file_as_string(PRODUCTION_SCENE_PATH)
+	if scene_source.is_empty():
+		return "Production scene source could not be inspected"
+	if "res://scripts/missions/city_that_forgot_runtime.gd" not in scene_source \
+	or "[node name=\"CityThatForgotRuntime\" type=\"Node\" parent=\".\"]" not in scene_source:
+		return "Production scene does not own Mission 03 as a peer authored runtime"
+
+	var civic_source := FileAccess.get_file_as_string(CIVIC_RUNTIME_PATH)
+	if "CityThatForgotRuntimeScript" in civic_source or "_ensure_mission_three_runtime" in civic_source:
+		return "Civic Repossession has forward composition knowledge of Mission 03"
 
 	var mission_script = load(MISSION_PATH)
 	if mission_script == null:
