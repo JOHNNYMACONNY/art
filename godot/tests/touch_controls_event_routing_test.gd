@@ -60,11 +60,18 @@ func _run() -> void:
 	if mission_hud == null:
 		await _fail("Mission/Narrative 01 HUD is not rooted inside the established safe area")
 		return
+	var margin := mission_hud.find_child("MissionMargin", true, false) as Control
+	var stack := mission_hud.find_child("MissionStack", true, false) as Control
+	var title := mission_hud.find_child("MissionTitle", true, false) as Label
 	var objective := mission_hud.find_child("ObjectiveLabel", true, false) as Label
 	var contact := mission_hud.find_child("ContactLabel", true, false) as Label
-	if objective == null or contact == null:
-		await _fail("Mission/Narrative 01 HUD is missing objective/contact text")
+	if margin == null or stack == null or title == null or objective == null or contact == null:
+		await _fail("Mission/Narrative 01 HUD is missing required authored controls")
 		return
+	for hud_control in [mission_hud, margin, stack, title, objective, contact]:
+		if hud_control.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			await _fail("Mission/Narrative 01 HUD contains a control that can steal gameplay touch input")
+			return
 	if "COURIER BIKE" not in objective.text or not contact.text.begins_with("LIRA //"):
 		await _fail("Mission/Narrative 01 cold-start briefing is not visible in the production scene")
 		return
