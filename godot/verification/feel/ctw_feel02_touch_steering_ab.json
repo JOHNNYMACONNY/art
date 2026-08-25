@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "ticket": 12,
+  "base_main_sha": "3f66483805606e523434409bf2ab86e9bfa88b4c",
+  "implementation_commit": "2d05127b0b72f8d3d4c2b5ec5b0a5098cce8d35f",
+  "candidate": {
+    "default_enabled": false,
+    "deadzone": 0.06,
+    "response_power": 1.5,
+    "temporal_smoothing": false,
+    "speed_sensitive_touch_attenuation": false,
+    "ownership": "raw touch -> floating joystick geometry -> static conditioning -> normalized steer intent -> Courier Bike physics"
+  },
+  "deterministic_ab_metrics": {
+    "E2_constant_90_turn": {
+      "baseline_full_lock_intent": 1.0,
+      "candidate_full_lock_intent": 1.0,
+      "input_delta": 0.0,
+      "interpretation": "canonical full-lock turn authority remains unchanged"
+    },
+    "E3_steering_reversal": {
+      "baseline_reversal_span": 2.0,
+      "candidate_reversal_span": 2.0,
+      "temporal_history_frames": 0,
+      "interpretation": "full-lock reversal remains immediate and symmetric"
+    },
+    "E7_pursuit_route": {
+      "baseline_correction_intent": 0.35,
+      "candidate_correction_intent": 0.17135832819555988,
+      "candidate_to_baseline_ratio": 0.4895952234158854,
+      "interpretation": "candidate materially softens small route corrections; gameplay default remains linear pending physical touch qualification"
+    }
+  },
+  "verification_policy": {
+    "automated_code_gate": "required",
+    "physical_touch_gate": "not performed in implementation plane",
+    "default_change_allowed": false
+  },
+  "completion_result": "PHYSICAL_TOUCH_GATE_PENDING",
+  "retention_status": "EXPERIMENTAL_CANDIDATE_AVAILABLE__LINEAR_DEFAULT_RETAINED"
+}
