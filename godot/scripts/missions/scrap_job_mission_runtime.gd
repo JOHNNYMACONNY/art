@@ -9,11 +9,11 @@ const TUNER_ARRIVAL_RADIUS := 5.0
 
 var mission = null
 var _root_controller: Node = null
-var _courier_bike: Node3D = null
-var _signal_tuner: Node3D = null
-var _corroded_panel: Node3D = null
-var _signal_gate: Node3D = null
-var _pursuer: Node3D = null
+var _courier_bike = null
+var _signal_tuner = null
+var _corroded_panel = null
+var _signal_gate = null
+var _pursuer = null
 var _bound: bool = false
 var _pursuer_was_active: bool = false
 
@@ -57,11 +57,11 @@ func _try_bind_runtime() -> void:
 	if _bound or _root_controller == null:
 		return
 
-	_courier_bike = _root_controller.get("courier_bike") as Node3D
-	_signal_tuner = _root_controller.get("signal_tuner") as Node3D
-	_corroded_panel = _root_controller.get("corroded_panel") as Node3D
-	_signal_gate = _root_controller.get("signal_gate") as Node3D
-	_pursuer = _root_controller.get("pursuer") as Node3D
+	_courier_bike = _root_controller.get("courier_bike")
+	_signal_tuner = _root_controller.get("signal_tuner")
+	_corroded_panel = _root_controller.get("corroded_panel")
+	_signal_gate = _root_controller.get("signal_gate")
+	_pursuer = _root_controller.get("pursuer")
 	if _courier_bike == null or _signal_tuner == null or _corroded_panel == null or _signal_gate == null or _pursuer == null:
 		return
 
@@ -133,6 +133,7 @@ func _ensure_hud() -> void:
 	safe_root.add_child(_mission_panel)
 
 	var margin := MarginContainer.new()
+	margin.name = "MissionMargin"
 	margin.add_theme_constant_override("margin_left", 12)
 	margin.add_theme_constant_override("margin_top", 8)
 	margin.add_theme_constant_override("margin_right", 12)
@@ -140,6 +141,7 @@ func _ensure_hud() -> void:
 	_mission_panel.add_child(margin)
 
 	var stack := VBoxContainer.new()
+	stack.name = "MissionStack"
 	stack.add_theme_constant_override("separation", 4)
 	margin.add_child(stack)
 
