@@ -59,11 +59,35 @@ static func verify() -> String:
 			controls.free()
 			return "Candidate steering response lost left/right symmetry at %.2f" % raw_x
 
-	var full_right: float = controls.call("get_conditioned_vehicle_steer", Vector2(1.0, 0.0))
+	# E2 canonical 90-degree turn input is full lock. Candidate must preserve
+	# exact full-lock authority so downstream turn-envelope physics are unchanged.
+	var e2_baseline_full_lock := 1.0
+	var e2_candidate_full_lock: float = controls.call("get_conditioned_vehicle_steer", Vector2(1.0, 0.0))
 	var full_left: float = controls.call("get_conditioned_vehicle_steer", Vector2(-1.0, 0.0))
-	if not _approx(full_right, 1.0) or not _approx(full_left, -1.0):
+	if not _approx(e2_candidate_full_lock, e2_baseline_full_lock) or not _approx(full_left, -1.0):
 		controls.free()
 		return "Candidate no longer reaches full normalized steering lock"
+
+	# E3 canonical reversal is -1 -> +1 with no temporal smoothing. Preserve the
+	# exact 2.0 normalized reversal span and deterministic same-frame response.
+	var e3_baseline_span := 2.0
+	var e3_candidate_span := e2_candidate_full_lock - full_left
+	if not _approx(e3_candidate_span, e3_baseline_span):
+		controls.free()
+		return "Candidate changed canonical full-lock reversal span"
+
+	# E7 canonical route uses +/-0.35 correction windows. Capture the exact
+	# candidate intent attenuation so the physical-device gate can evaluate the
+	# real thumb benefit later without pretending this is already retained.
+	var e7_baseline_correction := 0.35
+	var e7_candidate_correction: float = controls.call("get_conditioned_vehicle_steer", Vector2(e7_baseline_correction, 0.0))
+	var e7_candidate_negative: float = controls.call("get_conditioned_vehicle_steer", Vector2(-e7_baseline_correction, 0.0))
+	if e7_candidate_correction <= 0.0 or e7_candidate_correction >= e7_baseline_correction:
+		controls.free()
+		return "Candidate did not soften canonical E7 correction intent"
+	if not _approx(e7_candidate_correction, -e7_candidate_negative):
+		controls.free()
+		return "Candidate E7 correction lost left/right symmetry"
 
 	var diagonal: float = controls.call("get_conditioned_vehicle_steer", Vector2(0.30, 0.40))
 	if diagonal <= 0.0 or diagonal >= 0.30:
@@ -78,6 +102,17 @@ static func verify() -> String:
 			controls.free()
 			return "Candidate introduced temporal/history-dependent steering output"
 
-	print("[CTW_FEEL_02] A/B deadzone=%.3f response_power=%.3f sample_raw=0.420 sample_conditioned=%.3f" % [deadzone, response_power, first])
+	print("[CTW_FEEL_02] A/B deadzone=%.3f response_power=%.3f E2_full_lock_A=%.3f E2_full_lock_B=%.3f E3_span_A=%.3f E3_span_B=%.3f E7_correction_A=%.3f E7_correction_B=%.3f E7_ratio=%.3f sample_raw=0.420 sample_conditioned=%.3f" % [
+		deadzone,
+		response_power,
+		e2_baseline_full_lock,
+		e2_candidate_full_lock,
+		e3_baseline_span,
+		e3_candidate_span,
+		e7_baseline_correction,
+		e7_candidate_correction,
+		e7_candidate_correction / e7_baseline_correction,
+		first,
+	])
 	controls.free()
 	return ""
