@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://c_scrap_test_block_001"]
+[gd_scene load_steps=27 format=3 uid="uid://c_scrap_test_block_001"]
 
 [ext_resource type="Script" path="res://scripts/prototype/scrap_test_block.gd" id="1_root"]
 
@@ -16,6 +16,7 @@
 [ext_resource type="PackedScene" uid="uid://vfx_dust_drift_001" path="res://scenes/vfx/dust_drift_particles.tscn" id="8_dust"]
 [ext_resource type="Script" path="res://scripts/audio/ui_audio_identity_layer.gd" id="9_ui_audio"]
 [ext_resource type="Script" path="res://scripts/missions/scrap_job_mission_runtime.gd" id="10_mission_runtime"]
+[ext_resource type="Script" path="res://scripts/missions/civic_repossession_runtime.gd" id="11_civic_runtime"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -213,6 +214,9 @@ script = ExtResource("9_ui_audio")
 
 [node name="MissionScrapJobRuntime" type="Node" parent="."]
 script = ExtResource("10_mission_runtime")
+
+[node name="CivicRepossessionRuntime" type="Node" parent="."]
+script = ExtResource("11_civic_runtime")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
