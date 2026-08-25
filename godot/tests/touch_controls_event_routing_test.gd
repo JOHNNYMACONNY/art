@@ -127,6 +127,23 @@ func _run() -> void:
 		await _fail("Joystick release did not clear PlayerRunner input")
 		return
 
+	# After the authored bike prerequisite, parking short and walking to the mast
+	# must not strand the mission in traversal. Keep the bike unoccupied here to
+	# exercise the exact edge case without disturbing retained vehicle state.
+	runtime.call("_on_courier_bike_mounted", player)
+	if bike.get("occupant") != null:
+		await _fail("Mission early-park test unexpectedly mounted the retained bike")
+		return
+	var tuner = _scene_under_test.get("signal_tuner")
+	if tuner == null:
+		await _fail("Retained Signal Tuner runtime reference is absent")
+		return
+	player.global_position = tuner.global_position
+	await process_frame
+	if "SPOOF THE YARD SIGNAL" not in objective.text:
+		await _fail("Walking the final meters to the tuner did not advance the authored objective")
+		return
+
 	print("[MISSION_NARRATIVE_01] CONTRACT + RUNTIME WIRING PASS")
 	print("[MOBILE_TOUCH_ROUTING] PASS")
 	await _finish(0)
