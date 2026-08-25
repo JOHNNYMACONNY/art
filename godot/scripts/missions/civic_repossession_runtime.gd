@@ -40,6 +40,14 @@ func _process(_delta: float) -> void:
 		_reset_for_full_replay()
 		return
 
+	# The Hauler is retained production state and can already be occupied when
+	# Mission 01 completes. Reconcile that authoritative state so a one-shot mount
+	# signal consumed while this mission was LOCKED cannot strand GET_HAULER.
+	if mission.phase == MissionScript.Phase.GET_HAULER \
+	and _scrap_hauler != null \
+	and _scrap_hauler.get("occupant") != null:
+		_on_hauler_mounted(_scrap_hauler.get("occupant"))
+
 	var root_pursuit_state := int(_root_controller.get("current_pursuit_state"))
 	var changed := false
 	if mission.phase == MissionScript.Phase.ESCAPE \
