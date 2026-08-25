@@ -4,6 +4,7 @@ extends SceneTree
 const TouchSteeringConditioningContract = preload("res://tests/touch_steering_conditioning_contract_test.gd")
 const MissionScrapJobContract = preload("res://tests/mission_scrap_job_contract_test.gd")
 const CivicRepossessionContract = preload("res://tests/civic_repossession_mission_contract_test.gd")
+const CityThatForgotContract = preload("res://tests/city_that_forgot_mission_contract_test.gd")
 const CivicMissionScript = preload("res://scripts/missions/civic_repossession_mission.gd")
 const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
 
@@ -47,6 +48,11 @@ func _run() -> void:
 	var civic_error: String = CivicRepossessionContract.verify()
 	if not civic_error.is_empty():
 		await _fail("Mission/Narrative 02: %s" % civic_error)
+		return
+
+	var city_error: String = CityThatForgotContract.verify()
+	if not city_error.is_empty():
+		await _fail("Mission/Narrative 03: %s" % city_error)
 		return
 
 	_stage = "scene_instantiation"
