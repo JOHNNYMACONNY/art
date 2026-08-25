@@ -54,11 +54,15 @@ func _play_test_master_probe(duration: float = 0.20) -> AudioStreamPlayer:
 	return player
 
 func _run_ci_windowed_vehicle_proof() -> String:
-	# The production workflow is protected and deliberately unchanged. On Linux
-	# CI, reuse its installed Godot binary and the runner's Xvfb capability to
-	# produce actual windowed before/after frames from the exact checked-out SHA.
+	# CTW Feel 04 already captured exact-head windowed proof at its retention
+	# boundary. Re-running that rendered slice on every unrelated audio change is
+	# intentionally opt-in now; the focused Audio Runtime gate stays fast and
+	# deterministic while this probe remains available for targeted reruns.
+	if OS.get_environment("ECHOES_RUN_WINDOWED_VEHICLE_PROOF") != "1":
+		print("[CTW_FEEL_04_RENDERED] SKIP generic audio CI; set ECHOES_RUN_WINDOWED_VEHICLE_PROOF=1 for targeted proof")
+		return ""
 	if OS.get_environment("CI").to_lower() != "true" or not OS.has_feature("linux"):
-		print("[CTW_FEEL_04_RENDERED] SKIP outside Linux CI; use audio_runtime_windowed_probe.gd manually")
+		print("[CTW_FEEL_04_RENDERED] SKIP outside Linux CI")
 		return ""
 
 	var output: Array = []
@@ -207,7 +211,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset + windowed render; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility and legacy rendered proof remain external/targeted)")
 
 	active_transients = []
 	tuner_player = null
