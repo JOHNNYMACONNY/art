@@ -29,6 +29,12 @@ enum UIMode {
 @export var max_joystick_radius: float = 80.0
 @export var debug_hud_enabled: bool = false
 
+# CTW Feel 02 — experimental touch-only static steering conditioning. The
+# validated linear baseline remains the default until real-device qualification.
+@export var vehicle_steer_conditioning_enabled: bool = false
+@export_range(0.0, 0.25, 0.005) var vehicle_steer_deadzone: float = 0.06
+@export_range(1.0, 2.5, 0.05) var vehicle_steer_response_power: float = 1.5
+
 var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 
 # SafeAreaRoot hierarchy references (with automatic fallback to direct child if not nested)
@@ -142,6 +148,24 @@ func _emit_net_throttle() -> void:
 		throttle = 1.0
 	driving_throttle_updated.emit(throttle)
 
+## CTW Feel 02 pure A/B seam. It is intentionally stateless and receives no
+## vehicle speed or delta-time input; vehicle physics keeps sole yaw authority.
+func get_conditioned_vehicle_steer(joystick_vec: Vector2) -> float:
+	var raw_x: float = clampf(joystick_vec.x, -1.0, 1.0)
+	if not vehicle_steer_conditioning_enabled:
+		return raw_x
+
+	var magnitude: float = clampf(joystick_vec.length(), 0.0, 1.0)
+	var deadzone: float = clampf(vehicle_steer_deadzone, 0.0, 0.95)
+	if magnitude <= deadzone:
+		return 0.0
+
+	var normalized_magnitude: float = clampf((magnitude - deadzone) / maxf(1.0 - deadzone, 0.001), 0.0, 1.0)
+	var response_power: float = maxf(vehicle_steer_response_power, 1.0)
+	var conditioned_magnitude: float = pow(normalized_magnitude, response_power)
+	var direction_x: float = joystick_vec.x / maxf(magnitude, 0.0001)
+	return clampf(direction_x * conditioned_magnitude, -1.0, 1.0)
+
 func _emit_net_steer() -> void:
 	var steer := 0.0
 	if current_mode == UIMode.VEHICLE_DRIVING and (_keyboard_left_pressed or _keyboard_right_pressed):
@@ -149,7 +173,7 @@ func _emit_net_steer() -> void:
 		var left_value := 1.0 if _keyboard_left_pressed else 0.0
 		steer = right_value - left_value
 	elif current_mode == UIMode.VEHICLE_DRIVING and _joystick_active:
-		steer = _current_joystick_vec.x
+		steer = get_conditioned_vehicle_steer(_current_joystick_vec)
 	driving_steer_updated.emit(steer)
 
 func _emit_net_handbrake() -> void:
