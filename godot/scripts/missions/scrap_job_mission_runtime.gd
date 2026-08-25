@@ -115,6 +115,9 @@ func _maybe_restart_after_full_slice_reset() -> void:
 	_refresh_hud()
 	print("[MISSION_NARRATIVE_01] Full slice reset detected; authored job restarted")
 
+func _make_input_transparent(control: Control) -> void:
+	control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 func _ensure_hud() -> void:
 	if _mission_panel != null:
 		return
@@ -124,7 +127,7 @@ func _ensure_hud() -> void:
 
 	_mission_panel = PanelContainer.new()
 	_mission_panel.name = "MissionHUD"
-	_mission_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_make_input_transparent(_mission_panel)
 	_mission_panel.z_index = 40
 	_mission_panel.offset_left = 24.0
 	_mission_panel.offset_top = 78.0
@@ -134,6 +137,7 @@ func _ensure_hud() -> void:
 
 	var margin := MarginContainer.new()
 	margin.name = "MissionMargin"
+	_make_input_transparent(margin)
 	margin.add_theme_constant_override("margin_left", 12)
 	margin.add_theme_constant_override("margin_top", 8)
 	margin.add_theme_constant_override("margin_right", 12)
@@ -142,17 +146,20 @@ func _ensure_hud() -> void:
 
 	var stack := VBoxContainer.new()
 	stack.name = "MissionStack"
+	_make_input_transparent(stack)
 	stack.add_theme_constant_override("separation", 4)
 	margin.add_child(stack)
 
 	var title := Label.new()
 	title.name = "MissionTitle"
+	_make_input_transparent(title)
 	title.text = "SCRAP JOB 01 // CITY PROPERTY"
 	title.add_theme_font_size_override("font_size", 17)
 	stack.add_child(title)
 
 	_objective_label = Label.new()
 	_objective_label.name = "ObjectiveLabel"
+	_make_input_transparent(_objective_label)
 	_objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_objective_label.custom_minimum_size = Vector2(440.0, 0.0)
 	_objective_label.add_theme_font_size_override("font_size", 15)
@@ -160,6 +167,7 @@ func _ensure_hud() -> void:
 
 	_contact_label = Label.new()
 	_contact_label.name = "ContactLabel"
+	_make_input_transparent(_contact_label)
 	_contact_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_contact_label.custom_minimum_size = Vector2(440.0, 0.0)
 	_contact_label.add_theme_font_size_override("font_size", 12)
