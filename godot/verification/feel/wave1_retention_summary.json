@@ -52,12 +52,14 @@
     "fresh_player": "PENDING"
   },
   "rendered_evidence_classification": {
-    "current_camera": "retained existing rendered/camera regression evidence; occlusion candidate reverted",
-    "vehicle_feedback": "automated windowed rendered slip proof retained from Feel 04 exact-head CI",
-    "full_integrated_flow": "current Web/export plus canonical V1-V8+ compatibility matrix required on ticket 17 exact head"
+    "current_camera": "retained dynamic camera exercised in exact-head windowed driving/pursuit/replay routes; occlusion candidate reverted",
+    "vehicle_feedback": "exact-head Xvfb rerun of the Feel 04 before/after full-slip proof with bounded pixel-delta checks",
+    "full_integrated_flow": "Wave 1 closure branch runs current V3, V7 04.2/04.3, V5, V6, M04 Echo and M15 fast-retry assertion paths under Xvfb and requires freshly regenerated representative PNG evidence before PASS",
+    "scope": "heavy rendered sweep is closure-only and intentionally skipped on future main/ticket CI to avoid permanent verification latency"
   },
   "performance_classification": {
     "ticket_17_runtime_change": "NONE",
+    "ci_overhead": "closure-only; integrated/Xvfb sweep is branch-scoped and does not persist as a main-build tax",
     "rule": "Any current compatibility/performance regression fails the functional Wave gate; ticket 17 itself adds verification-only code."
   },
   "remaining_blockers": [
