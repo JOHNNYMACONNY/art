@@ -3,6 +3,7 @@ extends SceneTree
 # Exercises actual Viewport -> Control GUI routing, not direct method calls.
 const TouchSteeringConditioningContract = preload("res://tests/touch_steering_conditioning_contract_test.gd")
 const MissionScrapJobContract = preload("res://tests/mission_scrap_job_contract_test.gd")
+const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
 
 var _last_joystick_vector := Vector2.ZERO
 var _scene_under_test: Node = null
@@ -142,6 +143,36 @@ func _run() -> void:
 	await process_frame
 	if "SPOOF THE YARD SIGNAL" not in objective.text:
 		await _fail("Walking the final meters to the tuner did not advance the authored objective")
+		return
+
+	# Reproduce the one-shot ordering hazard without re-emitting either consumed
+	# production signal: the retained world is already solved when the authored
+	# job reaches SPOOF_SIGNAL. Runtime polling must catch up from authoritative
+	# component/controller state in a single frame.
+	var panel = _scene_under_test.get("corroded_panel")
+	if panel == null:
+		await _fail("Retained Corroded Panel runtime reference is absent")
+		return
+	tuner.set("current_state", SignalTuner.TunerState.LOCKED)
+	panel.set("current_step", CorrodedPanel.Step.EXTRACTED)
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE)
+	await process_frame
+	if "SIGNAL GATE OR LONG ROAD" not in objective.text:
+		await _fail("Consumed tuner/panel state did not reconcile into the live route decision")
+		return
+
+	# Normal golden-slice interception is decided by ScrapTestBlock before the
+	# pursuer entity's own delayed signal can fire. Observe the controller state,
+	# then prove the next controller-active pursuit resumes the retained fast retry.
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.INTERCEPTED)
+	await process_frame
+	if "JOB BURNED" not in objective.text or "RETRY PURSUIT" not in objective.text:
+		await _fail("Controller-authoritative INTERCEPTED state did not fail the authored job")
+		return
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE)
+	await process_frame
+	if "SIGNAL GATE OR LONG ROAD" not in objective.text:
+		await _fail("Controller-authoritative retry pursuit did not resume the route decision")
 		return
 
 	print("[MISSION_NARRATIVE_01] CONTRACT + RUNTIME WIRING PASS")
