@@ -24,7 +24,9 @@ var _contact_label: Label = null
 
 func _ready() -> void:
 	_root_controller = get_parent()
-	_ensure_mission_three_runtime()
+	# This runtime is itself entering the production root during parent setup.
+	# Defer sibling insertion until that setup pass has finished.
+	call_deferred("_ensure_mission_three_runtime")
 	call_deferred("_try_bind_runtime")
 
 func _process(_delta: float) -> void:
