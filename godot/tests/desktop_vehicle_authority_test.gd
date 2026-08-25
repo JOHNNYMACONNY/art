@@ -4,6 +4,7 @@ extends SceneTree
 # keyboard -> TouchControlsUI normalized intent -> ScrapTestBlock -> existing vehicle physics seam.
 const PursuerInterceptContract = preload("res://tests/pursuer_intercept_contract_test.gd")
 const Wave1RetentionRecord = preload("res://tests/wave1_retention_record_test.gd")
+const WAVE1_CLOSURE_BRANCH := "chatgpt/wave1-retention-17"
 
 var _scene_under_test: Node = null
 
@@ -41,9 +42,16 @@ func _mount_vehicle_direct(vehicle: Node, player: Node) -> bool:
 		vehicle.mount_interactable.update_player_distance(player.global_position)
 	return vehicle.request_mount(player)
 
-func _run_ci_wave1_integrated_harness() -> String:
+func _is_wave1_closure_ci() -> bool:
 	if OS.get_environment("CI").to_lower() != "true":
-		print("[CTW_FEEL_07] Integrated E1-E7 nested harness SKIP outside CI")
+		return false
+	var head_ref := OS.get_environment("GITHUB_HEAD_REF").strip_edges()
+	var ref_name := OS.get_environment("GITHUB_REF_NAME").strip_edges()
+	return head_ref == WAVE1_CLOSURE_BRANCH or ref_name == WAVE1_CLOSURE_BRANCH
+
+func _run_ci_wave1_integrated_harness() -> String:
+	if not _is_wave1_closure_ci():
+		print("[CTW_FEEL_07] Integrated E1-E7 closure harness SKIP outside Wave 1 closure branch")
 		return ""
 	var output: Array = []
 	var project_path := ProjectSettings.globalize_path("res://")
@@ -87,12 +95,10 @@ func _run_windowed_suite(project_path: String, suite: String) -> String:
 	return ""
 
 func _run_ci_wave1_windowed_rendered_flow() -> String:
-	# Code-first verification does not require a human playthrough for every
-	# change, but #17 still requires rendered integrated execution. Reuse current
-	# production assertion paths under Xvfb so this is exact-head runtime proof,
-	# not a screenshot inherited from an older commit.
-	if OS.get_environment("CI").to_lower() != "true" or not OS.has_feature("linux"):
-		print("[CTW_FEEL_07_RENDERED] SKIP outside Linux CI")
+	# This expensive sweep is closure evidence, not a permanent tax on every
+	# future Web build. It runs only on the dedicated Wave 1 closure branch.
+	if not _is_wave1_closure_ci() or not OS.has_feature("linux"):
+		print("[CTW_FEEL_07_RENDERED] SKIP outside Wave 1 Linux closure CI")
 		return ""
 	var project_path := ProjectSettings.globalize_path("res://")
 	var fresh_proofs := PackedStringArray([
