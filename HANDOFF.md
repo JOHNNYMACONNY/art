@@ -31,8 +31,8 @@ The Wave 1 retention package reuses the immutable Ticket #11 E1–E7 scenario im
 - Only the #16-intended pursuer distance and pursuer endpoint fields may differ from the immutable baseline.
 - The committed retention contract verifies that runtime defaults match the declared ticket dispositions.
 - Existing Web/PR compatibility gates continue to cover V1–V8+, mobile safe area, thumb reach, multitouch, vehicle authority, camera, pursuit/gate, Memory Echo, audio, fast retry and readability behavior.
-- The Wave 1 closure branch additionally reruns representative driving, handbrake/collision, route-switch, full-loop/replay, Memory Echo and fast-retry assertion paths under Xvfb, requires freshly regenerated rendered PNG evidence, and reruns the bounded Feel 04 full-slip pixel-delta proof on the exact candidate.
-- The expensive integrated/Xvfb sweep is deliberately scoped to the Wave 1 closure branch, so it does not become a permanent latency tax on future main/ticket CI.
+- Existing retained rendered evidence remains authoritative for the constituent changes: the accepted camera baseline has owner play evidence, and Feel 04 already carries exact-head windowed full-slip pixel-delta proof.
+- Ticket #17 deliberately does **not** add a second nested rendered playthrough sweep to Web export. That experiment created CI latency/failure without adding meaningful product confidence under the current code-first verification policy, so it was removed.
 - Ticket #17 itself has no runtime gameplay/performance mutation.
 
 The machine-readable retention record is:
