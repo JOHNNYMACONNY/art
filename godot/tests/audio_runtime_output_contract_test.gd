@@ -2,6 +2,7 @@ extends SceneTree
 
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 const VehicleFeedbackContract = preload("res://tests/vehicle_feedback_contract_test.gd")
+const UIAudioIdentityContract = preload("res://tests/ui_audio_identity_contract_test.gd")
 
 var _manager: Node = null
 
@@ -182,6 +183,13 @@ func _run() -> void:
 		await _fail("Authoritative reset left radio playback active")
 		return
 
+	# Audio 06: reusable semantic UI identity, fatigue budget, critical mix priority,
+	# and reset lifecycle share this exact-head runtime gate.
+	var ui_error: String = UIAudioIdentityContract.verify(_manager)
+	if not ui_error.is_empty():
+		await _fail("Audio 06: %s" % ui_error)
+		return
+
 	# CTW Feel 04 regression: same exact-head audio gate, real Courier Bike telemetry.
 	var vehicle_error: String = VehicleFeedbackContract.verify(_manager)
 	if not vehicle_error.is_empty():
@@ -194,7 +202,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (output + CTW Feel 04 telemetry/mix/reset + windowed render; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset + windowed render; physical audibility remains external)")
 
 	active_transients = []
 	tuner_player = null
