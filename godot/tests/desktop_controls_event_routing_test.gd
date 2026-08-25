@@ -42,6 +42,10 @@ func _inject_physical_key(key: Key, pressed: bool) -> void:
 func _release_key(key: Key) -> void:
 	_inject_physical_key(key, false)
 
+func _ui_attempt_count(layer: Node, slot_id: String) -> int:
+	var snapshot: Dictionary = layer.call("snapshot")
+	return int(snapshot.get("attempted_counts", {}).get(slot_id, 0))
+
 func _run() -> void:
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
@@ -55,8 +59,12 @@ func _run() -> void:
 
 	var touch_ui := _scene_under_test.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var player := _scene_under_test.get_node_or_null("Runner")
-	if touch_ui == null or player == null:
-		await _fail("Main scene is missing TouchControlsUI or Runner")
+	var ui_audio := _scene_under_test.get_node_or_null("AudioManager/UIAudioIdentityLayer")
+	if touch_ui == null or player == null or ui_audio == null:
+		await _fail("Main scene is missing TouchControlsUI, Runner, or UIAudioIdentityLayer")
+		return
+	if not ui_audio.has_method("snapshot") or not ui_audio.has_method("reset_accounting"):
+		await _fail("UI audio routing diagnostics seam is absent")
 		return
 
 	# 0. Desktop mouse must remain a mouse. If Godot synthesizes touch from it,
@@ -87,7 +95,25 @@ func _run() -> void:
 		await _fail("W+D exceeded the normalized on-foot movement speed cap")
 		return
 
-	# 3. E is a single-fire foot action; release and key-repeat echo must not duplicate it.
+	# 3. Touch/button and desktop E converge through one semantic action path.
+	# Each deliberate action must create exactly one UI-audio attempt; key-repeat
+	# echo and a browser-style emulated mouse companion must not duplicate it.
+	ui_audio.call("reset_accounting")
+	touch_ui.action_button.pressed.emit()
+	await process_frame
+	if _ui_attempt_count(ui_audio, "ui.nav_confirm") != 1:
+		await _fail("ActionButton must produce exactly one UI confirm semantic attempt")
+		return
+	var emulated_action_companion := InputEventMouseButton.new()
+	emulated_action_companion.device = InputEvent.DEVICE_ID_EMULATION
+	emulated_action_companion.button_index = MOUSE_BUTTON_LEFT
+	emulated_action_companion.pressed = false
+	touch_ui._input(emulated_action_companion)
+	if _ui_attempt_count(ui_audio, "ui.nav_confirm") != 1:
+		await _fail("Emulated mouse companion duplicated ActionButton UI audio")
+		return
+
+	ui_audio.call("reset_accounting")
 	var action_count: Array[int] = [0]
 	touch_ui.action_button_pressed.connect(func(): action_count[0] += 1)
 	touch_ui._input(_key_event(KEY_E, true))
@@ -95,6 +121,9 @@ func _run() -> void:
 	touch_ui._input(_key_event(KEY_E, false))
 	if action_count[0] != 1:
 		await _fail("E must emit exactly one foot action; got %d" % action_count[0])
+		return
+	if _ui_attempt_count(ui_audio, "ui.nav_confirm") != 1:
+		await _fail("E press + repeat echo duplicated UI confirm semantic audio")
 		return
 
 	# 4. Physical mouse gestures operate interaction UI but never acquire the movement joystick.
@@ -198,11 +227,15 @@ func _run() -> void:
 		await _fail("Vehicle E must emit exactly one dismount/context action")
 		return
 
+	ui_audio.call("reset_accounting")
 	touch_ui._input(_key_event(KEY_R, true))
 	touch_ui._input(_key_event(KEY_R, true, true))
 	touch_ui._input(_key_event(KEY_R, false))
 	if radio_count[0] != 1:
 		await _fail("Vehicle R must emit exactly one radio toggle")
+		return
+	if _ui_attempt_count(ui_audio, "ui.radio_station_step") != 1:
+		await _fail("Vehicle R press + repeat echo duplicated radio-step UI audio")
 		return
 
 	# 6. Touch ownership survives browser-synthesized companion mouse events.
