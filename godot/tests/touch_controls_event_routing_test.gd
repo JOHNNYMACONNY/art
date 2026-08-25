@@ -2,6 +2,8 @@ extends SceneTree
 
 # Exercises actual Viewport -> Control GUI routing, not direct method calls.
 const TouchSteeringConditioningContract = preload("res://tests/touch_steering_conditioning_contract_test.gd")
+const MissionScrapJobContract = preload("res://tests/mission_scrap_job_contract_test.gd")
+const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
 
 var _last_joystick_vector := Vector2.ZERO
 var _scene_under_test: Node = null
@@ -26,6 +28,11 @@ func _run() -> void:
 		await _fail("CTW Feel 02: %s" % steering_error)
 		return
 
+	var mission_error: String = MissionScrapJobContract.verify()
+	if not mission_error.is_empty():
+		await _fail("Mission/Narrative 01: %s" % mission_error)
+		return
+
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
 		await _fail("Could not load scrap_test_block.tscn")
@@ -35,11 +42,43 @@ func _run() -> void:
 	root.add_child(_scene_under_test)
 	await process_frame
 	await physics_frame
+	await process_frame
 
 	var touch_ui := _scene_under_test.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var player := _scene_under_test.get_node_or_null("Runner")
 	if touch_ui == null or player == null:
 		await _fail("Main scene is missing TouchControlsUI or Runner")
+		return
+
+	# Mission/Narrative 01 is deliberately attached to the production scene and
+	# must share the established safe-area root instead of creating a parallel UI.
+	var runtime := _scene_under_test.get_node_or_null("MissionScrapJobRuntime")
+	if runtime == null or not bool(runtime.get("_bound")):
+		await _fail("Mission/Narrative 01 runtime did not bind to retained gameplay systems")
+		return
+	var safe_root := touch_ui.get_node_or_null("SafeAreaRoot")
+	var mission_hud := safe_root.get_node_or_null("MissionHUD") if safe_root != null else null
+	if mission_hud == null:
+		await _fail("Mission/Narrative 01 HUD is not rooted inside the established safe area")
+		return
+	var margin := mission_hud.find_child("MissionMargin", true, false) as Control
+	var stack := mission_hud.find_child("MissionStack", true, false) as Control
+	var title := mission_hud.find_child("MissionTitle", true, false) as Label
+	var objective := mission_hud.find_child("ObjectiveLabel", true, false) as Label
+	var contact := mission_hud.find_child("ContactLabel", true, false) as Label
+	if margin == null or stack == null or title == null or objective == null or contact == null:
+		await _fail("Mission/Narrative 01 HUD is missing required authored controls")
+		return
+	for hud_control in [mission_hud, margin, stack, title, objective, contact]:
+		if hud_control.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			await _fail("Mission/Narrative 01 HUD contains a control that can steal gameplay touch input")
+			return
+	if "COURIER BIKE" not in objective.text or not contact.text.begins_with("LIRA //"):
+		await _fail("Mission/Narrative 01 cold-start briefing is not visible in the production scene")
+		return
+	var bike = _scene_under_test.get("courier_bike")
+	if bike == null or not bike.mounted.is_connected(Callable(runtime, "_on_courier_bike_mounted")):
+		await _fail("Retained Courier Bike mounted signal is not connected to the authored mission runtime")
 		return
 
 	touch_ui.joystick_vector_updated.connect(func(vec: Vector2): _last_joystick_vector = vec)
@@ -89,5 +128,53 @@ func _run() -> void:
 		await _fail("Joystick release did not clear PlayerRunner input")
 		return
 
+	# After the authored bike prerequisite, parking short and walking to the mast
+	# must not strand the mission in traversal. Keep the bike unoccupied here to
+	# exercise the exact edge case without disturbing retained vehicle state.
+	runtime.call("_on_courier_bike_mounted", player)
+	if bike.get("occupant") != null:
+		await _fail("Mission early-park test unexpectedly mounted the retained bike")
+		return
+	var tuner = _scene_under_test.get("signal_tuner")
+	if tuner == null:
+		await _fail("Retained Signal Tuner runtime reference is absent")
+		return
+	player.global_position = tuner.global_position
+	await process_frame
+	if "SPOOF THE YARD SIGNAL" not in objective.text:
+		await _fail("Walking the final meters to the tuner did not advance the authored objective")
+		return
+
+	# Reproduce the one-shot ordering hazard without re-emitting either consumed
+	# production signal: the retained world is already solved when the authored
+	# job reaches SPOOF_SIGNAL. Runtime polling must catch up from authoritative
+	# component/controller state in a single frame.
+	var panel = _scene_under_test.get("corroded_panel")
+	if panel == null:
+		await _fail("Retained Corroded Panel runtime reference is absent")
+		return
+	tuner.set("current_state", SignalTuner.TunerState.LOCKED)
+	panel.set("current_step", CorrodedPanel.Step.EXTRACTED)
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE)
+	await process_frame
+	if "SIGNAL GATE OR LONG ROAD" not in objective.text:
+		await _fail("Consumed tuner/panel state did not reconcile into the live route decision")
+		return
+
+	# Normal golden-slice interception is decided by ScrapTestBlock before the
+	# pursuer entity's own delayed signal can fire. Observe the controller state,
+	# then prove the next controller-active pursuit resumes the retained fast retry.
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.INTERCEPTED)
+	await process_frame
+	if "JOB BURNED" not in objective.text or "RETRY PURSUIT" not in objective.text:
+		await _fail("Controller-authoritative INTERCEPTED state did not fail the authored job")
+		return
+	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE)
+	await process_frame
+	if "SIGNAL GATE OR LONG ROAD" not in objective.text:
+		await _fail("Controller-authoritative retry pursuit did not resume the route decision")
+		return
+
+	print("[MISSION_NARRATIVE_01] CONTRACT + RUNTIME WIRING PASS")
 	print("[MOBILE_TOUCH_ROUTING] PASS")
 	await _finish(0)
