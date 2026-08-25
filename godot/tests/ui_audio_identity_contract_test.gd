@@ -21,7 +21,7 @@ static func _latest_ui_stream(layer: Node) -> AudioStreamWAV:
 	return player.stream as AudioStreamWAV
 
 static func _stream_hash(stream: AudioStreamWAV) -> int:
-	return stream.data.hash() if stream else 0
+	return hash(stream.data) if stream else 0
 
 static func verify(manager: Node, layer: Node) -> String:
 	if manager == null or layer == null:
