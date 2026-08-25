@@ -31,6 +31,7 @@ var _objective_label: Label = null
 var _contact_label: Label = null
 var _bound: bool = false
 var _civic_complete_seen: bool = false
+var _fresh_pursuit_started: bool = false
 
 func _ready() -> void:
 	_root_controller = get_parent()
@@ -61,6 +62,22 @@ func _process(_delta: float) -> void:
 		return
 
 	var root_pursuit_state := int(_root_controller.get("current_pursuit_state"))
+
+	# Civic Repossession can legitimately leave the retained controller in its
+	# terminal EVADED state while de-escalation finishes. Do not consume that old
+	# terminal state as Mission 03 success. Mission 03 owns terminal pursuit
+	# outcomes only after a fresh disturbance/pursuit has been observed.
+	if mission.phase == MissionScript.Phase.ESCAPE and not _fresh_pursuit_started:
+		if root_pursuit_state == int(ScrapTestBlockScript.PursuitState.CALM) \
+		and _root_controller.has_method("trigger_disturbance_alert"):
+			_root_controller.call("trigger_disturbance_alert")
+			root_pursuit_state = int(_root_controller.get("current_pursuit_state"))
+		if root_pursuit_state == int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT) \
+		or root_pursuit_state == int(ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE):
+			_fresh_pursuit_started = true
+		else:
+			return
+
 	var changed := false
 	if mission.phase == MissionScript.Phase.ESCAPE \
 	and root_pursuit_state == int(ScrapTestBlockScript.PursuitState.INTERCEPTED):
@@ -158,12 +175,21 @@ func _ensure_echo_controller():
 func _on_echo_completed() -> void:
 	if not mission.on_echo_completed():
 		return
+	_fresh_pursuit_started = false
 	_refresh_hud()
 	# If the retained root was already connected from Mission 01 it may have
-	# started disturbance first. Otherwise ask that same canonical authority now.
-	if int(_root_controller.get("current_pursuit_state")) == int(ScrapTestBlockScript.PursuitState.CALM) \
+	# started the fresh disturbance first. Otherwise _process waits for any prior
+	# mission de-escalation to reach CALM, then asks the canonical authority.
+	var root_pursuit_state := int(_root_controller.get("current_pursuit_state"))
+	if root_pursuit_state == int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT) \
+	or root_pursuit_state == int(ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE):
+		_fresh_pursuit_started = true
+	elif root_pursuit_state == int(ScrapTestBlockScript.PursuitState.CALM) \
 	and _root_controller.has_method("trigger_disturbance_alert"):
 		_root_controller.call("trigger_disturbance_alert")
+		root_pursuit_state = int(_root_controller.get("current_pursuit_state"))
+		_fresh_pursuit_started = root_pursuit_state == int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT) \
+		or root_pursuit_state == int(ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE)
 
 func _refresh_hud() -> void:
 	if _mission_title == null or _objective_label == null or _contact_label == null:
@@ -175,6 +201,7 @@ func _refresh_hud() -> void:
 func _reset_for_full_replay() -> void:
 	mission = MissionScript.new()
 	_civic_complete_seen = false
+	_fresh_pursuit_started = false
 	if _silent_core != null:
 		_silent_core.reset_for_replay()
 	print("[MISSION_NARRATIVE_03] Full replay detected; The City That Forgot relocked")
