@@ -131,13 +131,14 @@ func _setup_visual_overlay() -> void:
 	_text_container.add_theme_stylebox_override("panel", style)
 	_canvas_layer.add_child(_text_container)
 	
-	_text_label = Label.new()
-	_text_label.name = "EchoTextLabel"
-	_text_label.text = ""
-	_text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_text_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_text_label.add_theme_color_override("font_color", Color(0.4, 0.95, 1.0, 1.0))
-	_text_label.add_theme_font_size_override("font_size", 14)
+	var label := Label.new()
+	label.name = "EchoTextLabel"
+	label.text = ""
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", Color(0.4, 0.95, 1.0, 1.0))
+	label.add_theme_font_size_override("font_size", 14)
+	_text_label = label
 	_text_container.add_child(_text_label)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -179,6 +180,21 @@ func trigger_authored_echo(payload: Dictionary) -> bool:
 		return false
 	return _begin_echo(data)
 
+## Prepare a completed retained Echo controller for a later authored Echo in the
+## same campaign/replay. Unlike reset_echo(), this preserves trigger accounting.
+## It is deliberately DONE-only so active presentations cannot be interrupted.
+func prepare_next_echo() -> bool:
+	if current_phase != EchoPhase.DONE:
+		print("[ECHO] prepare_next_echo rejected: phase is %s (must be DONE)" % EchoPhase.keys()[current_phase])
+		return false
+	_phase_timer = 0.0
+	is_armed_for_extraction = false
+	current_phase = EchoPhase.IDLE
+	_echo_data = null
+	_purge_visual_overlay()
+	print("[ECHO] Completed Echo prepared for next authored beat")
+	return true
+
 ## Returns true if the echo has ever been triggered and has since completed.
 func has_completed() -> bool:
 	return current_phase == EchoPhase.DONE
@@ -199,8 +215,10 @@ func reset_echo() -> void:
 	# Stop echo voice in audio manager
 	if _audio_mgr and _audio_mgr._echo_voice:
 		_audio_mgr._echo_voice.stop()
-		
-	# Cleanly hide and reset visual overlay
+	_purge_visual_overlay()
+	print("[ECHO] Echo reset to IDLE cleanly (overlay purged)")
+
+func _purge_visual_overlay() -> void:
 	if _canvas_layer:
 		_canvas_layer.visible = false
 	if _flash_rect:
@@ -210,8 +228,6 @@ func reset_echo() -> void:
 		_text_container.modulate.a = 0.0
 	if _text_label:
 		_text_label.text = ""
-		
-	print("[ECHO] Echo reset to IDLE cleanly (overlay purged)")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Process tick
