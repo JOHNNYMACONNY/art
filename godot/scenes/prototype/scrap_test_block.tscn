@@ -491,5 +491,5 @@ text = "[ REPLAY SLICE ]"
 [connection signal="action_button_pressed" from="CanvasLayer/TouchControlsUI" to="AudioManager/UIAudioIdentityLayer" method="on_action_confirmed"]
 [connection signal="core_tap_pressed" from="CanvasLayer/TouchControlsUI" to="AudioManager/UIAudioIdentityLayer" method="on_core_confirmed"]
 [connection signal="radio_toggle_pressed" from="CanvasLayer/TouchControlsUI" to="AudioManager/UIAudioIdentityLayer" method="on_radio_step_requested"]
-[connection signal="replay_pressed" from="CanvasLayer/TouchControlsUI" to="AudioManager/UIAudioIdentityLayer" method="on_replay_requested"]
-[connection signal="retry_chase_pressed" from="CanvasLayer/TouchControlsUI" to="AudioManager/UIAudioIdentityLayer" method="on_retry_requested"]
+[connection signal="replay_pressed" from="CanvasLayer/TouchControlsUI" to="AudioManager/UIAudioIdentityLayer" method="on_replay_requested" flags=1]
+[connection signal="retry_chase_pressed" from="CanvasLayer/TouchControlsUI" to="AudioManager/UIAudioIdentityLayer" method="on_retry_requested" flags=1]
