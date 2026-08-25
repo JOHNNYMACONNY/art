@@ -52,15 +52,15 @@
     "fresh_player": "PENDING"
   },
   "rendered_evidence_classification": {
-    "current_camera": "retained dynamic camera exercised in exact-head windowed driving/pursuit/replay routes; occlusion candidate reverted",
-    "vehicle_feedback": "exact-head Xvfb rerun of the Feel 04 before/after full-slip proof with bounded pixel-delta checks",
-    "full_integrated_flow": "Wave 1 closure branch runs current V3 driving, V7 04.3 collision, V6 full-loop/replay, M04 Echo and M15 fast-retry assertion paths under Xvfb, each with a 45-second fail-fast bound, and requires freshly regenerated representative PNG evidence before PASS",
-    "scope": "heavy rendered sweep is closure-only and intentionally skipped on future main/ticket CI to avoid permanent verification latency"
+    "current_camera": "retained dynamic camera accepted in owner play and covered by existing camera/rendered regression evidence; occlusion candidate reverted",
+    "vehicle_feedback": "retained exact-head Feel 04 windowed full-slip proof with bounded pixel-delta checks",
+    "wave1_closure": "ticket 17 uses exact-head code/integration verification plus retained rendered evidence from accepted constituent tickets; it does not add a second heavy rendered playthrough gate",
+    "policy": "manual/physical play is optimization evidence unless a future ticket explicitly makes it the acceptance boundary"
   },
   "performance_classification": {
     "ticket_17_runtime_change": "NONE",
-    "ci_overhead": "closure-only; integrated/Xvfb sweep is branch-scoped, per-process time-bounded, and does not persist as a main-build tax",
-    "rule": "Any current compatibility/performance regression fails the functional Wave gate; ticket 17 itself adds verification-only code."
+    "ci_overhead": "integrated headless E1-E7 comparison only; no nested rendered sweep is added to normal Web export",
+    "rule": "Any current compatibility regression fails the functional Wave gate; ticket 17 itself adds verification-only code."
   },
   "remaining_blockers": [
     "Fresh/uncoached multi-player perceptual gate has not been run.",
