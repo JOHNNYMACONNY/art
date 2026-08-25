@@ -68,6 +68,99 @@ func _run_ci_wave1_integrated_harness() -> String:
 	print("[CTW_FEEL_07] Integrated E1-E7 comparison PASS")
 	return ""
 
+func _run_windowed_suite(project_path: String, suite: String) -> String:
+	var output: Array = []
+	var args := PackedStringArray([
+		"-a",
+		"-s",
+		"-screen 0 1280x720x24",
+		OS.get_executable_path(),
+		"--path", project_path,
+		"--rendering-method", "gl_compatibility",
+		"--",
+		suite,
+	])
+	var exit_code := OS.execute("xvfb-run", args, output, true)
+	var combined := "\n".join(output)
+	if exit_code != 0:
+		return "%s windowed run exited %d; output=%s" % [suite, exit_code, combined.right(2400)]
+	return ""
+
+func _run_ci_wave1_windowed_rendered_flow() -> String:
+	# Code-first verification does not require a human playthrough for every
+	# change, but #17 still requires rendered integrated execution. Reuse current
+	# production assertion paths under Xvfb so this is exact-head runtime proof,
+	# not a screenshot inherited from an older commit.
+	if OS.get_environment("CI").to_lower() != "true" or not OS.has_feature("linux"):
+		print("[CTW_FEEL_07_RENDERED] SKIP outside Linux CI")
+		return ""
+	var project_path := ProjectSettings.globalize_path("res://")
+	var fresh_proofs := PackedStringArray([
+		"res://verification/v3/v3_driving_straight.png",
+		"res://verification/v3/v3_cornering.png",
+		"res://verification/v6/v6_route_switch_slam.png",
+		"res://verification/v6/v6_quiet_aftermath_replay.png",
+		"res://verification/v8/m04/m04_02_echo_onset.png",
+		"res://verification/v8/m04/m04_04_disturbance_rupture.png",
+		"res://verification/v8/m15/m15_01_intercepted_retry_overlay.png",
+		"res://verification/v8/m15/m15_02_fast_retried_chase_active.png",
+	])
+	for proof_path in fresh_proofs:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(proof_path))
+
+	var suites := PackedStringArray([
+		"--run-v3-assertions",
+		"--run-v7-ticket04-2-assertions",
+		"--run-v7-ticket04-3-assertions",
+		"--run-v5-assertions",
+		"--run-v6-assertions",
+		"--run-v8-m04-echo-assertions",
+		"--run-v8-m15-fast-retry-assertions",
+	])
+	for suite in suites:
+		var error := _run_windowed_suite(project_path, suite)
+		if not error.is_empty():
+			return error
+
+	# Feel 04 owns a focused before/after rendered proof with pixel-delta bounds
+	# for the handbrake slip cue. Re-run it here on the integrated exact head.
+	var rendered_output: Array = []
+	var rendered_args := PackedStringArray([
+		"-a",
+		"-s",
+		"-screen 0 1280x720x24",
+		OS.get_executable_path(),
+		"--path", project_path,
+		"--rendering-method", "gl_compatibility",
+		"--script", "res://tests/audio_runtime_windowed_probe.gd",
+		"--", "--vehicle-feedback-rendered-proof",
+	])
+	var rendered_exit := OS.execute("xvfb-run", rendered_args, rendered_output, true)
+	var rendered_text := "\n".join(rendered_output)
+	if rendered_exit != 0 or not rendered_text.contains("[CTW_FEEL_04_RENDERED] PASS"):
+		return "Feel 04 integrated rendered probe failed (%d); output=%s" % [rendered_exit, rendered_text.right(2400)]
+
+	for proof_path in fresh_proofs:
+		if not FileAccess.file_exists(proof_path):
+			return "windowed suite did not regenerate expected proof: %s" % proof_path
+		var file := FileAccess.open(proof_path, FileAccess.READ)
+		if file == null or file.get_length() < 20000:
+			if file:
+				file.close()
+			return "regenerated rendered proof is missing/too small: %s" % proof_path
+		file.close()
+
+	var feel04_proofs := PackedStringArray([
+		"res://verification/feel/ctw_feel04_rendered_baseline.png",
+		"res://verification/feel/ctw_feel04_rendered_full_slip.png",
+	])
+	for proof_path in feel04_proofs:
+		if not FileAccess.file_exists(proof_path):
+			return "Feel 04 rendered proof file is absent: %s" % proof_path
+
+	print("[CTW_FEEL_07_RENDERED] PASS suites=%s proof_count=%d" % [str(suites), fresh_proofs.size() + feel04_proofs.size()])
+	return ""
+
 func _run() -> void:
 	var retention_error: String = Wave1RetentionRecord.verify()
 	if not retention_error.is_empty():
@@ -77,6 +170,11 @@ func _run() -> void:
 	var integrated_error := _run_ci_wave1_integrated_harness()
 	if not integrated_error.is_empty():
 		await _fail("CTW Feel 07: %s" % integrated_error)
+		return
+
+	var rendered_error := _run_ci_wave1_windowed_rendered_flow()
+	if not rendered_error.is_empty():
+		await _fail("CTW Feel 07 rendered flow: %s" % rendered_error)
 		return
 
 	# CTW Feel 06 owns a pure destination-selection A/B contract. Its synthetic
