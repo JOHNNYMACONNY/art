@@ -54,7 +54,7 @@ func _run_ci_wave1_integrated_harness() -> String:
 		"--headless",
 		"--rendering-method", "gl_compatibility",
 		"--path", project_path,
-		"--script", "res://scripts/verification/ctw_feel_harness.gd",
+		"--script", "res://scripts/verification/ctw_wave1_integrated_harness.gd",
 		"--",
 		"--run-ctw-feel-integrated",
 		"--feel-build-commit=%s" % verification_sha,
