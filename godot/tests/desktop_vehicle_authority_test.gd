@@ -58,7 +58,12 @@ func _run_ci_wave1_integrated_harness() -> String:
 		return ""
 	var output: Array = []
 	var project_path := ProjectSettings.globalize_path("res://")
-	var verification_sha := OS.get_environment("GITHUB_SHA").strip_edges()
+	# The Web workflow explicitly checks out SOURCE_SHA. On pull_request events
+	# GITHUB_SHA may identify the synthetic merge ref, so prefer SOURCE_SHA to
+	# keep integrated evidence pinned to the exact source actually under test.
+	var verification_sha := OS.get_environment("SOURCE_SHA").strip_edges()
+	if verification_sha.is_empty():
+		verification_sha = OS.get_environment("GITHUB_SHA").strip_edges()
 	if verification_sha.is_empty():
 		verification_sha = "ci-exact-source"
 	var args := PackedStringArray([
@@ -76,7 +81,7 @@ func _run_ci_wave1_integrated_harness() -> String:
 		return "integrated E1-E7 harness exited %d; output=%s" % [exit_code, combined.right(3000)]
 	if not combined.contains("[CTW_FEEL] INTEGRATED PASS"):
 		return "integrated E1-E7 harness exited 0 without PASS marker; output=%s" % combined.right(3000)
-	print("[CTW_FEEL_07] Integrated E1-E7 comparison PASS")
+	print("[CTW_FEEL_07] Integrated E1-E7 comparison PASS source=%s" % verification_sha)
 	return ""
 
 func _run() -> void:
