@@ -1,10 +1,11 @@
 extends Node
 
 ## Thin adapter from the retained golden-slice runtime into the authored
-## Mission/Narrative 01 state. It observes existing production signals and does
-## not take ownership of vehicle, pursuit, camera, interaction or audio logic.
+## Mission/Narrative 01 state. It observes existing production signals/state and
+## does not take ownership of vehicle, pursuit, camera, interaction or audio logic.
 
 const MissionScript = preload("res://scripts/missions/scrap_job_mission.gd")
+const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
 const TUNER_ARRIVAL_RADIUS := 5.0
 
 var mission = null
@@ -16,7 +17,6 @@ var _corroded_panel = null
 var _signal_gate = null
 var _pursuer = null
 var _bound: bool = false
-var _pursuer_was_active: bool = false
 
 var _mission_panel: PanelContainer = null
 var _objective_label: Label = null
@@ -33,6 +33,7 @@ func _process(_delta: float) -> void:
 		_try_bind_runtime()
 		return
 
+	var changed := false
 	# The bike mount is the authored prerequisite, but the player may park short
 	# of the mast and finish the approach on foot. Track the rider rather than
 	# requiring the bike to remain occupied at the arrival boundary.
@@ -40,19 +41,15 @@ func _process(_delta: float) -> void:
 	and _runner != null \
 	and _signal_tuner != null \
 	and _runner.global_position.distance_to(_signal_tuner.global_position) <= TUNER_ARRIVAL_RADIUS:
-		if mission.on_tuner_arrived():
-			_refresh_hud()
+		changed = mission.on_tuner_arrived() or changed
 
-	var pursuer_active := bool(_pursuer.get("is_active")) if _pursuer != null else false
-	if pursuer_active and not _pursuer_was_active:
-		var changed := false
-		if mission.phase == MissionScript.Phase.FAILED:
-			changed = mission.on_retry_started() or changed
-		elif mission.phase == MissionScript.Phase.PURSUIT_COMPLICATION:
-			changed = mission.on_pursuit_active() or changed
-		if changed:
-			_refresh_hud()
-	_pursuer_was_active = pursuer_active
+	# Production interactions and pursuit authority already exist outside this
+	# adapter. Reconcile their retained state every frame so one-shot signals used
+	# before the authored prerequisite cannot strand the job, and so the root
+	# controller's interception decision wins over the reset pursuer entity.
+	changed = _reconcile_retained_progress() or changed
+	if changed:
+		_refresh_hud()
 
 	_maybe_restart_after_full_slice_reset()
 
@@ -73,13 +70,28 @@ func _try_bind_runtime() -> void:
 	_signal_tuner.signal_locked.connect(_on_signal_locked)
 	_corroded_panel.extraction_completed.connect(_on_core_extracted)
 	_signal_gate.gate_triggered.connect(_on_gate_triggered)
-	_pursuer.intercepted_target.connect(_on_intercepted)
 	_pursuer.de_escalation_completed.connect(_on_escape_complete)
-	_pursuer_was_active = bool(_pursuer.get("is_active"))
 	_bound = true
 	_ensure_hud()
 	_refresh_hud()
 	print("[MISSION_NARRATIVE_01] Runtime bound to retained golden-slice systems")
+
+func _reconcile_retained_progress() -> bool:
+	if not _bound or _root_controller == null:
+		return false
+
+	var tuner_solved := int(_signal_tuner.get("current_state")) >= int(SignalTuner.TunerState.LOCKED)
+	var core_extracted := int(_corroded_panel.get("current_step")) == int(CorrodedPanel.Step.EXTRACTED)
+	var root_pursuit_state := int(_root_controller.get("current_pursuit_state"))
+	var pursuit_active := root_pursuit_state == int(ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE)
+	var intercepted := root_pursuit_state == int(ScrapTestBlockScript.PursuitState.INTERCEPTED)
+
+	return mission.reconcile_retained_progress(
+		tuner_solved,
+		core_extracted,
+		pursuit_active,
+		intercepted
+	)
 
 func _on_courier_bike_mounted(_player) -> void:
 	if mission.on_courier_bike_mounted():
@@ -97,10 +109,6 @@ func _on_gate_triggered() -> void:
 	if mission.on_gate_triggered():
 		_refresh_hud()
 
-func _on_intercepted() -> void:
-	if mission.on_intercepted():
-		_refresh_hud()
-
 func _on_escape_complete() -> void:
 	if mission.on_escape_complete():
 		_refresh_hud()
@@ -112,7 +120,8 @@ func _maybe_restart_after_full_slice_reset() -> void:
 		return
 	# Full replay resets solved tuner/panel state. Fast pursuit retry deliberately
 	# preserves the extracted panel, so this cannot accidentally replay setup.
-	if int(_signal_tuner.get("current_state")) != 0 or int(_corroded_panel.get("current_step")) != 0:
+	if int(_signal_tuner.get("current_state")) != int(SignalTuner.TunerState.DORMANT) \
+	or int(_corroded_panel.get("current_step")) != int(CorrodedPanel.Step.IDLE):
 		return
 	mission = MissionScript.new()
 	mission.start()
