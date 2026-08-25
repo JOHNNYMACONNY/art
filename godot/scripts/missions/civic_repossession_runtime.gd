@@ -97,7 +97,7 @@ func _on_hauler_mounted(_player) -> void:
 	# Pursuit remains controller-owned. This only asks the existing disturbance
 	# authority to begin from its canonical CALM state.
 	if _root_controller.has_method("trigger_disturbance_alert"):
-		_root_controller.trigger_disturbance_alert()
+		_root_controller.call("trigger_disturbance_alert")
 
 func _on_signal_gate_triggered() -> void:
 	if mission.on_gate_triggered():
