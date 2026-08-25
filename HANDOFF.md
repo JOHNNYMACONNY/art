@@ -32,6 +32,7 @@ The Wave 1 retention package reuses the immutable Ticket #11 E1–E7 scenario im
 - The committed retention contract verifies that runtime defaults match the declared ticket dispositions.
 - Existing Web/PR compatibility gates continue to cover V1–V8+, mobile safe area, thumb reach, multitouch, vehicle authority, camera, pursuit/gate, Memory Echo, audio, fast retry and readability behavior.
 - Existing retained rendered evidence remains authoritative for the constituent changes: the accepted camera baseline has owner play evidence, and Feel 04 already carries exact-head windowed full-slip pixel-delta proof.
+- The nested E1–E7 integrated comparison runs on the dedicated Wave 1 closure branch only. After merge, future feature branches keep the normal canonical regression path instead of paying a permanent closure-verification tax.
 - Ticket #17 deliberately does **not** add a second nested rendered playthrough sweep to Web export. That experiment created CI latency/failure without adding meaningful product confidence under the current code-first verification policy, so it was removed.
 - Ticket #17 itself has no runtime gameplay/performance mutation.
 
