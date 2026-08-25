@@ -9,14 +9,22 @@ extends Node
 
 const UIAudioSemanticRegistryScript = preload("res://scripts/audio/ui_audio_semantic_registry.gd")
 const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
+const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 
 const MAX_UI_VOICES: int = 3
-const CRITICAL_MIX_STATES: Array[int] = [4, 5, 6, 7, 10] # AudioManager MixState ordinals, append-safe.
+const CRITICAL_MIX_STATES: Array[int] = [
+	AudioManagerScript.MixState.EXTRACTION_IMPACT,
+	AudioManagerScript.MixState.DISTURBANCE,
+	AudioManagerScript.MixState.PURSUIT_PRESSURE,
+	AudioManagerScript.MixState.ROUTE_SWITCH_IMPACT,
+	AudioManagerScript.MixState.MEMORY_ECHO,
+]
 
 var _manager: Node = null
 var _active_ui_players: Array[AudioStreamPlayer] = []
 var _player_slots: Dictionary = {} # instance_id -> slot_id
 var _last_slot_timestamp_msec: Dictionary = {}
+var _attempted_counts: Dictionary = {}
 var _accepted_counts: Dictionary = {}
 var _accepted_total: int = 0
 var _latest_player: AudioStreamPlayer = null
@@ -31,6 +39,7 @@ func configure(manager: Node) -> void:
 func reset_accounting() -> void:
 	_prune_invalid_players()
 	_last_slot_timestamp_msec.clear()
+	_attempted_counts.clear()
 	_accepted_counts.clear()
 	_accepted_total = 0
 
@@ -39,6 +48,7 @@ func snapshot() -> Dictionary:
 	return {
 		"active_voice_count": _active_ui_players.size(),
 		"accepted_total": _accepted_total,
+		"attempted_counts": _attempted_counts.duplicate(true),
 		"accepted_counts": _accepted_counts.duplicate(true),
 		"latest_player": _latest_player if is_instance_valid(_latest_player) and not _latest_player.is_queued_for_deletion() else null,
 	}
@@ -49,6 +59,7 @@ func play_semantic(slot_id: String) -> bool:
 		return false
 	if not UIAudioSemanticRegistryScript.has_slot(slot_id):
 		return false
+	_attempted_counts[slot_id] = int(_attempted_counts.get(slot_id, 0)) + 1
 	var meta: Dictionary = UIAudioSemanticRegistryScript.get_slot(slot_id)
 	if _should_suppress(meta):
 		return false
