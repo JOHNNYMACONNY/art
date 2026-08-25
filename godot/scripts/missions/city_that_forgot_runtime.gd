@@ -153,9 +153,16 @@ func _on_silent_core_activated() -> void:
 	_echo_controller = _ensure_echo_controller()
 	if _echo_controller == null:
 		return
-	# Mission 01 may legitimately have left the retained controller at DONE.
-	# Mission 03 begins a new authored presentation only after M1+M2 are complete.
-	_echo_controller.reset_echo()
+	# A real Mission 01 extraction Echo can leave the retained controller at DONE.
+	# Prepare that completed lifecycle for a later authored beat without invoking
+	# the authoritative replay reset or erasing cumulative trigger accounting.
+	if _echo_controller.current_phase == MemoryEchoScript.EchoPhase.DONE:
+		if not _echo_controller.prepare_next_echo():
+			push_error("[MISSION_NARRATIVE_03] Retained Memory Echo could not prepare the next authored beat")
+			return
+	elif _echo_controller.current_phase != MemoryEchoScript.EchoPhase.IDLE:
+		push_error("[MISSION_NARRATIVE_03] Retained Memory Echo is still active")
+		return
 	if not _echo_controller.echo_completed.is_connected(_on_echo_completed):
 		_echo_controller.echo_completed.connect(_on_echo_completed)
 	if not _echo_controller.trigger_authored_echo(AUTHORED_ECHO_PAYLOAD):
