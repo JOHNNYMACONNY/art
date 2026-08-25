@@ -9,6 +9,7 @@ const TUNER_ARRIVAL_RADIUS := 5.0
 
 var mission = null
 var _root_controller: Node = null
+var _runner: Node3D = null
 var _courier_bike = null
 var _signal_tuner = null
 var _corroded_panel = null
@@ -32,11 +33,13 @@ func _process(_delta: float) -> void:
 		_try_bind_runtime()
 		return
 
+	# The bike mount is the authored prerequisite, but the player may park short
+	# of the mast and finish the approach on foot. Track the rider rather than
+	# requiring the bike to remain occupied at the arrival boundary.
 	if mission.phase == MissionScript.Phase.TRAVERSE_TO_TUNER \
-	and _courier_bike != null \
+	and _runner != null \
 	and _signal_tuner != null \
-	and _courier_bike.get("occupant") != null \
-	and _courier_bike.global_position.distance_to(_signal_tuner.global_position) <= TUNER_ARRIVAL_RADIUS:
+	and _runner.global_position.distance_to(_signal_tuner.global_position) <= TUNER_ARRIVAL_RADIUS:
 		if mission.on_tuner_arrived():
 			_refresh_hud()
 
@@ -57,12 +60,13 @@ func _try_bind_runtime() -> void:
 	if _bound or _root_controller == null:
 		return
 
+	_runner = _root_controller.get_node_or_null("Runner") as Node3D
 	_courier_bike = _root_controller.get("courier_bike")
 	_signal_tuner = _root_controller.get("signal_tuner")
 	_corroded_panel = _root_controller.get("corroded_panel")
 	_signal_gate = _root_controller.get("signal_gate")
 	_pursuer = _root_controller.get("pursuer")
-	if _courier_bike == null or _signal_tuner == null or _corroded_panel == null or _signal_gate == null or _pursuer == null:
+	if _runner == null or _courier_bike == null or _signal_tuner == null or _corroded_panel == null or _signal_gate == null or _pursuer == null:
 		return
 
 	_courier_bike.mounted.connect(_on_courier_bike_mounted)
