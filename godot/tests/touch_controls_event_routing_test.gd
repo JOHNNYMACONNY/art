@@ -2,6 +2,7 @@ extends SceneTree
 
 # Exercises actual Viewport -> Control GUI routing, not direct method calls.
 const TouchSteeringConditioningContract = preload("res://tests/touch_steering_conditioning_contract_test.gd")
+const MissionScrapJobContract = preload("res://tests/mission_scrap_job_contract_test.gd")
 
 var _last_joystick_vector := Vector2.ZERO
 var _scene_under_test: Node = null
@@ -26,6 +27,11 @@ func _run() -> void:
 		await _fail("CTW Feel 02: %s" % steering_error)
 		return
 
+	var mission_error: String = MissionScrapJobContract.verify()
+	if not mission_error.is_empty():
+		await _fail("Mission/Narrative 01: %s" % mission_error)
+		return
+
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
 		await _fail("Could not load scrap_test_block.tscn")
@@ -35,11 +41,36 @@ func _run() -> void:
 	root.add_child(_scene_under_test)
 	await process_frame
 	await physics_frame
+	await process_frame
 
 	var touch_ui := _scene_under_test.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var player := _scene_under_test.get_node_or_null("Runner")
 	if touch_ui == null or player == null:
 		await _fail("Main scene is missing TouchControlsUI or Runner")
+		return
+
+	# Mission/Narrative 01 is deliberately attached to the production scene and
+	# must share the established safe-area root instead of creating a parallel UI.
+	var runtime := _scene_under_test.get_node_or_null("MissionScrapJobRuntime")
+	if runtime == null or not bool(runtime.get("_bound")):
+		await _fail("Mission/Narrative 01 runtime did not bind to retained gameplay systems")
+		return
+	var safe_root := touch_ui.get_node_or_null("SafeAreaRoot")
+	var mission_hud := safe_root.get_node_or_null("MissionHUD") if safe_root != null else null
+	if mission_hud == null:
+		await _fail("Mission/Narrative 01 HUD is not rooted inside the established safe area")
+		return
+	var objective := mission_hud.find_child("ObjectiveLabel", true, false) as Label
+	var contact := mission_hud.find_child("ContactLabel", true, false) as Label
+	if objective == null or contact == null:
+		await _fail("Mission/Narrative 01 HUD is missing objective/contact text")
+		return
+	if "COURIER BIKE" not in objective.text or not contact.text.begins_with("LIRA //"):
+		await _fail("Mission/Narrative 01 cold-start briefing is not visible in the production scene")
+		return
+	var bike = _scene_under_test.get("courier_bike")
+	if bike == null or not bike.mounted.is_connected(Callable(runtime, "_on_courier_bike_mounted")):
+		await _fail("Retained Courier Bike mounted signal is not connected to the authored mission runtime")
 		return
 
 	touch_ui.joystick_vector_updated.connect(func(vec: Vector2): _last_joystick_vector = vec)
@@ -89,5 +120,6 @@ func _run() -> void:
 		await _fail("Joystick release did not clear PlayerRunner input")
 		return
 
+	print("[MISSION_NARRATIVE_01] CONTRACT + RUNTIME WIRING PASS")
 	print("[MOBILE_TOUCH_ROUTING] PASS")
 	await _finish(0)
