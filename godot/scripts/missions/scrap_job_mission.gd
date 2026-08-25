@@ -126,6 +126,36 @@ func on_escape_complete() -> bool:
 		contact_line = "LIRA // Core received. Municipal loss report says 'routing delay.' Even the long road has paperwork."
 	return true
 
+## Reconcile one-shot retained systems after the authored prerequisites are met.
+## A player may solve the tuner/panel before taking the Courier Bike; those
+## production signals do not fire twice. The job therefore catches up from the
+## retained authoritative state without letting wrong-order events skip the
+## bike/traversal beats when they first occur.
+func reconcile_retained_progress(
+	tuner_solved: bool,
+	core_extracted: bool,
+	pursuit_active: bool,
+	intercepted: bool
+) -> bool:
+	var changed := false
+
+	if phase == Phase.SPOOF_SIGNAL and tuner_solved:
+		changed = on_signal_locked() or changed
+	if phase == Phase.EXTRACT_CORE and core_extracted:
+		changed = on_core_extracted() or changed
+
+	# Interception is stronger than active pursuit: the root controller can
+	# reset the pursuer entity immediately after declaring INTERCEPTED.
+	if intercepted:
+		changed = on_intercepted() or changed
+	elif pursuit_active:
+		if phase == Phase.FAILED:
+			changed = on_retry_started() or changed
+		elif phase == Phase.PURSUIT_COMPLICATION:
+			changed = on_pursuit_active() or changed
+
+	return changed
+
 func snapshot() -> Dictionary:
 	return {
 		"phase": phase,
