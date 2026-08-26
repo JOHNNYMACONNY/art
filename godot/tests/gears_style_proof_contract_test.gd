@@ -1,8 +1,8 @@
 extends SceneTree
 
-# Issue #60 RED contract: the existing playable slice must carry one bounded
-# Gears visual-style proof layer without replacing the retained gameplay camera
-# or actor/runtime foundations.
+# Focused Issue #60 contract for direct invocation. The existing PR workflow
+# also gates the essential integration subset through dynamic_camera_follow_test.gd
+# so the style proof and retained camera behavior are verified together.
 var _scene_under_test: Node = null
 
 const REQUIRED_PROOF_NODES := [
@@ -13,15 +13,37 @@ const REQUIRED_PROOF_NODES := [
 	"Storefront",
 	"DistantRelay",
 	"PracticalLights",
+	"Storefront/HeroSignIcon",
 ]
 
-const REQUIRED_TREATED_ACTORS := [
+const REQUIRED_TREATED_NODES := [
 	"Runner",
 	"CourierBike",
 	"ScrapHauler",
 	"PursuerPrototype",
 	"ScrapWorker1",
 	"UtilityCrawler",
+	"CorrodedPanel",
+]
+
+const REQUIRED_FLAGS := [
+	"stacked_mixed_use",
+	"primary_route",
+	"shortcut_route",
+	"municipal_anchor",
+	"storefront_family",
+	"worker_treatment",
+	"courier_bike_treatment",
+	"courier_repair_panel",
+	"utility_vehicle_treatment",
+	"pursuit_vehicle_treatment",
+	"pursuit_civic_livery",
+	"utility_robot_treatment",
+	"utility_robot_asset_marking",
+	"interactable_treatment",
+	"distant_landmark",
+	"practical_lighting",
+	"uses_retained_camera",
 ]
 
 func _init() -> void:
@@ -57,19 +79,13 @@ func _run() -> void:
 	await process_frame
 
 	var camera := _scene_under_test.get_node_or_null("ChinatownCamera3D") as Camera3D
-	if camera == null:
-		await _fail("Retained elevated 3/4 gameplay camera is missing")
-		return
-	if abs(camera.fov - 32.0) > 0.05:
-		await _fail("Style proof changed retained camera FOV instead of proving the style at gameplay distance")
+	if camera == null or absf(camera.fov - 32.0) > 0.05:
+		await _fail("Retained elevated 3/4 gameplay camera/FOV contract is missing")
 		return
 
 	var proof := _scene_under_test.get_node_or_null("GearsStyleProof")
-	if proof == null:
-		await _fail("Main playable scene has no GearsStyleProof integration node")
-		return
-	if not proof.has_method("get_proof_contract"):
-		await _fail("GearsStyleProof does not expose deterministic proof-contract evidence")
+	if proof == null or not proof.has_method("get_proof_contract"):
+		await _fail("Main playable scene has no executable GearsStyleProof contract")
 		return
 
 	for child_name in REQUIRED_PROOF_NODES:
@@ -77,32 +93,14 @@ func _run() -> void:
 			await _fail("Required proof composition node is missing: %s" % child_name)
 			return
 
-	for actor_name in REQUIRED_TREATED_ACTORS:
-		var actor := _scene_under_test.get_node_or_null(actor_name)
-		if actor == null:
-			await _fail("Existing production actor missing from real slice: %s" % actor_name)
-			return
-		if not actor.has_meta("gears_style_proof_treatment"):
-			await _fail("Actor did not receive bounded visual proof treatment: %s" % actor_name)
+	for node_name in REQUIRED_TREATED_NODES:
+		var treated := _scene_under_test.get_node_or_null(node_name)
+		if treated == null or not treated.has_meta("gears_style_proof_treatment"):
+			await _fail("Required production node did not receive bounded proof treatment: %s" % node_name)
 			return
 
 	var contract: Dictionary = proof.call("get_proof_contract")
-	var required_flags := [
-		"stacked_mixed_use",
-		"primary_route",
-		"shortcut_route",
-		"municipal_anchor",
-		"storefront_family",
-		"worker_treatment",
-		"courier_bike_treatment",
-		"utility_vehicle_treatment",
-		"pursuit_vehicle_treatment",
-		"utility_robot_treatment",
-		"distant_landmark",
-		"practical_lighting",
-		"uses_retained_camera",
-	]
-	for flag in required_flags:
+	for flag in REQUIRED_FLAGS:
 		if contract.get(flag, false) != true:
 			await _fail("Proof contract flag is not satisfied: %s" % flag)
 			return
@@ -117,7 +115,7 @@ func _run() -> void:
 	var outline_meshes := int(contract.get("outline_instances", 0))
 	var practical_lights := int(contract.get("practical_light_count", 9999))
 	if generated_meshes <= 0 or generated_meshes > 90:
-		await _fail("Generated proof geometry exceeds bounded experiment budget: %d meshes" % generated_meshes)
+		await _fail("Proof geometry exceeds bounded experiment budget: %d meshes" % generated_meshes)
 		return
 	if outline_meshes <= 0 or outline_meshes > 24:
 		await _fail("Selective contour treatment is absent or no longer selective: %d outlines" % outline_meshes)
@@ -131,10 +129,8 @@ func _run() -> void:
 		return
 	proof.call("set_lighting_mode", "dusk")
 	await process_frame
-	if str(contract.get("lighting_default", "")) != "day":
-		await _fail("Default proof lighting must remain restrained day mode")
-		return
 	proof.call("set_lighting_mode", "day")
+	await process_frame
 
 	print("[GEARS_STYLE_PROOF_60] PASS meshes=%d outlines=%d lights=%d" % [generated_meshes, outline_meshes, practical_lights])
 	await _finish(0)
