@@ -97,10 +97,10 @@ size = Vector3(0.3, 0.8, 14)
 size = Vector3(0.3, 0.8, 14)
 
 [sub_resource type="BoxShape3D" id="Shape_SilentCoreWalkway"]
-size = Vector3(2.4, 0.16, 1.0)
+size = Vector3(3.0, 0.16, 1.4)
 
 [sub_resource type="BoxShape3D" id="Shape_SilentCorePad"]
-size = Vector3(3.0, 0.16, 2.4)
+size = Vector3(3.0, 0.16, 2.6)
 
 [node name="GearsDistrictSlice01B" type="Node3D"]
 script = ExtResource("1_slice")
@@ -374,10 +374,10 @@ shape = SubResource("Shape_Industrial")
 position = Vector3(6.2, 0, -27.4)
 
 [node name="AccessWalkway" type="StaticBody3D" parent="SilentCoreSite"]
-position = Vector3(-1.1, -0.08, 2.15)
+position = Vector3(-1.15, -0.08, 1.9)
 
 [node name="WalkwayMesh" type="MeshInstance3D" parent="SilentCoreSite/AccessWalkway"]
-scale = Vector3(2.4, 0.16, 1.0)
+scale = Vector3(3.0, 0.16, 1.4)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_Concrete")
 
@@ -388,7 +388,7 @@ shape = SubResource("Shape_SilentCoreWalkway")
 position = Vector3(0, -0.08, 0.55)
 
 [node name="SitePadMesh" type="MeshInstance3D" parent="SilentCoreSite/SitePadBody"]
-scale = Vector3(3.0, 0.16, 2.4)
+scale = Vector3(3.0, 0.16, 2.6)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_Concrete")
 
