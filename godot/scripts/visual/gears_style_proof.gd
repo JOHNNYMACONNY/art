@@ -92,6 +92,34 @@ func _clone_outline(actor: Node, source_path: String, contour_name: String) -> v
 	_runtime_generated_mesh_count += 1
 	_actor_outline_count += 1
 
+func _add_overlay_box(parent: Node, node_name: String, size: Vector3, position: Vector3, color: Color) -> void:
+	var existing := parent.get_node_or_null(node_name) as MeshInstance3D
+	if existing != null:
+		return
+	var box := BoxMesh.new()
+	box.size = size
+	var mesh := MeshInstance3D.new()
+	mesh.name = node_name
+	mesh.mesh = box
+	mesh.position = position
+	mesh.material_override = _material(color)
+	parent.add_child(mesh)
+	_runtime_generated_mesh_count += 1
+
+func _add_overlay_label(parent: Node, node_name: String, text_value: String, position: Vector3, color: Color) -> void:
+	if parent.get_node_or_null(node_name) != null:
+		return
+	var label := Label3D.new()
+	label.name = node_name
+	label.text = text_value
+	label.position = position
+	label.modulate = color
+	label.outline_modulate = OUTLINE_COLOR
+	label.font_size = 22
+	label.outline_size = 8
+	label.pixel_size = 0.0035
+	parent.add_child(label)
+
 func _apply_actor_treatments() -> void:
 	var scene_root := get_parent()
 	if scene_root == null:
@@ -113,6 +141,9 @@ func _apply_actor_treatments() -> void:
 		_style(bike, "VisualRoot/CargoRack", OXIDIZED)
 		_style(bike, "VisualRoot/BatteryCell", SIGNAL_CYAN, 0.62)
 		_style_existing_outline(bike, "VisualRoot/FrontTank/TankOutline")
+		var bike_root := bike.get_node_or_null("VisualRoot")
+		if bike_root != null:
+			_add_overlay_box(bike_root, "GearsAmberCourierPanel", Vector3(0.46, 0.12, 0.58), Vector3(0.0, 0.52, 0.46), AMBER)
 
 	var hauler := scene_root.get_node_or_null("ScrapHauler")
 	if hauler != null:
@@ -128,6 +159,12 @@ func _apply_actor_treatments() -> void:
 		_style(pursuer, "VisualRoot/BodyMesh", OFF_WHITE)
 		_style(pursuer, "VisualRoot/SirenMesh", VERMILION, 1.10)
 		_clone_outline(pursuer, "VisualRoot/BodyMesh", "GearsPursuitBodyContour")
+		var pursuit_root := pursuer.get_node_or_null("VisualRoot")
+		if pursuit_root != null:
+			_add_overlay_box(pursuit_root, "GearsPursuitRoofID", Vector3(0.82, 0.16, 0.92), Vector3(0.0, 1.25, 0.0), SOOT)
+			_add_overlay_box(pursuit_root, "GearsPursuitFrontBand", Vector3(1.18, 0.24, 0.18), Vector3(0.0, 0.72, -1.10), VERMILION)
+			# Proof-only generic asset copy; not a narrative/canon department or vehicle name.
+			_add_overlay_label(pursuit_root, "PursuitAssetLabel", "UNIT 12", Vector3(0.0, 1.36, 0.0), OFF_WHITE)
 
 	var worker := scene_root.get_node_or_null("ScrapWorker1")
 	if worker != null:
@@ -144,6 +181,11 @@ func _apply_actor_treatments() -> void:
 		_style(crawler, "Chassis/CargoBed", TEAL)
 		_style(crawler, "Chassis/BeaconMesh", AMBER, 0.65)
 		_clone_outline(crawler, "Chassis/Body", "GearsCrawlerBodyContour")
+		var crawler_root := crawler.get_node_or_null("Chassis")
+		if crawler_root != null:
+			_add_overlay_box(crawler_root, "GearsReplacementPanel", Vector3(0.36, 0.16, 0.08), Vector3(0.22, 0.30, -0.61), OXIDIZED)
+			# Proof-only generic asset ID; not narrative canon.
+			_add_overlay_label(crawler_root, "CrawlerAssetID", "UTL-08", Vector3(0.0, 0.28, -0.66), SOOT)
 
 	var panel := scene_root.get_node_or_null("CorrodedPanel")
 	if panel != null:
@@ -206,6 +248,10 @@ func _count_outlines(node: Node) -> int:
 		count += _count_outlines(child)
 	return count
 
+func _scene_has_node(path: String) -> bool:
+	var scene_root := get_parent()
+	return scene_root != null and scene_root.get_node_or_null(path) != null
+
 func get_proof_contract() -> Dictionary:
 	var scene_root := get_parent()
 	var retained_camera := false
@@ -226,9 +272,12 @@ func get_proof_contract() -> Dictionary:
 		"storefront_family": has_node("Storefront"),
 		"worker_treatment": _node_is_treated("ScrapWorker1"),
 		"courier_bike_treatment": _node_is_treated("CourierBike"),
+		"courier_repair_panel": _scene_has_node("CourierBike/VisualRoot/GearsAmberCourierPanel"),
 		"utility_vehicle_treatment": _node_is_treated("ScrapHauler"),
 		"pursuit_vehicle_treatment": _node_is_treated("PursuerPrototype"),
+		"pursuit_civic_livery": _scene_has_node("PursuerPrototype/VisualRoot/GearsPursuitRoofID") and _scene_has_node("PursuerPrototype/VisualRoot/GearsPursuitFrontBand"),
 		"utility_robot_treatment": _node_is_treated("UtilityCrawler"),
+		"utility_robot_asset_marking": _scene_has_node("UtilityCrawler/Chassis/GearsReplacementPanel") and _scene_has_node("UtilityCrawler/Chassis/CrawlerAssetID"),
 		"interactable_treatment": _node_is_treated("CorrodedPanel"),
 		"distant_landmark": has_node("DistantRelay"),
 		"practical_lighting": practical_count > 0,
