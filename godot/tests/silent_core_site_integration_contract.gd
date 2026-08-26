@@ -6,6 +6,7 @@ const EXPECTED_SITE_POSITION := Vector3(6.2, 0.0, -27.4)
 const PROOF_RELAY_MAX_X := 4.65
 const PROOF_RELAY_MAX_Z := -26.5
 const INDUSTRIAL_SOUTH_EDGE_Z := -30.0
+const MIN_GROUND_OVERLAP_M := 0.25
 
 static func _count_meshes(node: Node) -> int:
 	var count := 1 if node is MeshInstance3D else 0
@@ -48,11 +49,22 @@ static func _box_bounds(body: Node3D, collider: CollisionShape3D) -> Dictionary:
 		"max_z": body.global_position.z + half.z,
 	}
 
-static func _overlaps_xz(a: Dictionary, b: Dictionary) -> bool:
+static func _overlap_extent(a_min: float, a_max: float, b_min: float, b_max: float) -> float:
+	return minf(a_max, b_max) - maxf(a_min, b_min)
+
+static func _has_stable_ground_overlap(a: Dictionary, b: Dictionary) -> bool:
 	if a.is_empty() or b.is_empty():
 		return false
-	return minf(float(a.max_x), float(b.max_x)) >= maxf(float(a.min_x), float(b.min_x)) - 0.05 \
-	and minf(float(a.max_z), float(b.max_z)) >= maxf(float(a.min_z), float(b.min_z)) - 0.05
+	return _overlap_extent(float(a.min_x), float(a.max_x), float(b.min_x), float(b.max_x)) >= MIN_GROUND_OVERLAP_M \
+	and _overlap_extent(float(a.min_z), float(a.max_z), float(b.min_z), float(b.max_z)) >= MIN_GROUND_OVERLAP_M
+
+static func _point_on_bounds(bounds: Dictionary, point: Vector3) -> bool:
+	if bounds.is_empty():
+		return false
+	return point.x >= float(bounds.min_x) - 0.01 \
+	and point.x <= float(bounds.max_x) + 0.01 \
+	and point.z >= float(bounds.min_z) - 0.01 \
+	and point.z <= float(bounds.max_z) + 0.01
 
 static func verify(scene_root: Node) -> String:
 	if scene_root == null:
@@ -88,10 +100,10 @@ static func verify(scene_root: Node) -> String:
 	var intersection_bounds := _box_bounds(intersection, intersection_collider)
 	var walkway_bounds := _box_bounds(walkway, walkway_collider)
 	var pad_bounds := _box_bounds(pad, pad_collider)
-	if not _overlaps_xz(intersection_bounds, walkway_bounds):
-		return "Silent Core AccessWalkway does not overlap retained intersection ground"
-	if not _overlaps_xz(walkway_bounds, pad_bounds):
-		return "Silent Core SitePadBody does not overlap AccessWalkway"
+	if not _has_stable_ground_overlap(intersection_bounds, walkway_bounds):
+		return "Silent Core AccessWalkway lacks a stable overlap margin with retained intersection ground"
+	if not _has_stable_ground_overlap(walkway_bounds, pad_bounds):
+		return "Silent Core SitePadBody lacks a stable overlap margin with AccessWalkway"
 	if float(pad_bounds.min_x) <= PROOF_RELAY_MAX_X:
 		return "Silent Core site pad overlaps the proof-only relay envelope"
 	if float(walkway_bounds.min_z) <= PROOF_RELAY_MAX_Z:
@@ -102,12 +114,7 @@ static func verify(scene_root: Node) -> String:
 	var socket := site.get_node_or_null("SilentCoreSocket") as Marker3D
 	if socket == null or socket.get_script() != null:
 		return "SilentCoreSocket is missing or owns behavior"
-	if not _overlaps_xz(pad_bounds, {
-		"min_x": socket.global_position.x,
-		"max_x": socket.global_position.x,
-		"min_z": socket.global_position.z,
-		"max_z": socket.global_position.z,
-	}):
+	if not _point_on_bounds(pad_bounds, socket.global_position):
 		return "SilentCoreSocket is not located on the traversable site pad"
 
 	for path in [
