@@ -1,8 +1,16 @@
-extends SceneTree
+extends Node
+
+# CI-only verification driver. It is present in the real playable scene so
+# rendered capture follows the same normal-main-scene path as the repository's
+# proven visual exporters. Outside the explicit verification command it frees
+# itself immediately and owns no gameplay behavior.
 
 const OUTPUT_DIR := "res://verification/current"
 const REPORT_PATH := OUTPUT_DIR + "/verification_report.json"
-const CONTACT_SHEET_PATH := OUTPUT_DIR + "/verification_contact_sheet.png"
+# Keep the generated contact sheet outside verification/.gdignore so the next
+# Godot Web export process can import it as the isolated project's boot splash.
+const CONTACT_SHEET_PATH := "res://verification_contact_sheet.png"
+const CAPTURE_FLAG := "--run-gears-verification-capture"
 const CAPTURE_NAMES := [
 	"01_quiet_traversal.png",
 	"02_courier_bike.png",
@@ -46,7 +54,10 @@ var _audio: Node = null
 var _captures: Array[Dictionary] = []
 var _capture_images: Array[Image] = []
 
-func _init() -> void:
+func _ready() -> void:
+	if not OS.get_cmdline_user_args().has(CAPTURE_FLAG):
+		queue_free()
+		return
 	call_deferred("_run")
 
 func _gha_escape(message: String) -> String:
@@ -58,10 +69,10 @@ func _run() -> void:
 		if OS.get_environment("GITHUB_ACTIONS").to_lower() == "true":
 			print("::error title=GEARS_VERIFICATION_CAPTURE::%s" % _gha_escape(failure))
 		push_error("[GEARS_VERIFICATION_CAPTURE] %s" % failure)
-		quit(1)
+		get_tree().quit(1)
 		return
 	print("[GEARS_VERIFICATION_CAPTURE] PASS: %s" % REPORT_PATH)
-	quit(0)
+	get_tree().quit(0)
 
 func _capture_and_measure() -> String:
 	var output_abs := ProjectSettings.globalize_path(OUTPUT_DIR)
@@ -76,16 +87,13 @@ func _capture_and_measure() -> String:
 		if FileAccess.file_exists(stale_path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(stale_path))
 
-	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
-	if packed == null:
-		return "Could not load real playable scene"
-	_scene = packed.instantiate() as Node3D
-	if _scene == null:
-		return "Could not instantiate real playable scene"
-	root.add_child(_scene)
-	await process_frame
-	await physics_frame
-	await create_timer(0.20).timeout
+	_scene = get_parent() as Node3D
+	if _scene == null or _scene.name != "ScrapTestBlock":
+		return "Verification driver is not attached to the real playable scene"
+
+	await get_tree().process_frame
+	await get_tree().physics_frame
+	await get_tree().create_timer(0.20).timeout
 
 	_player = _scene.get_node_or_null("Runner") as CharacterBody3D
 	_camera = _scene.get_node_or_null("ChinatownCamera3D") as Camera3D
@@ -154,25 +162,26 @@ func _capture_and_measure() -> String:
 	_audio.current_mix_state = AudioManager.MixState.CALM
 	_place_player(Vector3(utility_plate.global_position.x, 0.20, utility_plate.global_position.z + 1.4))
 	_fb13_event.call("_process", 0.10)
-	await create_timer(0.08).timeout
+	await get_tree().create_timer(0.08).timeout
 	error = await _save_capture(CAPTURE_NAMES[8], 0.02)
 	if error != "": return error
-	await create_timer(0.70).timeout
+	await get_tree().create_timer(0.70).timeout
 
 	_proof.call("set_lighting_mode", "day")
 	_place_player(Vector3(-1.5, 0.20, -18.0))
 	var full_current := await _measure_render_sample("full_current")
 	_proof.visible = false
 	_district.visible = false
-	await process_frame
-	await create_timer(0.10).timeout
+	await get_tree().process_frame
+	await get_tree().create_timer(0.10).timeout
 	_camera.call("reset_camera_instant", _player)
 	var retained_control := await _measure_render_sample("retained_yard_control")
 	_proof.visible = true
 	_district.visible = true
 
+	var viewport := get_viewport()
 	var report := {
-		"schema_version": 3,
+		"schema_version": 4,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"generated_utc": Time.get_datetime_string_from_system(true),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
@@ -180,7 +189,7 @@ func _capture_and_measure() -> String:
 		"display_server": DisplayServer.get_name(),
 		"renderer_method": str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown")),
 		"video_adapter": RenderingServer.get_video_adapter_name(),
-		"viewport": {"width": root.size.x, "height": root.size.y},
+		"viewport": {"width": viewport.size.x, "height": viewport.size.y},
 		"camera_fov_deg": _camera.fov,
 		"captures": _captures,
 		"telemetry": {
@@ -193,6 +202,7 @@ func _capture_and_measure() -> String:
 		},
 		"verification_scope": {
 			"retained_camera_rendered": true,
+			"normal_main_scene_runtime": true,
 			"same_host_incremental_cost_measured": true,
 			"human_audio_listening": false,
 			"black_box_browser_input": false,
@@ -220,11 +230,11 @@ func _place_player(position: Vector3) -> void:
 	_camera.call("reset_camera_instant", _player)
 
 func _save_capture(file_name: String, settle_seconds: float = 0.12) -> String:
-	await process_frame
+	await get_tree().process_frame
 	if settle_seconds > 0.0:
-		await create_timer(settle_seconds).timeout
-	await process_frame
-	var image := root.get_texture().get_image()
+		await get_tree().create_timer(settle_seconds).timeout
+	await get_tree().process_frame
+	var image := get_viewport().get_texture().get_image()
 	if image == null or image.is_empty():
 		return "Rendered viewport image is empty for %s" % file_name
 	var file_path := OUTPUT_DIR + "/" + file_name
@@ -340,11 +350,11 @@ func _measure_render_sample(label: String) -> Dictionary:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
 	for _i in range(30):
-		await process_frame
+		await get_tree().process_frame
 	var frame_times: Array[float] = []
 	for _i in range(180):
 		var start_usec := Time.get_ticks_usec()
-		await process_frame
+		await get_tree().process_frame
 		var end_usec := Time.get_ticks_usec()
 		frame_times.append(float(end_usec - start_usec) / 1000.0)
 	frame_times.sort()
