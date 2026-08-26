@@ -10,7 +10,8 @@ const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.g
 const SilentCoreScript = preload("res://scripts/interactions/silent_core_interactable.gd")
 const MemoryEchoScript = preload("res://scripts/prototype/memory_echo_controller.gd")
 
-const SILENT_CORE_POSITION := Vector3(8.0, 0.4, -8.0)
+const LEGACY_SILENT_CORE_POSITION := Vector3(8.0, 0.4, -8.0)
+const DISTRICT_SILENT_CORE_SOCKET_PATH := "GearsDistrictSlice01B/SilentCoreSite/SilentCoreSocket"
 const AUTHORED_ECHO_PAYLOAD := {
 	"echo_id": "mission03_silent_core",
 	"action": "silent_core_resonance",
@@ -118,6 +119,19 @@ func _try_bind_runtime() -> void:
 	_bound = true
 	print("[MISSION_NARRATIVE_03] Runtime bound to retained Action/Echo/pursuit systems")
 
+func _resolve_silent_core_destination() -> Dictionary:
+	if _root_controller != null:
+		var socket := _root_controller.get_node_or_null(DISTRICT_SILENT_CORE_SOCKET_PATH) as Marker3D
+		if socket != null:
+			return {
+				"global_position": socket.global_position,
+				"source": DISTRICT_SILENT_CORE_SOCKET_PATH,
+			}
+	return {
+		"global_position": LEGACY_SILENT_CORE_POSITION,
+		"source": "legacy_fixture_fallback",
+	}
+
 func _create_silent_core() -> void:
 	var existing := _root_controller.get_node_or_null("SilentCore")
 	if existing is SilentCoreInteractable:
@@ -125,8 +139,10 @@ func _create_silent_core() -> void:
 		return
 	_silent_core = SilentCoreScript.new()
 	_silent_core.name = "SilentCore"
-	_silent_core.position = SILENT_CORE_POSITION
 	_root_controller.add_child(_silent_core)
+	var destination := _resolve_silent_core_destination()
+	_silent_core.global_position = destination["global_position"]
+	_silent_core.set_meta("destination_source", destination["source"])
 
 func _register_retained_interaction_target() -> void:
 	var interactables = _root_controller.get("_interactables")
