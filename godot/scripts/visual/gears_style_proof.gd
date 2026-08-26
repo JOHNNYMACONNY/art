@@ -123,6 +123,22 @@ func _actor_is_treated(actor_name: String) -> bool:
 	var actor := scene_root.get_node_or_null(actor_name)
 	return actor != null and actor.has_meta("gears_style_proof_treatment")
 
+func _count_meshes(node: Node) -> int:
+	var count := 0
+	if node is MeshInstance3D:
+		count = 1
+	for child in node.get_children():
+		count += _count_meshes(child)
+	return count
+
+func _count_outlines(node: Node) -> int:
+	var count := 0
+	if node is MeshInstance3D and node.name.ends_with("Contour"):
+		count = 1
+	for child in node.get_children():
+		count += _count_outlines(child)
+	return count
+
 func get_proof_contract() -> Dictionary:
 	var scene_root := get_parent()
 	var retained_camera := false
@@ -130,6 +146,10 @@ func get_proof_contract() -> Dictionary:
 		var camera := scene_root.get_node_or_null("ChinatownCamera3D") as Camera3D
 		if camera != null:
 			retained_camera = absf(camera.fov - 32.0) <= 0.05
+	var practicals := get_node_or_null("PracticalLights")
+	var practical_count := 0
+	if practicals != null:
+		practical_count = practicals.get_child_count()
 	return {
 		"version": "issue60_gears_style_proof_v1",
 		"stacked_mixed_use": has_node("MixedUseBlock"),
@@ -143,12 +163,12 @@ func get_proof_contract() -> Dictionary:
 		"pursuit_vehicle_treatment": _actor_is_treated("PursuerPrototype"),
 		"utility_robot_treatment": _actor_is_treated("UtilityCrawler"),
 		"distant_landmark": has_node("DistantRelay"),
-		"practical_lighting": has_node("PracticalLights"),
+		"practical_lighting": practical_count > 0,
 		"uses_retained_camera": retained_camera,
 		"graphic_families": ["municipal", "commercial", "aftermarket", "asset_marking"],
-		"generated_mesh_instances": 47,
-		"outline_instances": 12,
-		"practical_light_count": 3,
+		"generated_mesh_instances": _count_meshes(self),
+		"outline_instances": _count_outlines(self),
+		"practical_light_count": practical_count,
 		"lighting_default": "day",
 		"full_district_production": false,
 		"humanoid_bot_substitute": false,
