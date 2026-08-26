@@ -29,17 +29,20 @@ This location intentionally:
 - stays spatially separate from the Issue #60 proof-only `DistantRelay` silhouette;
 - creates a short on-foot destination from the industrial intersection rather than a vehicle-scale new route.
 
-Add a passive `Marker3D` named `SilentCoreSocket` under `SilentCoreSite`. Mission 03's production `SilentCoreInteractable` must resolve to that socket whenever the production site exists.
+Because this pocket is outside the existing drivable floor surfaces, add the smallest physically traversable maintenance access needed to make it real gameplay geography: a two-piece `AccessWalkway` -> `SitePadBody` apron with one collision shape each. The walkway must overlap the existing industrial-intersection collider, the site pad must overlap the walkway, and both surfaces must remain outside the proof-relay and industrial-frontage collision envelopes. This is a maintenance apron, not new road acreage.
+
+Add a passive `Marker3D` named `SilentCoreSocket` under `SilentCoreSite`, located on the site pad. Mission 03's production `SilentCoreInteractable` must resolve to that socket whenever the production site exists.
 
 ## Visual contract
 
 The site should express the approved Silent Core mystery language through restraint:
 
 1. one ordinary utility/service pad mass;
-2. one obsolete relay/server cabinet mass;
-3. one deliberately removed or blank asset-plate scar;
-4. one small maintenance/care cue;
-5. one sparse HS-7 cyan signal aperture.
+2. one narrow maintenance access surface;
+3. one obsolete relay/server cabinet mass;
+4. one deliberately removed or blank asset-plate scar;
+5. one small maintenance/care cue;
+6. one sparse HS-7 cyan signal aperture.
 
 Use fewer colors/signs/props than adjacent commercial frontage. The signal aperture may use restrained toon-shader emission, but 01D adds no real-time local lights.
 
@@ -63,10 +66,10 @@ Incremental 01D site additions:
 
 - declarative site mesh instances: `<= 6`;
 - interactable runtime marker mesh instances: `<= 5`;
-- new collision shapes: `0`;
+- new collision shapes: exactly `2`, limited to the on-foot maintenance walkway and site pad;
 - new real-time local lights: `0`;
 - new gameplay state machines: `0`;
-- new acreage: `0`.
+- new road acreage: `0`.
 
 ## Code-first verification
 
@@ -74,8 +77,10 @@ Exact-head CI must verify:
 
 - `SilentCoreSite` and passive `SilentCoreSocket` exist in the real 01B production scene;
 - representative site meshes use `res://materials/gears_toon.gdshader`;
-- site adds no collision or local lights;
-- site root remains outside the primary road, industrial-frontage, and proof-relay bounding envelopes defined above;
+- site adds exactly the two bounded ground colliders and no local lights;
+- `AccessWalkway` overlaps the retained industrial-intersection ground collider;
+- `SitePadBody` overlaps `AccessWalkway`, making the Core physically reachable from retained gameplay ground;
+- the site pad remains outside the industrial-frontage and proof-relay bounding envelopes;
 - runtime creates exactly one `SilentCore` and resolves its global position to the production socket rather than the legacy in-yard position;
 - the runtime marker uses the approved toon shader on representative housing/signal meshes;
 - the runtime marker stays within its mesh budget;
