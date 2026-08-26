@@ -2,6 +2,8 @@ extends RefCounted
 
 const TOON_SHADER_PATH := "res://materials/gears_toon.gdshader"
 const LEGACY_RETURN_ZONE_POSITION := Vector3(7.0, 0.08, 8.0)
+const MIN_EFFECTIVE_ALLEY_WIDTH_M := 3.0
+const HAULER_WIDTH_M := 1.8
 
 const RETAINED_01B_TRANSFORMS := {
 	"NorthRoad": Vector3(-4.5, -0.15, -35.0),
@@ -37,6 +39,26 @@ static func _verify_toon_mesh(root: Node, path: String) -> String:
 		return "Mayor Burn garage mesh is not using the approved toon shader: %s" % path
 	return ""
 
+static func _verify_effective_alley_clearance(district: Node) -> String:
+	var alley := district.get_node_or_null("ServiceAlley") as Node3D
+	var alley_collider := district.get_node_or_null("ServiceAlley/CollisionShape3D") as CollisionShape3D
+	var rail := district.get_node_or_null("WestGuardRail") as Node3D
+	var rail_collider := district.get_node_or_null("WestGuardRail/CollisionShape3D") as CollisionShape3D
+	if alley == null or alley_collider == null or rail == null or rail_collider == null:
+		return "Service-alley clearance fixtures are missing"
+	var alley_shape := alley_collider.shape as BoxShape3D
+	var rail_shape := rail_collider.shape as BoxShape3D
+	if alley_shape == null or rail_shape == null:
+		return "Service-alley clearance requires BoxShape3D fixtures"
+	var alley_west_edge := alley.position.x - alley_shape.size.x * 0.5
+	var rail_west_edge := rail.position.x - rail_shape.size.x * 0.5
+	var effective_width := rail_west_edge - alley_west_edge
+	if effective_width < MIN_EFFECTIVE_ALLEY_WIDTH_M:
+		return "Service alley effective clearance %.2fm is below the %.2fm production contract" % [effective_width, MIN_EFFECTIVE_ALLEY_WIDTH_M]
+	if effective_width < HAULER_WIDTH_M + 0.8:
+		return "Service alley leaves insufficient practical margin around the %.1fm-wide Scrap Hauler" % HAULER_WIDTH_M
+	return ""
+
 static func verify(scene_root: Node) -> String:
 	if scene_root == null:
 		return "Playable scene root is missing"
@@ -51,6 +73,10 @@ static func verify(scene_root: Node) -> String:
 			return "Retained 01B node missing: %s" % node_name
 		if node.position.distance_to(RETAINED_01B_TRANSFORMS[node_name]) > 0.001:
 			return "01C changed retained 01B route transform: %s" % node_name
+
+	var clearance_error := _verify_effective_alley_clearance(district)
+	if clearance_error != "":
+		return clearance_error
 
 	var garage := district.get_node_or_null("CommercialFrontage/MayorBurnGarage")
 	if garage == null:
