@@ -21,17 +21,21 @@ const VERMILION := Color(0.824, 0.294, 0.227, 1.0)
 const SIGNAL_CYAN := Color(0.486, 0.812, 0.816, 1.0)
 const DUSTY_GREEN := Color(0.400, 0.439, 0.357, 1.0)
 
+var _toon_shader: Shader = null
+
 func _ready() -> void:
 	call_deferred("_apply_actor_treatments")
 
-func _material(color: Color, emission_energy: float = 0.0) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = 0.82
+func _material(color: Color, emission_energy: float = 0.0) -> ShaderMaterial:
+	if _toon_shader == null:
+		_toon_shader = load("res://materials/gears_toon.gdshader") as Shader
+	var material := ShaderMaterial.new()
+	material.shader = _toon_shader
+	material.set_shader_parameter("base_color", color)
+	material.set_shader_parameter("roughness_value", 0.82)
 	if emission_energy > 0.0:
-		material.emission_enabled = true
-		material.emission = color
-		material.emission_energy_multiplier = emission_energy
+		material.set_shader_parameter("emission_color", color)
+		material.set_shader_parameter("emission_energy", emission_energy)
 	return material
 
 func _style(actor: Node, node_path: String, color: Color, emission_energy: float = 0.0) -> void:
