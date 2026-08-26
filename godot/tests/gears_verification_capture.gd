@@ -2,7 +2,7 @@ extends SceneTree
 
 const OUTPUT_DIR := "res://verification/current"
 const REPORT_PATH := OUTPUT_DIR + "/verification_report.json"
-const CONTACT_SHEET_PATH := OUTPUT_DIR + "/verification_contact_sheet.jpg"
+const CONTACT_SHEET_PATH := OUTPUT_DIR + "/verification_contact_sheet.png"
 const CAPTURE_NAMES := [
 	"01_quiet_traversal.png",
 	"02_courier_bike.png",
@@ -32,8 +32,7 @@ const CONTACT_CELL_WIDTH := 480
 const CONTACT_CELL_HEIGHT := 270
 const CONTACT_WIDTH := CONTACT_COLUMNS * CONTACT_CELL_WIDTH
 const CONTACT_HEIGHT := CONTACT_ROWS * CONTACT_CELL_HEIGHT
-const CONTACT_JPEG_QUALITY := 0.80
-const MAX_EMBEDDED_CONTACT_BYTES := 650000
+const MAX_CONTACT_BYTES := 2000000
 
 var _scene: Node3D = null
 var _player: CharacterBody3D = null
@@ -96,7 +95,6 @@ func _capture_and_measure() -> String:
 	if absf(_camera.fov - 32.0) > 0.01:
 		return "Retained gameplay camera FOV is no longer 32 degrees"
 
-	# Day is the neutral starting presentation for the first six captures.
 	_proof.call("set_lighting_mode", "day")
 
 	_place_player(Vector3(-4.5, 0.20, -30.0))
@@ -156,7 +154,6 @@ func _capture_and_measure() -> String:
 	if error != "": return error
 	await create_timer(0.70).timeout
 
-	# Same-host performance evidence: current district visible versus retained-yard control.
 	_proof.call("set_lighting_mode", "day")
 	_place_player(Vector3(-1.5, 0.20, -18.0))
 	var full_current := await _measure_render_sample("full_current")
@@ -170,7 +167,7 @@ func _capture_and_measure() -> String:
 	_district.visible = true
 
 	var report := {
-		"schema_version": 2,
+		"schema_version": 3,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"generated_utc": Time.get_datetime_string_from_system(true),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
@@ -229,8 +226,7 @@ func _save_capture(file_name: String, settle_seconds: float = 0.12) -> String:
 	var save_error := image.save_png(file_path)
 	if save_error != OK:
 		return "PNG save failed for %s: %s" % [file_name, save_error]
-	var absolute_path := ProjectSettings.globalize_path(file_path)
-	var bytes := FileAccess.get_file_as_bytes(absolute_path).size()
+	var bytes := FileAccess.get_file_as_bytes(ProjectSettings.globalize_path(file_path)).size()
 	if bytes < 20000:
 		return "Rendered PNG is unexpectedly small for %s: %s bytes" % [file_name, bytes]
 	_captures.append({
@@ -256,48 +252,67 @@ func _publish_web_verification_payload(report: Dictionary) -> String:
 			preview.convert(Image.FORMAT_RGBA8)
 		preview.resize(CONTACT_CELL_WIDTH, CONTACT_CELL_HEIGHT, Image.INTERPOLATE_LANCZOS)
 		var column := index % CONTACT_COLUMNS
-		var row := index / CONTACT_COLUMNS
+		var row := int(index / CONTACT_COLUMNS)
 		sheet.blit_rect(
 			preview,
 			Rect2i(Vector2i.ZERO, Vector2i(CONTACT_CELL_WIDTH, CONTACT_CELL_HEIGHT)),
 			Vector2i(column * CONTACT_CELL_WIDTH, row * CONTACT_CELL_HEIGHT)
 		)
 
-	var jpeg_bytes := sheet.save_jpg_to_buffer(CONTACT_JPEG_QUALITY)
-	if jpeg_bytes.size() < 20000:
-		return "Verification contact sheet JPEG is unexpectedly small"
-	if jpeg_bytes.size() > MAX_EMBEDDED_CONTACT_BYTES:
-		return "Verification contact sheet exceeds bounded Web payload budget: %d bytes" % jpeg_bytes.size()
-	var contact_file := FileAccess.open(CONTACT_SHEET_PATH, FileAccess.WRITE)
-	if contact_file == null:
-		return "Could not write verification contact sheet"
-	contact_file.store_buffer(jpeg_bytes)
-	contact_file.close()
+	var contact_error := sheet.save_png(CONTACT_SHEET_PATH)
+	if contact_error != OK:
+		return "Verification contact sheet PNG write failed: %s" % contact_error
+	var contact_bytes := FileAccess.get_file_as_bytes(ProjectSettings.globalize_path(CONTACT_SHEET_PATH)).size()
+	if contact_bytes < 20000:
+		return "Verification contact sheet is unexpectedly small"
+	if contact_bytes > MAX_CONTACT_BYTES:
+		return "Verification contact sheet exceeds bounded Web asset budget: %d bytes" % contact_bytes
 
 	report["publication"] = {
-		"transport": "web_head_include_base64",
-		"payload_marker": "GEARS_VERIFICATION_PAYLOAD_V1",
+		"transport": "web_boot_splash_plus_head_include",
+		"payload_marker": "GEARS_VERIFICATION_PAYLOAD_V2",
+		"public_contact_sheet_path": "index.png",
 		"contact_sheet": {
-			"file": "verification_contact_sheet.jpg",
+			"file": "verification_contact_sheet.png",
 			"width": CONTACT_WIDTH,
 			"height": CONTACT_HEIGHT,
 			"columns": CONTACT_COLUMNS,
 			"rows": CONTACT_ROWS,
 			"cell_width": CONTACT_CELL_WIDTH,
 			"cell_height": CONTACT_CELL_HEIGHT,
-			"bytes": jpeg_bytes.size(),
+			"bytes": contact_bytes,
 			"capture_order": CAPTURE_NAMES,
 		},
 	}
 
+	# This child runs inside the workflow's isolated Web project. Changing the
+	# boot splash here does not mutate repository gameplay presentation; it gives
+	# the standard Web exporter one inspectable loose image asset (index.png).
+	ProjectSettings.set_setting("application/boot_splash/image", CONTACT_SHEET_PATH)
+	ProjectSettings.set_setting("application/boot_splash/show_image", true)
+	ProjectSettings.set_setting("application/boot_splash/fullsize", true)
+	ProjectSettings.set_setting("application/boot_splash/use_filter", true)
+	var project_save_error := ProjectSettings.save()
+	if project_save_error != OK:
+		return "Could not persist isolated Web boot-splash verification asset: %s" % project_save_error
+
+	var full: Dictionary = report.telemetry.full_current
+	var control: Dictionary = report.telemetry.retained_yard_control
+	var delta: Dictionary = report.telemetry.delta_full_minus_control
+	var source_sha := str(report.source_sha)
 	var report_json := JSON.stringify(report)
-	var report_b64 := Marshalls.raw_to_base64(report_json.to_utf8_buffer())
-	var contact_b64 := Marshalls.raw_to_base64(jpeg_bytes)
-	var source_sha := str(report.get("source_sha", ""))
 	var head_include := "".join([
-		"<!-- GEARS_VERIFICATION_PAYLOAD_V1 source_sha=", source_sha, " -->\n",
-		"<script id=\"gears-verification-report-b64\" type=\"application/octet-stream\" data-source-sha=\"", source_sha, "\">", report_b64, "</script>\n",
-		"<script id=\"gears-verification-contact-sheet-b64\" type=\"application/octet-stream\" data-media-type=\"image/jpeg\" data-source-sha=\"", source_sha, "\">", contact_b64, "</script>\n",
+		"<!-- GEARS_VERIFICATION_PAYLOAD_V2 source_sha=", source_sha,
+		" full_avg_ms=", str(full.avg_frame_ms),
+		" full_p95_ms=", str(full.p95_frame_ms),
+		" control_avg_ms=", str(control.avg_frame_ms),
+		" control_p95_ms=", str(control.p95_frame_ms),
+		" delta_draw_calls=", str(delta.draw_calls),
+		" delta_primitives=", str(delta.primitives),
+		" delta_objects=", str(delta.objects), " -->\n",
+		"<script id=\"gears-verification-report\" type=\"application/json\" data-source-sha=\"", source_sha, "\">",
+		report_json,
+		"</script>\n",
 	])
 
 	var preset := ConfigFile.new()
@@ -306,15 +321,15 @@ func _publish_web_verification_payload(report: Dictionary) -> String:
 	if load_error != OK:
 		return "Could not load Web export preset for verification payload: %s" % load_error
 	preset.set_value("preset.0.options", "html/head_include", head_include)
-	var save_error := preset.save(preset_path)
-	if save_error != OK:
-		return "Could not persist Web verification payload: %s" % save_error
+	var preset_save_error := preset.save(preset_path)
+	if preset_save_error != OK:
+		return "Could not persist Web verification telemetry payload: %s" % preset_save_error
 
 	var verify := ConfigFile.new()
 	if verify.load(preset_path) != OK:
 		return "Could not reload Web export preset after payload write"
 	var saved_include := str(verify.get_value("preset.0.options", "html/head_include", ""))
-	if "GEARS_VERIFICATION_PAYLOAD_V1" not in saved_include or source_sha not in saved_include:
+	if "GEARS_VERIFICATION_PAYLOAD_V2" not in saved_include or source_sha not in saved_include:
 		return "Web verification payload did not persist to export preset"
 	return ""
 
