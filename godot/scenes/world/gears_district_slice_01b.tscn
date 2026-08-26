@@ -393,7 +393,7 @@ pixel_size = 0.005
 shape = SubResource("Shape_Barrier")
 
 [node name="WestGuardRail" type="StaticBody3D" parent="."]
-position = Vector3(-8.75, 0.4, -35.5)
+position = Vector3(-8.4, 0.4, -35.5)
 
 [node name="RailMesh" type="MeshInstance3D" parent="WestGuardRail"]
 scale = Vector3(0.3, 0.8, 14)
