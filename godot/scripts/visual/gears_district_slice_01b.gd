@@ -5,6 +5,10 @@ extends Node3D
 
 const RETAINED_NORTH_EDGE_Z := -20.0
 const APPROVED_TOON_SHADER_PATH := "res://materials/gears_toon.gdshader"
+const ADDITIVE_EXTENSION_PATHS := [
+	"CommercialFrontage/MayorBurnGarage",
+	"SilentCoreSite",
+]
 
 func _box_shape(node_path: String) -> BoxShape3D:
 	var collider := get_node_or_null(node_path) as CollisionShape3D
@@ -36,6 +40,22 @@ func _count_foreign_scripts(node: Node) -> int:
 		count = 1
 	for child in node.get_children():
 		count += _count_foreign_scripts(child)
+	return count
+
+func _count_extension_meshes() -> int:
+	var count := 0
+	for path in ADDITIVE_EXTENSION_PATHS:
+		var node := get_node_or_null(path)
+		if node != null:
+			count += _count_meshes(node)
+	return count
+
+func _count_extension_colliders() -> int:
+	var count := 0
+	for path in ADDITIVE_EXTENSION_PATHS:
+		var node := get_node_or_null(path)
+		if node != null:
+			count += _count_colliders(node)
 	return count
 
 func _range_overlap(a_min: float, a_max: float, b_min: float, b_max: float) -> bool:
@@ -115,6 +135,11 @@ func get_production_contract() -> Dictionary:
 			contiguous = intersection_south_edge >= RETAINED_NORTH_EDGE_Z - 0.1 and road_south_edge >= intersection.position.z - intersection_shape.size.z * 0.5 - 0.1
 			northbound_depth = RETAINED_NORTH_EDGE_Z - road_north_edge
 
+	var current_meshes := _count_meshes(self)
+	var current_colliders := _count_colliders(self)
+	var extension_meshes := _count_extension_meshes()
+	var extension_colliders := _count_extension_colliders()
+
 	return {
 		"version": "open_world_expansion_01b_v1",
 		"contiguous_with_retained_yard": contiguous,
@@ -131,7 +156,13 @@ func get_production_contract() -> Dictionary:
 		"primary_route_width_m": road_shape.size.x if road_shape != null else 0.0,
 		"service_alley_width_m": alley_shape.size.x if alley_shape != null else 0.0,
 		"northbound_depth_m": northbound_depth,
-		"mesh_instances": _count_meshes(self),
-		"collision_shapes": _count_colliders(self),
+		# Preserve the original 01B budget as a historical contract while later
+		# authored locations report their own incremental budgets and cumulative totals.
+		"mesh_instances": current_meshes - extension_meshes,
+		"collision_shapes": current_colliders - extension_colliders,
+		"current_mesh_instances": current_meshes,
+		"current_collision_shapes": current_colliders,
+		"extension_mesh_instances": extension_meshes,
+		"extension_collision_shapes": extension_colliders,
 		"local_lights": _count_local_lights(self),
 	}
