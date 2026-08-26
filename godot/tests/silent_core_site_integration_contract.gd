@@ -4,8 +4,8 @@ const TOON_SHADER_PATH := "res://materials/gears_toon.gdshader"
 const LEGACY_SILENT_CORE_POSITION := Vector3(8.0, 0.4, -8.0)
 const EXPECTED_SITE_POSITION := Vector3(6.2, 0.0, -27.4)
 const PROOF_RELAY_MAX_X := 4.65
+const PROOF_RELAY_MAX_Z := -26.5
 const INDUSTRIAL_SOUTH_EDGE_Z := -30.0
-const PRIMARY_ROAD_EAST_EDGE_X := -0.5
 
 static func _count_meshes(node: Node) -> int:
 	var count := 1 if node is MeshInstance3D else 0
@@ -36,6 +36,24 @@ static func _verify_toon_mesh(root: Node, path: String) -> String:
 		return "Silent Core mesh is not using the approved toon shader: %s" % path
 	return ""
 
+static func _box_bounds(body: Node3D, collider: CollisionShape3D) -> Dictionary:
+	var shape := collider.shape as BoxShape3D
+	if shape == null:
+		return {}
+	var half := shape.size * 0.5
+	return {
+		"min_x": body.global_position.x - half.x,
+		"max_x": body.global_position.x + half.x,
+		"min_z": body.global_position.z - half.z,
+		"max_z": body.global_position.z + half.z,
+	}
+
+static func _overlaps_xz(a: Dictionary, b: Dictionary) -> bool:
+	if a.is_empty() or b.is_empty():
+		return false
+	return minf(float(a.max_x), float(b.max_x)) >= maxf(float(a.min_x), float(b.min_x)) - 0.05 \
+	and minf(float(a.max_z), float(b.max_z)) >= maxf(float(a.min_z), float(b.min_z)) - 0.05
+
 static func verify(scene_root: Node) -> String:
 	if scene_root == null:
 		return "Playable scene root is missing"
@@ -49,27 +67,52 @@ static func verify(scene_root: Node) -> String:
 		return "SilentCoreSite is missing from the production district"
 	if site.position.distance_to(EXPECTED_SITE_POSITION) > 0.001:
 		return "SilentCoreSite moved outside its bounded authored pocket"
-	if site.position.x <= PROOF_RELAY_MAX_X:
-		return "SilentCoreSite overlaps the proof-only relay envelope"
-	if site.position.z <= INDUSTRIAL_SOUTH_EDGE_Z:
-		return "SilentCoreSite intrudes into the industrial frontage collision envelope"
-	if site.position.x <= PRIMARY_ROAD_EAST_EDGE_X:
-		return "SilentCoreSite intrudes into the primary road corridor"
 	if site.get_script() != null:
 		return "SilentCoreSite must remain declarative"
 	if _count_meshes(site) <= 0 or _count_meshes(site) > 6:
 		return "SilentCoreSite violates its bounded 1..6 mesh budget"
-	if _count_colliders(site) != 0:
-		return "SilentCoreSite must not add new collision"
+	if _count_colliders(site) != 2:
+		return "SilentCoreSite must add exactly two bounded maintenance-apron colliders"
 	if _count_local_lights(site) != 0:
 		return "SilentCoreSite must not add real-time local lights"
+
+	var intersection := district.get_node_or_null("IndustrialIntersection") as Node3D
+	var intersection_collider := district.get_node_or_null("IndustrialIntersection/CollisionShape3D") as CollisionShape3D
+	var walkway := site.get_node_or_null("AccessWalkway") as Node3D
+	var walkway_collider := site.get_node_or_null("AccessWalkway/CollisionShape3D") as CollisionShape3D
+	var pad := site.get_node_or_null("SitePadBody") as Node3D
+	var pad_collider := site.get_node_or_null("SitePadBody/CollisionShape3D") as CollisionShape3D
+	if intersection == null or intersection_collider == null or walkway == null or walkway_collider == null or pad == null or pad_collider == null:
+		return "Silent Core maintenance-apron collision fixtures are incomplete"
+
+	var intersection_bounds := _box_bounds(intersection, intersection_collider)
+	var walkway_bounds := _box_bounds(walkway, walkway_collider)
+	var pad_bounds := _box_bounds(pad, pad_collider)
+	if not _overlaps_xz(intersection_bounds, walkway_bounds):
+		return "Silent Core AccessWalkway does not overlap retained intersection ground"
+	if not _overlaps_xz(walkway_bounds, pad_bounds):
+		return "Silent Core SitePadBody does not overlap AccessWalkway"
+	if float(pad_bounds.min_x) <= PROOF_RELAY_MAX_X:
+		return "Silent Core site pad overlaps the proof-only relay envelope"
+	if float(walkway_bounds.min_z) <= PROOF_RELAY_MAX_Z:
+		return "Silent Core access walkway intrudes into the proof-only relay envelope"
+	if float(pad_bounds.min_z) <= INDUSTRIAL_SOUTH_EDGE_Z:
+		return "Silent Core site pad intrudes into the industrial frontage collision envelope"
 
 	var socket := site.get_node_or_null("SilentCoreSocket") as Marker3D
 	if socket == null or socket.get_script() != null:
 		return "SilentCoreSocket is missing or owns behavior"
+	if not _overlaps_xz(pad_bounds, {
+		"min_x": socket.global_position.x,
+		"max_x": socket.global_position.x,
+		"min_z": socket.global_position.z,
+		"max_z": socket.global_position.z,
+	}):
+		return "SilentCoreSocket is not located on the traversable site pad"
 
 	for path in [
-		"SilentCoreSite/ServicePad",
+		"SilentCoreSite/AccessWalkway/WalkwayMesh",
+		"SilentCoreSite/SitePadBody/SitePadMesh",
 		"SilentCoreSite/RelayCabinet",
 		"SilentCoreSite/RemovedAssetPlateScar",
 		"SilentCoreSite/MemorySignalAperture",
