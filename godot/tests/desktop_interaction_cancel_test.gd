@@ -128,7 +128,7 @@ func _prepare_ci_verification_payload() -> String:
 	if preset_error != OK:
 		return "Could not reload Web export preset after verification capture"
 	var head_include := str(preset.get_value("preset.0.options", "html/head_include", ""))
-	if "GEARS_VERIFICATION_PAYLOAD_V1" not in head_include:
+	if "GEARS_VERIFICATION_PAYLOAD_V2" not in head_include:
 		return "Web export preset is missing rendered verification payload marker"
 	if source_sha not in head_include:
 		return "Web export verification payload is not stamped to SOURCE_SHA"
@@ -154,7 +154,6 @@ func _run() -> void:
 		await _fail("Main scene is missing tuner interaction dependencies")
 		return
 
-	# 1. Real Viewport mouse release must unwind the complete interaction lock.
 	if not _enter_tuner(touch_ui, player, tuner):
 		await _fail("Could not select tuner through normal target authority")
 		return
@@ -169,8 +168,6 @@ func _run() -> void:
 	await process_frame
 	_mouse_motion(gesture_center + Vector2(10, 0), Vector2(10, 0))
 	await process_frame
-	# Releasing an unrelated mouse button while left remains the interaction
-	# owner must not cancel the active tuner drag.
 	var unrelated_up := InputEventMouseButton.new()
 	unrelated_up.device = 0
 	unrelated_up.button_index = MOUSE_BUTTON_RIGHT
@@ -189,7 +186,6 @@ func _run() -> void:
 		await _fail("Mouse-release cancel trap: %s" % release_error)
 		return
 
-	# 2. ESC through the real Viewport route is deterministic and repeatable.
 	for cycle in range(2):
 		if not _enter_tuner(touch_ui, player, tuner):
 			await _fail("Could not re-enter tuner on ESC cycle %d" % (cycle + 1))
@@ -206,7 +202,6 @@ func _run() -> void:
 			await _fail("ESC cycle %d: %s" % [cycle + 1, escape_error])
 			return
 
-	# 3. Real Viewport mouse drag must move the actual SignalTuner and visible readout.
 	if not _enter_tuner(touch_ui, player, tuner):
 		await _fail("Could not enter tuner for real drag progression proof")
 		return
@@ -215,8 +210,6 @@ func _run() -> void:
 	var start_frequency := tuner.current_frequency
 	_mouse_down_at(gesture_center)
 	await process_frame
-	# About 300px from the 0.15 reset point maps into the 0.72 target zone
-	# through SignalTuner's production saturating drag curve.
 	_mouse_motion(gesture_center + Vector2(180, 0), Vector2(300, 0))
 	await process_frame
 	await physics_frame
@@ -237,7 +230,6 @@ func _run() -> void:
 		await _fail("Decorative tuner readout can intercept pointer delivery")
 		return
 
-	# Keep the physical mouse held while production dwell logic runs.
 	await create_timer(tuner.dwell_time_required + 0.15).timeout
 	await process_frame
 	if tuner.current_state != tuner.TunerState.LOCKED:
@@ -250,15 +242,12 @@ func _run() -> void:
 		await _fail("Successful tuner lock did not cleanly restore player/camera/UI authority")
 		return
 
-	# Release after lock must be harmless and must not regress the powered state.
 	_mouse_up_at(gesture_center + Vector2(180, 0))
 	await process_frame
 	if not panel.is_powered or tuner.current_state != tuner.TunerState.LOCKED:
 		await _fail("Post-lock mouse release regressed successful tuner progression")
 		return
 
-	# 4. Panel peel gets the same explicit ESC cancel language without changing
-	# extraction rules. Set up the already-proven powered/approached seam directly.
 	panel.is_powered = true
 	panel.is_player_in_range = true
 	panel.current_step = panel.Step.APPROACHED
