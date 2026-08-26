@@ -70,16 +70,17 @@ func _add_box(mesh_name: String, size: Vector3, position: Vector3, color: Color,
 	return instance
 
 func _build_visual_marker() -> void:
-	# Ordinary obsolete utility hardware first; signal/memory is sparse punctuation.
-	_add_box("SilentCoreHousing", Vector3(0.95, 0.95, 0.25), Vector3(0.0, 0.62, -0.12), OFF_WHITE)
-	_add_box("SilentCoreStructuralCore", Vector3(0.62, 0.72, 0.32), Vector3(0.0, 0.58, 0.08), SOOT)
-	_add_box("SilentCoreSignalSlot", Vector3(0.38, 0.12, 0.05), Vector3(0.0, 0.62, 0.27), SIGNAL_CYAN, 0.52)
-	_add_box("SilentCoreRemovedPlateScar", Vector3(0.24, 0.18, 0.04), Vector3(0.30, 0.82, 0.27), SOOT)
+	# The production socket sits 0.15m above its apron, so these local centers
+	# ground the housing/structural mass at world y=0 instead of floating it.
+	_add_box("SilentCoreHousing", Vector3(0.95, 0.95, 0.25), Vector3(0.0, 0.325, -0.12), OFF_WHITE)
+	_add_box("SilentCoreStructuralCore", Vector3(0.62, 0.72, 0.32), Vector3(0.0, 0.21, 0.08), SOOT)
+	_add_box("SilentCoreSignalSlot", Vector3(0.38, 0.12, 0.05), Vector3(0.0, 0.42, 0.27), SIGNAL_CYAN, 0.52)
+	_add_box("SilentCoreRemovedPlateScar", Vector3(0.24, 0.18, 0.04), Vector3(0.30, 0.62, 0.27), SOOT)
 
 	var label := Label3D.new()
 	label.name = "SilentCoreLabel"
 	label.text = "HS-7 // CORE"
-	label.position = Vector3(0, 1.25, 0)
+	label.position = Vector3(0, 1.05, 0)
 	label.font_size = 18
 	label.outline_size = 7
 	label.modulate = OFF_WHITE
