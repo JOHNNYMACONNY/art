@@ -25,6 +25,24 @@ const GEARS_REQUIRED_TREATED_ACTORS := [
 	"UtilityCrawler",
 ]
 
+const GEARS_REQUIRED_FLAGS := [
+	"stacked_mixed_use",
+	"primary_route",
+	"shortcut_route",
+	"municipal_anchor",
+	"storefront_family",
+	"worker_treatment",
+	"courier_bike_treatment",
+	"utility_vehicle_treatment",
+	"pursuit_vehicle_treatment",
+	"utility_robot_treatment",
+	"distant_landmark",
+	"practical_lighting",
+	"uses_retained_camera",
+]
+
+const GEARS_GRAPHIC_FAMILIES := ["municipal", "commercial", "aftermarket", "asset_marking"]
+
 func _init() -> void:
 	call_deferred("_run")
 
@@ -39,6 +57,10 @@ func _finish(exit_code: int) -> void:
 func _fail(message: String) -> void:
 	push_error("[DYNAMIC_CAMERA_AB] %s" % message)
 	await _finish(1)
+
+func _proof_fail(message: String, exit_code: int) -> void:
+	push_error("[GEARS_STYLE_PROOF_60] %s [diagnostic=%d]" % [message, exit_code])
+	await _finish(exit_code)
 
 func _key_event(key: Key, pressed: bool) -> InputEventKey:
 	var event := InputEventKey.new()
@@ -61,66 +83,56 @@ func _verify_gears_style_proof() -> bool:
 	var toon_shader := load("res://materials/gears_toon.gdshader") as Shader
 	var outline_shader := load("res://materials/gears_outline.gdshader") as Shader
 	if toon_shader == null or outline_shader == null:
-		await _fail("Issue #60 lightweight toon/outline shader resources are missing or invalid")
+		await _proof_fail("Lightweight toon/outline shader resources are missing or invalid", 60)
 		return false
 
 	var proof := _scene_under_test.get_node_or_null("GearsStyleProof")
 	if proof == null or not proof.has_method("get_proof_contract"):
-		await _fail("Issue #60 GearsStyleProof integration node/contract is missing")
+		await _proof_fail("GearsStyleProof integration node/contract is missing", 61)
 		return false
 
-	for child_name in GEARS_REQUIRED_PROOF_NODES:
+	for i in range(GEARS_REQUIRED_PROOF_NODES.size()):
+		var child_name: String = GEARS_REQUIRED_PROOF_NODES[i]
 		if proof.get_node_or_null(child_name) == null:
-			await _fail("Issue #60 proof composition node missing: %s" % child_name)
+			await _proof_fail("Proof composition node missing: %s" % child_name, 70 + i)
 			return false
 
-	for actor_name in GEARS_REQUIRED_TREATED_ACTORS:
+	for i in range(GEARS_REQUIRED_TREATED_ACTORS.size()):
+		var actor_name: String = GEARS_REQUIRED_TREATED_ACTORS[i]
 		var actor := _scene_under_test.get_node_or_null(actor_name)
 		if actor == null or not actor.has_meta("gears_style_proof_treatment"):
-			await _fail("Issue #60 actor treatment missing: %s" % actor_name)
+			await _proof_fail("Actor treatment missing: %s" % actor_name, 80 + i)
 			return false
 
 	var contract: Dictionary = proof.call("get_proof_contract")
-	for flag in [
-		"stacked_mixed_use",
-		"primary_route",
-		"shortcut_route",
-		"municipal_anchor",
-		"storefront_family",
-		"worker_treatment",
-		"courier_bike_treatment",
-		"utility_vehicle_treatment",
-		"pursuit_vehicle_treatment",
-		"utility_robot_treatment",
-		"distant_landmark",
-		"practical_lighting",
-		"uses_retained_camera",
-	]:
+	for i in range(GEARS_REQUIRED_FLAGS.size()):
+		var flag: String = GEARS_REQUIRED_FLAGS[i]
 		if contract.get(flag, false) != true:
-			await _fail("Issue #60 proof contract flag failed: %s" % flag)
+			await _proof_fail("Proof contract flag failed: %s" % flag, 90 + i)
 			return false
 
 	var graphics: Array = contract.get("graphic_families", [])
-	for family in ["municipal", "commercial", "aftermarket", "asset_marking"]:
+	for i in range(GEARS_GRAPHIC_FAMILIES.size()):
+		var family: String = GEARS_GRAPHIC_FAMILIES[i]
 		if not graphics.has(family):
-			await _fail("Issue #60 graphic proof family missing: %s" % family)
+			await _proof_fail("Graphic proof family missing: %s" % family, 110 + i)
 			return false
 
 	var generated_meshes := int(contract.get("generated_mesh_instances", 9999))
 	var outline_meshes := int(contract.get("outline_instances", 0))
 	var practical_lights := int(contract.get("practical_light_count", 9999))
 	if generated_meshes <= 0 or generated_meshes > 90:
-		await _fail("Issue #60 generated mesh budget exceeded: %d" % generated_meshes)
+		await _proof_fail("Generated mesh budget invalid: %d" % generated_meshes, 120)
 		return false
 	if outline_meshes <= 0 or outline_meshes > 24:
-		await _fail("Issue #60 selective contour budget invalid: %d" % outline_meshes)
+		await _proof_fail("Selective contour budget invalid: %d" % outline_meshes, 121)
 		return false
 	if practical_lights <= 0 or practical_lights > 6:
-		await _fail("Issue #60 practical light budget invalid: %d" % practical_lights)
+		await _proof_fail("Practical light budget invalid: %d" % practical_lights, 122)
 		return false
 
 	if not proof.has_method("set_lighting_mode"):
-		await _fail("Issue #60 deterministic day/dusk comparison API is missing")
+		await _proof_fail("Deterministic day/dusk comparison API is missing", 123)
 		return false
 	proof.call("set_lighting_mode", "dusk")
 	await process_frame
@@ -148,7 +160,6 @@ func _run() -> void:
 		await _fail("Main scene is missing camera/player/Bike/Hauler integration nodes")
 		return
 
-	# RED for Issue #60 until the approved Gears visual proof is integrated.
 	if not await _verify_gears_style_proof():
 		return
 
