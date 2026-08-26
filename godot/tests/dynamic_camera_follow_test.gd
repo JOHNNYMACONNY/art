@@ -14,6 +14,7 @@ const GEARS_REQUIRED_PROOF_NODES := [
 	"Storefront",
 	"DistantRelay",
 	"PracticalLights",
+	"Storefront/HeroSignIcon",
 ]
 
 const GEARS_REQUIRED_TREATED_ACTORS := [
@@ -134,10 +135,21 @@ func _verify_gears_style_proof() -> bool:
 	if not proof.has_method("set_lighting_mode"):
 		await _proof_fail("Deterministic day/dusk comparison API is missing", 123)
 		return false
+	var store_light := proof.get_node_or_null("PracticalLights/StoreWorkLamp") as OmniLight3D
+	if store_light == null:
+		await _proof_fail("Store practical light is missing", 124)
+		return false
+	var day_energy := store_light.light_energy
 	proof.call("set_lighting_mode", "dusk")
 	await process_frame
+	if store_light.light_energy <= day_energy:
+		await _proof_fail("Dusk mode did not strengthen the practical-light hierarchy", 125)
+		return false
 	proof.call("set_lighting_mode", "day")
 	await process_frame
+	if absf(store_light.light_energy - day_energy) > 0.001:
+		await _proof_fail("Day/dusk comparison does not reset deterministically", 126)
+		return false
 	return true
 
 func _run() -> void:
