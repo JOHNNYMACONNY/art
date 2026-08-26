@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/visual/gears_district_slice_01b.gd" id="1_slice"]
 [ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="2_toon"]
@@ -47,6 +47,13 @@ shader_parameter/base_color = Color(0.184, 0.467, 0.471, 1)
 shader_parameter/roughness_value = 0.82
 shader_parameter/emission_color = Color(0, 0, 0, 1)
 shader_parameter/emission_energy = 0.0
+
+[sub_resource type="ShaderMaterial" id="Mat_Cyan"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.486, 0.812, 0.816, 1)
+shader_parameter/roughness_value = 0.72
+shader_parameter/emission_color = Color(0.486, 0.812, 0.816, 1)
+shader_parameter/emission_energy = 0.45
 
 [sub_resource type="ShaderMaterial" id="Mat_Oxidized"]
 shader = ExtResource("2_toon")
@@ -356,6 +363,42 @@ pixel_size = 0.004
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="IndustrialFrontage"]
 shape = SubResource("Shape_Industrial")
+
+[node name="SilentCoreSite" type="Node3D" parent="."]
+position = Vector3(6.2, 0, -27.4)
+
+[node name="ServicePad" type="MeshInstance3D" parent="SilentCoreSite"]
+position = Vector3(0, -0.02, 0)
+scale = Vector3(2.6, 0.08, 2.4)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Concrete")
+
+[node name="RelayCabinet" type="MeshInstance3D" parent="SilentCoreSite"]
+position = Vector3(0, 1.0, -0.18)
+scale = Vector3(1.35, 2.0, 0.95)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="RemovedAssetPlateScar" type="MeshInstance3D" parent="SilentCoreSite"]
+position = Vector3(0, 1.18, 0.32)
+scale = Vector3(0.62, 0.34, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="MaintenanceBracket" type="MeshInstance3D" parent="SilentCoreSite"]
+position = Vector3(-0.62, 0.36, 0.28)
+scale = Vector3(0.22, 0.55, 0.18)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Oxidized")
+
+[node name="MemorySignalAperture" type="MeshInstance3D" parent="SilentCoreSite"]
+position = Vector3(0, 0.86, 0.35)
+scale = Vector3(0.42, 0.12, 0.05)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Cyan")
+
+[node name="SilentCoreSocket" type="Marker3D" parent="SilentCoreSite"]
+position = Vector3(0, 0.15, 1.05)
 
 [node name="MissionDestinationSocket" type="Marker3D" parent="."]
 position = Vector3(-10, 0.2, -41.5)
