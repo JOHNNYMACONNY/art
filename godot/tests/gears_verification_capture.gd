@@ -49,9 +49,14 @@ var _capture_images: Array[Image] = []
 func _init() -> void:
 	call_deferred("_run")
 
+func _gha_escape(message: String) -> String:
+	return message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
 func _run() -> void:
 	var failure := await _capture_and_measure()
 	if failure != "":
+		if OS.get_environment("GITHUB_ACTIONS").to_lower() == "true":
+			print("::error title=GEARS_VERIFICATION_CAPTURE::%s" % _gha_escape(failure))
 		push_error("[GEARS_VERIFICATION_CAPTURE] %s" % failure)
 		quit(1)
 		return
@@ -285,9 +290,6 @@ func _publish_web_verification_payload(report: Dictionary) -> String:
 		},
 	}
 
-	# This child runs inside the workflow's isolated Web project. Changing the
-	# boot splash here does not mutate repository gameplay presentation; it gives
-	# the standard Web exporter one inspectable loose image asset (index.png).
 	ProjectSettings.set_setting("application/boot_splash/image", CONTACT_SHEET_PATH)
 	ProjectSettings.set_setting("application/boot_splash/show_image", true)
 	ProjectSettings.set_setting("application/boot_splash/fullsize", true)
