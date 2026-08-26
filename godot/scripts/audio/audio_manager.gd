@@ -41,7 +41,9 @@ enum SoundEvent {
 	AMBIENT_WORK_CLINK,
 	AMBIENT_SERVO_HUM,
 	## CTW Feel 04 — appended to preserve all existing event ordinals
-	TRACTION_RECOVERY
+	TRACTION_RECOVERY,
+	## World Event 01 — appended; FB-13 companion identity without changing prior ordinals
+	FB13_THRUM
 }
 
 enum MixState {
@@ -309,6 +311,8 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 				_play_synth_sweep(pos, 220.0, 310.0, 0.25, 0.2)
 		SoundEvent.TRACTION_RECOVERY:
 			_play_synth_sweep(pos, 420.0, 620.0, 0.12, 0.22)
+		SoundEvent.FB13_THRUM:
+			_play_fb13_thrum(pos)
 
 func stop_event(event: SoundEvent) -> void:
 	if event == SoundEvent.PROXIMITY_HUM and _hum_player:
@@ -436,7 +440,7 @@ func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
 	if not _tension_layer_active and distance < 14.0:
 		_tension_layer_active = true
 		if _tension_player and not _tension_player.playing:
-			_tension_player.play()
+				_tension_player.play()
 	elif _tension_layer_active and distance > 18.0:
 		_tension_layer_active = false
 		if _tension_player and _tension_player.playing:
@@ -813,6 +817,12 @@ func _play_synth_rejection_buzz(pos: Vector3) -> void:
 	player_3d.unit_size = 10.0
 	player_3d.stream = _create_dual_beep_wav(160.0, 0.16, 0.5)
 	_register_and_play_transient(player_3d, pos, 0.16)
+
+func _play_fb13_thrum(pos: Vector3) -> void:
+	# A compact low mechanical resonance with one quieter upper contact tick.
+	# It stays diegetic/spatial and inside the existing transient voice budget.
+	_play_synth_sweep(pos, 92.0, 148.0, 0.55, 0.34)
+	_play_synth_click(pos, 310.0, 0.08, 0.16)
 
 func _play_synth_sweep(pos: Vector3, start_f: float, end_f: float, duration: float, volume: float = 0.4) -> void:
 	var player_3d := AudioStreamPlayer3D.new()
