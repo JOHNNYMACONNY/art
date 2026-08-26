@@ -37,6 +37,15 @@ const GEARS_REQUIRED_RUNTIME_CONTOURS := [
 	"CorrodedPanel/GearsInteractablePanelContour",
 ]
 
+const GEARS_REQUIRED_RUNTIME_MARKINGS := [
+	"CourierBike/VisualRoot/GearsAmberCourierPanel",
+	"PursuerPrototype/VisualRoot/GearsPursuitRoofID",
+	"PursuerPrototype/VisualRoot/GearsPursuitFrontBand",
+	"PursuerPrototype/VisualRoot/PursuitAssetLabel",
+	"UtilityCrawler/Chassis/GearsReplacementPanel",
+	"UtilityCrawler/Chassis/CrawlerAssetID",
+]
+
 const GEARS_REQUIRED_FLAGS := [
 	"stacked_mixed_use",
 	"primary_route",
@@ -45,9 +54,12 @@ const GEARS_REQUIRED_FLAGS := [
 	"storefront_family",
 	"worker_treatment",
 	"courier_bike_treatment",
+	"courier_repair_panel",
 	"utility_vehicle_treatment",
 	"pursuit_vehicle_treatment",
+	"pursuit_civic_livery",
 	"utility_robot_treatment",
+	"utility_robot_asset_marking",
 	"interactable_treatment",
 	"distant_landmark",
 	"practical_lighting",
@@ -134,6 +146,12 @@ func _verify_gears_style_proof() -> bool:
 			return false
 		if contour_material.shader.resource_path != outline_shader.resource_path:
 			await _proof_fail("Selective gameplay contour uses wrong shader: %s" % contour_path, 150 + i)
+			return false
+
+	for i in range(GEARS_REQUIRED_RUNTIME_MARKINGS.size()):
+		var marking_path: String = GEARS_REQUIRED_RUNTIME_MARKINGS[i]
+		if _scene_under_test.get_node_or_null(marking_path) == null:
+			await _proof_fail("Required bounded identity/repair marking missing: %s" % marking_path, 160 + i)
 			return false
 
 	var contract: Dictionary = proof.call("get_proof_contract")
