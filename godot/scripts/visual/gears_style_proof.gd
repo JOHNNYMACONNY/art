@@ -90,6 +90,11 @@ func _apply_actor_treatments() -> void:
 		if actor != null:
 			actor.set_meta("gears_style_proof_treatment", true)
 
+func _set_practical_energy(node_name: String, energy: float) -> void:
+	var light := get_node_or_null("PracticalLights/%s" % node_name) as OmniLight3D
+	if light != null:
+		light.light_energy = energy
+
 func set_lighting_mode(mode: String) -> void:
 	var scene_root := get_parent()
 	if scene_root == null:
@@ -101,9 +106,15 @@ func set_lighting_mode(mode: String) -> void:
 	if dusk:
 		sun.light_energy = 0.58
 		sun.light_color = Color(0.945, 0.718, 0.478, 1.0)
+		_set_practical_energy("StoreWorkLamp", 1.55)
+		_set_practical_energy("GantryServiceLamp", 1.24)
+		_set_practical_energy("RelayMarkerLamp", 0.54)
 	else:
 		sun.light_energy = 1.25
 		sun.light_color = Color(0.961, 0.898, 0.788, 1.0)
+		_set_practical_energy("StoreWorkLamp", 1.0)
+		_set_practical_energy("GantryServiceLamp", 0.8)
+		_set_practical_energy("RelayMarkerLamp", 0.35)
 
 func _actor_is_treated(actor_name: String) -> bool:
 	var scene_root := get_parent()
