@@ -2,6 +2,7 @@ extends SceneTree
 
 const OUTPUT_DIR := "res://verification/current"
 const REPORT_PATH := OUTPUT_DIR + "/verification_report.json"
+const CONTACT_SHEET_PATH := OUTPUT_DIR + "/verification_contact_sheet.jpg"
 const CAPTURE_NAMES := [
 	"01_quiet_traversal.png",
 	"02_courier_bike.png",
@@ -25,6 +26,15 @@ const V7_BASELINE := {
 	"p95_frame_ms": 17.20,
 }
 
+const CONTACT_COLUMNS := 3
+const CONTACT_ROWS := 3
+const CONTACT_CELL_WIDTH := 480
+const CONTACT_CELL_HEIGHT := 270
+const CONTACT_WIDTH := CONTACT_COLUMNS * CONTACT_CELL_WIDTH
+const CONTACT_HEIGHT := CONTACT_ROWS * CONTACT_CELL_HEIGHT
+const CONTACT_JPEG_QUALITY := 0.80
+const MAX_EMBEDDED_CONTACT_BYTES := 650000
+
 var _scene: Node3D = null
 var _player: CharacterBody3D = null
 var _camera: Camera3D = null
@@ -35,6 +45,7 @@ var _district: Node3D = null
 var _fb13_event: Node = null
 var _audio: Node = null
 var _captures: Array[Dictionary] = []
+var _capture_images: Array[Image] = []
 
 func _init() -> void:
 	call_deferred("_run")
@@ -57,8 +68,9 @@ func _capture_and_measure() -> String:
 		var stale := OUTPUT_DIR + "/" + file_name
 		if FileAccess.file_exists(stale):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(stale))
-	if FileAccess.file_exists(REPORT_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(REPORT_PATH))
+	for stale_path in [REPORT_PATH, CONTACT_SHEET_PATH]:
+		if FileAccess.file_exists(stale_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(stale_path))
 
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
@@ -158,7 +170,7 @@ func _capture_and_measure() -> String:
 	_district.visible = true
 
 	var report := {
-		"schema_version": 1,
+		"schema_version": 2,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"generated_utc": Time.get_datetime_string_from_system(true),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
@@ -186,6 +198,11 @@ func _capture_and_measure() -> String:
 	}
 	if str(report.source_sha).is_empty():
 		report.source_sha = "local_or_unstamped"
+
+	var publication_error := _publish_web_verification_payload(report)
+	if publication_error != "":
+		return publication_error
+
 	var report_file := FileAccess.open(REPORT_PATH, FileAccess.WRITE)
 	if report_file == null:
 		return "Could not open verification report for writing"
@@ -222,6 +239,83 @@ func _save_capture(file_name: String, settle_seconds: float = 0.12) -> String:
 		"height": image.get_height(),
 		"bytes": bytes,
 	})
+	_capture_images.append(image.duplicate())
+	return ""
+
+func _publish_web_verification_payload(report: Dictionary) -> String:
+	if OS.get_environment("GITHUB_ACTIONS").to_lower() != "true":
+		return ""
+	if _capture_images.size() != CAPTURE_NAMES.size():
+		return "Contact sheet cannot be built because rendered capture count is incomplete"
+
+	var sheet := Image.create_empty(CONTACT_WIDTH, CONTACT_HEIGHT, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0.025, 0.03, 0.035, 1.0))
+	for index in range(_capture_images.size()):
+		var preview := _capture_images[index].duplicate()
+		if preview.get_format() != Image.FORMAT_RGBA8:
+			preview.convert(Image.FORMAT_RGBA8)
+		preview.resize(CONTACT_CELL_WIDTH, CONTACT_CELL_HEIGHT, Image.INTERPOLATE_LANCZOS)
+		var column := index % CONTACT_COLUMNS
+		var row := index / CONTACT_COLUMNS
+		sheet.blit_rect(
+			preview,
+			Rect2i(Vector2i.ZERO, Vector2i(CONTACT_CELL_WIDTH, CONTACT_CELL_HEIGHT)),
+			Vector2i(column * CONTACT_CELL_WIDTH, row * CONTACT_CELL_HEIGHT)
+		)
+
+	var jpeg_bytes := sheet.save_jpg_to_buffer(CONTACT_JPEG_QUALITY)
+	if jpeg_bytes.size() < 20000:
+		return "Verification contact sheet JPEG is unexpectedly small"
+	if jpeg_bytes.size() > MAX_EMBEDDED_CONTACT_BYTES:
+		return "Verification contact sheet exceeds bounded Web payload budget: %d bytes" % jpeg_bytes.size()
+	var contact_file := FileAccess.open(CONTACT_SHEET_PATH, FileAccess.WRITE)
+	if contact_file == null:
+		return "Could not write verification contact sheet"
+	contact_file.store_buffer(jpeg_bytes)
+	contact_file.close()
+
+	report["publication"] = {
+		"transport": "web_head_include_base64",
+		"payload_marker": "GEARS_VERIFICATION_PAYLOAD_V1",
+		"contact_sheet": {
+			"file": "verification_contact_sheet.jpg",
+			"width": CONTACT_WIDTH,
+			"height": CONTACT_HEIGHT,
+			"columns": CONTACT_COLUMNS,
+			"rows": CONTACT_ROWS,
+			"cell_width": CONTACT_CELL_WIDTH,
+			"cell_height": CONTACT_CELL_HEIGHT,
+			"bytes": jpeg_bytes.size(),
+			"capture_order": CAPTURE_NAMES,
+		},
+	}
+
+	var report_json := JSON.stringify(report)
+	var report_b64 := Marshalls.raw_to_base64(report_json.to_utf8_buffer())
+	var contact_b64 := Marshalls.raw_to_base64(jpeg_bytes)
+	var source_sha := str(report.get("source_sha", ""))
+	var head_include := "".join([
+		"<!-- GEARS_VERIFICATION_PAYLOAD_V1 source_sha=", source_sha, " -->\n",
+		"<script id=\"gears-verification-report-b64\" type=\"application/octet-stream\" data-source-sha=\"", source_sha, "\">", report_b64, "</script>\n",
+		"<script id=\"gears-verification-contact-sheet-b64\" type=\"application/octet-stream\" data-media-type=\"image/jpeg\" data-source-sha=\"", source_sha, "\">", contact_b64, "</script>\n",
+	])
+
+	var preset := ConfigFile.new()
+	var preset_path := ProjectSettings.globalize_path("res://export_presets.cfg")
+	var load_error := preset.load(preset_path)
+	if load_error != OK:
+		return "Could not load Web export preset for verification payload: %s" % load_error
+	preset.set_value("preset.0.options", "html/head_include", head_include)
+	var save_error := preset.save(preset_path)
+	if save_error != OK:
+		return "Could not persist Web verification payload: %s" % save_error
+
+	var verify := ConfigFile.new()
+	if verify.load(preset_path) != OK:
+		return "Could not reload Web export preset after payload write"
+	var saved_include := str(verify.get_value("preset.0.options", "html/head_include", ""))
+	if "GEARS_VERIFICATION_PAYLOAD_V1" not in saved_include or source_sha not in saved_include:
+		return "Web verification payload did not persist to export preset"
 	return ""
 
 func _measure_render_sample(label: String) -> Dictionary:
