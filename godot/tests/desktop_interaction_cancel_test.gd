@@ -105,8 +105,8 @@ func _prepare_ci_verification_payload() -> String:
 		ProjectSettings.globalize_path("res://"),
 		"--rendering-method",
 		"gl_compatibility",
-		"--script",
-		"res://tests/gears_verification_capture.gd",
+		"--",
+		"--run-gears-verification-capture",
 	])
 	var exit_code := OS.execute("xvfb-run", args, output, true)
 	for line in output:
@@ -132,6 +132,8 @@ func _prepare_ci_verification_payload() -> String:
 		return "Web export preset is missing rendered verification payload marker"
 	if source_sha not in head_include:
 		return "Web export verification payload is not stamped to SOURCE_SHA"
+	if not FileAccess.file_exists("res://verification_contact_sheet.png"):
+		return "Web export contact-sheet source asset is missing"
 	return ""
 
 func _run() -> void:
