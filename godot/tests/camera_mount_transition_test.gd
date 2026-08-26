@@ -6,9 +6,10 @@ extends SceneTree
 # avoiding the previous timer + manual _process double-step artifact.
 # This dedicated regression is also the reference oracle for the legacy Ticket05 repair.
 # Keep this path in the focused workflow so legacy-oracle repairs are verified before publish.
-# Open World Expansion location-integration contracts run before camera continuity here.
+# Open World Expansion and bounded world-event integration contracts run before camera continuity here.
 const BurnGarageContract = preload("res://tests/mayor_burn_garage_integration_contract.gd")
 const SilentCoreSiteContract = preload("res://tests/silent_core_site_integration_contract.gd")
+const FB13ThrumContract = preload("res://tests/fb13_thrum_world_event_contract.gd")
 
 var _scene_under_test: Node = null
 
@@ -65,6 +66,11 @@ func _run() -> void:
 	var silent_core_error: String = SilentCoreSiteContract.verify(_scene_under_test)
 	if silent_core_error != "":
 		await _fail("[GEARS_DISTRICT_01D] %s" % silent_core_error)
+		return
+
+	var fb13_thrum_error: String = await FB13ThrumContract.verify(_scene_under_test)
+	if fb13_thrum_error != "":
+		await _fail("[FB13_THRUM_WORLD_EVENT] %s" % fb13_thrum_error)
 		return
 
 	var camera := _scene_under_test.get_node_or_null("ChinatownCamera3D")
