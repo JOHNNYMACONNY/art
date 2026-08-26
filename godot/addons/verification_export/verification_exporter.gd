@@ -18,9 +18,12 @@ const EVIDENCE_FILES := [
 var _active := false
 var _export_path := ""
 
-func _export_begin(features: PackedStringArray, _is_debug: bool, path: String, _flags: int) -> void:
+func _export_begin(_features: PackedStringArray, _is_debug: bool, path: String, _flags: int) -> void:
 	_export_path = path
-	_active = features.has("web") and OS.get_environment("GITHUB_ACTIONS").to_lower() == "true"
+	# This repository currently has one export preset (Web Playtest). The plugin
+	# is invoked only by the editor export lifecycle, so CI itself is the exact
+	# activation gate; do not allow a feature-tag mismatch to silently skip proof.
+	_active = OS.get_environment("GITHUB_ACTIONS").to_lower() == "true"
 	if not _active:
 		return
 
