@@ -4,3 +4,17 @@
 
 [node name="GearsStyleProof" type="Node3D"]
 script = ExtResource("1_gears")
+
+[node name="MixedUseBlock" type="Node3D" parent="."]
+
+[node name="PrimaryRouteBand" type="Node3D" parent="."]
+
+[node name="ShortcutRouteBand" type="Node3D" parent="."]
+
+[node name="MunicipalGantry" type="Node3D" parent="."]
+
+[node name="Storefront" type="Node3D" parent="."]
+
+[node name="DistantRelay" type="Node3D" parent="."]
+
+[node name="PracticalLights" type="Node3D" parent="."]
