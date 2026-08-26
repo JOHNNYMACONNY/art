@@ -26,6 +26,17 @@ const GEARS_REQUIRED_TREATED_ACTORS := [
 	"UtilityCrawler",
 ]
 
+const GEARS_REQUIRED_RUNTIME_CONTOURS := [
+	"Runner/MeshPivot/Torso/TorsoOutline",
+	"CourierBike/VisualRoot/FrontTank/TankOutline",
+	"ScrapHauler/VisualRoot/Cabin/CabinOutline",
+	"ScrapHauler/VisualRoot/Hood/HoodOutline",
+	"PursuerPrototype/VisualRoot/GearsPursuitBodyContour",
+	"ScrapWorker1/MeshPivot/GearsWorkerTorsoContour",
+	"UtilityCrawler/Chassis/GearsCrawlerBodyContour",
+	"CorrodedPanel/GearsInteractablePanelContour",
+]
+
 const GEARS_REQUIRED_FLAGS := [
 	"stacked_mixed_use",
 	"primary_route",
@@ -37,6 +48,7 @@ const GEARS_REQUIRED_FLAGS := [
 	"utility_vehicle_treatment",
 	"pursuit_vehicle_treatment",
 	"utility_robot_treatment",
+	"interactable_treatment",
 	"distant_landmark",
 	"practical_lighting",
 	"uses_retained_camera",
@@ -103,6 +115,25 @@ func _verify_gears_style_proof() -> bool:
 		var actor := _scene_under_test.get_node_or_null(actor_name)
 		if actor == null or not actor.has_meta("gears_style_proof_treatment"):
 			await _proof_fail("Actor treatment missing: %s" % actor_name, 80 + i)
+			return false
+
+	var panel := _scene_under_test.get_node_or_null("CorrodedPanel")
+	if panel == null or not panel.has_meta("gears_style_proof_treatment"):
+		await _proof_fail("Interactable proof treatment missing: CorrodedPanel", 86)
+		return false
+
+	for i in range(GEARS_REQUIRED_RUNTIME_CONTOURS.size()):
+		var contour_path: String = GEARS_REQUIRED_RUNTIME_CONTOURS[i]
+		var contour := _scene_under_test.get_node_or_null(contour_path) as MeshInstance3D
+		if contour == null:
+			await _proof_fail("Selective gameplay contour missing: %s" % contour_path, 130 + i)
+			return false
+		var contour_material := contour.material_override as ShaderMaterial
+		if contour_material == null or contour_material.shader == null:
+			await _proof_fail("Selective gameplay contour has no outline shader: %s" % contour_path, 140 + i)
+			return false
+		if contour_material.shader.resource_path != outline_shader.resource_path:
+			await _proof_fail("Selective gameplay contour uses wrong shader: %s" % contour_path, 150 + i)
 			return false
 
 	var contract: Dictionary = proof.call("get_proof_contract")
