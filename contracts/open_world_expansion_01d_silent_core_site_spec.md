@@ -29,7 +29,7 @@ This location intentionally:
 - stays spatially separate from the Issue #60 proof-only `DistantRelay` silhouette;
 - creates a short on-foot destination from the industrial intersection rather than a vehicle-scale new route.
 
-Because this pocket is outside the existing drivable floor surfaces, add the smallest physically traversable maintenance access needed to make it real gameplay geography: a two-piece `AccessWalkway` -> `SitePadBody` apron with one collision shape each. The walkway must overlap the existing industrial-intersection collider, the site pad must overlap the walkway, and both surfaces must remain outside the proof-relay and industrial-frontage collision envelopes. This is a maintenance apron, not new road acreage.
+Because this pocket is outside the existing drivable floor surfaces, add the smallest physically traversable maintenance access needed to make it real gameplay geography: a two-piece `AccessWalkway` -> `SitePadBody` apron with one collision shape each. The walkway must overlap the existing industrial-intersection collider, the site pad must overlap the walkway, and both surfaces must remain outside the proof-relay and industrial-frontage collision envelopes. Each adjoining ground pair must overlap by at least `0.25 m` on both horizontal axes so CharacterBody traversal is not dependent on an edge-only seam. This is a maintenance apron, not new road acreage.
 
 Add a passive `Marker3D` named `SilentCoreSocket` under `SilentCoreSite`, located on the site pad. Mission 03's production `SilentCoreInteractable` must resolve to that socket whenever the production site exists.
 
@@ -78,8 +78,8 @@ Exact-head CI must verify:
 - `SilentCoreSite` and passive `SilentCoreSocket` exist in the real 01B production scene;
 - representative site meshes use `res://materials/gears_toon.gdshader`;
 - site adds exactly the two bounded ground colliders and no local lights;
-- `AccessWalkway` overlaps the retained industrial-intersection ground collider;
-- `SitePadBody` overlaps `AccessWalkway`, making the Core physically reachable from retained gameplay ground;
+- `AccessWalkway` overlaps the retained industrial-intersection ground collider by at least `0.25 m` on both horizontal axes;
+- `SitePadBody` overlaps `AccessWalkway` by at least `0.25 m` on both horizontal axes, making the Core physically reachable from retained gameplay ground;
 - the site pad remains outside the industrial-frontage and proof-relay bounding envelopes;
 - runtime creates exactly one `SilentCore` and resolves its global position to the production socket rather than the legacy in-yard position;
 - the runtime marker uses the approved toon shader on representative housing/signal meshes;
