@@ -10,6 +10,18 @@ var _scene_under_test: Node = null
 func _init() -> void:
 	call_deferred("_run")
 
+func _append_ci_summary(title: String, message: String) -> void:
+	if OS.get_environment("GITHUB_ACTIONS").to_lower() != "true":
+		return
+	var summary_path := OS.get_environment("GITHUB_STEP_SUMMARY")
+	if summary_path.is_empty():
+		return
+	var existing := FileAccess.get_file_as_string(summary_path) if FileAccess.file_exists(summary_path) else ""
+	var file := FileAccess.open(summary_path, FileAccess.WRITE)
+	if file != null:
+		file.store_string(existing + "\n## %s\n\n%s\n" % [title, message])
+		file.close()
+
 func _finish(exit_code: int) -> void:
 	if is_instance_valid(_scene_under_test):
 		_scene_under_test.queue_free()
@@ -18,6 +30,7 @@ func _finish(exit_code: int) -> void:
 	quit(exit_code)
 
 func _fail(message: String) -> void:
+	_append_ci_summary("Verification regression failure", "`%s`" % message)
 	push_error("[DESKTOP_INTERACTION_CANCEL] %s" % message)
 	await _finish(1)
 
@@ -96,7 +109,9 @@ func _prepare_ci_verification_payload() -> String:
 		return "CI verification payload requires SOURCE_SHA"
 
 	var output: Array = []
-	var args := PackedStringArray([
+	var timeout_args := PackedStringArray([
+		"240s",
+		"xvfb-run",
 		"-a",
 		"-s",
 		"-screen 0 1280x720x24",
@@ -108,9 +123,11 @@ func _prepare_ci_verification_payload() -> String:
 		"--",
 		"--run-gears-verification-capture",
 	])
-	var exit_code := OS.execute("xvfb-run", args, output, true)
+	var exit_code := OS.execute("timeout", timeout_args, output, true)
 	for line in output:
 		print(str(line))
+	if exit_code == 124:
+		return "Rendered verification child timed out after 240s"
 	if exit_code != 0:
 		return "Rendered verification child failed with exit code %d" % exit_code
 
@@ -134,6 +151,20 @@ func _prepare_ci_verification_payload() -> String:
 		return "Web export verification payload is not stamped to SOURCE_SHA"
 	if not FileAccess.file_exists("res://verification_contact_sheet.png"):
 		return "Web export contact-sheet source asset is missing"
+
+	var telemetry: Dictionary = report.get("telemetry", {})
+	var full: Dictionary = telemetry.get("full_current", {})
+	var control: Dictionary = telemetry.get("retained_yard_control", {})
+	var delta: Dictionary = telemetry.get("delta_full_minus_control", {})
+	_append_ci_summary(
+		"Gears rendered verification prepared",
+		"Source `%s` · full avg/P95 `%s / %s ms` · control avg/P95 `%s / %s ms` · draw/object delta `%s / %s`. Contact sheet prepared for Web `index.png`." % [
+			source_sha,
+			str(full.get("avg_frame_ms", "?")), str(full.get("p95_frame_ms", "?")),
+			str(control.get("avg_frame_ms", "?")), str(control.get("p95_frame_ms", "?")),
+			str(delta.get("draw_calls", "?")), str(delta.get("objects", "?")),
+		]
+	)
 	return ""
 
 func _run() -> void:
