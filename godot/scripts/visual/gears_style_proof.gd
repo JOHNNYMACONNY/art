@@ -1,8 +1,8 @@
 extends Node3D
 
 # Issue #60 — bounded in-engine visual feasibility proof.
-# This node is intentionally additive: it does not own movement, camera, mission,
-# pursuit, vehicle, input, retry, save, or reset behavior.
+# Additive only: this node does not own movement, camera, mission, pursuit,
+# vehicle, input, retry, save, or reset behavior.
 
 const TOON_SHADER: Shader = preload("res://materials/gears_toon.gdshader")
 const OUTLINE_SHADER: Shader = preload("res://materials/gears_outline.gdshader")
@@ -38,7 +38,6 @@ func _build_and_apply() -> void:
 	_scene_root = get_parent()
 	if _scene_root == null:
 		return
-
 	_build_primary_route()
 	_build_shortcut_route()
 	_build_mixed_use_block()
@@ -71,7 +70,7 @@ func _get_outline_material() -> ShaderMaterial:
 	_outline_material.set_shader_parameter("outline_width", 0.035)
 	return _outline_material
 
-func _emissive_material(color: Color, energy: float = 0.8) -> StandardMaterial3D:
+func _emissive_material(color: Color, energy: float) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = 0.65
@@ -106,7 +105,6 @@ func _add_box(
 	instance.material_override = _toon_material(color, roughness)
 	parent.add_child(instance)
 	_generated_mesh_instances += 1
-
 	if with_outline:
 		var contour := MeshInstance3D.new()
 		contour.name = "%sContour" % mesh_name
@@ -157,20 +155,19 @@ func _add_label(
 	text_value: String,
 	position: Vector3,
 	color: Color,
-	font_size: int = 42,
-	pixel_size: float = 0.006
-) -> Label3D:
+	font_size_value: int,
+	pixel_size_value: float
+) -> void:
 	var label := Label3D.new()
 	label.name = label_name
 	label.text = text_value
 	label.position = position
 	label.modulate = color
 	label.outline_modulate = OUTLINE_COLOR
-	label.font_size = font_size
+	label.font_size = font_size_value
 	label.outline_size = 10
-	label.pixel_size = pixel_size
+	label.pixel_size = pixel_size_value
 	parent.add_child(label)
-	return label
 
 func _build_primary_route() -> void:
 	var route := _new_group("PrimaryRouteBand")
@@ -217,7 +214,7 @@ func _build_storefront() -> void:
 	_add_box(store, "ServiceDoor", Vector3(0.86, 1.42, 0.12), Vector3(0.68, 0.72, 0.42), OFF_WHITE.darkened(0.22))
 	_add_box(store, "AftermarketSticker01", Vector3(0.50, 0.20, 0.035), Vector3(-0.72, 0.48, 0.50), VERMILION)
 	_add_box(store, "AftermarketSticker02", Vector3(0.34, 0.17, 0.038), Vector3(-0.38, 0.28, 0.50), AMBER)
-	# Proof-only copy; this is not a narrative/canon business-name decision.
+	# Proof-only wording. These are graphic-family samples, not canon business names.
 	_add_label(store, "CommercialHeroLabel", "REPAIR", Vector3(0.12, 1.96, 0.54), OFF_WHITE, 48, 0.006)
 	_add_label(store, "AftermarketLabel", "FIX/RIDE", Vector3(-0.56, 0.48, 0.55), OFF_WHITE, 22, 0.0035)
 	_add_label(store, "AssetMarkingLabel", "ASSET 042", Vector3(0.68, 0.52, 0.55), SOOT, 22, 0.0035)
@@ -270,27 +267,35 @@ func _capture_lighting_nodes() -> void:
 func set_lighting_mode(mode: String) -> void:
 	var dusk := mode.to_lower() == "dusk"
 	if _directional_light != null:
-		_directional_light.light_energy = 0.58 if dusk else 1.25
-		_directional_light.light_color = Color("f1b77a") if dusk else Color("f5e5c9")
+		if dusk:
+			_directional_light.light_energy = 0.58
+			_directional_light.light_color = Color("f1b77a")
+		else:
+			_directional_light.light_energy = 1.25
+			_directional_light.light_color = Color("f5e5c9")
 	if _world_environment != null and _world_environment.environment != null:
 		var env := _world_environment.environment
-		env.background_color = Color("252b31") if dusk else Color("11161a")
-		env.ambient_light_color = Color("5f6670") if dusk else Color("697780")
-		env.ambient_light_energy = 0.72 if dusk else 1.0
-		env.glow_intensity = 0.24 if dusk else 0.16
-		env.glow_bloom = 0.06 if dusk else 0.035
-	for light in _practical_lights:
-		if is_instance_valid(light):
-			light.light_energy *= 1.55 if dusk else 1.0 / maxf(1.55, 1.0) if light.light_energy > 1.2 else 1.0
-	# Re-apply canonical day energies to make repeated toggles deterministic.
-	if not dusk and _practical_lights.size() == 3:
-		_practical_lights[0].light_energy = 1.0
-		_practical_lights[1].light_energy = 0.8
-		_practical_lights[2].light_energy = 0.35
-	elif dusk and _practical_lights.size() == 3:
-		_practical_lights[0].light_energy = 1.55
-		_practical_lights[1].light_energy = 1.24
-		_practical_lights[2].light_energy = 0.54
+		if dusk:
+			env.background_color = Color("252b31")
+			env.ambient_light_color = Color("5f6670")
+			env.ambient_light_energy = 0.72
+			env.glow_intensity = 0.24
+			env.glow_bloom = 0.06
+		else:
+			env.background_color = Color("11161a")
+			env.ambient_light_color = Color("697780")
+			env.ambient_light_energy = 1.0
+			env.glow_intensity = 0.16
+			env.glow_bloom = 0.035
+	if _practical_lights.size() == 3:
+		if dusk:
+			_practical_lights[0].light_energy = 1.55
+			_practical_lights[1].light_energy = 1.24
+			_practical_lights[2].light_energy = 0.54
+		else:
+			_practical_lights[0].light_energy = 1.0
+			_practical_lights[1].light_energy = 0.8
+			_practical_lights[2].light_energy = 0.35
 
 func _style_mesh(actor: Node, path: String, color: Color, roughness: float = 0.82) -> void:
 	var mesh := actor.get_node_or_null(path) as MeshInstance3D
@@ -310,7 +315,9 @@ func _style_outline(actor: Node, path: String) -> void:
 
 func _add_existing_outline(actor: Node, path: String, contour_name: String) -> void:
 	var source := actor.get_node_or_null(path) as MeshInstance3D
-	if source == null or source.mesh == null or source.get_parent() == null:
+	if source == null:
+		return
+	if source.mesh == null or source.get_parent() == null:
 		return
 	var contour := MeshInstance3D.new()
 	contour.name = contour_name
@@ -327,7 +334,6 @@ func _mark_actor(actor: Node, treatment: String) -> void:
 func _apply_actor_treatments() -> void:
 	if _scene_root == null:
 		return
-
 	var runner := _scene_root.get_node_or_null("Runner")
 	if runner != null:
 		_style_mesh(runner, "MeshPivot/Torso/TorsoMesh", TEAL.darkened(0.16))
@@ -339,7 +345,6 @@ func _apply_actor_treatments() -> void:
 		_style_emissive(runner, "MeshPivot/Head/Visor", SIGNAL_CYAN, 0.72)
 		_style_outline(runner, "MeshPivot/Torso/TorsoOutline")
 		_mark_actor(runner, "player_teal_workwear_signal_cyan")
-
 	var bike := _scene_root.get_node_or_null("CourierBike")
 	if bike != null:
 		_style_mesh(bike, "VisualRoot/MainChassis", SOOT)
@@ -350,9 +355,8 @@ func _apply_actor_treatments() -> void:
 		_style_outline(bike, "VisualRoot/FrontTank/TankOutline")
 		var bike_root := bike.get_node_or_null("VisualRoot") as Node3D
 		if bike_root != null:
-			_add_box(bike_root, "GearsAmberCourierPanel", Vector3(0.46, 0.12, 0.58), Vector3(0.0, 0.52, 0.46), AMBER, false)
+			_add_box(bike_root, "GearsAmberCourierPanel", Vector3(0.46, 0.12, 0.58), Vector3(0.0, 0.52, 0.46), AMBER)
 		_mark_actor(bike, "courier_offwhite_charcoal_amber_signal")
-
 	var hauler := _scene_root.get_node_or_null("ScrapHauler")
 	if hauler != null:
 		_style_mesh(hauler, "VisualRoot/MainChassis", SOOT)
@@ -363,7 +367,6 @@ func _apply_actor_treatments() -> void:
 		_style_outline(hauler, "VisualRoot/Cabin/CabinOutline")
 		_style_outline(hauler, "VisualRoot/Hood/HoodOutline")
 		_mark_actor(hauler, "utility_vehicle_dusty_green_offwhite")
-
 	var pursuer := _scene_root.get_node_or_null("PursuerPrototype")
 	if pursuer != null:
 		_style_mesh(pursuer, "VisualRoot/BodyMesh", OFF_WHITE.darkened(0.14))
@@ -371,11 +374,10 @@ func _apply_actor_treatments() -> void:
 		_add_existing_outline(pursuer, "VisualRoot/BodyMesh", "GearsPursuitBodyContour")
 		var pursuit_root := pursuer.get_node_or_null("VisualRoot") as Node3D
 		if pursuit_root != null:
-			_add_box(pursuit_root, "GearsPursuitRoofID", Vector3(0.82, 0.16, 0.92), Vector3(0.0, 1.25, 0.0), SOOT, false)
-			_add_box(pursuit_root, "GearsPursuitFrontBand", Vector3(1.18, 0.24, 0.18), Vector3(0.0, 0.72, -1.10), VERMILION, false)
+			_add_box(pursuit_root, "GearsPursuitRoofID", Vector3(0.82, 0.16, 0.92), Vector3(0.0, 1.25, 0.0), SOOT)
+			_add_box(pursuit_root, "GearsPursuitFrontBand", Vector3(1.18, 0.24, 0.18), Vector3(0.0, 0.72, -1.10), VERMILION)
 			_add_label(pursuit_root, "PursuitAssetLabel", "CIV 12", Vector3(0.0, 1.36, 0.0), OFF_WHITE, 26, 0.0035)
 		_mark_actor(pursuer, "municipal_pursuit_offwhite_charcoal_vermilion")
-
 	var worker := _scene_root.get_node_or_null("ScrapWorker1")
 	if worker != null:
 		_style_mesh(worker, "MeshPivot/Torso", DUSTY_GREEN.darkened(0.08))
@@ -383,14 +385,12 @@ func _apply_actor_treatments() -> void:
 		_style_mesh(worker, "MeshPivot/Helmet/Visor", SOOT)
 		_add_existing_outline(worker, "MeshPivot/Torso", "GearsWorkerTorsoContour")
 		_mark_actor(worker, "ordinary_worker_dusty_green_amber")
-
 	var worker_2 := _scene_root.get_node_or_null("ScrapWorker2")
 	if worker_2 != null:
 		_style_mesh(worker_2, "MeshPivot/Torso", CONCRETE.darkened(0.22))
 		_style_mesh(worker_2, "MeshPivot/Helmet", OFF_WHITE.darkened(0.10))
 		_style_mesh(worker_2, "MeshPivot/Helmet/Visor", SOOT)
 		_mark_actor(worker_2, "ordinary_worker_concrete_offwhite")
-
 	var crawler := _scene_root.get_node_or_null("UtilityCrawler")
 	if crawler != null:
 		_style_mesh(crawler, "Chassis/Body", OFF_WHITE.darkened(0.10))
@@ -401,13 +401,17 @@ func _apply_actor_treatments() -> void:
 		_add_existing_outline(crawler, "Chassis/Body", "GearsCrawlerBodyContour")
 		var crawler_chassis := crawler.get_node_or_null("Chassis") as Node3D
 		if crawler_chassis != null:
-			_add_box(crawler_chassis, "ReplacementPanel", Vector3(0.36, 0.16, 0.08), Vector3(0.22, 0.30, -0.61), OXIDIZED, false)
+			_add_box(crawler_chassis, "ReplacementPanel", Vector3(0.36, 0.16, 0.08), Vector3(0.22, 0.30, -0.61), OXIDIZED)
 			_add_label(crawler_chassis, "CrawlerAssetID", "UTL-08", Vector3(0.0, 0.28, -0.66), SOOT, 22, 0.003)
 		_mark_actor(crawler, "utility_crawler_offwhite_teal_repair_history")
 
 func get_proof_contract() -> Dictionary:
-	var camera := _scene_root.get_node_or_null("ChinatownCamera3D") as Camera3D if _scene_root != null else null
-	var retained_camera := camera != null and absf(camera.fov - 32.0) <= 0.05
+	var camera: Camera3D = null
+	if _scene_root != null:
+		camera = _scene_root.get_node_or_null("ChinatownCamera3D") as Camera3D
+	var retained_camera := false
+	if camera != null:
+		retained_camera = absf(camera.fov - 32.0) <= 0.05
 	return {
 		"version": "issue60_gears_style_proof_v1",
 		"stacked_mixed_use": has_node("MixedUseBlock"),
