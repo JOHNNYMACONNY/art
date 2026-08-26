@@ -3,6 +3,8 @@ extends SceneTree
 # Real Viewport regression for #29 desktop tuner interaction.
 # Proves physical mouse delivery, cancellation cleanup, visible feedback,
 # real frequency movement, dwell-to-lock progression, and panel power-up.
+# In GitHub Web export CI only, this final pre-export test also requires the
+# exact-build rendered verification payload to be prepared for publication.
 var _scene_under_test: Node = null
 
 func _init() -> void:
@@ -85,6 +87,52 @@ func _mouse_up_at(position: Vector2) -> void:
 	event.pressed = false
 	event.position = position
 	root.push_input(event, true)
+
+func _prepare_ci_verification_payload() -> String:
+	if OS.get_environment("GITHUB_ACTIONS").to_lower() != "true":
+		return ""
+	var source_sha := OS.get_environment("SOURCE_SHA")
+	if source_sha.is_empty():
+		return "CI verification payload requires SOURCE_SHA"
+
+	var output: Array = []
+	var args := PackedStringArray([
+		"-a",
+		"-s",
+		"-screen 0 1280x720x24",
+		OS.get_executable_path(),
+		"--path",
+		ProjectSettings.globalize_path("res://"),
+		"--rendering-method",
+		"gl_compatibility",
+		"--script",
+		"res://tests/gears_verification_capture.gd",
+	])
+	var exit_code := OS.execute("xvfb-run", args, output, true)
+	for line in output:
+		print(str(line))
+	if exit_code != 0:
+		return "Rendered verification child failed with exit code %d" % exit_code
+
+	var report_path := "res://verification/current/verification_report.json"
+	if not FileAccess.file_exists(report_path):
+		return "Rendered verification report was not generated"
+	var report = JSON.parse_string(FileAccess.get_file_as_string(report_path))
+	if not report is Dictionary:
+		return "Rendered verification report is invalid JSON"
+	if str(report.get("source_sha", "")) != source_sha:
+		return "Rendered verification report does not match SOURCE_SHA"
+
+	var preset := ConfigFile.new()
+	var preset_error := preset.load(ProjectSettings.globalize_path("res://export_presets.cfg"))
+	if preset_error != OK:
+		return "Could not reload Web export preset after verification capture"
+	var head_include := str(preset.get_value("preset.0.options", "html/head_include", ""))
+	if "GEARS_VERIFICATION_PAYLOAD_V1" not in head_include:
+		return "Web export preset is missing rendered verification payload marker"
+	if source_sha not in head_include:
+		return "Web export verification payload is not stamped to SOURCE_SHA"
+	return ""
 
 func _run() -> void:
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
@@ -224,6 +272,11 @@ func _run() -> void:
 	await process_frame
 	if panel.current_step == panel.Step.PEELING or player.is_input_locked or camera._is_interaction_mode or touch_ui.gesture_panel.visible:
 		await _fail("ESC did not deterministically cancel panel peel interaction")
+		return
+
+	var verification_error := _prepare_ci_verification_payload()
+	if not verification_error.is_empty():
+		await _fail("Verification publication: %s" % verification_error)
 		return
 
 	print("[DESKTOP_INTERACTION_CANCEL] PASS")
