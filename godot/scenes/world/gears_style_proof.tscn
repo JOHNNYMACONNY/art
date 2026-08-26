@@ -1,20 +1,422 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/visual/gears_style_proof.gd" id="1_gears"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="2_toon"]
+[ext_resource type="Shader" path="res://materials/gears_outline.gdshader" id="3_outline"]
+
+[sub_resource type="BoxMesh" id="Cube"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_Soot"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.094, 0.129, 0.149, 1)
+shader_parameter/roughness_value = 0.86
+
+[sub_resource type="ShaderMaterial" id="Mat_OffWhite"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.843, 0.824, 0.765, 1)
+shader_parameter/roughness_value = 0.84
+
+[sub_resource type="ShaderMaterial" id="Mat_Concrete"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.510, 0.498, 0.451, 1)
+shader_parameter/roughness_value = 0.90
+
+[sub_resource type="ShaderMaterial" id="Mat_Oxidized"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.541, 0.310, 0.216, 1)
+shader_parameter/roughness_value = 0.92
+
+[sub_resource type="ShaderMaterial" id="Mat_Amber"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.827, 0.604, 0.173, 1)
+shader_parameter/roughness_value = 0.78
+
+[sub_resource type="ShaderMaterial" id="Mat_Teal"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.184, 0.467, 0.471, 1)
+shader_parameter/roughness_value = 0.82
+
+[sub_resource type="ShaderMaterial" id="Mat_Vermilion"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.824, 0.294, 0.227, 1)
+shader_parameter/roughness_value = 0.78
+
+[sub_resource type="ShaderMaterial" id="Mat_Cyan"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.486, 0.812, 0.816, 1)
+shader_parameter/roughness_value = 0.70
+
+[sub_resource type="ShaderMaterial" id="Mat_Green"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.400, 0.439, 0.357, 1)
+shader_parameter/roughness_value = 0.88
+
+[sub_resource type="ShaderMaterial" id="Mat_Outline"]
+shader = ExtResource("3_outline")
+shader_parameter/outline_color = Color(0.025, 0.031, 0.035, 1)
+shader_parameter/outline_width = 0.035
 
 [node name="GearsStyleProof" type="Node3D"]
 script = ExtResource("1_gears")
 
-[node name="MixedUseBlock" type="Node3D" parent="."]
-
 [node name="PrimaryRouteBand" type="Node3D" parent="."]
+
+[node name="CalmTarmac" type="MeshInstance3D" parent="PrimaryRouteBand"]
+position = Vector3(1.7, 0.025, -5)
+scale = Vector3(5.4, 0.035, 32)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="WestEdge" type="MeshInstance3D" parent="PrimaryRouteBand"]
+position = Vector3(-0.92, 0.045, -5)
+scale = Vector3(0.11, 0.05, 32)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="EastRouteBand" type="MeshInstance3D" parent="PrimaryRouteBand"]
+position = Vector3(4.34, 0.047, -5)
+scale = Vector3(0.16, 0.052, 32)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Amber")
+
+[node name="RouteMarkerPlate" type="MeshInstance3D" parent="PrimaryRouteBand"]
+position = Vector3(2.7, 0.07, 7.7)
+scale = Vector3(1.8, 0.08, 0.55)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Amber")
+
+[node name="RouteMarkerPlateContour" type="MeshInstance3D" parent="PrimaryRouteBand"]
+position = Vector3(2.7, 0.07, 7.7)
+scale = Vector3(1.8, 0.08, 0.55)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
 
 [node name="ShortcutRouteBand" type="Node3D" parent="."]
 
+[node name="ShortcutSurface" type="MeshInstance3D" parent="ShortcutRouteBand"]
+position = Vector3(-1.5, 0.035, 19)
+scale = Vector3(2.7, 0.04, 21)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="ShortcutTealBand" type="MeshInstance3D" parent="ShortcutRouteBand"]
+position = Vector3(-2.78, 0.055, 19)
+scale = Vector3(0.14, 0.055, 21)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Teal")
+
+[node name="ShortcutReturnBand" type="MeshInstance3D" parent="ShortcutRouteBand"]
+position = Vector3(-0.22, 0.052, 19)
+scale = Vector3(0.10, 0.052, 21)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="MixedUseBlock" type="Node3D" parent="."]
+position = Vector3(-8, 0, -2)
+
+[node name="WorkshopBase" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(0, 1.2, 0)
+scale = Vector3(5.3, 2.4, 5)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Concrete")
+
+[node name="WorkshopBaseContour" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(0, 1.2, 0)
+scale = Vector3(5.3, 2.4, 5)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="UpperTenancy" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(-0.25, 3.35, -0.15)
+scale = Vector3(4.45, 2, 4.25)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="UpperTenancyContour" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(-0.25, 3.35, -0.15)
+scale = Vector3(4.45, 2, 4.25)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="ServiceLoft" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(0.35, 5.12, -0.28)
+scale = Vector3(3.3, 1.55, 3.25)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Teal")
+
+[node name="ServiceLoftContour" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(0.35, 5.12, -0.28)
+scale = Vector3(3.3, 1.55, 3.25)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="BalconySlab" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(0, 2.72, 2.45)
+scale = Vector3(4.7, 0.18, 1)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="UtilitySpine" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(-2.35, 3.25, -1.75)
+scale = Vector3(0.75, 4.9, 0.8)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="UtilitySpineContour" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(-2.35, 3.25, -1.75)
+scale = Vector3(0.75, 4.9, 0.8)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="ReplacementPanel" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(1.25, 3.65, 2.02)
+scale = Vector3(1.15, 0.72, 0.1)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Amber")
+
+[node name="LocalizedWearPatch" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(-1.65, 0.42, 2.52)
+scale = Vector3(0.85, 0.38, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Oxidized")
+
+[node name="RoofUtilityTank" type="MeshInstance3D" parent="MixedUseBlock"]
+position = Vector3(0.75, 6.45, -0.55)
+scale = Vector3(1.05, 1.2, 1.05)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Concrete")
+
 [node name="MunicipalGantry" type="Node3D" parent="."]
+position = Vector3(4.9, 0, -6.4)
+
+[node name="WestStanchion" type="MeshInstance3D" parent="MunicipalGantry"]
+position = Vector3(-1.75, 2, 0)
+scale = Vector3(0.42, 4, 0.48)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="WestStanchionContour" type="MeshInstance3D" parent="MunicipalGantry"]
+position = Vector3(-1.75, 2, 0)
+scale = Vector3(0.42, 4, 0.48)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="EastStanchion" type="MeshInstance3D" parent="MunicipalGantry"]
+position = Vector3(1.75, 2, 0)
+scale = Vector3(0.42, 4, 0.48)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="EastStanchionContour" type="MeshInstance3D" parent="MunicipalGantry"]
+position = Vector3(1.75, 2, 0)
+scale = Vector3(0.42, 4, 0.48)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="CrossBeam" type="MeshInstance3D" parent="MunicipalGantry"]
+position = Vector3(0, 3.82, 0)
+scale = Vector3(4, 0.46, 0.55)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="CrossBeamContour" type="MeshInstance3D" parent="MunicipalGantry"]
+position = Vector3(0, 3.82, 0)
+scale = Vector3(4, 0.46, 0.55)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="CivicPlate" type="MeshInstance3D" parent="MunicipalGantry"]
+position = Vector3(0.62, 3.52, 0.33)
+scale = Vector3(1.65, 0.78, 0.16)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Amber")
+
+[node name="CivicPlateContour" type="MeshInstance3D" parent="MunicipalGantry"]
+position = Vector3(0.62, 3.52, 0.33)
+scale = Vector3(1.65, 0.78, 0.16)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="InspectionTag" type="MeshInstance3D" parent="MunicipalGantry"]
+position = Vector3(-1.42, 2.48, 0.3)
+scale = Vector3(0.58, 0.32, 0.18)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Teal")
+
+[node name="CivicRouteLabel" type="Label3D" parent="MunicipalGantry"]
+position = Vector3(0.62, 3.52, 0.43)
+text = "M-7"
+modulate = Color(0.094, 0.129, 0.149, 1)
+outline_modulate = Color(0.843, 0.824, 0.765, 1)
+font_size = 54
+outline_size = 8
+pixel_size = 0.006
+
+[node name="InspectionLabel" type="Label3D" parent="MunicipalGantry"]
+position = Vector3(-1.42, 2.48, 0.41)
+text = "INSPECT"
+modulate = Color(0.843, 0.824, 0.765, 1)
+outline_modulate = Color(0.094, 0.129, 0.149, 1)
+font_size = 28
+outline_size = 8
+pixel_size = 0.004
 
 [node name="Storefront" type="Node3D" parent="."]
+position = Vector3(-6.25, 0, 0.62)
+
+[node name="StoreShell" type="MeshInstance3D" parent="Storefront"]
+position = Vector3(0, 0.94, 0)
+scale = Vector3(2.75, 1.85, 0.72)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="StoreShellContour" type="MeshInstance3D" parent="Storefront"]
+position = Vector3(0, 0.94, 0)
+scale = Vector3(2.75, 1.85, 0.72)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="HeroSign" type="MeshInstance3D" parent="Storefront"]
+position = Vector3(0, 1.96, 0.42)
+scale = Vector3(2.35, 0.72, 0.16)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Teal")
+
+[node name="HeroSignContour" type="MeshInstance3D" parent="Storefront"]
+position = Vector3(0, 1.96, 0.42)
+scale = Vector3(2.35, 0.72, 0.16)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="SignAmberTab" type="MeshInstance3D" parent="Storefront"]
+position = Vector3(-1.10, 1.96, 0.44)
+scale = Vector3(0.44, 0.90, 0.20)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Amber")
+
+[node name="ServiceDoor" type="MeshInstance3D" parent="Storefront"]
+position = Vector3(0.68, 0.72, 0.42)
+scale = Vector3(0.86, 1.42, 0.12)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="AftermarketSticker01" type="MeshInstance3D" parent="Storefront"]
+position = Vector3(-0.72, 0.48, 0.5)
+scale = Vector3(0.50, 0.20, 0.035)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Vermilion")
+
+[node name="AftermarketSticker02" type="MeshInstance3D" parent="Storefront"]
+position = Vector3(-0.38, 0.28, 0.5)
+scale = Vector3(0.34, 0.17, 0.038)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Amber")
+
+[node name="HeroSignIcon" type="MeshInstance3D" parent="Storefront"]
+position = Vector3(-0.72, 1.96, 0.53)
+rotation = Vector3(0, 0, 0.785398)
+scale = Vector3(0.28, 0.28, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="CommercialHeroLabel" type="Label3D" parent="Storefront"]
+position = Vector3(0.25, 1.96, 0.54)
+text = "REPAIR"
+modulate = Color(0.843, 0.824, 0.765, 1)
+outline_modulate = Color(0.094, 0.129, 0.149, 1)
+font_size = 48
+outline_size = 10
+pixel_size = 0.006
+
+[node name="AftermarketLabel" type="Label3D" parent="Storefront"]
+position = Vector3(-0.56, 0.48, 0.55)
+text = "FIX/RIDE"
+modulate = Color(0.843, 0.824, 0.765, 1)
+outline_modulate = Color(0.094, 0.129, 0.149, 1)
+font_size = 22
+outline_size = 8
+pixel_size = 0.0035
+
+[node name="AssetMarkingLabel" type="Label3D" parent="Storefront"]
+position = Vector3(0.68, 0.52, 0.55)
+text = "ASSET 042"
+modulate = Color(0.094, 0.129, 0.149, 1)
+outline_modulate = Color(0.843, 0.824, 0.765, 1)
+font_size = 22
+outline_size = 8
+pixel_size = 0.0035
 
 [node name="DistantRelay" type="Node3D" parent="."]
+position = Vector3(3, 0, -28)
+
+[node name="RelayBase" type="MeshInstance3D" parent="DistantRelay"]
+position = Vector3(0, 0.55, 0)
+scale = Vector3(3.3, 1.1, 3)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Concrete")
+
+[node name="RelayBaseContour" type="MeshInstance3D" parent="DistantRelay"]
+position = Vector3(0, 0.55, 0)
+scale = Vector3(3.3, 1.1, 3)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Outline")
+
+[node name="RelayCore" type="MeshInstance3D" parent="DistantRelay"]
+position = Vector3(0, 3.75, 0)
+scale = Vector3(1.15, 6.5, 1.15)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="RelayCap" type="MeshInstance3D" parent="DistantRelay"]
+position = Vector3(0, 7.15, 0)
+scale = Vector3(2.2, 0.65, 1.55)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="WestArm" type="MeshInstance3D" parent="DistantRelay"]
+position = Vector3(-1.25, 5.45, 0)
+scale = Vector3(2.8, 0.24, 0.28)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="EastArm" type="MeshInstance3D" parent="DistantRelay"]
+position = Vector3(1.25, 4.65, 0)
+scale = Vector3(2.8, 0.24, 0.28)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="ScarceSignal" type="MeshInstance3D" parent="DistantRelay"]
+position = Vector3(0, 7.55, 0)
+scale = Vector3(0.26, 0.26, 0.26)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Cyan")
+
+[node name="RemovedAssetPlate" type="MeshInstance3D" parent="DistantRelay"]
+position = Vector3(0, 1.45, 0.60)
+scale = Vector3(0.62, 0.32, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
 
 [node name="PracticalLights" type="Node3D" parent="."]
+
+[node name="StoreWorkLamp" type="OmniLight3D" parent="PracticalLights"]
+position = Vector3(-6.15, 2.25, 1.4)
+light_color = Color(1, 0.839, 0.541, 1)
+light_energy = 1.0
+omni_range = 5.0
+shadow_enabled = false
+
+[node name="GantryServiceLamp" type="OmniLight3D" parent="PracticalLights"]
+position = Vector3(4.9, 3.6, -6)
+light_color = Color(1, 0.882, 0.659, 1)
+light_energy = 0.8
+omni_range = 4.5
+shadow_enabled = false
+
+[node name="RelayMarkerLamp" type="OmniLight3D" parent="PracticalLights"]
+position = Vector3(3, 7.5, -28)
+light_color = Color(0.486, 0.812, 0.816, 1)
+light_energy = 0.35
+omni_range = 3.0
+shadow_enabled = false
