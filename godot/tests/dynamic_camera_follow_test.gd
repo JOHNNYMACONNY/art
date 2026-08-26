@@ -2,7 +2,28 @@ extends SceneTree
 
 # Issue #30 regression: desktop/touch traversal remains live-camera-relative while
 # the camera follows on-foot movement and vehicle heading without snaps.
+# Issue #60 adds a bounded visual-style integration contract here because this test
+# is already an exact-head PR gate in godot-web-playtest.yml.
 var _scene_under_test: Node = null
+
+const GEARS_REQUIRED_PROOF_NODES := [
+	"MixedUseBlock",
+	"PrimaryRouteBand",
+	"ShortcutRouteBand",
+	"MunicipalGantry",
+	"Storefront",
+	"DistantRelay",
+	"PracticalLights",
+]
+
+const GEARS_REQUIRED_TREATED_ACTORS := [
+	"Runner",
+	"CourierBike",
+	"ScrapHauler",
+	"PursuerPrototype",
+	"ScrapWorker1",
+	"UtilityCrawler",
+]
 
 func _init() -> void:
 	call_deferred("_run")
@@ -36,6 +57,77 @@ func _release_key(key: Key) -> void:
 func _yaw_error(actual: float, expected: float) -> float:
 	return abs(wrapf(actual - expected, -PI, PI))
 
+func _verify_gears_style_proof() -> bool:
+	var toon_shader := load("res://materials/gears_toon.gdshader") as Shader
+	var outline_shader := load("res://materials/gears_outline.gdshader") as Shader
+	if toon_shader == null or outline_shader == null:
+		await _fail("Issue #60 lightweight toon/outline shader resources are missing or invalid")
+		return false
+
+	var proof := _scene_under_test.get_node_or_null("GearsStyleProof")
+	if proof == null or not proof.has_method("get_proof_contract"):
+		await _fail("Issue #60 GearsStyleProof integration node/contract is missing")
+		return false
+
+	for child_name in GEARS_REQUIRED_PROOF_NODES:
+		if proof.get_node_or_null(child_name) == null:
+			await _fail("Issue #60 proof composition node missing: %s" % child_name)
+			return false
+
+	for actor_name in GEARS_REQUIRED_TREATED_ACTORS:
+		var actor := _scene_under_test.get_node_or_null(actor_name)
+		if actor == null or not actor.has_meta("gears_style_proof_treatment"):
+			await _fail("Issue #60 actor treatment missing: %s" % actor_name)
+			return false
+
+	var contract: Dictionary = proof.call("get_proof_contract")
+	for flag in [
+		"stacked_mixed_use",
+		"primary_route",
+		"shortcut_route",
+		"municipal_anchor",
+		"storefront_family",
+		"worker_treatment",
+		"courier_bike_treatment",
+		"utility_vehicle_treatment",
+		"pursuit_vehicle_treatment",
+		"utility_robot_treatment",
+		"distant_landmark",
+		"practical_lighting",
+		"uses_retained_camera",
+	]:
+		if contract.get(flag, false) != true:
+			await _fail("Issue #60 proof contract flag failed: %s" % flag)
+			return false
+
+	var graphics: Array = contract.get("graphic_families", [])
+	for family in ["municipal", "commercial", "aftermarket", "asset_marking"]:
+		if not graphics.has(family):
+			await _fail("Issue #60 graphic proof family missing: %s" % family)
+			return false
+
+	var generated_meshes := int(contract.get("generated_mesh_instances", 9999))
+	var outline_meshes := int(contract.get("outline_instances", 0))
+	var practical_lights := int(contract.get("practical_light_count", 9999))
+	if generated_meshes <= 0 or generated_meshes > 90:
+		await _fail("Issue #60 generated mesh budget exceeded: %d" % generated_meshes)
+		return false
+	if outline_meshes <= 0 or outline_meshes > 24:
+		await _fail("Issue #60 selective contour budget invalid: %d" % outline_meshes)
+		return false
+	if practical_lights <= 0 or practical_lights > 6:
+		await _fail("Issue #60 practical light budget invalid: %d" % practical_lights)
+		return false
+
+	if not proof.has_method("set_lighting_mode"):
+		await _fail("Issue #60 deterministic day/dusk comparison API is missing")
+		return false
+	proof.call("set_lighting_mode", "dusk")
+	await process_frame
+	proof.call("set_lighting_mode", "day")
+	await process_frame
+	return true
+
 func _run() -> void:
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
@@ -46,6 +138,7 @@ func _run() -> void:
 	root.add_child(_scene_under_test)
 	await process_frame
 	await physics_frame
+	await process_frame
 
 	var camera := _scene_under_test.get_node_or_null("ChinatownCamera3D")
 	var player := _scene_under_test.get_node_or_null("Runner")
@@ -55,11 +148,9 @@ func _run() -> void:
 		await _fail("Main scene is missing camera/player/Bike/Hauler integration nodes")
 		return
 
-	# RED on fixed-camera merged main: #30 must explicitly expose dynamic yaw.
-	if camera.get("dynamic_yaw_enabled") == null or camera.get("_current_yaw_rad") == null:
-		await _fail("Dynamic heading-follow camera capability is absent")
+	# RED for Issue #60 until the approved Gears visual proof is integrated.
+	if not await _verify_gears_style_proof():
 		return
-	camera.set("dynamic_yaw_enabled", true)
 
 	# 1. CourierBike uses the strong vehicle-heading follow path.
 	camera.call("reset_camera_instant", courier_bike)
