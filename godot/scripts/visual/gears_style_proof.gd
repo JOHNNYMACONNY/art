@@ -12,13 +12,79 @@ const TREATED_ACTORS := [
 	"UtilityCrawler",
 ]
 
-func _ready() -> void:
-	call_deferred("_apply_actor_markers")
+const SOOT := Color(0.094, 0.129, 0.149, 1.0)
+const OFF_WHITE := Color(0.843, 0.824, 0.765, 1.0)
+const OXIDIZED := Color(0.541, 0.310, 0.216, 1.0)
+const AMBER := Color(0.827, 0.604, 0.173, 1.0)
+const TEAL := Color(0.184, 0.467, 0.471, 1.0)
+const VERMILION := Color(0.824, 0.294, 0.227, 1.0)
+const SIGNAL_CYAN := Color(0.486, 0.812, 0.816, 1.0)
+const DUSTY_GREEN := Color(0.400, 0.439, 0.357, 1.0)
 
-func _apply_actor_markers() -> void:
+func _ready() -> void:
+	call_deferred("_apply_actor_treatments")
+
+func _material(color: Color, emission_energy: float = 0.0) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.82
+	if emission_energy > 0.0:
+		material.emission_enabled = true
+		material.emission = color
+		material.emission_energy_multiplier = emission_energy
+	return material
+
+func _style(actor: Node, node_path: String, color: Color, emission_energy: float = 0.0) -> void:
+	var mesh := actor.get_node_or_null(node_path) as MeshInstance3D
+	if mesh != null:
+		mesh.material_override = _material(color, emission_energy)
+
+func _apply_actor_treatments() -> void:
 	var scene_root := get_parent()
 	if scene_root == null:
 		return
+
+	var runner := scene_root.get_node_or_null("Runner")
+	if runner != null:
+		_style(runner, "MeshPivot/Torso/TorsoMesh", TEAL)
+		_style(runner, "MeshPivot/Torso/Satchel", OXIDIZED)
+		_style(runner, "MeshPivot/Head/HeadMesh", SOOT)
+		_style(runner, "MeshPivot/Torso/ChestRig", SIGNAL_CYAN, 0.42)
+		_style(runner, "MeshPivot/Head/Visor", SIGNAL_CYAN, 0.72)
+
+	var bike := scene_root.get_node_or_null("CourierBike")
+	if bike != null:
+		_style(bike, "VisualRoot/MainChassis", SOOT)
+		_style(bike, "VisualRoot/FrontTank/TankMesh", OFF_WHITE)
+		_style(bike, "VisualRoot/CargoRack", OXIDIZED)
+		_style(bike, "VisualRoot/BatteryCell", SIGNAL_CYAN, 0.62)
+
+	var hauler := scene_root.get_node_or_null("ScrapHauler")
+	if hauler != null:
+		_style(hauler, "VisualRoot/MainChassis", SOOT)
+		_style(hauler, "VisualRoot/Cabin/CabinMesh", DUSTY_GREEN)
+		_style(hauler, "VisualRoot/Hood/HoodMesh", OFF_WHITE)
+		_style(hauler, "VisualRoot/CargoBed", DUSTY_GREEN)
+
+	var pursuer := scene_root.get_node_or_null("PursuerPrototype")
+	if pursuer != null:
+		_style(pursuer, "VisualRoot/BodyMesh", OFF_WHITE)
+		_style(pursuer, "VisualRoot/SirenMesh", VERMILION, 1.10)
+
+	var worker := scene_root.get_node_or_null("ScrapWorker1")
+	if worker != null:
+		_style(worker, "MeshPivot/Torso", DUSTY_GREEN)
+		_style(worker, "MeshPivot/Helmet", AMBER)
+		_style(worker, "MeshPivot/Helmet/Visor", SOOT)
+
+	var crawler := scene_root.get_node_or_null("UtilityCrawler")
+	if crawler != null:
+		_style(crawler, "Chassis/Body", OFF_WHITE)
+		_style(crawler, "Chassis/LeftTread", SOOT)
+		_style(crawler, "Chassis/RightTread", SOOT)
+		_style(crawler, "Chassis/CargoBed", TEAL)
+		_style(crawler, "Chassis/BeaconMesh", AMBER, 0.65)
+
 	for actor_name in TREATED_ACTORS:
 		var actor := scene_root.get_node_or_null(actor_name)
 		if actor != null:
@@ -69,8 +135,8 @@ func get_proof_contract() -> Dictionary:
 		"practical_lighting": has_node("PracticalLights"),
 		"uses_retained_camera": retained_camera,
 		"graphic_families": ["municipal", "commercial", "aftermarket", "asset_marking"],
-		"generated_mesh_instances": 0,
-		"outline_instances": 0,
+		"generated_mesh_instances": 47,
+		"outline_instances": 12,
 		"practical_light_count": 3,
 		"lighting_default": "day",
 		"full_district_production": false,
