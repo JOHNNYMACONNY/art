@@ -6,7 +6,8 @@ extends Node
 const MissionScript = preload("res://scripts/missions/civic_repossession_mission.gd")
 const ScrapJobMissionScript = preload("res://scripts/missions/scrap_job_mission.gd")
 const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
-const RETURN_ZONE_POSITION := Vector3(7.0, 0.08, 8.0)
+const LEGACY_RETURN_ZONE_POSITION := Vector3(7.0, 0.08, 8.0)
+const DISTRICT_RETURN_ZONE_SOCKET_PATH := "GearsDistrictSlice01B/MissionDestinationSocket"
 const RETURN_ZONE_RADIUS := 2.6
 
 var mission = MissionScript.new()
@@ -111,12 +112,24 @@ func _on_signal_gate_triggered() -> void:
 	if mission.on_gate_triggered():
 		_refresh_hud()
 
+func _resolve_return_zone_destination() -> Dictionary:
+	if _root_controller != null:
+		var socket := _root_controller.get_node_or_null(DISTRICT_RETURN_ZONE_SOCKET_PATH) as Marker3D
+		if socket != null:
+			return {
+				"global_position": socket.global_position,
+				"source": DISTRICT_RETURN_ZONE_SOCKET_PATH,
+			}
+	return {
+		"global_position": LEGACY_RETURN_ZONE_POSITION,
+		"source": "legacy_fixture_fallback",
+	}
+
 func _create_return_zone() -> void:
 	if _return_zone != null:
 		return
 	_return_zone = MeshInstance3D.new()
 	_return_zone.name = "CivicRepossessionReturnZone"
-	_return_zone.position = RETURN_ZONE_POSITION
 	_return_zone.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 	var zone_mesh := CylinderMesh.new()
@@ -142,6 +155,9 @@ func _create_return_zone() -> void:
 	_return_zone.add_child(label)
 
 	_root_controller.add_child(_return_zone)
+	var destination := _resolve_return_zone_destination()
+	_return_zone.global_position = destination["global_position"]
+	_return_zone.set_meta("destination_source", destination["source"])
 	_set_return_zone_visible(false)
 
 func _set_return_zone_visible(visible_value: bool) -> void:
