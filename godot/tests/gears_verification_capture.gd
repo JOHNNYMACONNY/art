@@ -7,10 +7,9 @@ extends Node
 
 const OUTPUT_DIR := "res://verification/current"
 const REPORT_PATH := OUTPUT_DIR + "/verification_report.json"
-# Keep the generated contact sheet outside verification/.gdignore so the next
-# Godot Web export process can import it as the isolated project's boot splash.
 const CONTACT_SHEET_PATH := "res://verification_contact_sheet.png"
 const CAPTURE_FLAG := "--run-gears-verification-capture"
+const SAMPLE_FRAMES := 120
 const CAPTURE_NAMES := [
 	"01_quiet_traversal.png",
 	"02_courier_bike.png",
@@ -63,14 +62,28 @@ func _ready() -> void:
 func _gha_escape(message: String) -> String:
 	return message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
+func _append_ci_summary(title: String, message: String) -> void:
+	if OS.get_environment("GITHUB_ACTIONS").to_lower() != "true":
+		return
+	var summary_path := OS.get_environment("GITHUB_STEP_SUMMARY")
+	if summary_path.is_empty():
+		return
+	var existing := FileAccess.get_file_as_string(summary_path) if FileAccess.file_exists(summary_path) else ""
+	var file := FileAccess.open(summary_path, FileAccess.WRITE)
+	if file != null:
+		file.store_string(existing + "\n## %s\n\n%s\n" % [title, message])
+		file.close()
+
 func _run() -> void:
 	var failure := await _capture_and_measure()
 	if failure != "":
+		_append_ci_summary("Gears verification capture failure", "`%s`" % failure)
 		if OS.get_environment("GITHUB_ACTIONS").to_lower() == "true":
 			print("::error title=GEARS_VERIFICATION_CAPTURE::%s" % _gha_escape(failure))
 		push_error("[GEARS_VERIFICATION_CAPTURE] %s" % failure)
 		get_tree().quit(1)
 		return
+	_append_ci_summary("Gears verification capture child", "Rendered nine retained-camera states and %d-frame current/control telemetry for `%s`." % [SAMPLE_FRAMES, OS.get_environment("SOURCE_SHA")])
 	print("[GEARS_VERIFICATION_CAPTURE] PASS: %s" % REPORT_PATH)
 	get_tree().quit(0)
 
@@ -181,7 +194,7 @@ func _capture_and_measure() -> String:
 
 	var viewport := get_viewport()
 	var report := {
-		"schema_version": 4,
+		"schema_version": 5,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"generated_utc": Time.get_datetime_string_from_system(true),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
@@ -193,7 +206,7 @@ func _capture_and_measure() -> String:
 		"camera_fov_deg": _camera.fov,
 		"captures": _captures,
 		"telemetry": {
-			"sample_frames": 180,
+			"sample_frames": SAMPLE_FRAMES,
 			"full_current": full_current,
 			"retained_yard_control": retained_control,
 			"delta_full_minus_control": _telemetry_delta(full_current, retained_control),
@@ -352,7 +365,7 @@ func _measure_render_sample(label: String) -> Dictionary:
 	for _i in range(30):
 		await get_tree().process_frame
 	var frame_times: Array[float] = []
-	for _i in range(180):
+	for _i in range(SAMPLE_FRAMES):
 		var start_usec := Time.get_ticks_usec()
 		await get_tree().process_frame
 		var end_usec := Time.get_ticks_usec()
