@@ -101,9 +101,13 @@ func _capture_and_measure() -> String:
 	_bike.velocity = Vector3.ZERO
 	_pursuer.global_position = Vector3(-0.8, 0.65, -33.0)
 	_pursuer.velocity = Vector3.ZERO
+	_pursuer.call("activate_pursuit", _bike)
+	_scene.set("current_pursuit_state", 2)
 	_place_player(Vector3(-4.8, 0.20, -34.1))
 	error = await _save_capture(CAPTURE_NAMES[2])
 	if error != "": return error
+	_pursuer.call("deactivate_pursuit")
+	_scene.set("current_pursuit_state", 0)
 
 	_place_player(Vector3(-7.2, 0.20, -24.8))
 	error = await _save_capture(CAPTURE_NAMES[3])
