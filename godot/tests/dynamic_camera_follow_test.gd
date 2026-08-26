@@ -2,8 +2,8 @@ extends SceneTree
 
 # Issue #30 regression: desktop/touch traversal remains live-camera-relative while
 # the camera follows on-foot movement and vehicle heading without snaps.
-# Issue #60 adds a bounded visual-style integration contract here because this test
-# is already an exact-head PR gate in godot-web-playtest.yml.
+# Issue #60 keeps its bounded visual-style contract here, and Open World Expansion
+# 01B adds the smallest real district-production integration gate on the same exact-head CI path.
 var _scene_under_test: Node = null
 
 const GEARS_REQUIRED_PROOF_NODES := [
@@ -68,6 +68,27 @@ const GEARS_REQUIRED_FLAGS := [
 
 const GEARS_GRAPHIC_FAMILIES := ["municipal", "commercial", "aftermarket", "asset_marking"]
 
+const DISTRICT_01B_REQUIRED_NODES := [
+	"NorthRoad",
+	"IndustrialIntersection",
+	"ServiceAlley",
+	"NorthConnector",
+	"CommercialFrontage",
+	"IndustrialFrontage",
+	"MissionDestinationSocket",
+	"ExpansionEdgeBarrier",
+]
+
+const DISTRICT_01B_REQUIRED_COLLIDERS := [
+	"NorthRoad/CollisionShape3D",
+	"IndustrialIntersection/CollisionShape3D",
+	"ServiceAlley/CollisionShape3D",
+	"NorthConnector/CollisionShape3D",
+	"CommercialFrontage/CollisionShape3D",
+	"IndustrialFrontage/CollisionShape3D",
+	"ExpansionEdgeBarrier/CollisionShape3D",
+]
+
 func _init() -> void:
 	call_deferred("_run")
 
@@ -85,6 +106,10 @@ func _fail(message: String) -> void:
 
 func _proof_fail(message: String, exit_code: int) -> void:
 	push_error("[GEARS_STYLE_PROOF_60] %s [diagnostic=%d]" % [message, exit_code])
+	await _finish(exit_code)
+
+func _district_fail(message: String, exit_code: int) -> void:
+	push_error("[GEARS_DISTRICT_01B] %s [diagnostic=%d]" % [message, exit_code])
 	await _finish(exit_code)
 
 func _key_event(key: Key, pressed: bool) -> InputEventKey:
@@ -201,6 +226,71 @@ func _verify_gears_style_proof() -> bool:
 		return false
 	return true
 
+func _verify_gears_district_01b() -> bool:
+	var district := _scene_under_test.get_node_or_null("GearsDistrictSlice01B")
+	if district == null or not district.has_method("get_production_contract"):
+		await _district_fail("Production slice integration node/contract is missing", 180)
+		return false
+
+	for i in range(DISTRICT_01B_REQUIRED_NODES.size()):
+		var node_path: String = DISTRICT_01B_REQUIRED_NODES[i]
+		if district.get_node_or_null(node_path) == null:
+			await _district_fail("Required production node missing: %s" % node_path, 181 + i)
+			return false
+
+	for i in range(DISTRICT_01B_REQUIRED_COLLIDERS.size()):
+		var collider_path: String = DISTRICT_01B_REQUIRED_COLLIDERS[i]
+		var collider := district.get_node_or_null(collider_path) as CollisionShape3D
+		if collider == null or collider.shape == null:
+			await _district_fail("Required traversable/boundary collision missing: %s" % collider_path, 190 + i)
+			return false
+
+	var socket := district.get_node_or_null("MissionDestinationSocket")
+	if socket == null or not (socket is Marker3D):
+		await _district_fail("Mission destination socket must remain a passive Marker3D", 200)
+		return false
+	if socket.get_script() != null:
+		await _district_fail("Mission destination socket must not own mission behavior", 201)
+		return false
+
+	var contract: Dictionary = district.call("get_production_contract")
+	for flag in [
+		"contiguous_with_retained_yard",
+		"primary_route_traversable",
+		"intersection_traversable",
+		"alternate_route_traversable",
+		"alternate_route_rejoins",
+		"commercial_frontage",
+		"industrial_frontage",
+		"mission_socket_passive",
+		"temporary_edge_safe",
+		"uses_approved_toon_shader",
+		"owns_no_gameplay_authority",
+	]:
+		if contract.get(flag, false) != true:
+			await _district_fail("Production contract flag failed: %s" % flag, 202)
+			return false
+
+	if float(contract.get("primary_route_width_m", 0.0)) < 6.0:
+		await _district_fail("Primary route is too narrow for retained vehicle readability", 203)
+		return false
+	if float(contract.get("service_alley_width_m", 0.0)) < 3.0:
+		await _district_fail("Service alley is too narrow for the bounded alternate-route contract", 204)
+		return false
+	if float(contract.get("northbound_depth_m", 0.0)) < 24.0:
+		await _district_fail("District production does not extend far enough beyond the retained yard", 205)
+		return false
+	if int(contract.get("mesh_instances", 9999)) > 36:
+		await _district_fail("01B production mesh budget exceeded", 206)
+		return false
+	if int(contract.get("collision_shapes", 9999)) > 10:
+		await _district_fail("01B production collision budget exceeded", 207)
+		return false
+	if int(contract.get("local_lights", 9999)) != 0:
+		await _district_fail("01B must not add a new real-time local-light layer", 208)
+		return false
+	return true
+
 func _run() -> void:
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
 	if packed == null:
@@ -222,6 +312,8 @@ func _run() -> void:
 		return
 
 	if not await _verify_gears_style_proof():
+		return
+	if not await _verify_gears_district_01b():
 		return
 
 	# 1. CourierBike uses the strong vehicle-heading follow path.
