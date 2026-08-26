@@ -18,11 +18,13 @@ const EVIDENCE_FILES := [
 var _active := false
 var _export_path := ""
 
+func _supports_platform(platform: EditorExportPlatform) -> bool:
+	return platform.get_os_name() == "Web"
+
 func _export_begin(_features: PackedStringArray, _is_debug: bool, path: String, _flags: int) -> void:
 	_export_path = path
-	# This repository currently has one export preset (Web Playtest). The plugin
-	# is invoked only by the editor export lifecycle, so CI itself is the exact
-	# activation gate; do not allow a feature-tag mismatch to silently skip proof.
+	# _supports_platform() limits this plugin to the Web export platform. CI is
+	# the second gate so ordinary local editor/export use remains unaffected.
 	_active = OS.get_environment("GITHUB_ACTIONS").to_lower() == "true"
 	if not _active:
 		return
