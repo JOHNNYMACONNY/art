@@ -103,8 +103,10 @@ func _pulse_mesh(mesh: MeshInstance3D, generation: int) -> void:
 	var pulse := original.duplicate() as ShaderMaterial
 	if pulse == null:
 		return
+	var base_color := Color.WHITE
 	var base_color_variant = pulse.get_shader_parameter("base_color")
-	var base_color := base_color_variant as Color if base_color_variant is Color else Color.WHITE
+	if base_color_variant is Color:
+		base_color = base_color_variant
 	pulse.set_shader_parameter("emission_color", base_color)
 	pulse.set_shader_parameter("emission_energy", PULSE_EMISSION_ENERGY)
 	mesh.material_override = pulse
