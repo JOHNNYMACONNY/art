@@ -218,6 +218,7 @@ script = ExtResource("9_ui_audio")
 [node name="ScrapYardDressing" parent="." instance=ExtResource("7_dressing")]
 
 [node name="GearsStyleProof" parent="." instance=ExtResource("13_gears")]
+visible = false
 
 [node name="GearsDistrictSlice01B" parent="." instance=ExtResource("14_gears_district")]
 
