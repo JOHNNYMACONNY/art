@@ -3,10 +3,24 @@ extends SceneTree
 # Real Viewport regression for #29 desktop tuner interaction.
 # Proves physical mouse delivery, cancellation cleanup, visible feedback,
 # real frequency movement, dwell-to-lock progression, and panel power-up.
+# In GitHub Web export CI only, this final pre-export test also requires the
+# exact-build rendered verification payload to be prepared for publication.
 var _scene_under_test: Node = null
 
 func _init() -> void:
 	call_deferred("_run")
+
+func _append_ci_summary(title: String, message: String) -> void:
+	if OS.get_environment("GITHUB_ACTIONS").to_lower() != "true":
+		return
+	var summary_path := OS.get_environment("GITHUB_STEP_SUMMARY")
+	if summary_path.is_empty():
+		return
+	var existing := FileAccess.get_file_as_string(summary_path) if FileAccess.file_exists(summary_path) else ""
+	var file := FileAccess.open(summary_path, FileAccess.WRITE)
+	if file != null:
+		file.store_string(existing + "\n## %s\n\n%s\n" % [title, message])
+		file.close()
 
 func _finish(exit_code: int) -> void:
 	if is_instance_valid(_scene_under_test):
@@ -16,6 +30,7 @@ func _finish(exit_code: int) -> void:
 	quit(exit_code)
 
 func _fail(message: String) -> void:
+	_append_ci_summary("Verification regression failure", "`%s`" % message)
 	push_error("[DESKTOP_INTERACTION_CANCEL] %s" % message)
 	await _finish(1)
 
@@ -85,6 +100,76 @@ func _mouse_up_at(position: Vector2) -> void:
 	event.pressed = false
 	event.position = position
 	root.push_input(event, true)
+
+func _prepare_ci_verification_payload() -> String:
+	if OS.get_environment("GITHUB_ACTIONS").to_lower() != "true":
+		return ""
+	var source_sha := OS.get_environment("SOURCE_SHA")
+	if source_sha.is_empty():
+		return "CI verification payload requires SOURCE_SHA"
+
+	var output: Array = []
+	# The workflow wraps this entire parent regression in timeout 180s. The
+	# dedicated runner activates capture in the same Godot process before it
+	# instantiates ScrapTestBlock, removing project-main/flag propagation ambiguity.
+	var timeout_args := PackedStringArray([
+		"140s",
+		"xvfb-run",
+		"-a",
+		"-s",
+		"-screen 0 1280x720x24",
+		OS.get_executable_path(),
+		"--path",
+		ProjectSettings.globalize_path("res://"),
+		"--resolution",
+		"640x360",
+		"--rendering-method",
+		"gl_compatibility",
+		"--script",
+		"res://tests/gears_verification_capture_runner.gd",
+	])
+	var exit_code := OS.execute("timeout", timeout_args, output, true)
+	for line in output:
+		print(str(line))
+	if exit_code == 124:
+		return "Rendered verification runner timed out after 140s"
+	if exit_code != 0:
+		return "Rendered verification runner failed with exit code %d" % exit_code
+
+	var report_path := "res://verification/current/verification_report.json"
+	if not FileAccess.file_exists(report_path):
+		return "Rendered verification report was not generated"
+	var report = JSON.parse_string(FileAccess.get_file_as_string(report_path))
+	if not report is Dictionary:
+		return "Rendered verification report is invalid JSON"
+	if str(report.get("source_sha", "")) != source_sha:
+		return "Rendered verification report does not match SOURCE_SHA"
+
+	var preset := ConfigFile.new()
+	var preset_error := preset.load(ProjectSettings.globalize_path("res://export_presets.cfg"))
+	if preset_error != OK:
+		return "Could not reload Web export preset after verification capture"
+	var head_include := str(preset.get_value("preset.0.options", "html/head_include", ""))
+	if "GEARS_VERIFICATION_PAYLOAD_V2" not in head_include:
+		return "Web export preset is missing rendered verification payload marker"
+	if source_sha not in head_include:
+		return "Web export verification payload is not stamped to SOURCE_SHA"
+	if not FileAccess.file_exists("res://verification_contact_sheet.png"):
+		return "Web export contact-sheet source asset is missing"
+
+	var telemetry: Dictionary = report.get("telemetry", {})
+	var full: Dictionary = telemetry.get("full_current", {})
+	var control: Dictionary = telemetry.get("retained_yard_control", {})
+	var delta: Dictionary = telemetry.get("delta_full_minus_control", {})
+	_append_ci_summary(
+		"Gears rendered verification prepared",
+		"Source `%s` · 640x360 llvmpipe frame smoke full/control `%s / %s ms` · draw/primitives/objects delta `%s / %s / %s`. Native avg/P95 remains deferred. Contact sheet prepared for Web `index.png`." % [
+			source_sha,
+			str(full.get("frame_time_ms", "?")), str(control.get("frame_time_ms", "?")),
+			str(delta.get("draw_calls", "?")), str(delta.get("primitives", "?")), str(delta.get("objects", "?")),
+		]
+	)
+	return ""
 
 func _run() -> void:
 	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
@@ -224,6 +309,11 @@ func _run() -> void:
 	await process_frame
 	if panel.current_step == panel.Step.PEELING or player.is_input_locked or camera._is_interaction_mode or touch_ui.gesture_panel.visible:
 		await _fail("ESC did not deterministically cancel panel peel interaction")
+		return
+
+	var verification_error := _prepare_ci_verification_payload()
+	if not verification_error.is_empty():
+		await _fail("Verification publication: %s" % verification_error)
 		return
 
 	print("[DESKTOP_INTERACTION_CANCEL] PASS")

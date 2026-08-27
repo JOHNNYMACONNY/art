@@ -1,7 +1,15 @@
-extends SceneTree
+extends Node
+
+# CI-only verification driver. It is present in the real playable scene so
+# rendered capture follows the same normal-main-scene path as the repository's
+# proven visual exporters. Outside the explicit verification command it frees
+# itself immediately and owns no gameplay behavior.
 
 const OUTPUT_DIR := "res://verification/current"
 const REPORT_PATH := OUTPUT_DIR + "/verification_report.json"
+const CONTACT_SHEET_PATH := "res://verification_contact_sheet.png"
+const CAPTURE_FLAG := "--run-gears-verification-capture"
+const CAPTURE_ENV := "GEARS_VERIFICATION_CAPTURE"
 const CAPTURE_NAMES := [
 	"01_quiet_traversal.png",
 	"02_courier_bike.png",
@@ -25,6 +33,14 @@ const V7_BASELINE := {
 	"p95_frame_ms": 17.20,
 }
 
+const CONTACT_COLUMNS := 3
+const CONTACT_ROWS := 3
+const CONTACT_CELL_WIDTH := 480
+const CONTACT_CELL_HEIGHT := 270
+const CONTACT_WIDTH := CONTACT_COLUMNS * CONTACT_CELL_WIDTH
+const CONTACT_HEIGHT := CONTACT_ROWS * CONTACT_CELL_HEIGHT
+const MAX_CONTACT_BYTES := 2000000
+
 var _scene: Node3D = null
 var _player: CharacterBody3D = null
 var _camera: Camera3D = null
@@ -35,18 +51,46 @@ var _district: Node3D = null
 var _fb13_event: Node = null
 var _audio: Node = null
 var _captures: Array[Dictionary] = []
+var _capture_images: Array[Image] = []
 
-func _init() -> void:
+func _ready() -> void:
+	var env_active := OS.get_environment(CAPTURE_ENV) == "1"
+	var arg_active := OS.get_cmdline_user_args().has(CAPTURE_FLAG)
+	if not env_active and not arg_active:
+		queue_free()
+		return
 	call_deferred("_run")
+
+func _gha_escape(message: String) -> String:
+	return message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+func _append_ci_summary(title: String, message: String) -> void:
+	if OS.get_environment("GITHUB_ACTIONS").to_lower() != "true":
+		return
+	var summary_path := OS.get_environment("GITHUB_STEP_SUMMARY")
+	if summary_path.is_empty():
+		return
+	var existing := FileAccess.get_file_as_string(summary_path) if FileAccess.file_exists(summary_path) else ""
+	var file := FileAccess.open(summary_path, FileAccess.WRITE)
+	if file != null:
+		file.store_string(existing + "\n## %s\n\n%s\n" % [title, message])
+		file.close()
 
 func _run() -> void:
 	var failure := await _capture_and_measure()
 	if failure != "":
+		_append_ci_summary("Gears verification capture failure", "`%s`" % failure)
+		if OS.get_environment("GITHUB_ACTIONS").to_lower() == "true":
+			print("::error title=GEARS_VERIFICATION_CAPTURE::%s" % _gha_escape(failure))
 		push_error("[GEARS_VERIFICATION_CAPTURE] %s" % failure)
-		quit(1)
+		get_tree().quit(1)
 		return
+	_append_ci_summary(
+		"Gears verification capture child",
+		"Rendered nine retained-camera states plus full-current and retained-control structural render snapshots for `%s`." % OS.get_environment("SOURCE_SHA")
+	)
 	print("[GEARS_VERIFICATION_CAPTURE] PASS: %s" % REPORT_PATH)
-	quit(0)
+	get_tree().quit(0)
 
 func _capture_and_measure() -> String:
 	var output_abs := ProjectSettings.globalize_path(OUTPUT_DIR)
@@ -54,22 +98,19 @@ func _capture_and_measure() -> String:
 	if dir_error != OK and dir_error != ERR_ALREADY_EXISTS:
 		return "Could not create verification output directory: %s" % dir_error
 	for file_name in CAPTURE_NAMES:
-		var stale := OUTPUT_DIR + "/" + file_name
+		var stale: String = OUTPUT_DIR + "/" + str(file_name)
 		if FileAccess.file_exists(stale):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(stale))
-	if FileAccess.file_exists(REPORT_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(REPORT_PATH))
+	for stale_path in [REPORT_PATH, CONTACT_SHEET_PATH]:
+		if FileAccess.file_exists(stale_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(stale_path))
 
-	var packed := load("res://scenes/prototype/scrap_test_block.tscn") as PackedScene
-	if packed == null:
-		return "Could not load real playable scene"
-	_scene = packed.instantiate() as Node3D
-	if _scene == null:
-		return "Could not instantiate real playable scene"
-	root.add_child(_scene)
-	await process_frame
-	await physics_frame
-	await create_timer(0.20).timeout
+	_scene = get_parent() as Node3D
+	if _scene == null or _scene.name != "ScrapTestBlock":
+		return "Verification driver is not attached to the real playable scene"
+
+	await get_tree().process_frame
+	await get_tree().physics_frame
 
 	_player = _scene.get_node_or_null("Runner") as CharacterBody3D
 	_camera = _scene.get_node_or_null("ChinatownCamera3D") as Camera3D
@@ -84,7 +125,6 @@ func _capture_and_measure() -> String:
 	if absf(_camera.fov - 32.0) > 0.01:
 		return "Retained gameplay camera FOV is no longer 32 degrees"
 
-	# Day is the neutral starting presentation for the first six captures.
 	_proof.call("set_lighting_mode", "day")
 
 	_place_player(Vector3(-4.5, 0.20, -30.0))
@@ -139,26 +179,22 @@ func _capture_and_measure() -> String:
 	_audio.current_mix_state = AudioManager.MixState.CALM
 	_place_player(Vector3(utility_plate.global_position.x, 0.20, utility_plate.global_position.z + 1.4))
 	_fb13_event.call("_process", 0.10)
-	await create_timer(0.08).timeout
-	error = await _save_capture(CAPTURE_NAMES[8], 0.02)
+	error = await _save_capture(CAPTURE_NAMES[8])
 	if error != "": return error
-	await create_timer(0.70).timeout
 
-	# Same-host performance evidence: current district visible versus retained-yard control.
 	_proof.call("set_lighting_mode", "day")
 	_place_player(Vector3(-1.5, 0.20, -18.0))
-	var full_current := await _measure_render_sample("full_current")
+	var full_current := await _measure_render_snapshot("full_current")
 	_proof.visible = false
 	_district.visible = false
-	await process_frame
-	await create_timer(0.10).timeout
 	_camera.call("reset_camera_instant", _player)
-	var retained_control := await _measure_render_sample("retained_yard_control")
+	var retained_control := await _measure_render_snapshot("retained_yard_control")
 	_proof.visible = true
 	_district.visible = true
 
+	var viewport := get_viewport()
 	var report := {
-		"schema_version": 1,
+		"schema_version": 9,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"generated_utc": Time.get_datetime_string_from_system(true),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
@@ -166,11 +202,13 @@ func _capture_and_measure() -> String:
 		"display_server": DisplayServer.get_name(),
 		"renderer_method": str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "unknown")),
 		"video_adapter": RenderingServer.get_video_adapter_name(),
-		"viewport": {"width": root.size.x, "height": root.size.y},
+		"viewport": {"width": viewport.size.x, "height": viewport.size.y},
 		"camera_fov_deg": _camera.fov,
 		"captures": _captures,
 		"telemetry": {
-			"sample_frames": 180,
+			"mode": "single_frame_same_host_structural_snapshot",
+			"frame_time_scope": "advisory_smoke_only",
+			"native_avg_p95_status": "deferred_requires_native_runtime",
 			"full_current": full_current,
 			"retained_yard_control": retained_control,
 			"delta_full_minus_control": _telemetry_delta(full_current, retained_control),
@@ -179,13 +217,20 @@ func _capture_and_measure() -> String:
 		},
 		"verification_scope": {
 			"retained_camera_rendered": true,
-			"same_host_incremental_cost_measured": true,
+			"normal_main_scene_runtime": true,
+			"same_host_structural_cost_measured": true,
+			"native_avg_p95_measured": false,
 			"human_audio_listening": false,
 			"black_box_browser_input": false,
 		},
 	}
 	if str(report.source_sha).is_empty():
 		report.source_sha = "local_or_unstamped"
+
+	var publication_error := _publish_web_verification_payload(report)
+	if publication_error != "":
+		return publication_error
+
 	var report_file := FileAccess.open(REPORT_PATH, FileAccess.WRITE)
 	if report_file == null:
 		return "Could not open verification report for writing"
@@ -200,20 +245,16 @@ func _place_player(position: Vector3) -> void:
 	_player.global_position = position
 	_camera.call("reset_camera_instant", _player)
 
-func _save_capture(file_name: String, settle_seconds: float = 0.12) -> String:
-	await process_frame
-	if settle_seconds > 0.0:
-		await create_timer(settle_seconds).timeout
-	await process_frame
-	var image := root.get_texture().get_image()
+func _save_capture(file_name: String) -> String:
+	await get_tree().process_frame
+	var image := get_viewport().get_texture().get_image()
 	if image == null or image.is_empty():
 		return "Rendered viewport image is empty for %s" % file_name
 	var file_path := OUTPUT_DIR + "/" + file_name
 	var save_error := image.save_png(file_path)
 	if save_error != OK:
 		return "PNG save failed for %s: %s" % [file_name, save_error]
-	var absolute_path := ProjectSettings.globalize_path(file_path)
-	var bytes := FileAccess.get_file_as_bytes(absolute_path).size()
+	var bytes := FileAccess.get_file_as_bytes(ProjectSettings.globalize_path(file_path)).size()
 	if bytes < 20000:
 		return "Rendered PNG is unexpectedly small for %s: %s bytes" % [file_name, bytes]
 	_captures.append({
@@ -222,30 +263,106 @@ func _save_capture(file_name: String, settle_seconds: float = 0.12) -> String:
 		"height": image.get_height(),
 		"bytes": bytes,
 	})
+	_capture_images.append(image.duplicate())
 	return ""
 
-func _measure_render_sample(label: String) -> Dictionary:
-	if DisplayServer.get_name().to_lower() != "headless":
-		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
-	Engine.max_fps = 0
-	for _i in range(30):
-		await process_frame
-	var frame_times: Array[float] = []
-	for _i in range(180):
-		var start_usec := Time.get_ticks_usec()
-		await process_frame
-		var end_usec := Time.get_ticks_usec()
-		frame_times.append(float(end_usec - start_usec) / 1000.0)
-	frame_times.sort()
-	var average := 0.0
-	for value in frame_times:
-		average += value
-	average /= float(frame_times.size())
-	var p95_index := mini(frame_times.size() - 1, int(ceil(float(frame_times.size()) * 0.95)) - 1)
+func _publish_web_verification_payload(report: Dictionary) -> String:
+	if OS.get_environment("GITHUB_ACTIONS").to_lower() != "true":
+		return ""
+	if _capture_images.size() != CAPTURE_NAMES.size():
+		return "Contact sheet cannot be built because rendered capture count is incomplete"
+
+	var sheet := Image.create_empty(CONTACT_WIDTH, CONTACT_HEIGHT, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0.025, 0.03, 0.035, 1.0))
+	for index in range(_capture_images.size()):
+		var preview := _capture_images[index].duplicate()
+		if preview.get_format() != Image.FORMAT_RGBA8:
+			preview.convert(Image.FORMAT_RGBA8)
+		preview.resize(CONTACT_CELL_WIDTH, CONTACT_CELL_HEIGHT, Image.INTERPOLATE_LANCZOS)
+		var column := index % CONTACT_COLUMNS
+		var row := int(index / CONTACT_COLUMNS)
+		sheet.blit_rect(
+			preview,
+			Rect2i(Vector2i.ZERO, Vector2i(CONTACT_CELL_WIDTH, CONTACT_CELL_HEIGHT)),
+			Vector2i(column * CONTACT_CELL_WIDTH, row * CONTACT_CELL_HEIGHT)
+		)
+
+	var contact_error := sheet.save_png(CONTACT_SHEET_PATH)
+	if contact_error != OK:
+		return "Verification contact sheet PNG write failed: %s" % contact_error
+	var contact_bytes := FileAccess.get_file_as_bytes(ProjectSettings.globalize_path(CONTACT_SHEET_PATH)).size()
+	if contact_bytes < 20000:
+		return "Verification contact sheet is unexpectedly small"
+	if contact_bytes > MAX_CONTACT_BYTES:
+		return "Verification contact sheet exceeds bounded Web asset budget: %d bytes" % contact_bytes
+
+	report["publication"] = {
+		"transport": "web_boot_splash_plus_head_include",
+		"payload_marker": "GEARS_VERIFICATION_PAYLOAD_V2",
+		"public_contact_sheet_path": "index.png",
+		"contact_sheet": {
+			"file": "verification_contact_sheet.png",
+			"width": CONTACT_WIDTH,
+			"height": CONTACT_HEIGHT,
+			"columns": CONTACT_COLUMNS,
+			"rows": CONTACT_ROWS,
+			"cell_width": CONTACT_CELL_WIDTH,
+			"cell_height": CONTACT_CELL_HEIGHT,
+			"bytes": contact_bytes,
+			"capture_order": CAPTURE_NAMES,
+		},
+	}
+
+	ProjectSettings.set_setting("application/boot_splash/image", CONTACT_SHEET_PATH)
+	ProjectSettings.set_setting("application/boot_splash/show_image", true)
+	ProjectSettings.set_setting("application/boot_splash/fullsize", true)
+	ProjectSettings.set_setting("application/boot_splash/use_filter", true)
+	var project_save_error := ProjectSettings.save()
+	if project_save_error != OK:
+		return "Could not persist isolated Web boot-splash verification asset: %s" % project_save_error
+
+	var full: Dictionary = report.telemetry.full_current
+	var control: Dictionary = report.telemetry.retained_yard_control
+	var delta: Dictionary = report.telemetry.delta_full_minus_control
+	var source_sha := str(report.source_sha)
+	var report_json := JSON.stringify(report)
+	var head_include := "".join([
+		"<!-- GEARS_VERIFICATION_PAYLOAD_V2 source_sha=", source_sha,
+		" full_frame_smoke_ms=", str(full.frame_time_ms),
+		" control_frame_smoke_ms=", str(control.frame_time_ms),
+		" delta_draw_calls=", str(delta.draw_calls),
+		" delta_primitives=", str(delta.primitives),
+		" delta_objects=", str(delta.objects), " -->\n",
+		"<script id=\"gears-verification-report\" type=\"application/json\" data-source-sha=\"", source_sha, "\">",
+		report_json,
+		"</script>\n",
+	])
+
+	var preset := ConfigFile.new()
+	var preset_path := ProjectSettings.globalize_path("res://export_presets.cfg")
+	var load_error := preset.load(preset_path)
+	if load_error != OK:
+		return "Could not load Web export preset for verification payload: %s" % load_error
+	preset.set_value("preset.0.options", "html/head_include", head_include)
+	var preset_save_error := preset.save(preset_path)
+	if preset_save_error != OK:
+		return "Could not persist Web verification telemetry payload: %s" % preset_save_error
+
+	var verify := ConfigFile.new()
+	if verify.load(preset_path) != OK:
+		return "Could not reload Web export preset after payload write"
+	var saved_include := str(verify.get_value("preset.0.options", "html/head_include", ""))
+	if "GEARS_VERIFICATION_PAYLOAD_V2" not in saved_include or source_sha not in saved_include:
+		return "Web verification payload did not persist to export preset"
+	return ""
+
+func _measure_render_snapshot(label: String) -> Dictionary:
+	var start_usec := Time.get_ticks_usec()
+	await get_tree().process_frame
+	var end_usec := Time.get_ticks_usec()
 	return {
 		"label": label,
-		"avg_frame_ms": snappedf(average, 0.001),
-		"p95_frame_ms": snappedf(frame_times[p95_index], 0.001),
+		"frame_time_ms": snappedf(float(end_usec - start_usec) / 1000.0, 0.001),
 		"draw_calls": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
 		"primitives": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
 		"objects": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
@@ -253,8 +370,7 @@ func _measure_render_sample(label: String) -> Dictionary:
 
 func _telemetry_delta(full: Dictionary, control: Dictionary) -> Dictionary:
 	return {
-		"avg_frame_ms": snappedf(float(full.avg_frame_ms) - float(control.avg_frame_ms), 0.001),
-		"p95_frame_ms": snappedf(float(full.p95_frame_ms) - float(control.p95_frame_ms), 0.001),
+		"frame_time_ms": snappedf(float(full.frame_time_ms) - float(control.frame_time_ms), 0.001),
 		"draw_calls": int(full.draw_calls) - int(control.draw_calls),
 		"primitives": int(full.primitives) - int(control.primitives),
 		"objects": int(full.objects) - int(control.objects),

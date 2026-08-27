@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3 uid="uid://c_scrap_test_block_001"]
+[gd_scene load_steps=32 format=3 uid="uid://c_scrap_test_block_001"]
 
 [ext_resource type="Script" path="res://scripts/prototype/scrap_test_block.gd" id="1_root"]
 
@@ -21,6 +21,7 @@
 [ext_resource type="PackedScene" path="res://scenes/world/gears_style_proof.tscn" id="13_gears"]
 [ext_resource type="PackedScene" path="res://scenes/world/gears_district_slice_01b.tscn" id="14_gears_district"]
 [ext_resource type="Script" path="res://scripts/world/fb13_thrum_world_event.gd" id="15_fb13_thrum"]
+[ext_resource type="Script" path="res://tests/gears_verification_capture.gd" id="16_verify_capture"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -222,6 +223,9 @@ script = ExtResource("9_ui_audio")
 
 [node name="FB13ThrumWorldEvent" type="Node" parent="."]
 script = ExtResource("15_fb13_thrum")
+
+[node name="VerificationCaptureDriver" type="Node" parent="."]
+script = ExtResource("16_verify_capture")
 
 [node name="MissionScrapJobRuntime" type="Node" parent="."]
 script = ExtResource("10_mission_runtime")

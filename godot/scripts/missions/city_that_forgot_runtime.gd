@@ -25,7 +25,7 @@ var mission = MissionScript.new()
 var _root_controller: Node = null
 var _civic_runtime = null
 var _touch_ui = null
-var _silent_core: SilentCoreInteractable = null
+var _silent_core = null
 var _echo_controller = null
 var _mission_title: Label = null
 var _objective_label: Label = null
@@ -134,8 +134,8 @@ func _resolve_silent_core_destination() -> Dictionary:
 
 func _create_silent_core() -> void:
 	var existing := _root_controller.get_node_or_null("SilentCore")
-	if existing is SilentCoreInteractable:
-		_silent_core = existing as SilentCoreInteractable
+	if existing != null and existing.get_script() == SilentCoreScript:
+		_silent_core = existing
 		return
 	_silent_core = SilentCoreScript.new()
 	_silent_core.name = "SilentCore"

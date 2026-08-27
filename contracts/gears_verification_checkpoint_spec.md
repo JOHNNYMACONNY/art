@@ -1,39 +1,54 @@
 # Gears Verification Debt Checkpoint
 
 **State:** READY_FOR_IMPLEMENTATION  
-**Baseline:** `main@9e49997500cedcd2ff7aa12eb447e4156f62ee19`  
-**Purpose:** retire the accumulated rendered-visual and desktop-render telemetry debt without adding product content.
+**Baseline:** `main@a8a30cb2fead23f1d242debbaa8b225f7da2bdbc`  
+**Purpose:** retire accumulated rendered-visual debt and collect bounded same-host structural render-cost evidence without adding product content.
 
 ## Problem
 
-The Gears visual proof, production block, Mayor Burn garage, Silent Core site and FB-13 thrum event are code-verified and publicly exported, but the current verification surface has not produced fresh exact-build retained-camera captures or current desktop render telemetry.
+The Gears visual proof, production block, Mayor Burn garage, Silent Core site and FB-13 thrum event are code-verified and publicly exported, but fresh exact-build retained-camera visual evidence has not yet been successfully published for inspection. Current structural render-cost evidence is also missing.
 
-The repository already proves that Ubuntu/Xvfb can render Godot screenshots, but `.github/workflows/ctw-feel-verify.yml` is hard-wired to a legacy `codex/` branch. The connected GitHub write token cannot mutate workflow files (`GITHUB_CONTROL_FORBIDDEN`, HTTP 403).
+The repository already proves Ubuntu/Xvfb can render Godot screenshots. Direct Actions workflow mutation remains unavailable through the connected GitHub token (`GITHUB_CONTROL_FORBIDDEN`, HTTP 403).
 
-## Strategy
+PR #70 proved a first editor-export-plugin approach could keep CI green, but post-merge inspection found that the headless CLI export did not actually publish the verification files. That false-green result is explicitly rejected as verification evidence.
 
-Do not create another Actions workflow. Use the existing `Godot Web Playtest` export path.
+The historical V7 timing baseline was measured as a 120-frame native Apple M4 / Metal Forward+ run. Repeating that workload inside Ubuntu/Xvfb llvmpipe exceeds the existing workflow's fixed 180-second desktop-regression timeout even after substantial sample reduction. This checkpoint therefore must not represent llvmpipe as a hardware-equivalent native timing qualification.
 
-Add a CI-only Godot editor export plugin that:
+## Repaired strategy
 
-1. activates only for Web export while `GITHUB_ACTIONS=true`;
-2. launches the same Godot executable under `xvfb-run` against the exact checked-out project;
-3. runs one bounded capture/telemetry script;
-4. requires that script to succeed and produce the expected evidence files;
-5. after Web export completes, copies those evidence files as **loose files** beside the Web build under `verification/`;
-6. therefore allows the existing artifact upload and `playtest-web` publication steps to carry the evidence without any Actions-file mutation.
+Do not create or mutate an Actions workflow.
 
-The plugin is verification infrastructure only. It must not change gameplay/runtime behavior in exported games.
+Use a step the existing `Godot Web Playtest` workflow already executes immediately before Web export: `desktop_interaction_cancel_test.gd`.
 
-## Exact evidence set
+Only when `GITHUB_ACTIONS=true`, that retained regression must:
 
-The capture harness must instantiate the real playable scene and retain the production `ChinatownCamera3D` 32-degree elevated 3/4 camera.
+1. launch the exact checked-out isolated Web project under `xvfb-run` using the same Godot executable and `res://tests/gears_verification_capture_runner.gd`;
+2. have that dedicated runner set the capture activation environment in the **same Godot process before scene instantiation**, then instantiate the real `ScrapTestBlock` scene;
+3. require the embedded normal-scene capture driver to succeed and produce a SHA-stamped report;
+4. require the isolated Web export preset to contain `GEARS_VERIFICATION_PAYLOAD_V2` and exact `SOURCE_SHA` before normal export proceeds.
 
-Fresh PNGs:
+The capture driver is a dormant node in the real playable scene. Outside explicit verification activation it immediately frees itself and owns no runtime gameplay behavior. The dedicated runner removes reliance on project-main launch semantics or child-process flag propagation: it sets activation before creating the real scene and has a bounded watchdog if the driver does not terminate.
+
+The capture child must then use normal Godot Web-export surfaces for publication:
+
+- build a 3x3 contact sheet from nine fresh rendered frames;
+- set that contact sheet as the **isolated Web project** boot-splash image, causing the standard Web exporter to emit it as loose public `index.png`;
+- inject an HTML comment plus `<script type="application/json">` report into `html/head_include`;
+- stamp both publication surfaces to exact `SOURCE_SHA`.
+
+The isolated Web-project splash mutation is CI-only and must not change repository gameplay presentation or checked-in project settings.
+
+The previous editor export plugin must remain disabled. No Actions-file change is allowed or required.
+
+## Exact visual evidence set
+
+The capture harness must run the real playable scene and retain the production `ChinatownCamera3D` 32-degree elevated 3/4 camera.
+
+Fresh rendered source frames, in contact-sheet order:
 
 1. `01_quiet_traversal.png` — representative primary-road traversal;
 2. `02_courier_bike.png` — Courier Bike readability in the district;
-3. `03_pursuit.png` — player/Bike/Pursuer readable together;
+3. `03_pursuit.png` — actual active Pursuer state with Bike/player readable together;
 4. `04_shortcut_intersection.png` — industrial intersection + alternate-route decision;
 5. `05_burn_garage.png` — Mayor Burn garage/frontage readability;
 6. `06_silent_core.png` — Silent Core infrastructure pocket readability;
@@ -41,51 +56,68 @@ Fresh PNGs:
 8. `08_dusk.png` — approved restrained dusk hierarchy;
 9. `09_fb13_thrum.png` — FB-13 mechanism-resonance pulse at the industrial frontage.
 
-Each capture must be a fresh 960x540 (or current logical viewport-sized) PNG generated by the exact checked-out build, not a committed historical image.
+Each source capture must be a fresh rendered PNG from the exact checked-out build and exceed the bounded non-empty evidence threshold. The public contact sheet must preserve this 3x3 order and be emitted by the normal Web exporter as `index.png`.
 
-## Telemetry
+## Performance / render-cost evidence
 
-Generate `verification_report.json` containing:
+Generate and publish a report containing:
 
 - exact `SOURCE_SHA` from CI;
 - Godot version, renderer/method, viewport size and OS;
 - capture filenames, dimensions and byte sizes;
-- full-current steady-state sample: average frame time, P95 frame time, draw calls, primitives and objects;
-- same-run retained-yard control with `GearsStyleProof` and `GearsDistrictSlice01B` hidden, measured from the same camera position and same CI host;
-- full-vs-control deltas for frame time, draw calls, primitives and objects;
-- historical V7 desktop baseline context (`68` draw calls, `59,410` primitives, `75` objects, `16.46 ms` average, `17.20 ms` P95) explicitly labeled as Apple M4/Forward+ and therefore not hardware-equivalent to Linux/Xvfb GL Compatibility.
+- one full-current structural snapshot containing draw calls, primitives and objects;
+- one same-run retained-yard control with `GearsStyleProof` and `GearsDistrictSlice01B` hidden, measured from the same camera position and same CI host;
+- full-vs-control draw/primitives/object deltas;
+- one current and one control frame-time smoke measurement associated with those rendered snapshots, explicitly labeled **advisory only**;
+- historical V7 desktop baseline context (`68` draw calls, `59,410` primitives, `75` objects, `16.46 ms` average, `17.20 ms` P95) explicitly labeled Apple M4/Forward+ and therefore not hardware-equivalent to Linux/Xvfb GL Compatibility.
 
-The same-run control is the primary incremental-cost comparison because it shares renderer, host, process and camera framing with the current candidate.
+The same-run draw/primitives/object delta is the primary incremental-cost signal for this CI checkpoint. Single-frame llvmpipe timing may identify an order-of-magnitude failure but must not be represented as an average/P95 qualification.
 
-Do not manufacture a performance PASS threshold before observing the data. This checkpoint first produces evidence; review then decides whether any measured regression is material.
+Full native desktop average/P95 timing remains verification debt until it can run on an appropriate native rendering surface. This checkpoint narrows the debt by resolving actual rendered visual evidence and structural same-host cost while leaving native timing qualification explicit.
 
-## Export/publication contract
+For easy external inspection, `index.html` must contain:
 
-The existing Web export must contain:
+- marker `GEARS_VERIFICATION_PAYLOAD_V2`;
+- exact source SHA;
+- bounded current/control frame-time smoke values;
+- draw/primitives/object deltas;
+- full JSON report in an `application/json` script element.
 
-`build/web/verification/<files above>`
+## Fail-closed contract
 
-and the existing `playtest-web` publication must carry the same files after merge.
+The existing Web export must fail before export if:
 
-The export must fail closed if Xvfb/Godot capture fails, the report is missing, or any required PNG is missing/empty.
+- Xvfb/Godot runner or capture fails;
+- runner watchdog expires;
+- report generation fails;
+- report SHA differs from `SOURCE_SHA`;
+- any required capture is missing/empty;
+- contact-sheet generation fails;
+- isolated project/preset publication mutation fails;
+- repaired payload marker or source SHA cannot be re-read from `export_presets.cfg`.
+
+A green export without inspectable post-publication evidence is **not** verification PASS.
 
 ## Review contract
 
-After exact-head CI succeeds and the PR is reviewed/merged:
+After exact-head CI succeeds and the repair PR is reviewed/merged:
 
-1. verify `playtest-web/PLAYTEST_BUILD.txt` equals the merged gameplay SHA;
-2. verify `playtest-web/verification/verification_report.json` reports that same source SHA;
-3. open the nine raw public PNGs and perform a fresh visual review for retained-camera readability, route hierarchy, silhouettes, signage/landmark clarity, restrained day/dusk lighting and FB-13 pulse legibility;
-4. read the telemetry report and evaluate current-vs-control cost plus historical-baseline context;
-5. material findings route to REPAIR; no finding plus current evidence resolves the visual/performance portion of the debt.
+1. verify `playtest-web/PLAYTEST_BUILD.txt` equals the merged SHA;
+2. verify raw public `playtest-web/index.png` is the 3x3 verification contact sheet rather than the default Godot splash;
+3. verify raw public `playtest-web/index.html` contains `GEARS_VERIFICATION_PAYLOAD_V2`, the same SHA and readable report JSON;
+4. perform fresh visual review of all nine contact-sheet cells for retained-camera readability, route hierarchy, silhouettes, signage/landmark clarity, restrained day/dusk treatment, Silent Core readability and FB-13 pulse legibility;
+5. evaluate full-current vs retained-control draw/primitives/object cost and bounded timing-smoke context;
+6. any material visual/structural-performance finding routes to REPAIR; only no finding plus current public evidence resolves those portions of verification debt.
 
-Human listening quality for FB-13 remains a separate audio-perceptual question unless an actual listening-capable surface becomes available.
+Human listening quality for FB-13 remains a separate audio-perceptual question unless a genuine listening-capable surface becomes available. Native desktop average/P95 timing also remains a separate qualification item unless an appropriate native rendering surface becomes available.
 
 ## Non-goals
 
-- no new acreage;
-- no visual redesign;
+- no new acreage or content;
+- no visual redesign during evidence collection;
 - no gameplay, mission, camera, input, pursuit or vehicle behavior change;
 - no replacement for black-box browser interaction testing;
 - no claim that CI/Xvfb audio proves human listening quality;
-- no Actions workflow mutation.
+- no claim that llvmpipe single-frame timing equals native desktop avg/P95 performance;
+- no Actions workflow mutation;
+- no silent conversion of CI success into perceptual PASS.
