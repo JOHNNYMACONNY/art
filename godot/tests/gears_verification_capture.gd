@@ -9,6 +9,7 @@ const OUTPUT_DIR := "res://verification/current"
 const REPORT_PATH := OUTPUT_DIR + "/verification_report.json"
 const CONTACT_SHEET_PATH := "res://verification_contact_sheet.png"
 const CAPTURE_FLAG := "--run-gears-verification-capture"
+const CAPTURE_ENV := "GEARS_VERIFICATION_CAPTURE"
 const CAPTURE_NAMES := [
 	"01_quiet_traversal.png",
 	"02_courier_bike.png",
@@ -53,7 +54,9 @@ var _captures: Array[Dictionary] = []
 var _capture_images: Array[Image] = []
 
 func _ready() -> void:
-	if not OS.get_cmdline_user_args().has(CAPTURE_FLAG):
+	var env_active := OS.get_environment(CAPTURE_ENV) == "1"
+	var arg_active := OS.get_cmdline_user_args().has(CAPTURE_FLAG)
+	if not env_active and not arg_active:
 		queue_free()
 		return
 	call_deferred("_run")
@@ -179,8 +182,6 @@ func _capture_and_measure() -> String:
 	error = await _save_capture(CAPTURE_NAMES[8])
 	if error != "": return error
 
-	# CI/Xvfb llvmpipe is appropriate for structural same-host comparison, not
-	# for reproducing the native Apple M4 120-frame average/P95 benchmark.
 	_proof.call("set_lighting_mode", "day")
 	_place_player(Vector3(-1.5, 0.20, -18.0))
 	var full_current := await _measure_render_snapshot("full_current")
@@ -193,7 +194,7 @@ func _capture_and_measure() -> String:
 
 	var viewport := get_viewport()
 	var report := {
-		"schema_version": 8,
+		"schema_version": 9,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"generated_utc": Time.get_datetime_string_from_system(true),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
@@ -245,9 +246,6 @@ func _place_player(position: Vector3) -> void:
 	_camera.call("reset_camera_instant", _player)
 
 func _save_capture(file_name: String) -> String:
-	# One rendered frame is sufficient after explicit static placement and an
-	# instantaneous retained-camera reset. Avoid timer-based settling under
-	# llvmpipe because it multiplies software-render cost without adding evidence.
 	await get_tree().process_frame
 	var image := get_viewport().get_texture().get_image()
 	if image == null or image.is_empty():
