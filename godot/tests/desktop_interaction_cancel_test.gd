@@ -109,9 +109,9 @@ func _prepare_ci_verification_payload() -> String:
 		return "CI verification payload requires SOURCE_SHA"
 
 	var output: Array = []
-	# The workflow wraps this entire parent regression in timeout 180s, so keep
-	# the graphical child strictly inside that envelope and leave room for the
-	# retained desktop interaction assertions plus the subsequent Web export.
+	# The workflow wraps this entire parent regression in timeout 180s. Capture
+	# at a bounded 16:9 CI target (same scene/camera/FOV) because canvas_items
+	# renders at the requested window target size and llvmpipe cost scales with it.
 	var timeout_args := PackedStringArray([
 		"140s",
 		"xvfb-run",
@@ -121,6 +121,8 @@ func _prepare_ci_verification_payload() -> String:
 		OS.get_executable_path(),
 		"--path",
 		ProjectSettings.globalize_path("res://"),
+		"--resolution",
+		"640x360",
 		"--rendering-method",
 		"gl_compatibility",
 		"--",
@@ -161,7 +163,7 @@ func _prepare_ci_verification_payload() -> String:
 	var delta: Dictionary = telemetry.get("delta_full_minus_control", {})
 	_append_ci_summary(
 		"Gears rendered verification prepared",
-		"Source `%s` · llvmpipe frame smoke full/control `%s / %s ms` · draw/primitives/objects delta `%s / %s / %s`. Native avg/P95 remains deferred. Contact sheet prepared for Web `index.png`." % [
+		"Source `%s` · 640x360 llvmpipe frame smoke full/control `%s / %s ms` · draw/primitives/objects delta `%s / %s / %s`. Native avg/P95 remains deferred. Contact sheet prepared for Web `index.png`." % [
 			source_sha,
 			str(full.get("frame_time_ms", "?")), str(control.get("frame_time_ms", "?")),
 			str(delta.get("draw_calls", "?")), str(delta.get("primitives", "?")), str(delta.get("objects", "?")),
