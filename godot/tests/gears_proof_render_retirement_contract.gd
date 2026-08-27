@@ -70,6 +70,14 @@ static func verify(scene_root: Node) -> String:
 	if production_practicals.get_child_count() != 3:
 		return "Production district must own exactly three practical lights"
 
+	var district_contract: Dictionary = district.call("get_production_contract")
+	if int(district_contract.get("local_lights", -1)) != 0:
+		return "Historical 01B local-light budget must remain zero"
+	if int(district_contract.get("current_local_lights", -1)) != 3:
+		return "Current district must report exactly three production practical lights"
+	if int(district_contract.get("extension_local_lights", -1)) != 3:
+		return "Later additive lighting must report exactly three extension lights"
+
 	for light_name in DAY_ENERGIES:
 		var light := production_practicals.get_node_or_null(str(light_name)) as OmniLight3D
 		if light == null:
