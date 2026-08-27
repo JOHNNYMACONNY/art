@@ -425,6 +425,29 @@ position = Vector3(0, 0.15, 0.55)
 [node name="MissionDestinationSocket" type="Marker3D" parent="."]
 position = Vector3(-10, 0.2, -41.5)
 
+[node name="PracticalLights" type="Node3D" parent="."]
+
+[node name="StoreWorkLamp" type="OmniLight3D" parent="PracticalLights"]
+position = Vector3(-11.3, 2.8, -40.8)
+light_color = Color(1, 0.839, 0.541, 1)
+light_energy = 1.0
+omni_range = 5.0
+shadow_enabled = false
+
+[node name="GantryServiceLamp" type="OmniLight3D" parent="PracticalLights"]
+position = Vector3(-3.0, 3.6, -22.5)
+light_color = Color(1, 0.882, 0.659, 1)
+light_energy = 0.8
+omni_range = 4.5
+shadow_enabled = false
+
+[node name="RelayMarkerLamp" type="OmniLight3D" parent="PracticalLights"]
+position = Vector3(6.2, 1.8, -27.8)
+light_color = Color(0.486, 0.812, 0.816, 1)
+light_energy = 0.35
+omni_range = 3.0
+shadow_enabled = false
+
 [node name="ExpansionEdgeBarrier" type="StaticBody3D" parent="."]
 position = Vector3(-4.5, 0.75, -48.25)
 
