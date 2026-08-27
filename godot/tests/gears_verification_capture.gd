@@ -184,17 +184,19 @@ func _capture_and_measure() -> String:
 
 	_proof.call("set_lighting_mode", "day")
 	_place_player(Vector3(-1.5, 0.20, -18.0))
+	var proof_visible_before := _proof.visible
+	var district_visible_before := _district.visible
 	var full_current := await _measure_render_snapshot("full_current")
 	_proof.visible = false
 	_district.visible = false
 	_camera.call("reset_camera_instant", _player)
 	var retained_control := await _measure_render_snapshot("retained_yard_control")
-	_proof.visible = true
-	_district.visible = true
+	_proof.visible = proof_visible_before
+	_district.visible = district_visible_before
 
 	var viewport := get_viewport()
 	var report := {
-		"schema_version": 9,
+		"schema_version": 10,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"generated_utc": Time.get_datetime_string_from_system(true),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
@@ -209,6 +211,8 @@ func _capture_and_measure() -> String:
 			"mode": "single_frame_same_host_structural_snapshot",
 			"frame_time_scope": "advisory_smoke_only",
 			"native_avg_p95_status": "deferred_requires_native_runtime",
+			"production_proof_visible": proof_visible_before,
+			"production_district_visible": district_visible_before,
 			"full_current": full_current,
 			"retained_yard_control": retained_control,
 			"delta_full_minus_control": _telemetry_delta(full_current, retained_control),
