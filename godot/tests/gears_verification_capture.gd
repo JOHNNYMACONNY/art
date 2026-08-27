@@ -9,11 +9,6 @@ const OUTPUT_DIR := "res://verification/current"
 const REPORT_PATH := OUTPUT_DIR + "/verification_report.json"
 const CONTACT_SHEET_PATH := "res://verification_contact_sheet.png"
 const CAPTURE_FLAG := "--run-gears-verification-capture"
-# Linux/Xvfb llvmpipe is deliberately bounded here. Frame timing from this
-# software renderer is advisory; the primary incremental-cost signals are the
-# same-host draw/primitives/object deltas plus obvious timing regressions.
-const SAMPLE_FRAMES := 12
-const WARMUP_FRAMES := 3
 const CAPTURE_NAMES := [
 	"01_quiet_traversal.png",
 	"02_courier_bike.png",
@@ -87,7 +82,10 @@ func _run() -> void:
 		push_error("[GEARS_VERIFICATION_CAPTURE] %s" % failure)
 		get_tree().quit(1)
 		return
-	_append_ci_summary("Gears verification capture child", "Rendered nine retained-camera states and %d-frame bounded current/control timing sample for `%s`." % [SAMPLE_FRAMES, OS.get_environment("SOURCE_SHA")])
+	_append_ci_summary(
+		"Gears verification capture child",
+		"Rendered nine retained-camera states plus full-current and retained-control structural render snapshots for `%s`." % OS.get_environment("SOURCE_SHA")
+	)
 	print("[GEARS_VERIFICATION_CAPTURE] PASS: %s" % REPORT_PATH)
 	get_tree().quit(0)
 
@@ -110,7 +108,6 @@ func _capture_and_measure() -> String:
 
 	await get_tree().process_frame
 	await get_tree().physics_frame
-	await get_tree().create_timer(0.20).timeout
 
 	_player = _scene.get_node_or_null("Runner") as CharacterBody3D
 	_camera = _scene.get_node_or_null("ChinatownCamera3D") as Camera3D
@@ -179,26 +176,24 @@ func _capture_and_measure() -> String:
 	_audio.current_mix_state = AudioManager.MixState.CALM
 	_place_player(Vector3(utility_plate.global_position.x, 0.20, utility_plate.global_position.z + 1.4))
 	_fb13_event.call("_process", 0.10)
-	await get_tree().create_timer(0.08).timeout
-	error = await _save_capture(CAPTURE_NAMES[8], 0.02)
+	error = await _save_capture(CAPTURE_NAMES[8])
 	if error != "": return error
-	await get_tree().create_timer(0.70).timeout
 
+	# CI/Xvfb llvmpipe is appropriate for structural same-host comparison, not
+	# for reproducing the native Apple M4 120-frame average/P95 benchmark.
 	_proof.call("set_lighting_mode", "day")
 	_place_player(Vector3(-1.5, 0.20, -18.0))
-	var full_current := await _measure_render_sample("full_current")
+	var full_current := await _measure_render_snapshot("full_current")
 	_proof.visible = false
 	_district.visible = false
-	await get_tree().process_frame
-	await get_tree().create_timer(0.10).timeout
 	_camera.call("reset_camera_instant", _player)
-	var retained_control := await _measure_render_sample("retained_yard_control")
+	var retained_control := await _measure_render_snapshot("retained_yard_control")
 	_proof.visible = true
 	_district.visible = true
 
 	var viewport := get_viewport()
 	var report := {
-		"schema_version": 7,
+		"schema_version": 8,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"generated_utc": Time.get_datetime_string_from_system(true),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
@@ -210,19 +205,20 @@ func _capture_and_measure() -> String:
 		"camera_fov_deg": _camera.fov,
 		"captures": _captures,
 		"telemetry": {
-			"sample_frames": SAMPLE_FRAMES,
-			"warmup_frames": WARMUP_FRAMES,
+			"mode": "single_frame_same_host_structural_snapshot",
+			"frame_time_scope": "advisory_smoke_only",
+			"native_avg_p95_status": "deferred_requires_native_runtime",
 			"full_current": full_current,
 			"retained_yard_control": retained_control,
 			"delta_full_minus_control": _telemetry_delta(full_current, retained_control),
 			"historical_v7_desktop_baseline": V7_BASELINE,
 			"historical_baseline_comparability": "context_only_hardware_renderer_mismatch",
-			"ci_sample_note": "bounded_12_frame_same_host_llvmpipe_smoke_timing; frame_time_advisory; draw_primitives_objects_primary",
 		},
 		"verification_scope": {
 			"retained_camera_rendered": true,
 			"normal_main_scene_runtime": true,
-			"same_host_incremental_cost_measured": true,
+			"same_host_structural_cost_measured": true,
+			"native_avg_p95_measured": false,
 			"human_audio_listening": false,
 			"black_box_browser_input": false,
 		},
@@ -248,10 +244,10 @@ func _place_player(position: Vector3) -> void:
 	_player.global_position = position
 	_camera.call("reset_camera_instant", _player)
 
-func _save_capture(file_name: String, settle_seconds: float = 0.12) -> String:
-	await get_tree().process_frame
-	if settle_seconds > 0.0:
-		await get_tree().create_timer(settle_seconds).timeout
+func _save_capture(file_name: String) -> String:
+	# One rendered frame is sufficient after explicit static placement and an
+	# instantaneous retained-camera reset. Avoid timer-based settling under
+	# llvmpipe because it multiplies software-render cost without adding evidence.
 	await get_tree().process_frame
 	var image := get_viewport().get_texture().get_image()
 	if image == null or image.is_empty():
@@ -334,10 +330,8 @@ func _publish_web_verification_payload(report: Dictionary) -> String:
 	var report_json := JSON.stringify(report)
 	var head_include := "".join([
 		"<!-- GEARS_VERIFICATION_PAYLOAD_V2 source_sha=", source_sha,
-		" full_avg_ms=", str(full.avg_frame_ms),
-		" full_p95_ms=", str(full.p95_frame_ms),
-		" control_avg_ms=", str(control.avg_frame_ms),
-		" control_p95_ms=", str(control.p95_frame_ms),
+		" full_frame_smoke_ms=", str(full.frame_time_ms),
+		" control_frame_smoke_ms=", str(control.frame_time_ms),
 		" delta_draw_calls=", str(delta.draw_calls),
 		" delta_primitives=", str(delta.primitives),
 		" delta_objects=", str(delta.objects), " -->\n",
@@ -364,28 +358,13 @@ func _publish_web_verification_payload(report: Dictionary) -> String:
 		return "Web verification payload did not persist to export preset"
 	return ""
 
-func _measure_render_sample(label: String) -> Dictionary:
-	if DisplayServer.get_name().to_lower() != "headless":
-		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
-	Engine.max_fps = 0
-	for _i in range(WARMUP_FRAMES):
-		await get_tree().process_frame
-	var frame_times: Array[float] = []
-	for _i in range(SAMPLE_FRAMES):
-		var start_usec := Time.get_ticks_usec()
-		await get_tree().process_frame
-		var end_usec := Time.get_ticks_usec()
-		frame_times.append(float(end_usec - start_usec) / 1000.0)
-	frame_times.sort()
-	var average := 0.0
-	for value in frame_times:
-		average += value
-	average /= float(frame_times.size())
-	var p95_index := mini(frame_times.size() - 1, int(ceil(float(frame_times.size()) * 0.95)) - 1)
+func _measure_render_snapshot(label: String) -> Dictionary:
+	var start_usec := Time.get_ticks_usec()
+	await get_tree().process_frame
+	var end_usec := Time.get_ticks_usec()
 	return {
 		"label": label,
-		"avg_frame_ms": snappedf(average, 0.001),
-		"p95_frame_ms": snappedf(frame_times[p95_index], 0.001),
+		"frame_time_ms": snappedf(float(end_usec - start_usec) / 1000.0, 0.001),
 		"draw_calls": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
 		"primitives": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
 		"objects": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
@@ -393,8 +372,7 @@ func _measure_render_sample(label: String) -> Dictionary:
 
 func _telemetry_delta(full: Dictionary, control: Dictionary) -> Dictionary:
 	return {
-		"avg_frame_ms": snappedf(float(full.avg_frame_ms) - float(control.avg_frame_ms), 0.001),
-		"p95_frame_ms": snappedf(float(full.p95_frame_ms) - float(control.p95_frame_ms), 0.001),
+		"frame_time_ms": snappedf(float(full.frame_time_ms) - float(control.frame_time_ms), 0.001),
 		"draw_calls": int(full.draw_calls) - int(control.draw_calls),
 		"primitives": int(full.primitives) - int(control.primitives),
 		"objects": int(full.objects) - int(control.objects),
