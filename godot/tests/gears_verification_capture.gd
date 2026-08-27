@@ -98,7 +98,7 @@ func _capture_and_measure() -> String:
 	if dir_error != OK and dir_error != ERR_ALREADY_EXISTS:
 		return "Could not create verification output directory: %s" % dir_error
 	for file_name in CAPTURE_NAMES:
-		var stale := OUTPUT_DIR + "/" + file_name
+		var stale: String = OUTPUT_DIR + "/" + str(file_name)
 		if FileAccess.file_exists(stale):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(stale))
 	for stale_path in [REPORT_PATH, CONTACT_SHEET_PATH]:
