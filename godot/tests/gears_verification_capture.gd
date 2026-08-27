@@ -9,7 +9,11 @@ const OUTPUT_DIR := "res://verification/current"
 const REPORT_PATH := OUTPUT_DIR + "/verification_report.json"
 const CONTACT_SHEET_PATH := "res://verification_contact_sheet.png"
 const CAPTURE_FLAG := "--run-gears-verification-capture"
-const SAMPLE_FRAMES := 120
+# Linux/Xvfb llvmpipe is deliberately bounded here. The historical native
+# desktop capture used a longer sample; this checkpoint's primary signal is
+# the same-host full-current vs retained-control delta, not cross-hardware FPS.
+const SAMPLE_FRAMES := 30
+const WARMUP_FRAMES := 10
 const CAPTURE_NAMES := [
 	"01_quiet_traversal.png",
 	"02_courier_bike.png",
@@ -194,7 +198,7 @@ func _capture_and_measure() -> String:
 
 	var viewport := get_viewport()
 	var report := {
-		"schema_version": 5,
+		"schema_version": 6,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"generated_utc": Time.get_datetime_string_from_system(true),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
@@ -207,11 +211,13 @@ func _capture_and_measure() -> String:
 		"captures": _captures,
 		"telemetry": {
 			"sample_frames": SAMPLE_FRAMES,
+			"warmup_frames": WARMUP_FRAMES,
 			"full_current": full_current,
 			"retained_yard_control": retained_control,
 			"delta_full_minus_control": _telemetry_delta(full_current, retained_control),
 			"historical_v7_desktop_baseline": V7_BASELINE,
 			"historical_baseline_comparability": "context_only_hardware_renderer_mismatch",
+			"ci_sample_note": "bounded_30_frame_same_host_incremental_sample_on_xvfb_llvmpipe",
 		},
 		"verification_scope": {
 			"retained_camera_rendered": true,
@@ -362,7 +368,7 @@ func _measure_render_sample(label: String) -> Dictionary:
 	if DisplayServer.get_name().to_lower() != "headless":
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
-	for _i in range(30):
+	for _i in range(WARMUP_FRAMES):
 		await get_tree().process_frame
 	var frame_times: Array[float] = []
 	for _i in range(SAMPLE_FRAMES):
