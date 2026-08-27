@@ -161,11 +161,10 @@ func _prepare_ci_verification_payload() -> String:
 	var delta: Dictionary = telemetry.get("delta_full_minus_control", {})
 	_append_ci_summary(
 		"Gears rendered verification prepared",
-		"Source `%s` · bounded llvmpipe full avg/P95 `%s / %s ms` · control avg/P95 `%s / %s ms` · draw/object delta `%s / %s`. Contact sheet prepared for Web `index.png`." % [
+		"Source `%s` · llvmpipe frame smoke full/control `%s / %s ms` · draw/primitives/objects delta `%s / %s / %s`. Native avg/P95 remains deferred. Contact sheet prepared for Web `index.png`." % [
 			source_sha,
-			str(full.get("avg_frame_ms", "?")), str(full.get("p95_frame_ms", "?")),
-			str(control.get("avg_frame_ms", "?")), str(control.get("p95_frame_ms", "?")),
-			str(delta.get("draw_calls", "?")), str(delta.get("objects", "?")),
+			str(full.get("frame_time_ms", "?")), str(control.get("frame_time_ms", "?")),
+			str(delta.get("draw_calls", "?")), str(delta.get("primitives", "?")), str(delta.get("objects", "?")),
 		]
 	)
 	return ""
