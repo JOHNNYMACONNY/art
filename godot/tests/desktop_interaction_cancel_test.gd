@@ -128,7 +128,13 @@ func _prepare_ci_verification_payload() -> String:
 		"--",
 		"--run-gears-verification-capture",
 	])
+	var previous_capture_env := OS.get_environment("GEARS_VERIFICATION_CAPTURE")
+	OS.set_environment("GEARS_VERIFICATION_CAPTURE", "1")
 	var exit_code := OS.execute("timeout", timeout_args, output, true)
+	if previous_capture_env.is_empty():
+		OS.unset_environment("GEARS_VERIFICATION_CAPTURE")
+	else:
+		OS.set_environment("GEARS_VERIFICATION_CAPTURE", previous_capture_env)
 	for line in output:
 		print(str(line))
 	if exit_code == 124:
