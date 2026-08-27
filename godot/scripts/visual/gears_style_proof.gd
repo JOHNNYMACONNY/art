@@ -210,9 +210,15 @@ func _resolve_practical_light(node_name: String) -> OmniLight3D:
 	return get_node_or_null("PracticalLights/%s" % node_name) as OmniLight3D
 
 func _set_practical_energy(node_name: String, energy: float) -> void:
-	var light := _resolve_practical_light(node_name)
-	if light != null:
-		light.light_energy = energy
+	var active_light := _resolve_practical_light(node_name)
+	if active_light != null:
+		active_light.light_energy = energy
+	# Keep the hidden Issue #60 reference light in sync so standalone/reference
+	# contracts remain deterministic. Its hidden parent means this does not add a
+	# second rendered light in production.
+	var reference_light := get_node_or_null("PracticalLights/%s" % node_name) as OmniLight3D
+	if reference_light != null and reference_light != active_light:
+		reference_light.light_energy = energy
 
 func set_lighting_mode(mode: String) -> void:
 	var scene_root := get_parent()
