@@ -468,6 +468,24 @@ const SLOTS: Dictionary = {
 		"replacement_required": true,
 		"description": "Corrupted courier transmission burst"
 	},
+	"world.fb13_thrum": {
+		"slot_id": "world.fb13_thrum",
+		"domain": Domain.WORLD,
+		"diegesis": Diegesis.DIEGETIC,
+		"spatial_type": SpatialType.DIEGETIC_3D,
+		"mix_group": MixGroup.AMBIENT_TEXTURE,
+		"playback_type": PlaybackType.TRANSIENT,
+		"is_looping": false,
+		"loop_start_sec": 0.0,
+		"loop_end_sec": 0.0,
+		"cooldown_msec": 200,
+		"max_concurrency": 1,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/world/sfx_world_fb13_resonance.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_7:SOUND_0",
+		"description": "FB-13 companion infrastructure thrum / mechanism resonance pulse"
+	},
 	"radio.yardline.song_01.intro": {
 		"slot_id": "radio.yardline.song_01.intro",
 		"domain": Domain.RADIO,
@@ -767,3 +785,13 @@ static func get_replacement_backlog() -> Array[Dictionary]:
 		if slot_def.get("replacement_required", false):
 			result.append(slot_def)
 	return result
+
+static func get_production_asset_path(slot_id: String) -> String:
+	if SLOTS.has(slot_id):
+		return SLOTS[slot_id].get("production_asset_path", "")
+	return ""
+
+static func get_source_provenance(slot_id: String) -> String:
+	if SLOTS.has(slot_id):
+		return SLOTS[slot_id].get("source_provenance", "")
+	return ""

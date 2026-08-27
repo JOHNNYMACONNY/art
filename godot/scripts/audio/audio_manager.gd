@@ -82,6 +82,7 @@ var _hum_stream: AudioStreamWAV = null
 var _static_stream: AudioStreamWAV = null
 var _siren_stream: AudioStreamWAV = null
 var _tension_stream: AudioStreamWAV = null
+var _fb13_production_stream: AudioStream = null
 
 # Transient voice budget & registry
 const MAX_CONCURRENT_TRANSIENTS: int = 8
@@ -130,7 +131,8 @@ const EVENT_TO_SLOT_MAP: Dictionary = {
 	SoundEvent.FOOTSTEP: "player.footstep",
 	SoundEvent.BRAKE_SCREECH: "vehicle.brake_screech",
 	SoundEvent.PANEL_PEEL: "interaction.panel_peel",
-	SoundEvent.COLLISION_GLANCE: "vehicle.collision_glance"
+	SoundEvent.COLLISION_GLANCE: "vehicle.collision_glance",
+	SoundEvent.FB13_THRUM: "world.fb13_thrum"
 }
 
 static func event_to_slot_id(event: SoundEvent) -> String:
@@ -138,6 +140,9 @@ static func event_to_slot_id(event: SoundEvent) -> String:
 
 func _ready() -> void:
 	add_to_group("audio_manager")
+	var fb13_asset_path: String = AudioRegistryScript.get_production_asset_path("world.fb13_thrum")
+	if not fb13_asset_path.is_empty() and ResourceLoader.exists(fb13_asset_path):
+		_fb13_production_stream = load(fb13_asset_path)
 	_engine_stream = _create_noise_wav(0.5, 0.4)
 	_engine_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_hum_stream = _create_tone_wav(120.0, 0.5, 0.3)
@@ -819,6 +824,16 @@ func _play_synth_rejection_buzz(pos: Vector3) -> void:
 	_register_and_play_transient(player_3d, pos, 0.16)
 
 func _play_fb13_thrum(pos: Vector3) -> void:
+	if _fb13_production_stream != null:
+		var player_3d := AudioStreamPlayer3D.new()
+		player_3d.unit_size = 10.0
+		player_3d.max_distance = 30.0
+		player_3d.bus = &"Master"
+		player_3d.stream = _fb13_production_stream
+		_register_and_play_transient(player_3d, pos, 0.66)
+		return
+
+	# Fallback: procedural synthesis retained and reachable
 	# A compact low mechanical resonance with one quieter upper contact tick.
 	# It stays diegetic/spatial and inside the existing transient voice budget.
 	_play_synth_sweep(pos, 92.0, 148.0, 0.55, 0.34)
