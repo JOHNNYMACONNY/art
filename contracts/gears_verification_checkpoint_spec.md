@@ -22,12 +22,12 @@ Use a step the existing `Godot Web Playtest` workflow already executes immediate
 
 Only when `GITHUB_ACTIONS=true`, that retained regression must:
 
-1. launch the exact checked-out isolated Web project under `xvfb-run` using the same Godot executable;
-2. launch the real `ScrapTestBlock` main scene with explicit `--run-gears-verification-capture` user flag;
-3. require the normal-scene capture driver to succeed and produce a SHA-stamped report;
+1. launch the exact checked-out isolated Web project under `xvfb-run` using the same Godot executable and `res://tests/gears_verification_capture_runner.gd`;
+2. have that dedicated runner set the capture activation environment in the **same Godot process before scene instantiation**, then instantiate the real `ScrapTestBlock` scene;
+3. require the embedded normal-scene capture driver to succeed and produce a SHA-stamped report;
 4. require the isolated Web export preset to contain `GEARS_VERIFICATION_PAYLOAD_V2` and exact `SOURCE_SHA` before normal export proceeds.
 
-The capture driver is a dormant node in the real playable scene. Outside the explicit verification flag it immediately frees itself and owns no runtime gameplay behavior.
+The capture driver is a dormant node in the real playable scene. Outside explicit verification activation it immediately frees itself and owns no runtime gameplay behavior. The dedicated runner removes reliance on project-main launch semantics or child-process flag propagation: it sets activation before creating the real scene and has a bounded watchdog if the driver does not terminate.
 
 The capture child must then use normal Godot Web-export surfaces for publication:
 
@@ -87,7 +87,8 @@ For easy external inspection, `index.html` must contain:
 
 The existing Web export must fail before export if:
 
-- Xvfb/Godot capture fails;
+- Xvfb/Godot runner or capture fails;
+- runner watchdog expires;
 - report generation fails;
 - report SHA differs from `SOURCE_SHA`;
 - any required capture is missing/empty;
