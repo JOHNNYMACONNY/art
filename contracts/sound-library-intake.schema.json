@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SoundLibraryInventory",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "library_name",
+    "scanned_at_utc",
+    "file_count",
+    "total_bytes",
+    "files"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [1]
+    },
+    "library_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scanned_at_utc": {
+      "type": "string"
+    },
+    "file_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "relative_path",
+          "filename",
+          "extension",
+          "file_size_bytes",
+          "sha256",
+          "format",
+          "sample_rate",
+          "channels",
+          "bit_depth",
+          "duration_sec"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "relative_path": {
+            "type": "string",
+            "pattern": "^(?!/)(?!\\\\)(?!.*\\.\\.)[a-zA-Z0-9_./ -]+$"
+          },
+          "filename": {
+            "type": "string",
+            "minLength": 1
+          },
+          "extension": {
+            "type": "string",
+            "minLength": 1
+          },
+          "file_size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "WAV_PCM",
+              "WAV_FLOAT",
+              "WAV_OTHER",
+              "OGG_VORBIS",
+              "MP3",
+              "FLAC",
+              "UNKNOWN"
+            ]
+          },
+          "sample_rate": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "channels": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "maximum": 8
+          },
+          "bit_depth": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "duration_sec": {
+            "type": ["number", "null"],
+            "minimum": 0.0
+          },
+          "suggested_domain": {
+            "type": ["string", "null"],
+            "enum": [
+              "PLAYER",
+              "VEHICLE",
+              "INTERACTION",
+              "PURSUIT",
+              "ECHO",
+              "WORLD",
+              "UI",
+              "RADIO",
+              "UNCATEGORIZED",
+              null
+            ]
+          },
+          "provenance_notes": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    }
+  }
+}

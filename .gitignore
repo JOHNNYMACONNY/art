@@ -7,5 +7,14 @@
 node_modules/
 godot/.godot/
 
-# Audio local reference overrides (untracked dev reference only)
+# Python bytecode / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Audio local reference overrides & sound library intake (untracked dev reference only)
 /godot/local_reference_audio/
+*.inventory.json
+/local_sound_library/
+/audio_staging/
+

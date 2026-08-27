@@ -99,7 +99,7 @@
     }
   },
   "replacement_report": {
-    "total_slots": 48,
+    "total_slots": 49,
     "slots_by_status": {
       "PROCEDURAL_FALLBACK": [
         "player.footstep",
@@ -154,7 +154,9 @@
       "REFERENCE_ONLY": [],
       "ORIGINAL_WIP": [],
       "ORIGINAL_FINAL": [],
-      "LICENSED_FINAL": []
+      "LICENSED_FINAL": [
+        "world.fb13_thrum"
+      ]
     },
     "missing_or_blocked": [],
     "replacement_priority": [
