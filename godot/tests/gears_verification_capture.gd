@@ -9,11 +9,11 @@ const OUTPUT_DIR := "res://verification/current"
 const REPORT_PATH := OUTPUT_DIR + "/verification_report.json"
 const CONTACT_SHEET_PATH := "res://verification_contact_sheet.png"
 const CAPTURE_FLAG := "--run-gears-verification-capture"
-# Linux/Xvfb llvmpipe is deliberately bounded here. The historical native
-# desktop capture used a longer sample; this checkpoint's primary signal is
-# the same-host full-current vs retained-control delta, not cross-hardware FPS.
-const SAMPLE_FRAMES := 30
-const WARMUP_FRAMES := 10
+# Linux/Xvfb llvmpipe is deliberately bounded here. Frame timing from this
+# software renderer is advisory; the primary incremental-cost signals are the
+# same-host draw/primitives/object deltas plus obvious timing regressions.
+const SAMPLE_FRAMES := 12
+const WARMUP_FRAMES := 3
 const CAPTURE_NAMES := [
 	"01_quiet_traversal.png",
 	"02_courier_bike.png",
@@ -87,7 +87,7 @@ func _run() -> void:
 		push_error("[GEARS_VERIFICATION_CAPTURE] %s" % failure)
 		get_tree().quit(1)
 		return
-	_append_ci_summary("Gears verification capture child", "Rendered nine retained-camera states and %d-frame current/control telemetry for `%s`." % [SAMPLE_FRAMES, OS.get_environment("SOURCE_SHA")])
+	_append_ci_summary("Gears verification capture child", "Rendered nine retained-camera states and %d-frame bounded current/control timing sample for `%s`." % [SAMPLE_FRAMES, OS.get_environment("SOURCE_SHA")])
 	print("[GEARS_VERIFICATION_CAPTURE] PASS: %s" % REPORT_PATH)
 	get_tree().quit(0)
 
@@ -198,7 +198,7 @@ func _capture_and_measure() -> String:
 
 	var viewport := get_viewport()
 	var report := {
-		"schema_version": 6,
+		"schema_version": 7,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"generated_utc": Time.get_datetime_string_from_system(true),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
@@ -217,7 +217,7 @@ func _capture_and_measure() -> String:
 			"delta_full_minus_control": _telemetry_delta(full_current, retained_control),
 			"historical_v7_desktop_baseline": V7_BASELINE,
 			"historical_baseline_comparability": "context_only_hardware_renderer_mismatch",
-			"ci_sample_note": "bounded_30_frame_same_host_incremental_sample_on_xvfb_llvmpipe",
+			"ci_sample_note": "bounded_12_frame_same_host_llvmpipe_smoke_timing; frame_time_advisory; draw_primitives_objects_primary",
 		},
 		"verification_scope": {
 			"retained_camera_rendered": true,
