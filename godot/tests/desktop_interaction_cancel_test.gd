@@ -109,8 +109,11 @@ func _prepare_ci_verification_payload() -> String:
 		return "CI verification payload requires SOURCE_SHA"
 
 	var output: Array = []
+	# The workflow wraps this entire parent regression in timeout 180s, so keep
+	# the graphical child strictly inside that envelope and leave room for the
+	# retained desktop interaction assertions plus the subsequent Web export.
 	var timeout_args := PackedStringArray([
-		"240s",
+		"140s",
 		"xvfb-run",
 		"-a",
 		"-s",
@@ -127,7 +130,7 @@ func _prepare_ci_verification_payload() -> String:
 	for line in output:
 		print(str(line))
 	if exit_code == 124:
-		return "Rendered verification child timed out after 240s"
+		return "Rendered verification child timed out after 140s"
 	if exit_code != 0:
 		return "Rendered verification child failed with exit code %d" % exit_code
 
@@ -158,7 +161,7 @@ func _prepare_ci_verification_payload() -> String:
 	var delta: Dictionary = telemetry.get("delta_full_minus_control", {})
 	_append_ci_summary(
 		"Gears rendered verification prepared",
-		"Source `%s` · full avg/P95 `%s / %s ms` · control avg/P95 `%s / %s ms` · draw/object delta `%s / %s`. Contact sheet prepared for Web `index.png`." % [
+		"Source `%s` · bounded llvmpipe full avg/P95 `%s / %s ms` · control avg/P95 `%s / %s ms` · draw/object delta `%s / %s`. Contact sheet prepared for Web `index.png`." % [
 			source_sha,
 			str(full.get("avg_frame_ms", "?")), str(full.get("p95_frame_ms", "?")),
 			str(control.get("avg_frame_ms", "?")), str(control.get("p95_frame_ms", "?")),
