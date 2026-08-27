@@ -199,8 +199,18 @@ func _apply_actor_treatments() -> void:
 		if actor != null:
 			actor.set_meta("gears_style_proof_treatment", true)
 
+func _resolve_practical_light(node_name: String) -> OmniLight3D:
+	var scene_root := get_parent()
+	if scene_root != null:
+		var production_light := scene_root.get_node_or_null(
+			"GearsDistrictSlice01B/PracticalLights/%s" % node_name
+		) as OmniLight3D
+		if production_light != null:
+			return production_light
+	return get_node_or_null("PracticalLights/%s" % node_name) as OmniLight3D
+
 func _set_practical_energy(node_name: String, energy: float) -> void:
-	var light := get_node_or_null("PracticalLights/%s" % node_name) as OmniLight3D
+	var light := _resolve_practical_light(node_name)
 	if light != null:
 		light.light_energy = energy
 
