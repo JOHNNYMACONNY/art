@@ -137,6 +137,7 @@ func get_production_contract() -> Dictionary:
 
 	var current_meshes := _count_meshes(self)
 	var current_colliders := _count_colliders(self)
+	var current_lights := _count_local_lights(self)
 	var extension_meshes := _count_extension_meshes()
 	var extension_colliders := _count_extension_colliders()
 
@@ -156,13 +157,15 @@ func get_production_contract() -> Dictionary:
 		"primary_route_width_m": road_shape.size.x if road_shape != null else 0.0,
 		"service_alley_width_m": alley_shape.size.x if alley_shape != null else 0.0,
 		"northbound_depth_m": northbound_depth,
-		# Preserve the original 01B budget as a historical contract while later
-		# authored locations report their own incremental budgets and cumulative totals.
+		# Preserve the original 01B budgets as historical contracts while later
+		# authored locations/lighting report their own additive and cumulative totals.
 		"mesh_instances": current_meshes - extension_meshes,
 		"collision_shapes": current_colliders - extension_colliders,
+		"local_lights": 0,
 		"current_mesh_instances": current_meshes,
 		"current_collision_shapes": current_colliders,
+		"current_local_lights": current_lights,
 		"extension_mesh_instances": extension_meshes,
 		"extension_collision_shapes": extension_colliders,
-		"local_lights": _count_local_lights(self),
+		"extension_local_lights": current_lights,
 	}
