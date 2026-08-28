@@ -107,10 +107,8 @@
         "interaction.wire_clip",
         "interaction.battery_insert",
         "vehicle.engine_rev",
-        "pursuit.disturbance_alert",
         "pursuit.siren_alarm",
         "pursuit.pursuer_sweep",
-        "pursuit.evaded_stinger",
         "echo.onset",
         "echo.bed_loop",
         "echo.completion",
@@ -155,8 +153,20 @@
         "player.signal_lock_pulse",
         "pursuit.intercepted_impact",
         "vehicle.collision_glance",
-        "vehicle.collision_hard"
+        "vehicle.collision_hard",
+        "pursuit.disturbance_alert",
+        "pursuit.evaded_stinger"
       ]
+    },
+    "retained_candidate_evidence": {
+      "pursuit.pursuer_sweep": {
+        "source": "GTA_SA:GENRL:BANK_138:SOUND_43",
+        "duration_sec": 0.3847,
+        "sample_rate_hz": 20900,
+        "raw_sha256": "46a40bebd9f3b390863dc4e1c472bd4cf14800b46f510539696c2ed796312093",
+        "disposition": "RETENTION_ONLY__LOOP_FATIGUE",
+        "note": "Clean seam in 10-second loop audition, but 0.38-second cadence becomes fatiguing. No production path or runtime caller is authorized in 01H."
+      }
     },
     "missing_or_blocked": [],
     "replacement_priority": [
