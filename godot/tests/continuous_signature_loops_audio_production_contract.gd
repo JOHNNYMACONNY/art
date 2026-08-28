@@ -138,10 +138,29 @@ static func verify(manager: Node) -> String:
 	var engine_fallback := manager.call("_create_noise_wav", 0.5, 0.4) as AudioStreamWAV
 	var siren_fallback := manager.call("_create_tone_wav", 440.0, 0.6, 0.4) as AudioStreamWAV
 	var interference_fallback := manager.call("_create_fractured_carrier_wav", 1.0, 0.3) as AudioStreamWAV
-	for fallback in [engine_fallback, siren_fallback, interference_fallback]:
-		fallback.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	if absf(engine_fallback.get_length() - 0.5) > 0.01 or absf(siren_fallback.get_length() - 0.6) > 0.01 or absf(interference_fallback.get_length() - 1.0) > 0.01:
 		return "one or more continuous procedural fallbacks changed"
+
+	# Exercise the resolver's missing-media branch independently for every loop
+	# family. Each missing slot must return only its supplied fallback, mark it as
+	# forward-looping, and leave the other production-player streams untouched.
+	var missing_engine := manager.call("_load_registry_loop_or_fallback", "__01l_missing_engine__", engine_fallback) as AudioStreamWAV
+	if missing_engine != engine_fallback or missing_engine.loop_mode != AudioStreamWAV.LOOP_FORWARD:
+		return "engine missing-media resolver did not return loop-capable fallback"
+	if siren_player.stream != siren_stream or interference_player.stream != interference_stream:
+		return "engine missing-media fallback altered another production loop"
+
+	var missing_siren := manager.call("_load_registry_loop_or_fallback", "__01l_missing_siren__", siren_fallback) as AudioStreamWAV
+	if missing_siren != siren_fallback or missing_siren.loop_mode != AudioStreamWAV.LOOP_FORWARD:
+		return "siren missing-media resolver did not return loop-capable fallback"
+	if engine_player.stream != engine_stream or interference_player.stream != interference_stream:
+		return "siren missing-media fallback altered another production loop"
+
+	var missing_interference := manager.call("_load_registry_loop_or_fallback", "__01l_missing_interference__", interference_fallback) as AudioStreamWAV
+	if missing_interference != interference_fallback or missing_interference.loop_mode != AudioStreamWAV.LOOP_FORWARD:
+		return "interference missing-media resolver did not return loop-capable fallback"
+	if engine_player.stream != engine_stream or siren_player.stream != siren_stream:
+		return "interference missing-media fallback altered another production loop"
 
 	manager.call("reset_audio_instant")
 	if engine_player.playing or siren_player.playing or interference_player.playing:
