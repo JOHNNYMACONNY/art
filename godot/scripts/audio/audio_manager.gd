@@ -84,6 +84,7 @@ var _siren_stream: AudioStreamWAV = null
 var _tension_stream: AudioStreamWAV = null
 var _fb13_production_stream: AudioStream = null
 var _gate_slam_production_stream: AudioStream = null
+var _production_transient_streams: Dictionary = {}
 
 # Transient voice budget & registry
 const MAX_CONCURRENT_TRANSIENTS: int = 8
@@ -130,11 +131,33 @@ const MIGRATED_TRACER_EVENTS: Array[SoundEvent] = [
 
 const EVENT_TO_SLOT_MAP: Dictionary = {
 	SoundEvent.FOOTSTEP: "player.footstep",
-	SoundEvent.BRAKE_SCREECH: "vehicle.brake_screech",
 	SoundEvent.PANEL_PEEL: "interaction.panel_peel",
+	SoundEvent.SPARK: "interaction.wire_spark",
+	SoundEvent.COMPLETION: "interaction.core_extracted",
+	SoundEvent.BRAKE_SCREECH: "vehicle.brake_screech",
+	SoundEvent.BIKE_MOUNT: "player.bike_mount",
+	SoundEvent.BIKE_DISMOUNT: "player.bike_dismount",
 	SoundEvent.COLLISION_GLANCE: "vehicle.collision_glance",
 	SoundEvent.GATE_SLAM: "interaction.gate_triggered",
 	SoundEvent.FB13_THRUM: "world.fb13_thrum"
+}
+
+const PRODUCTION_TRANSIENT_EVENTS: Array[SoundEvent] = [
+	SoundEvent.PANEL_PEEL,
+	SoundEvent.SPARK,
+	SoundEvent.COMPLETION,
+	SoundEvent.BRAKE_SCREECH,
+	SoundEvent.BIKE_MOUNT,
+	SoundEvent.BIKE_DISMOUNT,
+]
+
+const PRODUCTION_TRANSIENT_UNIT_SIZES: Dictionary = {
+	SoundEvent.PANEL_PEEL: 10.0,
+	SoundEvent.SPARK: 8.0,
+	SoundEvent.COMPLETION: 12.0,
+	SoundEvent.BRAKE_SCREECH: 10.0,
+	SoundEvent.BIKE_MOUNT: 8.0,
+	SoundEvent.BIKE_DISMOUNT: 8.0,
 }
 
 static func event_to_slot_id(event: SoundEvent) -> String:
@@ -148,6 +171,7 @@ func _ready() -> void:
 	var gate_slam_asset_path: String = AudioRegistryScript.get_production_asset_path("interaction.gate_triggered")
 	if not gate_slam_asset_path.is_empty() and ResourceLoader.exists(gate_slam_asset_path):
 		_gate_slam_production_stream = load(gate_slam_asset_path)
+	_load_production_transient_streams()
 	_engine_stream = _create_noise_wav(0.5, 0.4)
 	_engine_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_hum_stream = _create_tone_wav(120.0, 0.5, 0.3)
@@ -221,6 +245,19 @@ func _ready() -> void:
 	add_child(_vehicle_feedback_layer)
 	_vehicle_feedback_layer.call("configure", self, _engine_player, SoundEvent.TRACTION_RECOVERY)
 
+func _load_production_transient_streams() -> void:
+	_production_transient_streams.clear()
+	for event in PRODUCTION_TRANSIENT_EVENTS:
+		var slot_id: String = event_to_slot_id(event)
+		if slot_id.is_empty():
+			continue
+		var asset_path: String = AudioRegistryScript.get_production_asset_path(slot_id)
+		if asset_path.is_empty() or not ResourceLoader.exists(asset_path):
+			continue
+		var stream: AudioStream = load(asset_path)
+		if stream != null:
+			_production_transient_streams[event] = stream
+
 ## #31: Bounded runtime output diagnostics. This is an on-demand snapshot only;
 ## get_output_latency() may be expensive and must never be polled per-frame.
 func get_runtime_audio_diagnostics() -> Dictionary:
@@ -256,6 +293,9 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			if ref_stream:
 				_play_reference_stream(ref_stream, slot_id, pos)
 				return
+
+	if PRODUCTION_TRANSIENT_EVENTS.has(event) and _play_production_transient(event, pos):
+		return
 
 	match event:
 		SoundEvent.FOOTSTEP:
@@ -815,6 +855,17 @@ func _on_transient_finished(player_id: int) -> void:
 		if p:
 			_active_transients.erase(p)
 			p.queue_free()
+
+func _play_production_transient(event: SoundEvent, pos: Vector3) -> bool:
+	var stream: AudioStream = _production_transient_streams.get(event)
+	if stream == null:
+		return false
+	var player_3d := AudioStreamPlayer3D.new()
+	player_3d.unit_size = float(PRODUCTION_TRANSIENT_UNIT_SIZES.get(event, 10.0))
+	player_3d.bus = &"Master"
+	player_3d.stream = stream
+	_register_and_play_transient(player_3d, pos, maxf(0.05, stream.get_length()))
+	return true
 
 func _play_synth_click(pos: Vector3, freq: float, duration: float, volume: float = 0.4) -> void:
 	var player_3d := AudioStreamPlayer3D.new()

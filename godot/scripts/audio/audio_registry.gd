@@ -80,8 +80,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/player/sfx_player_bike_mount.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_57",
 		"description": "Courier mounting bike chassis mechanical latch"
 	},
 	"player.bike_dismount": {
@@ -96,8 +98,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/player/sfx_player_bike_dismount.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_41",
 		"description": "Courier dismounting bike release click"
 	},
 	"player.signal_lock_pulse": {
@@ -144,8 +148,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 80,
 		"max_concurrency": 3,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/interaction/sfx_interaction_panel_peel.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_76:SOUND_1",
 		"description": "Panel peeling metal groan and shear"
 	},
 	"interaction.wire_clip": {
@@ -176,8 +182,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 3,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/interaction/sfx_interaction_wire_spark.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_26",
 		"description": "Exposed wire electrical crackle / spark"
 	},
 	"interaction.battery_insert": {
@@ -208,8 +216,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/interaction/sfx_interaction_core_extracted.wav",
+		"source_provenance": "GTA_SA:SCRIPT:BANK_260:SOUND_0",
 		"description": "Memory core release pneumatic hiss and lock release"
 	},
 	"interaction.gate_triggered": {
@@ -258,8 +268,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 150,
 		"max_concurrency": 3,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/vehicle/sfx_vehicle_brake_screech.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_28",
 		"description": "Pneumatic / disc brake skid screech"
 	},
 	"vehicle.collision_glance": {
