@@ -224,9 +224,11 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 200,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Signal gate barrier arm swing mechanical clank"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/interaction/sfx_interaction_gate_slam.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_42:SOUND_0",
+		"description": "Signal gate heavy industrial barrier slam / route-switch confirmation"
 	},
 	"vehicle.engine_rev": {
 		"slot_id": "vehicle.engine_rev",
