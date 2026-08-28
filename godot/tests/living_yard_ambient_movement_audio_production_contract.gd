@@ -93,6 +93,12 @@ static func verify(manager: Node) -> String:
 	transient_cache[AudioManagerScript.SoundEvent.FOOTSTEP] = saved_footstep
 	manager.set("_production_transient_streams", transient_cache)
 
+	# The footstep fallback proof intentionally exercises reset_audio_instant(),
+	# which synchronously stops the persistent Wind player. Re-arm it explicitly
+	# before Wind assertions so this synchronous contract does not depend on the
+	# deferred post-reset lifecycle callback getting a main-loop turn.
+	manager.call("start_ambient_wind")
+
 	# Wind registry/runtime authority.
 	var wind_slot: Dictionary = AudioRegistryScript.get_slot("world.ambient_wind")
 	if wind_slot.is_empty():
