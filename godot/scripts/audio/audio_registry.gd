@@ -252,13 +252,15 @@ const SLOTS: Dictionary = {
 		"mix_group": MixGroup.VEHICLE_FEEDBACK,
 		"playback_type": PlaybackType.CONTINUOUS_LOOP,
 		"is_looping": true,
-		"loop_start_sec": 0.1,
-		"loop_end_sec": 1.9,
+		"loop_start_sec": 0.0,
+		"loop_end_sec": 1.1962,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Courier bike high-rpm electric turbine whine / hauler rumble"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/vehicle/loop_vehicle_engine_rev.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_8:SOUND_1",
+		"description": "Reclaimed electric/mechanical drivetrain turbine propulsion loop"
 	},
 	"vehicle.brake_screech": {
 		"slot_id": "vehicle.brake_screech",
@@ -341,12 +343,14 @@ const SLOTS: Dictionary = {
 		"playback_type": PlaybackType.CONTINUOUS_LOOP,
 		"is_looping": true,
 		"loop_start_sec": 0.0,
-		"loop_end_sec": 1.2,
+		"loop_end_sec": 0.7772,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Pursuer drone siren oscillation loop"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/pursuit/loop_pursuit_siren_alarm.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_39:SOUND_8",
+		"description": "Autonomous pursuer electronic threat siren loop"
 	},
 	"pursuit.pursuer_sweep": {
 		"slot_id": "pursuit.pursuer_sweep",
@@ -463,12 +467,14 @@ const SLOTS: Dictionary = {
 		"playback_type": PlaybackType.CONTINUOUS_LOOP,
 		"is_looping": true,
 		"loop_start_sec": 0.0,
-		"loop_end_sec": 1.0,
+		"loop_end_sec": 0.9579,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Precursor memory echo hybrid radio interference texture"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/echo/loop_echo_radio_interference.wav",
+		"source_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_12",
+		"description": "Hybrid precursor Echo RF carrier contamination loop"
 	},
 	"world.ambient_wind": {
 		"slot_id": "world.ambient_wind",
