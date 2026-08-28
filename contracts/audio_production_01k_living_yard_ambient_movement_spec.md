@@ -130,9 +130,11 @@ Runtime ownership:
 
 Reset ownership:
 
-- `AudioManager.reset_audio_instant()` must stop Wind and remain a true full-silence reset;
-- `ScrapTestBlock.reset_slice()` is the existing replay lifecycle owner and must explicitly call `start_ambient_wind()` after the direct reset so a new run restores the environmental bed;
-- no automatic timer-based resurrection is allowed.
+- `AudioManager.reset_audio_instant()` must stop Wind synchronously so the authoritative reset is immediately silent;
+- because the guarded repository API cannot safely patch the 8k-line prototype controller without whole-file replacement, AudioManager owns one deferred, idempotent post-reset `start_ambient_wind()` re-arm on the next process turn;
+- the re-arm uses no timer and creates no new player node;
+- repeated resets/restarts must preserve exactly one `AmbientWindPlayer`;
+- there is no gameplay-state mutation or caller-specific Wind event.
 
 This is presentation-layer activation only. Wind has no gameplay-state authority.
 
@@ -225,8 +227,9 @@ Exact-head 01K contract must prove:
 - CALM/non-critical level is `-18 dB`;
 - DISTURBANCE/PURSUIT_PRESSURE/MEMORY_ECHO level is `-30 dB` while playback continues;
 - return to CALM restores `-18 dB`;
-- direct `reset_audio_instant()` stops Wind;
-- explicit `start_ambient_wind()` restarts it cleanly after reset with no duplicate player.
+- direct `reset_audio_instant()` stops Wind synchronously;
+- explicit/idempotent `start_ambient_wind()` restarts cleanly with no duplicate player;
+- deferred post-reset re-arm uses the same player authority.
 
 ### Chatter retention
 
@@ -246,7 +249,7 @@ One exact-head session must cover:
 - Wind + Footstep + worker/crawler activity;
 - Wind under bike engine and Yardline radio;
 - disturbance/pursuit/Memory Echo priority ducking;
-- replay/reset followed by Wind restart with no duplicate loop;
+- replay/reset with immediate stop then next-frame Wind re-arm and no duplicate loop;
 - absence of any new world-radio chatter playback.
 
 Judge fatigue, seam quality, masking, localization, artifacts, and production-vs-procedural improvement.
