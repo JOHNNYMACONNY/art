@@ -161,9 +161,11 @@ static func verify(manager: Node) -> String:
 	production_streams[AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED] = load(String(TARGETS[0]["path"]))
 	manager.set("_production_transient_streams", production_streams)
 
-	# Collision energy gain must still be applied to production voices.
+	# Collision energy gain must still be applied to production voices. Use the
+	# same 3.5 m/s impact speed for glance and hard so direction/severity, not
+	# speed, proves the hard event is materially stronger at matched speed.
 	manager.call("reset_audio_instant")
-	manager.call("on_collision_contact", 0.1, 2.0, Vector3(0.0, 1.0, 0.0))
+	manager.call("on_collision_contact", 0.1, 3.5, Vector3(0.0, 1.0, 0.0))
 	var glance_active: Array = manager.get("_active_transients")
 	if glance_active.is_empty():
 		return "production glance collision path did not create a voice"
@@ -187,7 +189,7 @@ static func verify(manager: Node) -> String:
 	var hard_high_gain := hard_high_player.volume_db
 
 	if hard_low_gain <= glance_gain:
-		return "matched-range hard collision production gain is not stronger than glance"
+		return "matched-speed hard collision production gain is not stronger than glance"
 	if hard_high_gain <= hard_low_gain:
 		return "hard collision production gain does not increase with impact energy"
 
