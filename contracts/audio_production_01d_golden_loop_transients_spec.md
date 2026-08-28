@@ -1,6 +1,6 @@
 # Audio Production 01D — Golden Loop Transients Pack
 
-**State:** CANDIDATE_SELECTION_REQUIRED  
+**State:** SOURCES_SELECTED__IMPLEMENTATION_PENDING  
 **Baseline:** `main@651b9fe7b6a45f1fc049c467b43a5b3c2450ba0b`
 
 ## Objective
@@ -9,16 +9,18 @@ Replace six already-live short 3D procedural sounds in one production-audio batc
 
 This batch exists to accelerate production-audio replacement. It must complete as one audition session, one integration branch, one exact-head verification pass, one human in-game listening pass, and one PR/review/merge cycle.
 
-## Batch targets
+## Locked selections
 
-| Runtime event | Semantic slot | Canonical production path |
-| --- | --- | --- |
-| `PANEL_PEEL` | `interaction.panel_peel` | `res://audio/interaction/sfx_interaction_panel_peel.wav` |
-| `SPARK` | `interaction.wire_spark` | `res://audio/interaction/sfx_interaction_wire_spark.wav` |
-| `COMPLETION` | `interaction.core_extracted` | `res://audio/interaction/sfx_interaction_core_extracted.wav` |
-| `BIKE_MOUNT` | `player.bike_mount` | `res://audio/player/sfx_player_bike_mount.wav` |
-| `BIKE_DISMOUNT` | `player.bike_dismount` | `res://audio/player/sfx_player_bike_dismount.wav` |
-| `BRAKE_SCREECH` | `vehicle.brake_screech` | `res://audio/vehicle/sfx_vehicle_brake_screech.wav` |
+| Runtime event | Semantic slot | GTA source | Native duration | Native rate | Canonical production path |
+| --- | --- | --- | ---: | ---: | --- |
+| `PANEL_PEEL` | `interaction.panel_peel` | `GTA_SA:GENRL:BANK_76:SOUND_1` | `0.6595 s` | `18,000 Hz` | `res://audio/interaction/sfx_interaction_panel_peel.wav` |
+| `SPARK` | `interaction.wire_spark` | `GTA_SA:GENRL:BANK_143:SOUND_26` | `0.2631 s` | `24,000 Hz` | `res://audio/interaction/sfx_interaction_wire_spark.wav` |
+| `COMPLETION` | `interaction.core_extracted` | `GTA_SA:SCRIPT:BANK_260:SOUND_0` | `0.6313 s` | `22,050 Hz` | `res://audio/interaction/sfx_interaction_core_extracted.wav` |
+| `BIKE_MOUNT` | `player.bike_mount` | `GTA_SA:GENRL:BANK_143:SOUND_57` | `0.3443 s` | `18,000 Hz` | `res://audio/player/sfx_player_bike_mount.wav` |
+| `BIKE_DISMOUNT` | `player.bike_dismount` | `GTA_SA:GENRL:BANK_143:SOUND_41` | `0.2115 s` | `22,050 Hz` | `res://audio/player/sfx_player_bike_dismount.wav` |
+| `BRAKE_SCREECH` | `vehicle.brake_screech` | `GTA_SA:GENRL:BANK_143:SOUND_28` | `0.4540 s` | `28,000 Hz` | `res://audio/vehicle/sfx_vehicle_brake_screech.wav` |
+
+All six selections passed direct human audition and five-pulse fatigue checks. No selected source requires gain change or resampling. Each production asset receives only the approved ~1.5 ms boundary taper and no other processing.
 
 These six were chosen because each already has a live gameplay event and procedural 3D playback path. Do not add speculative event seams for currently-unused semantic slots in 01D.
 
@@ -37,59 +39,40 @@ These six were chosen because each already has a live gameplay event and procedu
 
 Use only the locally stored GTA San Andreas audio library already accepted for owner-authorized production-audio slices.
 
-Every selected asset must record exact identity:
+Only the six locked production assets may enter the repository. GTA archive containers, rejected candidates, and audition copies remain local/ignored.
 
-`GTA_SA:<PAK>:BANK_<bank_id>:SOUND_<sound_index>`
-
-Only the six selected production assets may enter the repository. GTA archive containers, rejected candidates, and audition copies remain local/ignored.
-
-## Candidate listening targets
+## Listening rationale
 
 ### Panel peel — `interaction.panel_peel`
-- corroded metal stress / peel / shear;
-- tactile, not a huge crash;
-- should support the existing peel gesture without dictating a new animation length;
-- approximately 0.20–1.20 s preferred.
+Selected `GENRL / Bank 76 / Sound 1`: rich mechanical friction and corroded metal shear without harsh high-frequency fatigue.
 
 ### Wire spark — `interaction.wire_spark`
-- compact electrical crack/spark;
-- bright enough to read, not gunshot-like;
-- low fatigue when paired with extraction FX;
-- approximately 0.05–0.45 s preferred.
+Selected `GENRL / Bank 143 / Sound 26`: compact, crisp electrical arc discharge that reads as electrical rather than gunshot-like.
 
 ### Core extracted — `interaction.core_extracted`
-- mechanical/pneumatic release or lock disengage;
-- satisfying completion identity without becoming a musical victory sting;
-- approximately 0.15–0.90 s preferred.
+Selected `SCRIPT / Bank 260 / Sound 0`: pneumatic seal release plus mechanical latch disengage, satisfying without becoming a musical victory cue.
 
 ### Bike mount — `player.bike_mount`
-- chassis latch / seat / mechanism engagement;
-- immediate confirmation, compact and physical;
-- approximately 0.05–0.50 s preferred.
+Selected `GENRL / Bank 143 / Sound 57`: heavy chassis weight shift and solid frame latch engagement.
 
 ### Bike dismount — `player.bike_dismount`
-- related but distinguishable release/unlatch action;
-- should pair naturally with mount without sounding identical;
-- approximately 0.05–0.50 s preferred.
+Selected `GENRL / Bank 143 / Sound 41`: fast unlatch/spring release that pairs with mount while remaining clearly distinct.
 
 ### Brake screech — `vehicle.brake_screech`
-- pneumatic/disc/tire friction appropriate to the courier bike;
-- readable under engine feedback without harsh repeated fatigue;
-- approximately 0.15–1.20 s preferred;
-- avoid long uncontrollable loops in this transient batch.
-
-Duration ranges are shortlist guidance only. Do not time-stretch a bad source to fit them.
+Selected `GENRL / Bank 143 / Sound 28`: compact disc/pad friction bite that reads as courier-bike braking rather than generic tire burnout.
 
 ## Production asset contract
 
 Each selected production WAV must:
 
+- derive from the exact source listed in the locked selection table;
 - be mono `AudioStreamWAV` suitable for `AudioStreamPlayer3D`;
 - use 16-bit PCM;
-- retain native source sample rate unless a concrete playback defect requires resampling;
-- retain natural envelope with only minimal boundary taper/gain treatment justified by listening;
-- avoid baked reverb, speculative EQ, normalization, time stretching, or compression unless the exact candidate has a demonstrated defect requiring it;
-- be imported with non-destructive Godot settings and `compress/mode=0` unless a specific asset requires a different verified setting.
+- preserve the exact native sample rate listed above;
+- retain natural duration within ±0.01 s of the listed duration;
+- receive no gain normalization, resampling, EQ, compression, reverb, or time stretching;
+- use only the approved ~1.5 ms boundary taper;
+- be imported with non-destructive Godot settings and `compress/mode=0`.
 
 `AudioRegistry` owns production path and source provenance. `AudioManager` must not duplicate production asset paths as independent constants.
 
@@ -109,9 +92,9 @@ Each selected production WAV must:
 Exact-head verification must prove for all six targets:
 
 - canonical semantic mapping;
-- production path and exact GTA provenance;
+- exact production path and exact GTA provenance;
 - asset exists and loads as mono 16-bit `AudioStreamWAV`;
-- expected source sample rate/duration once selection is locked;
+- exact native sample rate and selected duration tolerance;
 - production stream resolves through registry;
 - event creates a bounded 3D transient at an arbitrary supplied test position;
 - per-event procedural fallback remains independently reachable;
