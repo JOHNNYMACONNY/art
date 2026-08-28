@@ -103,7 +103,6 @@
     "slots_by_status": {
       "PROCEDURAL_FALLBACK": [
         "player.footstep",
-        "player.signal_lock_pulse",
         "interaction.panel_pry",
         "interaction.wire_clip",
         "interaction.battery_insert",
@@ -155,7 +154,8 @@
         "interaction.core_extracted",
         "player.bike_mount",
         "player.bike_dismount",
-        "vehicle.brake_screech"
+        "vehicle.brake_screech",
+        "player.signal_lock_pulse"
       ]
     },
     "missing_or_blocked": [],

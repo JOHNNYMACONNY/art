@@ -116,9 +116,11 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Signal tuner homing ping / alignment chirp"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/player/sfx_player_signal_lock_pulse.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_31",
+		"description": "Signal tuner resonant harmonic lock confirmation"
 	},
 	"interaction.panel_pry": {
 		"slot_id": "interaction.panel_pry",
