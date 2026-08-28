@@ -83,6 +83,7 @@ var _static_stream: AudioStreamWAV = null
 var _siren_stream: AudioStreamWAV = null
 var _tension_stream: AudioStreamWAV = null
 var _fb13_production_stream: AudioStream = null
+var _gate_slam_production_stream: AudioStream = null
 
 # Transient voice budget & registry
 const MAX_CONCURRENT_TRANSIENTS: int = 8
@@ -132,6 +133,7 @@ const EVENT_TO_SLOT_MAP: Dictionary = {
 	SoundEvent.BRAKE_SCREECH: "vehicle.brake_screech",
 	SoundEvent.PANEL_PEEL: "interaction.panel_peel",
 	SoundEvent.COLLISION_GLANCE: "vehicle.collision_glance",
+	SoundEvent.GATE_SLAM: "interaction.gate_triggered",
 	SoundEvent.FB13_THRUM: "world.fb13_thrum"
 }
 
@@ -143,6 +145,9 @@ func _ready() -> void:
 	var fb13_asset_path: String = AudioRegistryScript.get_production_asset_path("world.fb13_thrum")
 	if not fb13_asset_path.is_empty() and ResourceLoader.exists(fb13_asset_path):
 		_fb13_production_stream = load(fb13_asset_path)
+	var gate_slam_asset_path: String = AudioRegistryScript.get_production_asset_path("interaction.gate_triggered")
+	if not gate_slam_asset_path.is_empty() and ResourceLoader.exists(gate_slam_asset_path):
+		_gate_slam_production_stream = load(gate_slam_asset_path)
 	_engine_stream = _create_noise_wav(0.5, 0.4)
 	_engine_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_hum_stream = _create_tone_wav(120.0, 0.5, 0.3)
@@ -284,7 +289,7 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 		SoundEvent.SIREN_ALARM:
 			set_siren_audio(true, pos)
 		SoundEvent.GATE_SLAM:
-			_play_synth_sweep(pos, 240.0, 60.0, 0.45, 0.6)
+			_play_gate_slam(pos)
 		SoundEvent.DISMOUNT_REJECTED:
 			_play_synth_rejection_buzz(pos)
 		SoundEvent.DISTURBANCE_ALERT:
@@ -449,7 +454,7 @@ func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
 	elif _tension_layer_active and distance > 18.0:
 		_tension_layer_active = false
 		if _tension_player and _tension_player.playing:
-			_tension_player.stop()
+				_tension_player.stop()
 
 	if _tension_player and _tension_layer_active and _tension_player.playing:
 		# Low-mid tension layer volume scales smoothly from -24dB to -6dB
@@ -822,6 +827,19 @@ func _play_synth_rejection_buzz(pos: Vector3) -> void:
 	player_3d.unit_size = 10.0
 	player_3d.stream = _create_dual_beep_wav(160.0, 0.16, 0.5)
 	_register_and_play_transient(player_3d, pos, 0.16)
+
+func _play_gate_slam(pos: Vector3) -> void:
+	if _gate_slam_production_stream != null:
+		var player_3d := AudioStreamPlayer3D.new()
+		player_3d.unit_size = 12.0
+		player_3d.max_distance = 35.0
+		player_3d.bus = &"Master"
+		player_3d.stream = _gate_slam_production_stream
+		_register_and_play_transient(player_3d, pos, 0.56)
+		return
+
+	# Existing procedural fallback retained verbatim and independently reachable.
+	_play_synth_sweep(pos, 240.0, 60.0, 0.45, 0.6)
 
 func _play_fb13_thrum(pos: Vector3) -> void:
 	if _fb13_production_stream != null:
