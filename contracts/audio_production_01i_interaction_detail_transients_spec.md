@@ -1,6 +1,6 @@
 # Audio Production 01I — Interaction Detail Transients Pack
 
-**State:** CANDIDATE_SEARCH__RUNTIME_AUTHORITY_GATED  
+**State:** RETENTION_PASS__RUNTIME_AUTHORITY_GATED  
 **Baseline:** `main@ca7f9643150ade9e83c7cdd47684d8f2ddde59ee`
 
 ## Objective
@@ -11,25 +11,13 @@ Batch candidate search and perceptual identity work for three reserved interacti
 2. `interaction.wire_clip` — precision wire-cutter snip / mechanical clip;
 3. `interaction.battery_insert` — solid power-cell insertion / bay lock.
 
-This slice is intentionally authority-gated. Candidate audition may proceed now, but production promotion is not authorized until each sound has a real gameplay event and timing point.
-
-Do not invent placeholder mechanics solely to justify using an audio asset.
+01I is intentionally authority-gated. Human candidate audition is complete, but production promotion remains unauthorized until each slot has a real gameplay event and timing point. No placeholder mechanic may be invented solely to justify using an audio asset.
 
 ## Runtime authority findings on baseline main
 
 ### `interaction.panel_pry` — not live
 
-Registry intent:
-
-- domain: INTERACTION;
-- diegesis: DIEGETIC;
-- spatial type: DIEGETIC_3D;
-- mix group: INCIDENTAL_UI;
-- playback type: TRANSIENT;
-- cooldown: 100 ms;
-- max concurrency: 2;
-- asset status: PROCEDURAL_FALLBACK;
-- replacement required: true.
+Registry intent remains DIEGETIC / DIEGETIC_3D / TRANSIENT / replacement-required.
 
 Actual gameplay authority:
 
@@ -40,21 +28,11 @@ Actual gameplay authority:
 - no `EVENT_TO_SLOT_MAP` entry maps to `interaction.panel_pry`;
 - no procedural fallback branch exists for a pry event.
 
-Production disposition: **AUDITION/RETENTION ONLY** until a real pry interaction step exists.
+Production disposition: **RETENTION ONLY** until a real pry interaction step exists.
 
 ### `interaction.wire_clip` — not live
 
-Registry intent:
-
-- domain: INTERACTION;
-- diegesis: DIEGETIC;
-- spatial type: DIEGETIC_3D;
-- mix group: INCIDENTAL_UI;
-- playback type: TRANSIENT;
-- cooldown: 100 ms;
-- max concurrency: 2;
-- asset status: PROCEDURAL_FALLBACK;
-- replacement required: true.
+Registry intent remains DIEGETIC / DIEGETIC_3D / TRANSIENT / replacement-required.
 
 Actual gameplay authority:
 
@@ -64,21 +42,11 @@ Actual gameplay authority:
 - no `EVENT_TO_SLOT_MAP` entry maps to `interaction.wire_clip`;
 - no procedural wire-clip branch exists.
 
-Production disposition: **AUDITION/RETENTION ONLY** until a real wire-cut interaction step exists.
+Production disposition: **RETENTION ONLY** until a real wire-cut interaction step exists.
 
 ### `interaction.battery_insert` — not live
 
-Registry intent:
-
-- domain: INTERACTION;
-- diegesis: DIEGETIC;
-- spatial type: DIEGETIC_3D;
-- mix group: INCIDENTAL_UI;
-- playback type: TRANSIENT;
-- cooldown: 0 ms;
-- max concurrency: 2;
-- asset status: PROCEDURAL_FALLBACK;
-- replacement required: true.
+Registry intent remains DIEGETIC / DIEGETIC_3D / TRANSIENT / replacement-required.
 
 Actual gameplay authority:
 
@@ -88,13 +56,13 @@ Actual gameplay authority:
 - no `EVENT_TO_SLOT_MAP` entry maps to `interaction.battery_insert`;
 - no procedural battery-insert branch exists.
 
-Production disposition: **AUDITION/RETENTION ONLY** until a real battery insertion mechanic exists.
+Production disposition: **RETENTION ONLY** until a real battery-insertion mechanic exists.
 
-## Existing retained 01E incumbents
+## 01E historical retained incumbents
 
-01I must not discard prior human-auditioned evidence. Treat these as incumbent candidates to beat:
+Historical repository evidence remains preserved:
 
-### Panel Pry incumbent
+### Panel Pry
 
 - source: `GTA_SA:GENRL:BANK_143:SOUND_40`;
 - duration: `0.1547 s`;
@@ -102,7 +70,7 @@ Production disposition: **AUDITION/RETENTION ONLY** until a real battery inserti
 - mono 16-bit PCM;
 - raw SHA-256: `3205a8aa7708517f6b036dfa89b66def9c4cf997efae790675e4657024b56127`.
 
-### Wire Clip incumbent
+### Wire Clip
 
 - source: `GTA_SA:GENRL:BANK_143:SOUND_48`;
 - duration: `0.0751 s`;
@@ -110,7 +78,7 @@ Production disposition: **AUDITION/RETENTION ONLY** until a real battery inserti
 - mono 16-bit PCM;
 - raw SHA-256: `c98b758a7463f8667be351cf9a16181e1c04b5ea0a57b9a20aa25345c62846e9`.
 
-### Battery Insert incumbent
+### Battery Insert
 
 - source: `GTA_SA:GENRL:BANK_100:SOUND_0`;
 - duration: `0.3132 s`;
@@ -118,168 +86,94 @@ Production disposition: **AUDITION/RETENTION ONLY** until a real battery inserti
 - mono 16-bit PCM;
 - raw SHA-256: `0668e15e846ce1cae9e2b77fc5955219bb5393745385ecfe84721a7d31682db6`.
 
-These remain retention evidence only. No production WAVs for these sources currently belong in Git.
+## 01I human-audition outcome
 
-## Candidate search target A — Panel Pry
+Candidate audition completed on exact opening head `f8d8822db55819cc8a0b26a5d167e031973588d5` with clean Git status and extraction integrity PASS.
 
-Desired identity:
+### Panel Pry — incumbent confirmed
 
-- initial crowbar leverage against a seized/corroded metal panel;
-- short stress-creak, metal flex, latch strain, or compact leverage groan;
-- physically distinct from the already-produced `interaction.panel_peel` long peel/shear sound;
-- suggests the moment resistance breaks or leverage bites before continuous peel motion;
-- enough midrange texture for laptop/phone speakers;
-- not a full crash, door slam, gunshot, explosion, or long scrape.
+Selected source:
 
-Preferred natural duration: approximately `0.10–0.45 s`.
+`GTA_SA:GENRL:BANK_143:SOUND_40`
 
-Audition against existing production `PANEL_PEEL`. The pair should read as:
+Characteristics:
 
-`PRY = initial leverage/stress`  
-`PEEL = sustained panel removal/shear`
+- duration: `0.1547 s`;
+- native sample rate: `22,050 Hz`;
+- mono 16-bit PCM;
+- raw bytes: `6,868`;
+- raw SHA-256: `3205a8aa7708517f6b036dfa89b66def9c4cf997efae790675e4657024b56127`.
 
-If a candidate sounds like a shortened peel rather than a distinct first action, reject it.
+Perceptual identity:
 
-## Candidate search target B — Wire Clip
+- crisp initial metal pry strain / crowbar leverage bite;
+- reads as the first resistance-breaking action rather than sustained removal;
+- remains clearly distinct from production `interaction.panel_peel` (`GTA_SA:GENRL:BANK_76:SOUND_1`) because pry is the sharp leverage onset while peel is the prolonged shearing groan;
+- strong small-speaker readability.
 
-Desired identity:
+Disposition: **RETENTION WINNER — INCUMBENT CONFIRMED**.
 
-- precise cutter/plier snip;
-- small mechanical jaw close, wire sever, or spring-steel clip action;
-- dry, immediate and tactile;
-- distinct from `interaction.wire_spark` electrical arc;
-- audible on small speakers without becoming a sharp digital click;
-- tolerable if repeated for multiple wires.
+### Wire Clip — new 01I winner
 
-Preferred natural duration: approximately `0.04–0.25 s`.
+Selected source:
 
-Audition against existing production `WIRE_SPARK`. The pair should read as:
+`GTA_SA:GENRL:BANK_143:SOUND_29`
 
-`CLIP = tool/mechanical cut`  
-`SPARK = electrical consequence`
+Characteristics:
 
-Reject candidates that sound primarily electrical, glassy, gunshot-like, or like a UI click.
+- duration: `0.0431 s`;
+- native sample rate: `26,400 Hz`;
+- mono 16-bit PCM;
+- raw bytes: `2,320`;
+- raw SHA-256: `d7c6b8a4de4dc497ffc43bd8ef17b4568f434ce965ba951131aedb48fecbaf77`.
 
-## Candidate search target C — Battery Insert
+Perceptual identity:
 
-Desired identity:
+- ultra-short mechanical cutter snip / metallic shear click;
+- dry tool action rather than electrical discharge;
+- distinct from production `interaction.wire_spark` (`GTA_SA:GENRL:BANK_143:SOUND_26`).
 
-- compact but solid power-cell seating action;
-- body/thud plus latch or bay-lock component is ideal;
-- communicates weight and secure mechanical engagement;
-- not an engine start, giant door slam, collision, or electronic success chime;
-- distinguishable from bike mount/dismount latches and Core Extracted;
-- enough low-mid body for small speakers without sub-bass dependence.
+Disposition: **RETENTION WINNER — NEW 01I SELECTION**.
 
-Preferred natural duration: approximately `0.12–0.55 s`.
+Evidence caveat: the audition report's prose compared this winner against a different locally referenced “incumbent” source than the historical 01E repository incumbent (`BANK_143:SOUND_48`). The final 01I winner selection is authoritative human evidence, but this spec does **not** claim a verified direct A/B superiority over the historical 01E source unless that exact comparison is rerun later.
 
-Audition against existing production:
+### Battery Insert — new 01I winner
 
-- `player.bike_mount`;
-- `player.bike_dismount`;
-- `interaction.core_extracted`.
+Selected source:
 
-Battery Insert should read as a heavier contained bay lock rather than rider hardware or a core release.
+`GTA_SA:GENRL:BANK_143:SOUND_12`
 
-## Search scope
+Characteristics:
 
-Use only the owner-authorized local GTA San Andreas audio library already accepted for production-audio work.
+- duration: `0.1422 s`;
+- native sample rate: `14,364 Hz`;
+- mono 16-bit PCM;
+- raw bytes: `4,130`;
+- raw SHA-256: `b079fe9af2c9a0bc5ec6be180b5ee9a52d6774ee66fcc937eab832a056ea5288`.
 
-Start with:
+Perceptual identity:
 
-- `GENRL`;
-- `SCRIPT`.
+- tactile module insertion snap with a solid locking click;
+- reads as contained cell seating/lock rather than rider hardware or a core release;
+- distinct from Bike Mount/Dismount and `interaction.core_extracted`.
 
-Search mechanical families broadly:
+Disposition: **RETENTION WINNER — NEW 01I SELECTION**.
 
-- doors / latches / catches;
-- hand tools / clips / snaps;
-- metal stress / scrape / flex;
-- switches / relays;
-- vehicle interior hardware;
-- container / hatch / bay mechanisms;
-- compact impacts and insertion sounds.
+Evidence caveat: the audition report's prose compared this winner against a different locally referenced “incumbent” source than the historical 01E repository incumbent (`BANK_100:SOUND_0`). The final 01I winner selection is authoritative human evidence, but this spec does **not** claim a verified direct A/B superiority over the historical 01E source unless that exact comparison is rerun later.
 
-Aim for approximately 4–6 credible candidates per target. Include the retained 01E incumbent in each target's final comparison even if it would not otherwise surface in the new search.
+## Three-way identity outcome
 
-Do not extract hundreds of files. Rough target: 12–18 total candidates plus incumbents.
+The retained winners form a clear intended mechanic family:
 
-## Audition quality gate
+- Panel Pry = initial leverage/stress bite;
+- Wire Clip = precise tool sever;
+- Battery Insert = contained weighted insertion/lock.
 
-Human listening is authoritative.
-
-For each target:
-
-1. audition raw candidates individually;
-2. compare top candidates against the retained incumbent;
-3. compare against neighboring production sounds listed above;
-4. perform a 5–8 repetition fatigue test;
-5. test on built-in laptop/phone-class speakers if practical;
-6. choose a winner only if it is meaningfully more specific to the intended mechanic than the incumbent.
-
-If the incumbent remains best, keep it. Do not change source just to create novelty.
-
-## Candidate report requirements
-
-For each candidate report:
-
-- candidate ID;
-- target slot;
-- pak;
-- bank;
-- sound index;
-- duration;
-- native sample rate;
-- channels;
-- bit depth;
-- raw bytes;
-- raw SHA-256;
-- PASS / REJECT;
-- listening description;
-- comparison with retained incumbent;
-- distinction from neighboring production cue;
-- small-speaker readability;
-- repetition/fatigue result;
-- boundary pop/truncation/pitch/PCM artifact status;
-- gain change needed;
-- boundary taper needed;
-- resampling needed;
-- other processing needed.
-
-## Final selection report
-
-Return one retained winner + runner-up per target.
-
-### Panel Pry — Selected
-
-Report exact source metadata plus:
-
-- why it reads as initial leverage rather than sustained peel;
-- direct comparison with `GENRL:143:40` incumbent;
-- distinction from production Panel Peel;
-- recommended future production treatment.
-
-### Wire Clip — Selected
-
-Report exact source metadata plus:
-
-- why it reads as tool cut rather than spark;
-- direct comparison with `GENRL:143:48` incumbent;
-- distinction from production Wire Spark;
-- recommended future production treatment.
-
-### Battery Insert — Selected
-
-Report exact source metadata plus:
-
-- why it reads as weighted cell seating/lock;
-- direct comparison with `GENRL:100:0` incumbent;
-- distinction from Bike Mount/Dismount and Core Extracted;
-- recommended future production treatment.
+No production asset is shipped from this retention checkpoint.
 
 ## Production boundary
 
-01I candidate search does **not** authorize integration.
+01I does **not** authorize integration.
 
 Until runtime authority exists, do not:
 
@@ -292,16 +186,6 @@ Until runtime authority exists, do not:
 - add fake pry/wire/battery mechanics;
 - alter the current Corroded Panel sequence.
 
-After audition, the next valid step is one of:
+## Completion
 
-1. **RETENTION PASS** — record better/final candidate identities and stop; or
-2. **FEATURE-AUTHORITY PLAN** — separately design/authorize real interaction steps before audio production promotion.
-
-## Completion for this phase
-
-This 01I opening phase reaches its candidate-search checkpoint when:
-
-- runtime authority remains accurately documented;
-- one human-auditioned winner is identified for each reserved slot;
-- retained incumbents were explicitly compared;
-- no production asset or fake gameplay event was added.
+01I is complete as a **RETENTION PASS** when the three selected sources are recorded in repository retention evidence and review confirms that no production/runtime promotion occurred.
