@@ -1,265 +1,204 @@
 # Audio Production 01H — Pursuit Alert & Evasion Pack
 
-**State:** CANDIDATE_SELECTION_REQUIRED  
+**State:** SOURCES_SELECTED__IMPLEMENTATION_PENDING  
 **Baseline:** `main@306352950bb92047ba8cb2869e5312f750b92aec`
 
 ## Objective
 
-Batch the next pursuit-audio identity work into one production slice:
+Promote two live pursuit transients and retain one scanner candidate without runtime promotion:
 
-1. `pursuit.disturbance_alert` — detection / security escalation cue;
-2. `pursuit.evaded_stinger` — safe evasion / tension-release cue;
-3. `pursuit.pursuer_sweep` — pursuer-local scanner/search identity.
+1. `pursuit.disturbance_alert` / `AudioManager.SoundEvent.DISTURBANCE_ALERT`;
+2. `pursuit.evaded_stinger` / `AudioManager.SoundEvent.EVASION_RELEASE`;
+3. `pursuit.pursuer_sweep` remains retention-only in 01H.
 
 Use the proven batched workflow: one GTA candidate search/audition pass, one source-lock phase, one repo-side implementation pass, one asset-ingestion pass, one exact-head verification/review cycle, and one PR/merge.
 
 Do not change pursuit steering, chase thresholds, gate behavior, interception behavior, vehicle physics, or unrelated audio slots.
 
-## Runtime authority findings on baseline main
+## Locked selections
 
-### 1. Disturbance alert — live
+### Disturbance Alert — promote
 
-`AudioManager.SoundEvent.DISTURBANCE_ALERT` is live.
+Selected source:
+
+`GTA_SA:GENRL:BANK_138:SOUND_40`
+
+Characteristics:
+
+- duration: `0.2805 s`;
+- native sample rate: `20,000 Hz`;
+- mono 16-bit PCM;
+- frames: `5,610`;
+- raw bytes: `11,264`;
+- raw SHA-256: `9984d10737f9527e39a86a08816f7bacc481fe90cfaf56ac7b99ab4bb8c9df39`;
+- urgent electronic security chirp/buzz that reads before siren spin-up;
+- no gain change, resampling, EQ, compression, reverb, or time stretching;
+- approved treatment: only ~`1.5 ms` boundary taper.
+
+Runner-up `GENRL / Bank 138 / Sound 39` remains audition evidence only.
+
+Canonical production path:
+
+`res://audio/pursuit/sfx_pursuit_disturbance_alert.wav`
+
+### Evaded Stinger — promote
+
+Selected source:
+
+`GTA_SA:GENRL:BANK_143:SOUND_45`
+
+Characteristics:
+
+- duration: `0.5907 s`;
+- native sample rate: `18,000 Hz`;
+- mono 16-bit PCM;
+- frames: `10,632`;
+- raw bytes: `21,308`;
+- raw SHA-256: `5d1c0a3af5025acf928cf6f8180e6416f4373e3ede0e0efd933fb9ce3f6b3c0e`;
+- calm descending electronic de-escalation cue that blends into siren/tension decay;
+- no gain change, resampling, EQ, compression, reverb, or time stretching;
+- approved treatment: only ~`1.5 ms` boundary taper.
+
+Runner-up `GENRL / Bank 138 / Sound 34` remains audition evidence only.
+
+Canonical production path:
+
+`res://audio/pursuit/sfx_pursuit_evaded_stinger.wav`
+
+### Pursuer Sweep — retention only
+
+Best audited candidate:
+
+`GTA_SA:GENRL:BANK_138:SOUND_43`
+
+Characteristics:
+
+- duration: `0.3847 s`;
+- native sample rate: `20,900 Hz`;
+- raw SHA-256: `46a40bebd9f3b390863dc4e1c472bd4cf14800b46f510539696c2ed796312093`;
+- repeated-loop seam is clean;
+- 10-second repeated playback exposes rapid-cadence fatigue.
+
+01H decision: **RETENTION ONLY**.
+
+The scanner candidate must not receive:
+
+- a production WAV under `godot/audio/`;
+- a production path or final asset status;
+- a new `SoundEvent`;
+- an AudioManager playback player;
+- a pursuer runtime caller;
+- a semantic conversion from continuous loop to transient.
+
+The existing `pursuit.pursuer_sweep` registry slot remains procedural/replacement-required until a dedicated periodic scanner subsystem or a better low-fatigue loop is authored.
+
+## Runtime authority findings
+
+### Disturbance alert — live
 
 Current path:
 
 - `set_mix_state(MixState.DISTURBANCE)` calls `play_event(DISTURBANCE_ALERT, Vector3.ZERO)`;
-- procedural cue: `350 Hz -> 700 Hz` sweep, `0.4 s`, volume `0.6`;
-- generic synth helper creates an `AudioStreamPlayer3D` with `unit_size = 10.0`;
-- the same event branch also calls `set_siren_audio(true, pos)`.
+- procedural cue: `350 Hz -> 700 Hz`, `0.4 s`, volume `0.6`;
+- generic synth playback is `AudioStreamPlayer3D` with `unit_size = 10.0`;
+- the event also calls `set_siren_audio(true, pos)`.
 
-Registry metadata:
+Registry metadata remains:
 
-- domain: PURSUIT;
-- diegesis: NON_DIEGETIC;
-- spatial type: NON_DIEGETIC_2D;
-- mix group: CRITICAL_THREAT;
-- playback type: TRANSIENT;
-- max concurrency: 1.
+- PURSUIT;
+- NON_DIEGETIC;
+- NON_DIEGETIC_2D;
+- CRITICAL_THREAT;
+- TRANSIENT;
+- max concurrency 1.
 
-**Critical integration invariant:** a production-media early return must not bypass `set_siren_audio(true, pos)`. The siren activation side effect must execute exactly once for both production and fallback playback.
+The pre-existing semantic/reference 2D label must not be silently rewritten merely because shipping playback uses the existing 3D synth path.
 
-The current registry/runtime spatial mismatch is pre-existing. Candidate audition does not resolve it. Integration must treat shipping behavior and semantic/reference metadata separately and must not make an unreviewed spatial-authority rewrite.
+**Critical invariant:** production playback must not bypass siren activation. `set_siren_audio(true, pos)` must execute for both production and procedural fallback paths.
 
-### 2. Evaded stinger — live
-
-`AudioManager.SoundEvent.EVASION_RELEASE` is live.
+### Evaded stinger — live
 
 Current path:
 
 - `set_mix_state(MixState.EVASION_RELEASE)` calls `play_event(EVASION_RELEASE, Vector3.ZERO)`;
-- procedural cue: `500 Hz -> 1000 Hz` sweep, `0.5 s`, volume `0.5`;
-- generic synth helper creates an `AudioStreamPlayer3D` with `unit_size = 10.0`.
+- procedural cue: `500 Hz -> 1000 Hz`, `0.5 s`, volume `0.5`;
+- generic synth playback is `AudioStreamPlayer3D` with `unit_size = 10.0`.
 
-Registry semantic slot:
+Registry metadata remains:
 
-- `pursuit.evaded_stinger`;
-- domain: PURSUIT;
-- diegesis: NON_DIEGETIC;
-- spatial type: NON_DIEGETIC_2D;
-- mix group: SIGNATURE_ECHO;
-- playback type: TRANSIENT;
-- max concurrency: 1.
+- PURSUIT;
+- NON_DIEGETIC;
+- NON_DIEGETIC_2D;
+- SIGNATURE_ECHO;
+- TRANSIENT;
+- max concurrency 1.
 
 Radio recovery remains owned by the existing pursuit-release decay envelope. 01H must not introduce a second radio-recovery owner or short-circuit the existing de-escalation flow.
 
-The current registry/runtime spatial mismatch is pre-existing and must be handled deliberately during integration rather than silently rewritten during candidate selection.
+## Production treatment
 
-### 3. Pursuer sweep — reserved semantic authority, not currently live
+For both promoted WAVs:
 
-`pursuit.pursuer_sweep` exists in `AudioRegistry`, but baseline main has:
+- preserve mono 16-bit PCM;
+- preserve exact native sample rate;
+- preserve selected natural duration within ±0.01 s;
+- no gain normalization;
+- no resampling;
+- no EQ, compression, reverb, or time stretching;
+- apply only the approved ~1.5 ms boundary taper;
+- Godot import remains non-destructive with `compress/mode=0`.
 
-- no `AudioManager.SoundEvent.PURSUER_SWEEP`;
-- no production/procedural event mapping for this slot;
-- no dedicated scanner player in `AudioManager`;
-- no scanner emission hook in `PursuerPrototype`.
+`AudioRegistry` remains canonical path/provenance authority. `AudioManager` must not hardcode independent production paths.
 
-Current registry metadata:
+## Runtime integration contract
 
-- domain: PURSUIT;
-- diegesis: DIEGETIC;
-- spatial type: DIEGETIC_3D;
-- mix group: CRITICAL_THREAT;
-- playback type: CONTINUOUS_LOOP;
-- `is_looping = true`;
-- nominal loop window `0.0–0.8 s`;
-- max concurrency: 2.
+1. `DISTURBANCE_ALERT -> pursuit.disturbance_alert`.
+2. `EVASION_RELEASE -> pursuit.evaded_stinger`.
+3. Both production streams resolve through the existing registry-backed production-transient cache.
+4. Shipping production playback preserves the existing bounded `AudioStreamPlayer3D` behavior with `unit_size = 10.0`.
+5. Do not add a new `max_distance` override solely for production playback.
+6. Preserve the old `350 -> 700 Hz / 0.4 s` disturbance fallback.
+7. Preserve the old `500 -> 1000 Hz / 0.5 s` evasion fallback.
+8. Disturbance siren activation executes exactly once whether production or fallback audio is used.
+9. Evasion release does not create a second radio-recovery owner.
+10. `pursuit.pursuer_sweep` remains unpromoted and unmapped in AudioManager.
+11. One missing 01H production stream must not disable the other.
+12. Existing 01G interception/collision, Gate, Signal Lock, Golden Loop, FB-13 and reset behavior remain unchanged.
 
-Therefore this target is **not a production replacement yet**. It is an authority-backed reserved slot that 01H may activate as one narrowly bounded feature after source selection.
+## Automated verification
 
-If the selected source is suitable, the default 01H implementation direction is:
+Exact-head 01H production verification must prove:
 
-- preserve the slot as a DIEGETIC_3D continuous loop;
-- add one bounded pursuer-local scanner voice owned by `AudioManager`;
-- update its world position from the already-authoritative pursuer position supplied to `set_pursuit_pressure(distance, pursuer_pos)`;
-- play only during active pursuit pressure;
-- stop during pursuit clear, de-escalation/quiet aftermath, interception reset, and authoritative audio reset;
-- do not alter pursuer steering/state thresholds;
-- retain a procedural scanner fallback if production media is absent.
+- exact two event/slot mappings;
+- exact production paths and GTA provenance;
+- mono 16-bit native WAV characteristics;
+- disturbance `20,000 Hz / ~0.2805 s`;
+- evasion `18,000 Hz / ~0.5907 s`;
+- streams resolve through production cache;
+- production playback creates bounded 3D voices at arbitrary supplied positions with `unit_size = 10.0` and no new max-distance override;
+- each procedural fallback remains independently reachable;
+- one missing production stream does not disable the other;
+- disturbance production path still activates siren;
+- disturbance fallback still activates siren;
+- evasion playback leaves radio-recovery ownership unchanged;
+- `pursuit.pursuer_sweep` remains procedural/replacement-required with no production path and no AudioManager event mapping;
+- authoritative reset clears 01H transient voices.
 
-This bounded activation must be test-first and will require fresh native gameplay verification because it adds an audible runtime behavior rather than merely replacing media.
+Regression verification must include Audio Runtime, semantic manifest, pursuit/interception suites, 01G, 01F, 01D, 01C, 01B, and canonical Web compatibility.
 
-If human audition cannot find a clean loop-compatible source, 01H must retain the scanner candidate as non-promoted evidence rather than force a poor loop or convert the semantic slot to a transient without a separate authority decision.
+## Human native verification
 
-## Candidate source restriction
+One exact-head pursuit session must cover:
 
-Use only the local owner-authorized GTA San Andreas audio library already used for prior production slices.
+- disturbance transition and selected alert before/with siren onset;
+- active chase overlap to ensure alert does not mask critical pursuit layers;
+- successful evasion and selected release stinger during tension/siren decay;
+- quiet aftermath with no extra scanner voice;
+- repeated retry/fatigue pass;
+- pairwise distinction from Signal Lock, Intercept, Core Extracted and Gate where relevant.
 
-For each winner, record exact provenance as:
-
-`GTA_SA:<PAK>:BANK_<bank_id>:SOUND_<sound_index>`
-
-Rejected candidates and archive containers remain local/ignored.
-
-## Audition target A — disturbance alert
-
-Desired identity:
-
-- immediate security/detection escalation;
-- electronic or mechanical scan-alert pulse rather than generic menu beep;
-- strong enough to mark transition into disturbance without competing with the siren that follows;
-- crisp on laptop/phone speakers;
-- distinct from Signal Lock, Wire Spark, Pursuer Intercept, and Gate Slam;
-- not a firearm, explosion, musical victory/failure sting, or long alarm loop;
-- low fatigue across retries.
-
-Preferred natural duration: approximately `0.20–0.65 s`.
-
-## Audition target B — evaded stinger
-
-Desired identity:
-
-- unmistakable release of pressure / successful contact break;
-- restrained, physical/electronic confirmation rather than triumphant music;
-- lighter and calmer than disturbance/interception cues;
-- compatible with siren/tension decay rather than masking it;
-- distinct from Signal Lock and Core Extracted completion;
-- readable on small speakers at moderate volume;
-- low fatigue across repeated evasion loops.
-
-Preferred natural duration: approximately `0.25–0.80 s`.
-
-## Audition target C — pursuer sweep loop
-
-Search for a short loop-compatible scanner/search cycle, not merely the loudest ping.
-
-Desired identity:
-
-- diegetic pursuer scanner/radar/search mechanism;
-- directional 3D identity that can live on the pursuer body;
-- controlled pulse/sweep cadence that can repeat during chase;
-- audible beneath siren/tension without becoming another siren;
-- clearly different from Signal Lock and disturbance alert;
-- not musical, not a weapon charge, not a continuous harsh alarm;
-- low fatigue over at least 10–15 seconds of repetition.
-
-Preferred source/cycle length: approximately `0.40–1.20 s`.
-
-For scanner candidates, audition actual repeated looping. Report:
-
-- loop-seam click/pop;
-- cadence fatigue;
-- whether natural start/end support a seamless or near-seamless loop;
-- whether minimal crossfade/boundary treatment would be required;
-- whether the source instead behaves like a one-shot and should be rejected for this slot.
-
-Do **not** apply the standard one-shot boundary taper blindly to a loop candidate; loop treatment must be chosen from actual seam behavior.
-
-## Production destinations after source lock
-
-Planned canonical destinations:
-
-- disturbance alert → `res://audio/pursuit/sfx_pursuit_disturbance_alert.wav`;
-- evaded stinger → `res://audio/pursuit/sfx_pursuit_evaded_stinger.wav`;
-- pursuer sweep → `res://audio/pursuit/sfx_pursuit_scanner_sweep.wav`.
-
-`AudioRegistry` remains canonical path/provenance authority.
-
-## Candidate-selection gate
-
-For each target return 4–6 credible candidates, with a winner and runner-up.
-
-For every winner report:
-
-- pak / bank / sound index;
-- native rate, channels, bit depth;
-- frame count / duration / bytes;
-- raw SHA-256;
-- listening identity;
-- small-speaker readability;
-- masking against siren/tension/engine where relevant;
-- fatigue result;
-- extraction integrity;
-- gain change needed;
-- resampling needed;
-- boundary treatment needed;
-- other processing needed.
-
-For scanner-sweep winner additionally report:
-
-- 10–15 second repeated-loop audition result;
-- seam quality;
-- loop cadence;
-- exact proposed loop treatment;
-- whether it remains suitable as `CONTINUOUS_LOOP`.
-
-## Expected integration behavior after source selection
-
-### Disturbance alert
-
-- production media resolves through registry;
-- existing siren activation executes for both production and fallback paths;
-- no duplicate siren trigger;
-- old 350→700 Hz procedural sweep remains independently reachable.
-
-### Evaded stinger
-
-- production media resolves through registry;
-- existing evasion/de-escalation and radio recovery ownership remains unchanged;
-- old 500→1000 Hz procedural sweep remains independently reachable.
-
-### Pursuer sweep
-
-If candidate passes the loop gate:
-
-- add one bounded `AudioStreamPlayer3D` scanner voice owned by `AudioManager`;
-- source position tracks supplied `pursuer_pos` during active pursuit pressure;
-- one concurrent scanner loop only;
-- production stream resolves through registry;
-- procedural loop fallback remains available;
-- no new pursuit-state authority is created;
-- voice stops on `clear_pursuit_pressure()` and `reset_audio_instant()`;
-- scanner never survives into quiet aftermath;
-- scanner does not replace or suppress siren/tension ownership.
-
-If candidate fails loop suitability, do not promote this slot in 01H.
-
-## Verification requirements after integration
-
-Exact-head automated verification must cover:
-
-- exact event/slot mapping for the two live transient targets;
-- exact paths/provenance/native media characteristics;
-- production vs fallback reachability;
-- disturbance siren side effect preserved under production path;
-- evasion release does not take ownership of radio recovery;
-- scanner activation only if loop candidate passed;
-- scanner follows pursuer position and is bounded to one voice;
-- scanner stops on clear/reset/aftermath;
-- existing interception, collision, gate, signal-lock, 01D, 01C, 01B, semantic-manifest, Audio Runtime, pursuit, and canonical Web regressions remain green.
-
-## Human native verification after integration
-
-One exact-head pursuit session should cover:
-
-- disturbance onset into siren activation;
-- active chase with scanner loop if promoted;
-- representative pursuit/collision overlap;
-- clean contact break and evasion release;
-- scanner/siren/tension fade or stop behavior through de-escalation;
-- quiet aftermath with no leaked scanner voice;
-- repeated retry/fatigue pass.
+Judge both promoted sounds for synchronization, mix, artifacts, fatigue, native-rate playback, and material improvement over fallback.
 
 ## Completion
 
-01H reaches PASS only when every promoted target has exact-head automated proof, exact-head native listening, fresh Standards/Spec review, merged PR, exact-main CI, and current playtest provenance. A scanner candidate that is auditioned but not runtime-promoted is not counted as production-final.
+01H reaches PASS only when the two promoted targets have exact-head automated proof, exact-head native listening, fresh Standards/Spec review, merged PR, exact-main CI, and current playtest provenance. The retained scanner candidate is not production-final and does not count as a promoted asset.
