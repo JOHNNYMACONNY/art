@@ -68,6 +68,7 @@ var _hum_player: AudioStreamPlayer3D = null
 var _static_player: AudioStreamPlayer = null
 var _siren_player: AudioStreamPlayer3D = null
 var _tension_player: AudioStreamPlayer = null
+var _ambient_wind_player: AudioStreamPlayer = null
 ## M04: dedicated echo voice (non-spatial — echo is inside-the-head by design)
 var _echo_voice: AudioStreamPlayer = null
 ## CTW Feel 04: bounded presentation helper; AudioManager remains lifecycle owner.
@@ -82,6 +83,7 @@ var _hum_stream: AudioStreamWAV = null
 var _static_stream: AudioStreamWAV = null
 var _siren_stream: AudioStreamWAV = null
 var _tension_stream: AudioStreamWAV = null
+var _ambient_wind_stream: AudioStreamWAV = null
 var _fb13_production_stream: AudioStream = null
 var _gate_slam_production_stream: AudioStream = null
 var _production_transient_streams: Dictionary = {}
@@ -111,6 +113,8 @@ var _current_contamination_duck_db: float = 0.0
 
 const INTERFERENCE_OUTER_RADIUS: float = 18.0
 const INTERFERENCE_INNER_RADIUS: float = 3.0
+const AMBIENT_WIND_BASE_DB: float = -18.0
+const AMBIENT_WIND_PRIORITY_DB: float = -30.0
 
 # Minimum interval between duplicate transient events (throttling)
 const EVENT_COOLDOWNS_MSEC: Dictionary = {
@@ -152,6 +156,7 @@ const EVENT_TO_SLOT_MAP: Dictionary = {
 }
 
 const PRODUCTION_TRANSIENT_EVENTS: Array[SoundEvent] = [
+	SoundEvent.FOOTSTEP,
 	SoundEvent.PANEL_PEEL,
 	SoundEvent.SPARK,
 	SoundEvent.COMPLETION,
@@ -167,6 +172,7 @@ const PRODUCTION_TRANSIENT_EVENTS: Array[SoundEvent] = [
 ]
 
 const PRODUCTION_TRANSIENT_UNIT_SIZES: Dictionary = {
+	SoundEvent.FOOTSTEP: 8.0,
 	SoundEvent.PANEL_PEEL: 10.0,
 	SoundEvent.SPARK: 8.0,
 	SoundEvent.COMPLETION: 12.0,
@@ -198,6 +204,11 @@ func _ready() -> void:
 	var gate_slam_asset_path: String = AudioRegistryScript.get_production_asset_path("interaction.gate_triggered")
 	if not gate_slam_asset_path.is_empty() and ResourceLoader.exists(gate_slam_asset_path):
 		_gate_slam_production_stream = load(gate_slam_asset_path)
+	var ambient_wind_asset_path: String = AudioRegistryScript.get_production_asset_path("world.ambient_wind")
+	if not ambient_wind_asset_path.is_empty() and ResourceLoader.exists(ambient_wind_asset_path):
+		_ambient_wind_stream = load(ambient_wind_asset_path) as AudioStreamWAV
+		if _ambient_wind_stream:
+			_ambient_wind_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_load_production_transient_streams()
 	_load_echo_production_streams()
 	_engine_stream = _create_noise_wav(0.5, 0.4)
@@ -249,6 +260,14 @@ func _ready() -> void:
 	_tension_player.stream = _tension_stream
 	_tension_player.volume_db = -80.0
 	add_child(_tension_player)
+
+	_ambient_wind_player = AudioStreamPlayer.new()
+	_ambient_wind_player.name = "AmbientWindPlayer"
+	_ambient_wind_player.bus = &"Master"
+	_ambient_wind_player.stream = _ambient_wind_stream
+	_ambient_wind_player.volume_db = AMBIENT_WIND_BASE_DB
+	add_child(_ambient_wind_player)
+	start_ambient_wind()
 
 	## M04: echo voice — shared player, stream swapped per phase
 	_echo_voice = AudioStreamPlayer.new()
@@ -571,6 +590,30 @@ func clear_pursuit_pressure(preserve_radio_duck: bool = false) -> void:
 	if not preserve_radio_duck:
 		set_radio_duck(0.0, 0.0)
 
+func _ambient_wind_is_priority_ducked() -> bool:
+	return current_mix_state in [MixState.DISTURBANCE, MixState.PURSUIT_PRESSURE, MixState.MEMORY_ECHO]
+
+func _update_ambient_wind_mix() -> void:
+	if not _ambient_wind_player:
+		return
+	_ambient_wind_player.volume_db = AMBIENT_WIND_PRIORITY_DB if _ambient_wind_is_priority_ducked() else AMBIENT_WIND_BASE_DB
+
+func start_ambient_wind() -> void:
+	if not _ambient_wind_player or _ambient_wind_player.stream == null:
+		return
+	_update_ambient_wind_mix()
+	if not _ambient_wind_player.playing:
+		_ambient_wind_player.play()
+
+func stop_ambient_wind() -> void:
+	if _ambient_wind_player and _ambient_wind_player.playing:
+		_ambient_wind_player.stop()
+
+func _restart_ambient_wind_after_reset() -> void:
+	if not is_inside_tree():
+		return
+	start_ambient_wind()
+
 func _transient_instance_id(player: Node) -> int:
 	return player.get_instance_id() if is_instance_valid(player) else 0
 
@@ -644,6 +687,9 @@ func reset_audio_instant() -> void:
 	if _tension_player:
 		_tension_player.stop()
 		_tension_player.volume_db = -80.0
+	if _ambient_wind_player:
+		_ambient_wind_player.stop()
+		_ambient_wind_player.volume_db = AMBIENT_WIND_BASE_DB
 	## M04: kill echo voice cleanly on instant reset — no leakage into aftermath
 	if _echo_voice:
 		_echo_voice.stop()
@@ -674,6 +720,9 @@ func reset_audio_instant() -> void:
 		_radio_director.reset()
 	if _radio_player:
 		_radio_player.reset()
+	# Preserve synchronous full-silence semantics, then re-arm the persistent
+	# environmental bed on the next process turn using the same player authority.
+	call_deferred("_restart_ambient_wind_after_reset")
 
 func get_radio_director() -> RefCounted:
 	if not _radio_director:
@@ -831,6 +880,7 @@ func _play_reference_stream(stream: AudioStream, slot_id: String, pos: Vector3) 
 
 func set_mix_state(state: MixState) -> void:
 	current_mix_state = state
+	_update_ambient_wind_mix()
 	match state:
 		MixState.CALM:
 			set_tuning_audio(0.0)
