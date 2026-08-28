@@ -4,6 +4,9 @@ const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 const SLOT_ID := "interaction.gate_triggered"
 const PRODUCTION_ASSET_PATH := "res://audio/interaction/sfx_interaction_gate_slam.wav"
+const SOURCE_PROVENANCE := "GTA_SA:GENRL:BANK_42:SOUND_0"
+const EXPECTED_MIX_RATE := 18000
+const EXPECTED_DURATION_SEC := 0.5538
 
 func _init() -> void:
 	call_deferred("_run")
@@ -52,13 +55,11 @@ func _run() -> void:
 	if AudioRegistryScript.get_production_asset_path(SLOT_ID) != PRODUCTION_ASSET_PATH:
 		await _fail("gate production_asset_path must be %s" % PRODUCTION_ASSET_PATH)
 		return
-
-	var provenance: String = AudioRegistryScript.get_source_provenance(SLOT_ID)
-	if not provenance.begins_with("GTA_SA:") or provenance.find(":BANK_") < 0 or provenance.find(":SOUND_") < 0:
-		await _fail("gate source_provenance must record exact GTA pak/bank/sound identity")
+	if AudioRegistryScript.get_source_provenance(SLOT_ID) != SOURCE_PROVENANCE:
+		await _fail("gate source_provenance must be %s" % SOURCE_PROVENANCE)
 		return
 
-	# 2. Curated production asset must be a compact mono 16-bit PCM transient.
+	# 2. Curated production asset must preserve the selected source characteristics.
 	if not FileAccess.file_exists(PRODUCTION_ASSET_PATH):
 		await _fail("production gate WAV is missing")
 		return
@@ -76,12 +77,12 @@ func _run() -> void:
 	if stream.stereo:
 		await _fail("production gate WAV must be mono for 3D localization")
 		return
-	if stream.mix_rate < 8000 or stream.mix_rate > 48000:
-		await _fail("production gate WAV has implausible mix rate: %d" % stream.mix_rate)
+	if stream.mix_rate != EXPECTED_MIX_RATE:
+		await _fail("production gate WAV must preserve native 18 kHz mix rate (got %d)" % stream.mix_rate)
 		return
 	var duration := stream.get_length()
-	if duration < 0.20 or duration > 0.80:
-		await _fail("production gate transient must stay compact (got %.4fs)" % duration)
+	if absf(duration - EXPECTED_DURATION_SEC) > 0.01:
+		await _fail("production gate WAV must preserve ~0.5538s duration (got %.4fs)" % duration)
 		return
 
 	# 3. AudioManager must expose the semantic mapping and load through registry.
@@ -137,4 +138,4 @@ func _run() -> void:
 	manager.queue_free()
 	await process_frame
 	await process_frame
-	await _pass("selected gate WAV, semantic mapping, 3D production playback and procedural fallback verified")
+	await _pass("exact selected gate WAV, semantic mapping, 3D production playback and procedural fallback verified")
