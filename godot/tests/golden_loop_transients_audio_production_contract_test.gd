@@ -9,48 +9,54 @@ const TARGETS := [
 		"event": AudioManagerScript.SoundEvent.PANEL_PEEL,
 		"slot": "interaction.panel_peel",
 		"path": "res://audio/interaction/sfx_interaction_panel_peel.wav",
-		"min_duration": 0.20,
-		"max_duration": 1.20,
+		"provenance": "GTA_SA:GENRL:BANK_76:SOUND_1",
+		"mix_rate": 18000,
+		"duration": 0.6595,
 	},
 	{
 		"label": "wire spark",
 		"event": AudioManagerScript.SoundEvent.SPARK,
 		"slot": "interaction.wire_spark",
 		"path": "res://audio/interaction/sfx_interaction_wire_spark.wav",
-		"min_duration": 0.05,
-		"max_duration": 0.45,
+		"provenance": "GTA_SA:GENRL:BANK_143:SOUND_26",
+		"mix_rate": 24000,
+		"duration": 0.2631,
 	},
 	{
 		"label": "core extracted",
 		"event": AudioManagerScript.SoundEvent.COMPLETION,
 		"slot": "interaction.core_extracted",
 		"path": "res://audio/interaction/sfx_interaction_core_extracted.wav",
-		"min_duration": 0.15,
-		"max_duration": 0.90,
+		"provenance": "GTA_SA:SCRIPT:BANK_260:SOUND_0",
+		"mix_rate": 22050,
+		"duration": 0.6313,
 	},
 	{
 		"label": "bike mount",
 		"event": AudioManagerScript.SoundEvent.BIKE_MOUNT,
 		"slot": "player.bike_mount",
 		"path": "res://audio/player/sfx_player_bike_mount.wav",
-		"min_duration": 0.05,
-		"max_duration": 0.50,
+		"provenance": "GTA_SA:GENRL:BANK_143:SOUND_57",
+		"mix_rate": 18000,
+		"duration": 0.3443,
 	},
 	{
 		"label": "bike dismount",
 		"event": AudioManagerScript.SoundEvent.BIKE_DISMOUNT,
 		"slot": "player.bike_dismount",
 		"path": "res://audio/player/sfx_player_bike_dismount.wav",
-		"min_duration": 0.05,
-		"max_duration": 0.50,
+		"provenance": "GTA_SA:GENRL:BANK_143:SOUND_41",
+		"mix_rate": 22050,
+		"duration": 0.2115,
 	},
 	{
 		"label": "brake screech",
 		"event": AudioManagerScript.SoundEvent.BRAKE_SCREECH,
 		"slot": "vehicle.brake_screech",
 		"path": "res://audio/vehicle/sfx_vehicle_brake_screech.wav",
-		"min_duration": 0.15,
-		"max_duration": 1.20,
+		"provenance": "GTA_SA:GENRL:BANK_143:SOUND_28",
+		"mix_rate": 28000,
+		"duration": 0.4540,
 	},
 ]
 
@@ -111,11 +117,9 @@ func _run() -> void:
 			manager.queue_free()
 			await _fail("%s production path must be %s" % [label, asset_path])
 			return
-
-		var provenance: String = AudioRegistryScript.get_source_provenance(slot_id)
-		if not provenance.begins_with("GTA_SA:") or provenance.find(":BANK_") < 0 or provenance.find(":SOUND_") < 0:
+		if AudioRegistryScript.get_source_provenance(slot_id) != String(target["provenance"]):
 			manager.queue_free()
-			await _fail("%s must record exact GTA pak/bank/sound provenance" % label)
+			await _fail("%s source provenance mismatch" % label)
 			return
 
 		if not FileAccess.file_exists(asset_path):
@@ -135,14 +139,13 @@ func _run() -> void:
 			manager.queue_free()
 			await _fail("%s must be mono for 3D localization" % label)
 			return
-		if stream.mix_rate < 8000 or stream.mix_rate > 48000:
+		if stream.mix_rate != int(target["mix_rate"]):
 			manager.queue_free()
-			await _fail("%s has implausible native sample rate %d" % [label, stream.mix_rate])
+			await _fail("%s must preserve native sample rate %d (got %d)" % [label, int(target["mix_rate"]), stream.mix_rate])
 			return
-		var duration: float = stream.get_length()
-		if duration < float(target["min_duration"]) or duration > float(target["max_duration"]):
+		if absf(stream.get_length() - float(target["duration"])) > 0.01:
 			manager.queue_free()
-			await _fail("%s duration %.4fs is outside approved transient range" % [label, duration])
+			await _fail("%s must preserve selected duration %.4fs (got %.4fs)" % [label, float(target["duration"]), stream.get_length()])
 			return
 
 		manager.reset_audio_instant()
@@ -171,5 +174,5 @@ func _run() -> void:
 	manager.queue_free()
 	await process_frame
 	await process_frame
-	print("[AUDIO_PRODUCTION_01D] PASS: six selected GTA transients resolve, map and play as bounded 3D production voices")
+	print("[AUDIO_PRODUCTION_01D] PASS: six exact GTA selections resolve, map and play as bounded 3D production voices")
 	quit(0)
