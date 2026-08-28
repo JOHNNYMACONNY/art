@@ -1,6 +1,6 @@
 # Audio Production 01G — Impacts & Collisions Pack
 
-**State:** CANDIDATE_SELECTION_REQUIRED  
+**State:** SOURCES_SELECTED__IMPLEMENTATION_PENDING  
 **Baseline:** `main@289c15f33def99063b1658fe85e9c03c64edbd36`
 
 ## Objective
@@ -14,6 +14,28 @@ Replace three already-live physical-impact procedural transients in one producti
 This batch mirrors the proven 01D workflow: one candidate search/audition session, one integration branch, one asset-ingestion pass, one exact-head automated verification pass, one native gameplay listening pass, and one PR/review/merge cycle.
 
 Do not add a fourth audio slot, alter vehicle handling, change pursuit state logic, or redesign the audio framework.
+
+## Locked selections
+
+| Runtime event | Semantic slot | GTA source | Native duration | Native rate | Canonical production path |
+| --- | --- | --- | ---: | ---: | --- |
+| `PURSUIT_INTERCEPTED` | `pursuit.intercepted_impact` | `GTA_SA:GENRL:BANK_40:SOUND_1` | `0.5382 s` | `18,000 Hz` | `res://audio/pursuit/sfx_pursuit_intercepted_impact.wav` |
+| `COLLISION_GLANCE` | `vehicle.collision_glance` | `GTA_SA:GENRL:BANK_51:SOUND_2` | `0.2846 s` | `18,900 Hz` | `res://audio/vehicle/sfx_vehicle_collision_glance.wav` |
+| `COLLISION_HEAD_ON` | `vehicle.collision_hard` | `GTA_SA:GENRL:BANK_58:SOUND_2` | `0.5700 s` | `18,000 Hz` | `res://audio/vehicle/sfx_vehicle_collision_hard.wav` |
+
+All three selections passed direct human audition and pairwise identity checks. No selected source requires gain change, resampling, EQ, compression, reverb, or time stretching. Each selected production source receives only the approved ~1.5 ms boundary taper.
+
+Raw audition evidence:
+
+- intercept raw SHA-256: `fa397ff477444218f522fe238e9b00a4d581f7b2ed998feb65520d914760918d`;
+- glance raw SHA-256: `9e083cd761437322937eb4b9594270c4680a1ea1705db5565481a48df0acc77e`;
+- hard raw SHA-256: `75c07d75cc878cb9a2360806f7e2035de9232636b4a3d7dbbcbfc75017f7fda4`.
+
+Runner-ups remain audition evidence only and must not enter the production tree:
+
+- intercept runner-up: `GENRL / Bank 88 / Sound 1`;
+- glance runner-up: `GENRL / Bank 59 / Sound 14`;
+- hard runner-up: `GENRL / Bank 58 / Sound 0`.
 
 ## Current runtime authority
 
@@ -72,67 +94,30 @@ For each selected source, record exact provenance as:
 
 Only the three selected production WAVs may enter Git. GTA archives, candidate pools, rejected candidates, normalized audition copies, and analysis artifacts remain local/ignored.
 
-## Audition target 1 — pursuit.intercepted_impact
+## Selected listening identities
 
-Desired character:
+### Pursuer intercept — `GTA_SA:GENRL:BANK_40:SOUND_1`
 
-- violent but controlled pursuer/body interception impact;
-- heavy metal/chassis strike with optional short electrical/EMP-like component;
-- unmistakable failure/critical-threat confirmation;
-- readable beneath active siren/tension layers;
-- strong physical body on laptop/phone speakers without relying on sub-bass;
-- not an explosion, firearm, musical sting, magical energy blast, or long cinematic boom;
-- distinct from the Signal Gate slam so interception reads as direct contact rather than infrastructure movement;
-- low fatigue across retry/interception loops.
+Massive vehicle-body slam with dense mechanical crunch and metal deformation. The selection reads as a larger-mass critical interception than the normal hard collision and differs from the Signal Gate by emphasizing chassis crumple/friction rather than resonant barrier clang.
 
-Preferred natural duration: approximately `0.25–0.80 s`.
+### Collision glance — `GTA_SA:GENRL:BANK_51:SOUND_2`
 
-## Audition target 2 — vehicle.collision_glance
+Abrasive lateral metal scrape/body-panel rub with immediate attack and fast decay. It remains compact/repeatable and intentionally lighter/frictional compared with the structural hard collision.
 
-Desired character:
+### Collision hard — `GTA_SA:GENRL:BANK_58:SOUND_2`
 
-- abrasive glancing metal scrape / side contact / body-panel shear;
-- lateral friction character rather than a centered slam;
-- compact enough to repeat during driving without fatigue;
-- clearly lighter and less catastrophic than the hard collision selection;
-- readable with engine, traction scrub, brake transient, and pursuit layers;
-- not glass-only, gunshot-like, or a clean mechanical click.
-
-Preferred natural duration: approximately `0.10–0.60 s`.
-
-## Audition target 3 — vehicle.collision_hard
-
-Desired character:
-
-- heavy chassis/metal crash crunch with immediate impact authority;
-- materially more destructive/heavy than the glance selection before runtime gain scaling is considered;
-- enough mid/low-mid body for small speakers without becoming a sub-bass-only thud;
-- works with energy-derived runtime gain across moderate to severe impacts;
-- no long debris tail that muddies pursuit/engine playback;
-- not an explosion, gunshot, gate slam clone, or tire-only skid.
-
-Preferred natural duration: approximately `0.25–0.90 s`.
-
-## Production asset destinations
-
-Once selections are locked:
-
-- `pursuit.intercepted_impact` → `res://audio/pursuit/sfx_pursuit_intercepted_impact.wav`;
-- `vehicle.collision_glance` → `res://audio/vehicle/sfx_vehicle_collision_glance.wav`;
-- `vehicle.collision_hard` → `res://audio/vehicle/sfx_vehicle_collision_hard.wav`.
-
-`AudioRegistry` owns each canonical production path and source provenance. `AudioManager` must not duplicate asset paths as independent constants.
+Heavy direct metal crumple and structural frame crash with substantial low-mid body. It remains materially heavier than glance while avoiding the larger catastrophic-mass identity reserved for pursuer interception.
 
 ## Production treatment
 
 For each selected WAV:
 
-- preserve mono 16-bit PCM when provided by the GTA extractor;
-- preserve native sample rate unless a concrete playback defect requires otherwise;
-- preserve natural duration/envelope;
-- no speculative gain normalization;
+- preserve mono 16-bit PCM;
+- preserve the exact native sample rate listed in the locked selection table;
+- preserve natural duration within ±0.01 s of the selected source;
+- no gain normalization;
 - no EQ, compression, reverb, resampling, or time stretching;
-- apply only minimal boundary treatment justified by actual source integrity;
+- apply only ~1.5 ms boundary taper;
 - Godot import must remain non-destructive with `compress/mode=0`.
 
 Any gain differences required by collision severity remain runtime-owned by the existing collision-energy path rather than being baked into destructive source processing.
@@ -161,7 +146,7 @@ The exact-head production contract must prove for all three targets:
 - semantic slot and exact runtime event mapping;
 - exact production path and exact GTA source provenance;
 - selected WAV exists and loads as mono 16-bit `AudioStreamWAV`;
-- native sample rate and selected duration are preserved within a narrow tolerance;
+- exact native sample rate and selected duration are preserved within ±0.01 s;
 - stream resolves through the registry-backed production cache;
 - event creates a bounded `AudioStreamPlayer3D` at an arbitrary supplied world position;
 - `unit_size = 10.0` and no unauthorized max-distance override;
@@ -218,4 +203,4 @@ Judge:
 
 ## Completion
 
-01G reaches PASS only after three GTA sources are human-selected and integrated, exact-head automated verification passes, exact-head native batch listening passes, fresh Standards/Spec review passes, the PR merges, and exact-main verification/playtest provenance is green.
+01G reaches PASS only after three selected GTA sources are integrated, exact-head automated verification passes, exact-head native batch listening passes, fresh Standards/Spec review passes, the PR merges, and exact-main verification/playtest provenance is green.
