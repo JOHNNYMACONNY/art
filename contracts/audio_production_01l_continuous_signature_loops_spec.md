@@ -1,498 +1,220 @@
 # Audio Production 01L — Continuous Signature Loops Pack
 
-**State:** CANDIDATE_SELECTION_REQUIRED  
+**State:** SOURCES_SELECTED__IMPLEMENTATION_PENDING  
 **Baseline:** `main@978f13a6d8d6908b1e571d1be573de3c8cd0d1f5`
 
 ## Objective
 
 Replace three live procedural continuous-loop identities with production media while preserving their existing runtime owners and modulation logic:
 
-1. `vehicle.engine_rev` — active courier vehicle propulsion / drivetrain loop;
-2. `pursuit.siren_alarm` — spatial pursuer threat siren loop;
+1. `vehicle.engine_rev` — active vehicle propulsion loop;
+2. `pursuit.siren_alarm` — spatial pursuer threat loop;
 3. `echo.radio_interference` — hybrid precursor-Echo radio contamination loop.
 
-All three targets are already live on main. 01L is media replacement plus narrow registry/runtime stream resolution only. Do not create new gameplay mechanics, new loop owners, new pursuit rules, new radio rules, or new vehicle physics.
+No new player nodes, gameplay mechanics, pursuit rules, radio rules, vehicle physics, timers, schedulers, or reset owners are authorized.
 
-## Runtime authority on baseline main
+## Locked production selections
 
-### 1. `vehicle.engine_rev` — live continuous vehicle feedback
+### Vehicle Engine Rev
 
-Registry intent:
+Selected source:
 
-- domain: VEHICLE;
-- DIEGETIC;
-- DIEGETIC_3D;
-- mix group: VEHICLE_FEEDBACK;
-- CONTINUOUS_LOOP;
-- `is_looping = true`;
-- max concurrency: 2;
-- PROCEDURAL_FALLBACK / replacement-required.
+`GTA_SA:GENRL:BANK_8:SOUND_1`
 
-Current AudioManager owner:
+- mono PCM16;
+- native sample rate: `18,000 Hz`;
+- frame count: `21,531`;
+- duration: `1.1962 s`;
+- raw bytes: `43,106`;
+- raw SHA-256: `60ed5448461756a7bbcb527c1e0768004164464e01b186abff336bfe646cb72b`;
+- reclaimed electric/mechanical drivetrain turbine whir;
+- passed 60 s loop fatigue and runtime pitch tests at `0.72 / 0.90 / 1.00 / 1.30 / 1.60 / 2.12x`;
+- no low-pitch mud or high-pitch comedy/harshness;
+- proposed treatment: only ~`40 ms` equal-power circular seam blend (`~720` frames), preserving duration/sample rate;
+- forward loop; no normalization, resampling, EQ, compression, reverb, or time stretching.
 
-- one existing `AudioStreamPlayer3D` named `EngineRevPlayer`;
+Runner-up `GTA_SA:GENRL:BANK_8:SOUND_0` remains audition evidence only.
+
+Canonical production path:
+
+`res://audio/vehicle/loop_vehicle_engine_rev.wav`
+
+### Pursuit Siren Alarm
+
+Selected source:
+
+`GTA_SA:GENRL:BANK_39:SOUND_8`
+
+- mono PCM16;
+- native sample rate: `18,000 Hz`;
+- frame count: `13,989`;
+- duration: `0.7772 s`;
+- raw bytes: `28,022`;
+- raw SHA-256: `c1c4c8fe1fb754e46d85a9ea6e40786de95da88f9bab361bb5fd6ed929f84bcf`;
+- autonomous pursuer electronic alarm warble;
+- passed 45 s fatigue and `1.00 -> 1.45x` pursuit-pressure modulation;
+- distinct from Disturbance Alert, Evasion Release, Signal Lock, and Intercept;
+- proposed treatment: only ~`30 ms` equal-power circular seam blend (`~540` frames), preserving duration/sample rate;
+- forward loop; no normalization, resampling, EQ, compression, reverb, or time stretching.
+
+Runner-up `GTA_SA:SCRIPT:BANK_353:SOUND_0` remains audition evidence only.
+
+Canonical production path:
+
+`res://audio/pursuit/loop_pursuit_siren_alarm.wav`
+
+### Echo Radio Interference
+
+Selected source:
+
+`GTA_SA:SCRIPT:BANK_356:SOUND_12`
+
+- mono PCM16;
+- native sample rate: `15,000 Hz`;
+- frame count: `14,369`;
+- duration: `0.9579 s`;
+- raw bytes: `28,782`;
+- raw SHA-256: `b354523d6aa0ccd7e320f7799641561e10a59c641d6eb6f45d2306fe4e8c10e6`;
+- fractured RF carrier contamination / digital telemetry flutter;
+- passed 45 s loop fatigue at approximate `-30 / -21 / -12 dB` proximity levels;
+- sits beneath Yardline radio and remains distinct from the 01J Memory Echo arc;
+- suppresses cleanly under Memory Echo/reset/critical priority;
+- proposed treatment: only ~`30 ms` equal-power circular seam blend (`~450` frames), preserving duration/sample rate;
+- forward loop; no normalization, resampling, EQ, compression, reverb, or time stretching.
+
+Runner-up `GTA_SA:SCRIPT:BANK_356:SOUND_30` remains audition evidence only.
+
+Canonical production path:
+
+`res://audio/echo/loop_echo_radio_interference.wav`
+
+## Pack-level audition result
+
+Human candidate audition on exact search head `2268a347ce704a05c1315c50bc2695264190930b`:
+
+- Engine vs Siren: PASS;
+- Engine vs Interference: PASS;
+- Siren vs Interference: PASS;
+- all-three spectral separation: PASS;
+- combined loop fatigue: PASS;
+- extraction/staging integrity: PASS.
+
+This audition selects source identity only. Final production integration still requires exact-head automated proof and native gameplay listening after asset ingestion.
+
+## Runtime authority to preserve
+
+### `vehicle.engine_rev`
+
+Existing owner: one `AudioStreamPlayer3D` named `EngineRevPlayer`.
+
+Preserve exactly:
+
 - Master bus;
 - `unit_size = 12.0`;
 - `max_distance = 30.0`;
-- current fallback stream: `0.5 s` procedural noise loop;
-- player follows active vehicle world position.
+- live vehicle world-position updates;
+- rich vehicle-feedback pitch formula `clamp(0.76 + speed*1.05 + load*0.28, 0.72, 2.12)`;
+- rich feedback gain formula `clamp(-25 + speed*11 + load*7, -25, -6)`;
+- priority-state gain cap at `-12 dB`;
+- legacy speed-responsive path for other vehicles;
+- stop/start ownership;
+- reset restoration to pitch `1.0` / gain `0.0`;
+- existing procedural `0.5 s` noise loop as independently reachable fallback.
 
-Current modulation authority is **not optional** and must be preserved.
+### `pursuit.siren_alarm`
 
-Courier Bike rich feedback path (`VehicleFeedbackLayer`):
+Existing owner: one `AudioStreamPlayer3D` named `SirenAlarmPlayer`.
 
-- speed ratio: `0.0–1.0`;
-- load ratio: `0.0–1.0`;
-- stop if speed `<= 0.01` and load `<= 0.03`;
-- pitch scale: `clamp(0.76 + speed*1.05 + load*0.28, 0.72, 2.12)`;
-- gain: `clamp(-25 + speed*11 + load*7, -25 dB, -6 dB)`;
-- priority states cap engine gain at `-12 dB`;
-- no production replacement may change vehicle telemetry or those formulas.
+Preserve exactly:
 
-Legacy/shared vehicle path:
-
-- active vehicle position is supplied continuously;
-- speed-responsive pitch remains part of the compatibility path for vehicles not currently driven by the richer feedback layer.
-
-**Candidate consequence:** the selected loop must tolerate a very wide runtime pitch/speed range. A source that sounds good only at native pitch is not acceptable.
-
-### 2. `pursuit.siren_alarm` — live continuous threat loop
-
-Registry intent:
-
-- domain: PURSUIT;
-- DIEGETIC;
-- DIEGETIC_3D;
-- mix group: CRITICAL_THREAT;
-- CONTINUOUS_LOOP;
-- `is_looping = true`;
-- max concurrency: 2;
-- PROCEDURAL_FALLBACK / replacement-required.
-
-Current AudioManager owner:
-
-- one existing `AudioStreamPlayer3D` named `SirenAlarmPlayer`;
 - Master bus;
 - `unit_size = 15.0`;
 - `max_distance = 35.0`;
-- current fallback: `440 Hz`, `0.6 s` looping tone.
+- pursuit position ownership;
+- pressure formula `clamp((20 - distance) / 15, 0, 1)`;
+- pitch `1.0 -> 1.45`;
+- gain `-4 dB -> +3 dB` during pursuit;
+- release-decay ownership and stop behavior;
+- Disturbance Alert side effect behavior;
+- reset restoration to pitch `1.0` / gain `0.0`;
+- existing procedural `440 Hz / 0.6 s` loop as independently reachable fallback.
 
-Pursuit pressure authority:
+### `echo.radio_interference`
 
-- pursuit pressure `p = clamp((20m - distance) / 15m, 0, 1)`;
-- siren follows pursuer world position;
-- pitch scale sweeps `1.0 -> 1.45` as pressure rises;
-- gain sweeps `-4 dB -> +3 dB` as pressure rises;
-- release decay preserves the same owner and eases pitch/gain down before stopping;
-- Disturbance Alert, Intercept impact, tension layer, radio ducking, and pursuit state ownership remain separate.
+Existing owner: one `AudioStreamPlayer3D` named `RadioInterferencePlayer3D`.
 
-**Candidate consequence:** audition at both native pitch and up to `1.45x` pitch/speed. The winner must remain urgent without becoming shrill or comical at maximum pressure.
+Preserve exactly:
 
-### 3. `echo.radio_interference` — live gated hybrid loop
-
-Registry intent:
-
-- domain: ECHO;
-- HYBRID diegesis;
-- HYBRID spatial type;
-- mix group: SIGNATURE_ECHO;
-- CONTINUOUS_LOOP;
-- `is_looping = true`;
-- max concurrency: 1;
-- PROCEDURAL_FALLBACK / replacement-required.
-
-Current AudioManager owner:
-
-- one existing `AudioStreamPlayer3D` named `RadioInterferencePlayer3D`;
 - Master bus;
 - `unit_size = 8.0`;
 - `max_distance = 25.0`;
-- current fallback: `1.0 s` procedural fractured-carrier loop;
-- world position is the precursor/corroded-panel source position.
-
-Live eligibility gates are already authored in the prototype controller:
-
-- world state must be PANEL_POWERED;
-- an active vehicle must exist;
-- that vehicle must own the radio;
-- radio must be enabled and actively streaming;
-- otherwise interference is cleared immediately.
-
-Distance/intensity authority:
-
-- outer radius: `18 m`;
-- inner radius: `3 m`;
-- intensity rises continuously from 0 to 1 while approaching the source;
-- base 3D voice gain rises approximately `-30 dB -> -12 dB` with intensity;
-- contamination also applies up to `-4 dB` of radio suppression;
-- pursuit pressure attenuates the interference further;
-- DISTURBANCE attenuates it;
-- MEMORY_ECHO suppresses it completely;
-- critical interception duck suppresses it completely;
-- reset/intercept clears the interference.
-
-**Candidate consequence:** this is not the 01J Memory Echo arc and not a normal radio program. It must survive quiet low-level looping and remain identifiable when close, yet yield cleanly to threat and full Memory Echo states.
-
-## Shared implementation constraints after source lock
-
-Future 01L integration must:
-
-- preserve the existing three player nodes;
-- resolve production media from `AudioRegistry` rather than duplicate hardcoded paths;
-- preserve existing unit sizes and max distances exactly;
-- preserve all current pitch/gain/distance formulas;
-- preserve all current start/stop/reset ownership;
-- preserve each procedural fallback independently when its production stream is absent;
-- allow one missing production loop without disabling the other two;
-- avoid new timers, players, schedulers, or gameplay state;
-- use loop-enabled imports and runtime streams;
-- align registry loop window metadata to the selected natural loop only after human source selection.
-
-## Owner-authorized candidate source boundary
-
-Use only the owner-authorized local GTA San Andreas audio library already accepted for production-audio work.
-
-For every candidate record exact provenance:
-
-`GTA_SA:<PAK>:BANK_<bank_id>:SOUND_<sound_index>`
-
-Candidate staging stays local/gitignored. Do not create production WAVs during this search.
-
-## Target A — `vehicle.engine_rev`
-
-Desired identity:
-
-- compact electric / turbine / reclaimed propulsion texture;
-- mechanical enough to feel attached to a physical courier vehicle;
-- tonal/noisy balance that remains useful under runtime pitch modulation;
-- enough low-mid body at low pitch/load;
-- enough upper mechanical detail at high pitch/load;
-- no obvious combustion-cylinder rhythm unless extremely abstract;
-- should work for the existing shared vehicle presentation without forcing a new per-vehicle engine asset system;
-- must sit beneath collision, brake, pursuit, and radio cues.
-
-Preferred natural source length:
-
-`0.8–3.0 s`
-
-Longer candidates may be considered if their loop is exceptionally neutral and compact in memory footprint.
-
-Reject:
-
-- obvious horn/siren;
-- one-shot acceleration pass-by;
-- gear-change transient;
-- strongly rhythmic piston pulse that becomes machine-gun-like at 2.12x;
-- speech/music;
-- engine clip with a baked acceleration/deceleration envelope;
-- candidate that loses all low-mid identity when pitched above ~1.6x;
-- candidate that becomes sub-bass mud below native pitch.
-
-### Engine pitch/load audition
-
-For every serious finalist, loop for at least 30 seconds and audition these representative pitch scales:
-
-- `0.72x` — extreme low boundary;
-- `0.90x` — low-speed / low-load region;
-- `1.00x` — native;
-- `1.30x` — moderate acceleration;
-- `1.60x` — fast/high load;
-- `2.12x` — runtime maximum.
-
-Also test fast sweeps between those values rather than only static points.
-
-Judge:
-
-- seamless loop at every pitch;
-- no periodic knocking/warble revealed by pitch change;
-- no chipmunk/comical identity at 2.12x;
-- no muddy drone at 0.72x;
-- acceleration reads naturally when pitch rises;
-- coast/low-load state remains distinguishable from high load;
-- repeated 60-second driving fatigue;
-- compatibility under Wind and Yardline radio;
-- compatibility with production Brake Screech and collision cues.
-
-## Target B — `pursuit.siren_alarm`
-
-Desired identity:
-
-- threatening autonomous pursuer alarm / electronic emergency siren;
-- strongly readable at distance in 3D;
-- recognizable as sustained threat rather than a one-shot alert;
-- distinct from the production Disturbance Alert chirp;
-- distinct from Intercept chassis impact;
-- not so literal/iconic that it overwhelms the game's reclaimed near-future identity;
-- should become more urgent as runtime pitch rises to 1.45x without becoming painfully shrill.
-
-Preferred natural source length:
-
-`0.8–2.5 s`
-
-Reject:
-
-- short beeps that produce obvious repetition;
-- spoken police/radio material;
-- horn blasts;
-- alarm with an uneditable one-shot intro/outro that clicks each cycle;
-- extremely bright tone that becomes fatiguing at 1.45x;
-- loop whose pitch modulation changes perceived identity into a comedy/car alarm.
-
-### Siren chase audition
-
-For every serious finalist:
-
-1. loop for at least 45 seconds;
-2. test native pitch `1.0x`;
-3. test intermediate `1.20x`;
-4. test maximum `1.45x`;
-5. sweep repeatedly between 1.0 and 1.45 to mimic closing/opening distance;
-6. audition at low and high playback levels to approximate far/near 3D attenuation;
-7. layer with representative Wind, engine, tension drone if practical, and production Disturbance Alert / Intercept.
-
-Judge:
-
-- loop seam;
-- long-chase fatigue;
-- urgency scaling;
-- small-speaker readability;
-- harshness at maximum pitch;
-- distinction from Disturbance Alert;
-- distinction from Evasion Release;
-- distinction from Signal Lock;
-- whether it leaves room for Intercept impact.
-
-## Target C — `echo.radio_interference`
-
-Desired identity:
-
-- reclaimed-radio carrier contamination;
-- fractured analog/digital telemetry residue;
-- unstable RF flutter, carrier beating, narrow-band noise, or corrupted electrical texture;
-- hybrid: clearly sourced from a world position while also contaminating the vehicle radio experience;
-- eerie precursor identity, but not the full 01J Memory Echo apparition;
-- subtle enough for proximity exploration and repeated passes;
-- no intelligible speech required or desired.
-
-Preferred natural source length:
-
-`0.8–2.5 s`
-
-Reject:
-
-- conventional radio station/music;
-- intelligible GTA dialogue;
-- police dispatch phrases;
-- pure unshaped white noise;
-- alarm/siren;
-- Signal Lock-like confirmation ping;
-- obvious 01J Echo Onset/Peak/Tail clone;
-- loop with a strong transient landmark every cycle.
-
-### Interference proximity audition
-
-For every serious finalist, loop for at least 45 seconds and audition at approximate relative levels representing:
-
-- outer range / barely present: around `-30 dB`;
-- mid proximity: around `-21 dB`;
-- inner range / close: around `-12 dB`.
-
-Also audition beneath representative Yardline radio playback.
-
-Judge:
-
-- whether the texture remains perceptible but non-distracting at low level;
-- whether close-range identity is compelling without becoming a full alarm;
-- loop seam and repeated landmark fatigue;
-- compatibility with up to ~`-4 dB` radio contamination;
-- 3D/small-speaker readability;
-- distinction from 01J Echo Onset/Peak/Tail;
-- distinction from Signal Lock;
-- distinction from Disturbance Alert;
-- whether sudden suppression to silence during MEMORY_ECHO / critical threat feels clean rather than exposing a bad loop edge.
-
-## Loop treatment policy
-
-Do not apply one-shot boundary tapers to continuous loops.
-
-For each finalist report the raw seam behavior first.
-
-Preferred treatment order:
-
-1. use the raw loop unchanged if genuinely seamless;
-2. otherwise use the smallest practical equal-power circular seam blend;
-3. preserve original sample rate and total duration when possible;
-4. do not time-stretch solely to match stale registry loop windows.
-
-No gain normalization, EQ, compression, reverb, resampling, or time stretching is authorized during candidate selection unless a candidate is explicitly rejected for requiring it.
-
-## Search scope
-
-Start with:
-
-- `GENRL`;
-- `SCRIPT`.
-
-Also deliberately inspect library families likely to contain:
-
-- vehicle/engine loops;
-- industrial machinery hums;
-- sirens/alarms;
-- radio/static/interference;
-- electronics/communication carriers.
-
-Do not constrain search to previously used GENRL 138/143 banks.
-
-For engine candidates, prioritize naturally steady sources over one-shot vehicle maneuvers.
-For siren candidates, prioritize steady threat loops over recognizable speech/police dispatch.
-For interference candidates, prioritize generic carrier/noise textures over authored dialogue.
-
-Aim for:
-
-- 4–6 credible Engine candidates;
-- 4–6 credible Siren candidates;
-- 4–6 credible Interference candidates.
-
-Approximately 12–18 serious candidates total is sufficient. Do not bulk-extract hundreds of sounds.
-
-## Candidate report requirements
-
-For every serious candidate return:
-
-- candidate ID;
-- target slot;
-- pak;
-- bank;
-- sound index;
-- duration;
-- native sample rate;
-- channels;
-- bit depth;
-- raw bytes;
-- raw SHA-256;
-- PASS / REJECT;
-- listening identity;
-- loop seam quality;
-- proposed seam treatment;
-- pitch-range behavior where applicable;
-- small-speaker readability;
-- long-loop fatigue;
-- neighboring-production distinction;
-- gain change needed;
-- resampling needed;
-- EQ/compression/reverb/time-stretch needed.
-
-## Final selection report
-
-### Engine Rev — Selected
-
-Return:
-
-- exact source metadata;
-- natural duration/rate;
-- raw SHA-256;
-- 30–60 second loop result;
-- behavior at 0.72 / 0.90 / 1.0 / 1.30 / 1.60 / 2.12 pitch scales;
-- rapid pitch-sweep result;
-- low-pitch mud result;
-- high-pitch harsh/comedy result;
-- Wind/Yardline compatibility;
-- Brake/Collision distinction;
-- exact proposed loop treatment.
-
-Runner-up:
-
-- source;
-- reason not selected.
-
-### Pursuit Siren — Selected
-
-Return:
-
-- exact source metadata;
-- natural duration/rate;
-- raw SHA-256;
-- 45-second loop result;
-- 1.0 / 1.20 / 1.45 pitch results;
-- repeated pressure-sweep result;
-- far/near readability;
-- maximum-pitch harshness;
-- distinction from Disturbance Alert;
-- distinction from Evasion Release / Signal Lock;
-- Intercept headroom;
-- exact proposed loop treatment.
-
-Runner-up:
-
-- source;
-- reason not selected.
-
-### Echo Radio Interference — Selected
-
-Return:
-
-- exact source metadata;
-- natural duration/rate;
-- raw SHA-256;
-- 45-second loop result;
-- low/mid/high proximity-level result (`-30 / -21 / -12 dB` approximations);
-- Yardline-underlay result;
-- low-level perceptibility;
-- close-range identity;
-- 01J Echo distinction;
-- Signal Lock / Disturbance distinction;
-- sudden-suppression behavior;
-- exact proposed loop treatment.
-
-Runner-up:
-
-- source;
-- reason not selected.
-
-## Pack-level discrimination
-
-Audition the three winners together in representative gameplay-like combinations:
-
-- Engine + Wind + Yardline;
-- Engine + Siren + Wind during pursuit;
-- Engine + Interference + Yardline near the precursor source;
-- Siren + Disturbance Alert transition;
-- Interference suppression into Memory Echo if practical.
-
-Report:
-
-- Engine vs Siren: PASS / FAIL;
-- Engine vs Interference: PASS / FAIL;
-- Siren vs Interference: PASS / FAIL;
-- all-three spectral separation: PASS / FAIL;
-- overall loop-fatigue result: PASS / FAIL;
-- overall extraction integrity: PASS / FAIL.
-
-## Candidate-search boundary
-
-During candidate search do not:
-
-- add production WAVs/imports;
-- promote registry slots;
-- modify AudioManager or VehicleFeedbackLayer;
-- change pitch/gain formulas;
-- change unit sizes/max distances;
-- alter pursuit distance thresholds;
-- alter radio contamination rules;
-- add vehicle-specific engine slots;
-- add loop players;
-- change reset behavior.
-
-## Planned production paths after source lock
-
-If winners pass:
-
-- `vehicle.engine_rev` -> `res://audio/vehicle/loop_vehicle_engine_rev.wav`;
-- `pursuit.siren_alarm` -> `res://audio/pursuit/loop_pursuit_siren_alarm.wav`;
-- `echo.radio_interference` -> `res://audio/echo/loop_echo_radio_interference.wav`.
-
-These paths are planned only. Candidate search must not create them.
+- source-position ownership;
+- outer/inner radii `18 m / 3 m`;
+- base gain `-30 -> -12 dB` by proximity;
+- radio contamination up to `-4 dB`;
+- pursuit/disturbance attenuation;
+- full suppression during Memory Echo and critical interception;
+- reset/intercept clearing;
+- existing eligibility gates in the prototype controller;
+- existing procedural `1.0 s` fractured-carrier loop as independently reachable fallback.
+
+## Registry promotion
+
+After integration, promote only these three slots to project-internal `LICENSED_FINAL`, clear `replacement_required`, add exact production paths/provenance, and align loop windows to selected natural durations:
+
+- engine: `0.0 -> 1.1962`;
+- siren: `0.0 -> 0.7772`;
+- interference: `0.0 -> 0.9579`.
+
+All domain/diegesis/spatial/mix/concurrency metadata stays unchanged.
+
+Internal `LICENSED_FINAL` is not an independent legal/license-clearance claim.
+
+## Runtime integration contract
+
+1. Resolve the three production streams from `AudioRegistry` in `AudioManager._ready()`.
+2. If a production stream exists, use it on the existing corresponding player.
+3. If absent, use the exact existing procedural fallback for that player.
+4. Production and fallback streams must both be forward-loop enabled.
+5. One missing production loop must not disable or alter either other production loop.
+6. Do not add any player, event, scheduler, timer, or gameplay-state owner.
+7. Do not change `VehicleFeedbackLayer` formulas.
+8. Do not change pursuit pressure formulas or interference proximity/suppression formulas.
+9. `reset_audio_instant()` behavior and post-reset Wind re-arm remain unchanged.
+
+## Automated verification
+
+Exact-head 01L contract must prove:
+
+- exact registry path/provenance/status/loop metadata for all three;
+- WAV existence, mono PCM16, exact native rates and durations;
+- each production stream is forward-loop enabled;
+- `EngineRevPlayer` uses exact engine stream and preserves unit_size/max_distance;
+- `SirenAlarmPlayer` uses exact siren stream and preserves unit_size/max_distance;
+- `RadioInterferencePlayer3D` uses exact interference stream and preserves unit_size/max_distance;
+- vehicle feedback at representative telemetry preserves expected pitch/gain and selected stream;
+- pursuit pressure at far/mid/near positions preserves expected pitch/gain and selected stream;
+- interference at outer/mid/inner distances preserves expected gain/radio contamination and selected stream;
+- Memory Echo / critical suppression still stops or silences interference as before;
+- each procedural fallback remains independently reachable when only that production path is unavailable;
+- one missing production stream does not affect the other two;
+- authoritative reset stops all three loop voices and restores base pitch/gain values.
+
+Regression verification must include Audio Runtime, Vehicle Feedback, pursuit/intercept, 01K, 01J, 01H, 01G, 01F, 01D, 01C, 01B, semantic manifest, replay/reset, and canonical Web compatibility.
+
+## Human native verification
+
+Exact-head native gameplay listening must cover:
+
+- low/medium/high-load vehicle acceleration and 60+ s driving;
+- engine under Wind/Yardline and during pursuit;
+- Siren far/near and repeated pressure changes for 45+ s;
+- Disturbance Alert -> Siren -> Intercept -> Evasion transitions;
+- Interference far/mid/near under active Yardline;
+- Interference suppression into Memory Echo and critical pursuit;
+- reset/replay with no stale loop or doubled voice;
+- small-speaker/headphone harshness and loop seam/fatigue checks.
 
 ## Completion
 
-The 01L candidate-search checkpoint is complete when one human-auditioned winner and runner-up exist for each target, all three winners pass their required long-loop/pitch/proximity fatigue tests, the pack remains spectrally distinct in representative combinations, and no production/runtime mutation has occurred during search.
+01L reaches PASS only after exact production assets are integrated, exact-head automated verification and native gameplay listening pass, fresh Standards/Spec review passes, PR merges, and exact-main Audio Runtime/Web/public playtest provenance is current.
