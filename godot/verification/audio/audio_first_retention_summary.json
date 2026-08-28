@@ -166,6 +166,44 @@
         "raw_sha256": "46a40bebd9f3b390863dc4e1c472bd4cf14800b46f510539696c2ed796312093",
         "disposition": "RETENTION_ONLY__LOOP_FATIGUE",
         "note": "Clean seam in 10-second loop audition, but 0.38-second cadence becomes fatiguing. No production path or runtime caller is authorized in 01H."
+      },
+      "interaction.panel_pry": {
+        "source": "GTA_SA:GENRL:BANK_143:SOUND_40",
+        "duration_sec": 0.1547,
+        "sample_rate_hz": 22050,
+        "channels": 1,
+        "bit_depth": 16,
+        "raw_bytes": 6868,
+        "raw_sha256": "3205a8aa7708517f6b036dfa89b66def9c4cf997efae790675e4657024b56127",
+        "selection_head": "f8d8822db55819cc8a0b26a5d167e031973588d5",
+        "disposition": "RETENTION_ONLY__01I_INCUMBENT_CONFIRMED",
+        "note": "Human-auditioned 01I winner. Crisp initial leverage/stress bite remains distinct from the longer production panel peel. No live pry mechanic or SoundEvent exists, so no production path is authorized."
+      },
+      "interaction.wire_clip": {
+        "source": "GTA_SA:GENRL:BANK_143:SOUND_29",
+        "duration_sec": 0.0431,
+        "sample_rate_hz": 26400,
+        "channels": 1,
+        "bit_depth": 16,
+        "raw_bytes": 2320,
+        "raw_sha256": "d7c6b8a4de4dc497ffc43bd8ef17b4568f434ce965ba951131aedb48fecbaf77",
+        "prior_01e_source": "GTA_SA:GENRL:BANK_143:SOUND_48",
+        "selection_head": "f8d8822db55819cc8a0b26a5d167e031973588d5",
+        "disposition": "RETENTION_ONLY__01I_NEW_WINNER",
+        "note": "Human-selected 01I winner: precise mechanical cutter snip, distinct from production wire spark. The audition report's incumbent-comparison prose referenced a different local source than the historical 01E incumbent, so this ledger records the new winner without claiming a verified direct A/B against BANK_143:SOUND_48. No live wire-cut mechanic or SoundEvent exists."
+      },
+      "interaction.battery_insert": {
+        "source": "GTA_SA:GENRL:BANK_143:SOUND_12",
+        "duration_sec": 0.1422,
+        "sample_rate_hz": 14364,
+        "channels": 1,
+        "bit_depth": 16,
+        "raw_bytes": 4130,
+        "raw_sha256": "b079fe9af2c9a0bc5ec6be180b5ee9a52d6774ee66fcc937eab832a056ea5288",
+        "prior_01e_source": "GTA_SA:GENRL:BANK_100:SOUND_0",
+        "selection_head": "f8d8822db55819cc8a0b26a5d167e031973588d5",
+        "disposition": "RETENTION_ONLY__01I_NEW_WINNER",
+        "note": "Human-selected 01I winner: compact module insertion snap/lock, distinct from bike mount/dismount and core extraction. The audition report's incumbent-comparison prose referenced a different local source than the historical 01E incumbent, so this ledger records the new winner without claiming a verified direct A/B against BANK_100:SOUND_0. No live battery-insert mechanic or SoundEvent exists."
       }
     },
     "missing_or_blocked": [],
