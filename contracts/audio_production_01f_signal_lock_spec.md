@@ -1,6 +1,6 @@
 # Audio Production 01F — Signal Lock Pulse
 
-**State:** CANDIDATE_SELECTION_REQUIRED  
+**State:** SOURCE_SELECTED__IMPLEMENTATION_PENDING  
 **Baseline:** `main@6a9e42b0c12a1c357dd695138ce8e962cfa7e873`  
 **Semantic slot:** `player.signal_lock_pulse`  
 **Runtime event:** `AudioManager.SoundEvent.SIGNAL_LOCK`
@@ -10,6 +10,34 @@
 Replace the live Signal Tuner lock confirmation sweep with one owner-authorized GTA San Andreas production transient while preserving tuner gameplay timing, real world source position, transient voice budget, and procedural fallback.
 
 This is one bounded production-audio replacement. It does not authorize tuner mechanic changes, new near-lock sounds, additional UI audio, another semantic slot, or audio-framework redesign.
+
+## Selected source
+
+Human audition selected exactly:
+
+`GTA_SA:GENRL:BANK_143:SOUND_31`
+
+Selected source characteristics:
+
+- native duration: `0.3780 s`;
+- native sample rate: `23,000 Hz`;
+- mono 16-bit linear PCM;
+- raw SHA-256: `f9af33195ae58ad822cf9addee870f61c1e1fb0f365d267346a0a99f2b75a936`;
+- resonant electronic harmonic lock confirmation with physical tuner-cavity ring;
+- clear above tuning/static texture on laptop and phone transducers;
+- perceptually distinct from the abrasive `interaction.wire_spark` transient and the low FB-13 resonance;
+- five rapid retry auditions passed without fatigue;
+- extraction integrity PASS with no truncation, wrong pitch/speed, PCM artifacts, or audible boundary pop.
+
+Production treatment is intentionally minimal:
+
+- no gain change;
+- preserve native 23 kHz sample rate;
+- preserve natural duration;
+- apply only ~1.5 ms boundary taper;
+- no EQ, compression, reverb, time stretching, or other processing.
+
+Candidate B (`GENRL / Bank 138 / Sound 38`) remains runner-up audition evidence only and must not enter the production tree.
 
 ## Runtime authority
 
@@ -40,32 +68,6 @@ That spatial label contradicts the live runtime behavior.
 
 This is a metadata correction to match existing gameplay, not a gameplay behavior change.
 
-## Candidate source restriction
-
-Use only the locally stored GTA San Andreas audio library already accepted for owner-authorized production-audio slices.
-
-Exact selected source identity must be recorded as:
-
-`GTA_SA:<PAK>:BANK_<bank_id>:SOUND_<sound_index>`
-
-Rejected candidates and GTA archive containers remain local/ignored.
-
-## Listening target
-
-The production sound should read as the Signal Tuner physically achieving lock while still carrying a slightly uncanny signature identity:
-
-- compact and immediate confirmation;
-- electrical/mechanical tuning lock rather than menu/UI click;
-- clearly localized to the tuner mast/device;
-- distinct from `interaction.wire_spark` and FB-13 resonance;
-- not a gunshot, explosion, siren, musical victory sting, or magical beam;
-- enough mid/high-frequency information for small speakers without becoming piercing;
-- no strong low-frequency body that masks panel/vehicle ambience;
-- clean under the tuning/static texture;
-- low fatigue across repeated tuning retries.
-
-Prefer roughly `0.08–0.45 s`. Duration is a listening target, not permission to time-stretch a source.
-
 ## Production asset contract
 
 Canonical destination:
@@ -74,12 +76,13 @@ Canonical destination:
 
 The selected production asset must:
 
-- derive from the exact human-selected GTA source;
+- derive from exactly `GTA_SA:GENRL:BANK_143:SOUND_31`;
 - be mono `AudioStreamWAV` suitable for `AudioStreamPlayer3D`;
 - use 16-bit PCM;
-- preserve native sample rate unless a concrete playback defect requires otherwise;
-- preserve the natural envelope with only minimal boundary treatment;
-- receive no speculative normalization, EQ, compression, reverb, or time stretching;
+- preserve native `23,000 Hz` sample rate;
+- preserve natural duration at approximately `0.3780 s`;
+- receive no gain normalization, resampling, EQ, compression, reverb, or time stretching;
+- use only the approved ~1.5 ms boundary taper;
 - use non-destructive Godot import settings with `compress/mode=0`.
 
 `AudioRegistry` remains canonical path/provenance authority. `AudioManager` must not duplicate the production asset path as an independent constant.
@@ -101,14 +104,14 @@ The selected production asset must:
 Exact-head verification must prove:
 
 - slot metadata repair: HYBRID diegesis + DIEGETIC_3D spatiality;
-- canonical production path and exact source provenance;
-- valid mono 16-bit production WAV;
-- native sample rate/duration locked after candidate selection;
+- canonical production path `res://audio/player/sfx_player_signal_lock_pulse.wav`;
+- exact source provenance `GTA_SA:GENRL:BANK_143:SOUND_31`;
+- production WAV is mono 16-bit PCM at 23,000 Hz and approximately 0.3780 s;
 - `SIGNAL_LOCK -> player.signal_lock_pulse` mapping;
 - production stream resolves through registry;
 - production event creates a bounded `AudioStreamPlayer3D` at an arbitrary supplied test position;
 - production voice preserves `unit_size = 10.0`;
-- procedural fallback remains independently reachable;
+- procedural fallback remains independently reachable and retains ~0.35 s sweep duration;
 - Signal Tuner gameplay contract remains green;
 - Audio Runtime, semantic manifest, 01B/01C/01D production contracts, and repository-required compatibility remain green.
 
@@ -127,4 +130,4 @@ On the exact clean candidate SHA, perform real Signal Tuner interactions and jud
 
 ## Completion
 
-01F reaches PASS only after one GTA source is human-selected and integrated, exact-head automated verification passes, exact-head native in-game listening passes, fresh Standards/Spec review passes, the PR merges, and exact-main verification is green.
+01F reaches PASS only after the selected GTA source is integrated, exact-head automated verification passes, exact-head native in-game listening passes, fresh Standards/Spec review passes, the PR merges, and exact-main verification is green.
