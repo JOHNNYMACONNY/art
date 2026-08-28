@@ -70,9 +70,10 @@ static func verify(manager: Node) -> String:
 	if manager == null:
 		return "AudioManager is missing"
 
-	var production_streams: Dictionary = manager.get("_production_transient_streams")
-	if production_streams == null:
+	var cache_value: Variant = manager.get("_production_transient_streams")
+	if typeof(cache_value) != TYPE_DICTIONARY:
 		return "AudioManager production transient cache is unavailable"
+	var production_streams: Dictionary = cache_value
 
 	for index in range(TARGETS.size()):
 		var target: Dictionary = TARGETS[index]
@@ -162,7 +163,10 @@ static func verify(manager: Node) -> String:
 	manager.call("play_event", second_event, isolation_pos)
 	var isolation_active: Array = manager.get("_active_transients")
 	var second_stream := load(String(second["path"])) as AudioStreamWAV
-	if isolation_active.is_empty() or (isolation_active[-1] as AudioStreamPlayer3D).stream != second_stream:
+	var isolation_player: AudioStreamPlayer3D = null
+	if not isolation_active.is_empty():
+		isolation_player = isolation_active[-1] as AudioStreamPlayer3D
+	if isolation_player == null or isolation_player.stream != second_stream:
 		production_streams[first_event] = saved_first
 		manager.set("_production_transient_streams", production_streams)
 		return "one missing production stream disabled another 01D production event"
