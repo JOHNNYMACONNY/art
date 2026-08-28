@@ -31,10 +31,7 @@
         "interaction.panel_pry",
         "interaction.wire_clip",
         "interaction.battery_insert",
-        "vehicle.engine_rev",
-        "pursuit.siren_alarm",
         "pursuit.pursuer_sweep",
-        "echo.radio_interference",
         "world.radio_chatter",
         "radio.yardline.song_01.intro",
         "radio.yardline.song_01.body",
@@ -81,7 +78,10 @@
         "echo.bed_loop",
         "echo.completion",
         "player.footstep",
-        "world.ambient_wind"
+        "world.ambient_wind",
+        "vehicle.engine_rev",
+        "pursuit.siren_alarm",
+        "echo.radio_interference"
       ]
     },
     "retained_candidate_evidence": {
