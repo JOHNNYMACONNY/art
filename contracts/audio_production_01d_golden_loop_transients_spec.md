@@ -1,7 +1,7 @@
 # Audio Production 01D — Golden Loop Transients Pack
 
 **State:** SOURCES_SELECTED__IMPLEMENTATION_PENDING  
-**Baseline:** `main@651b9fe7b6a45f1fc049c467b43a5b3c2450ba0b`
+**Baseline:** `main@651b9fe7b6a45f1fc049c467b43a5b3c2450ba0`
 
 ## Objective
 
@@ -21,6 +21,8 @@ This batch exists to accelerate production-audio replacement. It must complete a
 | `BRAKE_SCREECH` | `vehicle.brake_screech` | `GTA_SA:GENRL:BANK_143:SOUND_28` | `0.4540 s` | `28,000 Hz` | `res://audio/vehicle/sfx_vehicle_brake_screech.wav` |
 
 All six selections passed direct human audition and five-pulse fatigue checks. No selected source requires gain change or resampling. Each production asset receives only the approved ~1.5 ms boundary taper and no other processing.
+
+`COMPLETION` is intentionally mapped to `interaction.core_extracted`: `CorrodedPanel.complete_extraction()` emits `COMPLETION` at the actual final extraction step. `CORE_PULL` is emitted earlier when the core is merely exposed and remains procedural in 01D.
 
 These six were chosen because each already has a live gameplay event and procedural 3D playback path. Do not add speculative event seams for currently-unused semantic slots in 01D.
 
@@ -81,11 +83,12 @@ Each selected production WAV must:
 1. Map the six runtime events to their semantic slots exactly as listed above.
 2. Resolve selected streams through `AudioRegistry`.
 3. Production playback remains `AudioStreamPlayer3D` at the exact position already supplied by gameplay.
-4. Existing transient concurrency and cleanup ownership remain in `AudioManager`.
-5. If any individual production stream is missing/unavailable, only that event falls back to its previous procedural synthesis.
-6. One missing asset must not disable the other five production streams.
-7. Do not change procedural synthesis parameters except to route them behind fallback helpers.
-8. Do not migrate another semantic slot in 01D.
+4. Preserve the existing per-event spatial unit scale: panel peel/brake `10`, spark/mount/dismount `8`, completion `12`.
+5. Existing transient concurrency and cleanup ownership remain in `AudioManager`.
+6. If any individual production stream is missing/unavailable, only that event falls back to its previous procedural synthesis.
+7. One missing asset must not disable the other five production streams.
+8. Do not change procedural synthesis parameters except to route them behind fallback behavior.
+9. Do not migrate another semantic slot in 01D.
 
 ## Automated verification
 
@@ -97,7 +100,9 @@ Exact-head verification must prove for all six targets:
 - exact native sample rate and selected duration tolerance;
 - production stream resolves through registry;
 - event creates a bounded 3D transient at an arbitrary supplied test position;
+- production voice preserves the event's existing spatial unit scale;
 - per-event procedural fallback remains independently reachable;
+- removing one cached production stream does not disable the other five;
 - FB-13 and Signal Gate production contracts remain green;
 - semantic slot manifest remains internally consistent;
 - Audio Runtime regression remains green;
