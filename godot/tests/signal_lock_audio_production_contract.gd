@@ -20,8 +20,8 @@ static func verify(manager: Node) -> String:
 		return "signal lock domain must remain PLAYER"
 	if slot.get("diegesis") != AudioRegistryScript.Diegesis.HYBRID:
 		return "signal lock diegesis must remain HYBRID"
-	if slot.get("spatial_type") != AudioRegistryScript.SpatialType.DIEGETIC_3D:
-		return "signal lock spatial metadata must match live 3D tuner playback"
+	if slot.get("spatial_type") != AudioRegistryScript.SpatialType.NON_DIEGETIC_2D:
+		return "signal lock must preserve retained HYBRID local-reference spatial metadata"
 	if slot.get("mix_group") != AudioRegistryScript.MixGroup.SIGNATURE_ECHO:
 		return "signal lock mix group must remain SIGNATURE_ECHO"
 	if slot.get("playback_type") != AudioRegistryScript.PlaybackType.TRANSIENT:
@@ -62,6 +62,8 @@ static func verify(manager: Node) -> String:
 	if not production_streams.has(event) or production_streams[event] != stream:
 		return "AudioManager did not resolve the signal lock production stream through registry"
 
+	# Shipping runtime behavior remains explicitly 3D despite the retained
+	# HYBRID local-reference presentation metadata above.
 	manager.call("reset_audio_instant")
 	var test_pos := Vector3(-4.25, 2.0, 13.5)
 	manager.call("play_event", event, test_pos)
