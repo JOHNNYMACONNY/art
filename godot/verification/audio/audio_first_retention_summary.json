@@ -109,9 +109,6 @@
         "vehicle.engine_rev",
         "pursuit.siren_alarm",
         "pursuit.pursuer_sweep",
-        "echo.onset",
-        "echo.bed_loop",
-        "echo.completion",
         "echo.radio_interference",
         "world.ambient_wind",
         "world.radio_chatter",
@@ -155,7 +152,10 @@
         "vehicle.collision_glance",
         "vehicle.collision_hard",
         "pursuit.disturbance_alert",
-        "pursuit.evaded_stinger"
+        "pursuit.evaded_stinger",
+        "echo.onset",
+        "echo.bed_loop",
+        "echo.completion"
       ]
     },
     "retained_candidate_evidence": {

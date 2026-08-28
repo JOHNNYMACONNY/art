@@ -85,6 +85,7 @@ var _tension_stream: AudioStreamWAV = null
 var _fb13_production_stream: AudioStream = null
 var _gate_slam_production_stream: AudioStream = null
 var _production_transient_streams: Dictionary = {}
+var _echo_production_streams: Dictionary = {}
 
 # Transient voice budget & registry
 const MAX_CONCURRENT_TRANSIENTS: int = 8
@@ -143,6 +144,9 @@ const EVENT_TO_SLOT_MAP: Dictionary = {
 	SoundEvent.EVASION_RELEASE: "pursuit.evaded_stinger",
 	SoundEvent.COLLISION_GLANCE: "vehicle.collision_glance",
 	SoundEvent.COLLISION_HEAD_ON: "vehicle.collision_hard",
+	SoundEvent.ECHO_ONSET: "echo.onset",
+	SoundEvent.ECHO_PEAK: "echo.bed_loop",
+	SoundEvent.ECHO_TAIL: "echo.completion",
 	SoundEvent.GATE_SLAM: "interaction.gate_triggered",
 	SoundEvent.FB13_THRUM: "world.fb13_thrum"
 }
@@ -177,6 +181,12 @@ const PRODUCTION_TRANSIENT_UNIT_SIZES: Dictionary = {
 	SoundEvent.COLLISION_HEAD_ON: 10.0,
 }
 
+const ECHO_PRODUCTION_EVENTS: Array[SoundEvent] = [
+	SoundEvent.ECHO_ONSET,
+	SoundEvent.ECHO_PEAK,
+	SoundEvent.ECHO_TAIL,
+]
+
 static func event_to_slot_id(event: SoundEvent) -> String:
 	return EVENT_TO_SLOT_MAP.get(event, "")
 
@@ -189,6 +199,7 @@ func _ready() -> void:
 	if not gate_slam_asset_path.is_empty() and ResourceLoader.exists(gate_slam_asset_path):
 		_gate_slam_production_stream = load(gate_slam_asset_path)
 	_load_production_transient_streams()
+	_load_echo_production_streams()
 	_engine_stream = _create_noise_wav(0.5, 0.4)
 	_engine_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_hum_stream = _create_tone_wav(120.0, 0.5, 0.3)
@@ -274,6 +285,19 @@ func _load_production_transient_streams() -> void:
 		var stream: AudioStream = load(asset_path)
 		if stream != null:
 			_production_transient_streams[event] = stream
+
+func _load_echo_production_streams() -> void:
+	_echo_production_streams.clear()
+	for event in ECHO_PRODUCTION_EVENTS:
+		var slot_id: String = event_to_slot_id(event)
+		if slot_id.is_empty():
+			continue
+		var asset_path: String = AudioRegistryScript.get_production_asset_path(slot_id)
+		if asset_path.is_empty() or not ResourceLoader.exists(asset_path):
+			continue
+		var stream: AudioStream = load(asset_path)
+		if stream != null:
+			_echo_production_streams[event] = stream
 
 ## #31: Bounded runtime output diagnostics. This is an on-demand snapshot only;
 ## get_output_latency() may be expensive and must never be polled per-frame.
@@ -942,33 +966,30 @@ func _play_synth_chime(pos: Vector3) -> void:
 	player_3d.stream = _create_harmonic_chime_wav(880.0, 1320.0, 0.45, 0.5)
 	_register_and_play_transient(player_3d, pos, 0.45)
 
+func _play_echo_phase(event: SoundEvent, fallback_stream: AudioStream, volume_db: float, label: String) -> void:
+	if not _echo_voice:
+		return
+	var stream: AudioStream = _echo_production_streams.get(event)
+	if stream == null:
+		stream = fallback_stream
+	_echo_voice.stop()
+	_echo_voice.stream = stream
+	_echo_voice.volume_db = volume_db
+	_echo_voice.play()
+	print("[AUDIO_ECHO] %s playing" % label)
+
 ## M04 — Memory Echo audio signature helpers
 ## ECHO_ONSET: low electrical crackle — reversed envelope, distinct from COMPLETION
 func _play_echo_onset() -> void:
-	if not _echo_voice:
-		return
-	_echo_voice.stream = _create_echo_onset_wav()
-	_echo_voice.volume_db = -8.0
-	_echo_voice.play()
-	print("[AUDIO_ECHO] Onset playing")
+	_play_echo_phase(SoundEvent.ECHO_ONSET, _create_echo_onset_wav(), -8.0, "Onset")
 
 ## ECHO_PEAK: fractured signal ghost — sparse noise burst with comb-filter character
 func _play_echo_peak() -> void:
-	if not _echo_voice:
-		return
-	_echo_voice.stream = _create_echo_peak_wav()
-	_echo_voice.volume_db = -4.0
-	_echo_voice.play()
-	print("[AUDIO_ECHO] Peak playing")
+	_play_echo_phase(SoundEvent.ECHO_PEAK, _create_echo_peak_wav(), -4.0, "Peak")
 
 ## ECHO_TAIL: electrical high-frequency tail, dropout to silence
 func _play_echo_tail() -> void:
-	if not _echo_voice:
-		return
-	_echo_voice.stream = _create_echo_tail_wav()
-	_echo_voice.volume_db = -12.0
-	_echo_voice.play()
-	print("[AUDIO_ECHO] Tail playing")
+	_play_echo_phase(SoundEvent.ECHO_TAIL, _create_echo_tail_wav(), -12.0, "Tail")
 
 func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
