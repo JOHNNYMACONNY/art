@@ -5,6 +5,7 @@ const UIAudioIdentityLayerScript = preload("res://scripts/audio/ui_audio_identit
 const VehicleFeedbackContract = preload("res://tests/vehicle_feedback_contract_test.gd")
 const UIAudioIdentityContract = preload("res://tests/ui_audio_identity_contract_test.gd")
 const AudioFirstRetentionContract = preload("res://tests/audio_first_retention_contract_test.gd")
+const GateSlamAudioProductionContract = preload("res://tests/gate_slam_audio_production_contract.gd")
 
 var _manager: Node = null
 
@@ -95,6 +96,11 @@ func _run() -> void:
 	_manager.add_child(ui_layer)
 	ui_layer.call("configure", _manager)
 	await process_frame
+
+	var gate_slam_error: String = GateSlamAudioProductionContract.verify(_manager)
+	if not gate_slam_error.is_empty():
+		await _fail("Audio Production 01C: %s" % gate_slam_error)
+		return
 
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
 		await _fail("Runtime audio diagnostics seam is absent")
@@ -212,7 +218,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
 
 	active_transients = []
 	tuner_player = null
