@@ -103,17 +103,11 @@
     "slots_by_status": {
       "PROCEDURAL_FALLBACK": [
         "player.footstep",
-        "player.bike_mount",
-        "player.bike_dismount",
         "player.signal_lock_pulse",
         "interaction.panel_pry",
-        "interaction.panel_peel",
         "interaction.wire_clip",
-        "interaction.wire_spark",
         "interaction.battery_insert",
-        "interaction.core_extracted",
         "vehicle.engine_rev",
-        "vehicle.brake_screech",
         "vehicle.collision_glance",
         "vehicle.collision_hard",
         "pursuit.disturbance_alert",
@@ -155,7 +149,13 @@
       "ORIGINAL_FINAL": [],
       "LICENSED_FINAL": [
         "world.fb13_thrum",
-        "interaction.gate_triggered"
+        "interaction.gate_triggered",
+        "interaction.panel_peel",
+        "interaction.wire_spark",
+        "interaction.core_extracted",
+        "player.bike_mount",
+        "player.bike_dismount",
+        "vehicle.brake_screech"
       ]
     },
     "missing_or_blocked": [],
