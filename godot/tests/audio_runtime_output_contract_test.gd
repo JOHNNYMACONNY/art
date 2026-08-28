@@ -6,6 +6,7 @@ const VehicleFeedbackContract = preload("res://tests/vehicle_feedback_contract_t
 const UIAudioIdentityContract = preload("res://tests/ui_audio_identity_contract_test.gd")
 const AudioFirstRetentionContract = preload("res://tests/audio_first_retention_contract_test.gd")
 const GateSlamAudioProductionContract = preload("res://tests/gate_slam_audio_production_contract.gd")
+const GoldenLoopTransientsAudioProductionContract = preload("res://tests/golden_loop_transients_audio_production_contract.gd")
 
 var _manager: Node = null
 
@@ -56,10 +57,6 @@ func _play_test_master_probe(duration: float = 0.20) -> AudioStreamPlayer:
 	return player
 
 func _run_ci_windowed_vehicle_proof() -> String:
-	# CTW Feel 04 already captured exact-head windowed proof at its retention
-	# boundary. Re-running that rendered slice on every unrelated audio change is
-	# intentionally opt-in now; the focused Audio Runtime gate stays fast and
-	# deterministic while this probe remains available for targeted reruns.
 	if OS.get_environment("ECHOES_RUN_WINDOWED_VEHICLE_PROOF") != "1":
 		print("[CTW_FEEL_04_RENDERED] SKIP generic audio CI; set ECHOES_RUN_WINDOWED_VEHICLE_PROOF=1 for targeted proof")
 		return ""
@@ -100,6 +97,11 @@ func _run() -> void:
 	var gate_slam_error: String = GateSlamAudioProductionContract.verify(_manager)
 	if not gate_slam_error.is_empty():
 		await _fail("Audio Production 01C: %s" % gate_slam_error)
+		return
+
+	var golden_loop_error: String = GoldenLoopTransientsAudioProductionContract.verify(_manager)
+	if not golden_loop_error.is_empty():
+		await _fail("Audio Production 01D: %s" % golden_loop_error)
 		return
 
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
@@ -194,9 +196,6 @@ func _run() -> void:
 		await _fail("Authoritative reset left radio playback active")
 		return
 
-	# Audio 07 is a retention/report gate only. Fail closed if the durable report
-	# does not match live registries, shipping boundaries, dispositions, or the
-	# truthful perceptual status of the integrated audio-first slice.
 	var retention_error: String = AudioFirstRetentionContract.verify()
 	if not retention_error.is_empty():
 		await _fail("Audio 07: %s" % retention_error)
@@ -218,7 +217,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01D six-transient pack + 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
 
 	active_transients = []
 	tuner_player = null
