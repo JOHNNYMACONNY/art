@@ -138,7 +138,9 @@ const EVENT_TO_SLOT_MAP: Dictionary = {
 	SoundEvent.BRAKE_SCREECH: "vehicle.brake_screech",
 	SoundEvent.BIKE_MOUNT: "player.bike_mount",
 	SoundEvent.BIKE_DISMOUNT: "player.bike_dismount",
+	SoundEvent.PURSUIT_INTERCEPTED: "pursuit.intercepted_impact",
 	SoundEvent.COLLISION_GLANCE: "vehicle.collision_glance",
+	SoundEvent.COLLISION_HEAD_ON: "vehicle.collision_hard",
 	SoundEvent.GATE_SLAM: "interaction.gate_triggered",
 	SoundEvent.FB13_THRUM: "world.fb13_thrum"
 }
@@ -151,6 +153,9 @@ const PRODUCTION_TRANSIENT_EVENTS: Array[SoundEvent] = [
 	SoundEvent.BRAKE_SCREECH,
 	SoundEvent.BIKE_MOUNT,
 	SoundEvent.BIKE_DISMOUNT,
+	SoundEvent.PURSUIT_INTERCEPTED,
+	SoundEvent.COLLISION_GLANCE,
+	SoundEvent.COLLISION_HEAD_ON,
 ]
 
 const PRODUCTION_TRANSIENT_UNIT_SIZES: Dictionary = {
@@ -161,6 +166,9 @@ const PRODUCTION_TRANSIENT_UNIT_SIZES: Dictionary = {
 	SoundEvent.BRAKE_SCREECH: 10.0,
 	SoundEvent.BIKE_MOUNT: 8.0,
 	SoundEvent.BIKE_DISMOUNT: 8.0,
+	SoundEvent.PURSUIT_INTERCEPTED: 10.0,
+	SoundEvent.COLLISION_GLANCE: 10.0,
+	SoundEvent.COLLISION_HEAD_ON: 10.0,
 }
 
 static func event_to_slot_id(event: SoundEvent) -> String:
@@ -297,6 +305,13 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 				_play_reference_stream(ref_stream, slot_id, pos)
 				return
 
+	# PURSUIT_INTERCEPTED owns non-audio state transitions that must happen for
+	# both production and procedural playback. Keep them ahead of the production
+	# early-return so source replacement cannot bypass gameplay/mix authority.
+	if event == SoundEvent.PURSUIT_INTERCEPTED:
+		_is_decaying_pursuit_pressure = false
+		set_radio_duck(-24.0, 0.05)
+
 	if PRODUCTION_TRANSIENT_EVENTS.has(event) and _play_production_transient(event, pos):
 		return
 
@@ -339,9 +354,7 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			_play_synth_sweep(pos, 350.0, 700.0, 0.4, 0.6)
 			set_siren_audio(true, pos)
 		SoundEvent.PURSUIT_INTERCEPTED:
-			_is_decaying_pursuit_pressure = false
 			_play_synth_sweep(pos, 400.0, 100.0, 0.5, 0.7)
-			set_radio_duck(-24.0, 0.05)
 		SoundEvent.EVASION_RELEASE:
 			_play_synth_sweep(pos, 500.0, 1000.0, 0.5, 0.5)
 		SoundEvent.COLLISION_GLANCE:

@@ -288,9 +288,11 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 3,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Low-speed scraper / glance collision against barrier"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/vehicle/sfx_vehicle_collision_glance.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_51:SOUND_2",
+		"description": "Abrasive lateral metal scrape and body-panel shear"
 	},
 	"vehicle.collision_hard": {
 		"slot_id": "vehicle.collision_hard",
@@ -304,9 +306,11 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "High-speed metal crunch collision"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/vehicle/sfx_vehicle_collision_hard.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_58:SOUND_2",
+		"description": "Heavy direct chassis crumple and structural metal crash"
 	},
 	"pursuit.disturbance_alert": {
 		"slot_id": "pursuit.disturbance_alert",
@@ -384,9 +388,11 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Pursuer intercept slam and EMP pulse"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/pursuit/sfx_pursuit_intercepted_impact.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_40:SOUND_1",
+		"description": "Pursuer interception chassis slam and critical impact"
 	},
 	"echo.onset": {
 		"slot_id": "echo.onset",

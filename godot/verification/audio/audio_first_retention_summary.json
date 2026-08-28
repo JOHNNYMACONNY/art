@@ -77,7 +77,7 @@
       "automated_status": "COVERED",
       "automated_evidence": ["Memory Echo compatibility suites", "Audio Runtime critical-state suppression"],
       "physical_status": "PENDING",
-      "note": "Echo/radio interaction is functionally retained; physical transition quality remains a perceptual gate."
+      "note": "Echo/radio interaction is functionally retained; physical transition quality remains deferred."
     },
     "evasion_quiet_recovery": {
       "automated_status": "COVERED",
@@ -107,13 +107,10 @@
         "interaction.wire_clip",
         "interaction.battery_insert",
         "vehicle.engine_rev",
-        "vehicle.collision_glance",
-        "vehicle.collision_hard",
         "pursuit.disturbance_alert",
         "pursuit.siren_alarm",
         "pursuit.pursuer_sweep",
         "pursuit.evaded_stinger",
-        "pursuit.intercepted_impact",
         "echo.onset",
         "echo.bed_loop",
         "echo.completion",
@@ -155,7 +152,10 @@
         "player.bike_mount",
         "player.bike_dismount",
         "vehicle.brake_screech",
-        "player.signal_lock_pulse"
+        "player.signal_lock_pulse",
+        "pursuit.intercepted_impact",
+        "vehicle.collision_glance",
+        "vehicle.collision_hard"
       ]
     },
     "missing_or_blocked": [],
