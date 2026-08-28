@@ -151,6 +151,15 @@ const PRODUCTION_TRANSIENT_EVENTS: Array[SoundEvent] = [
 	SoundEvent.BIKE_DISMOUNT,
 ]
 
+const PRODUCTION_TRANSIENT_UNIT_SIZES: Dictionary = {
+	SoundEvent.PANEL_PEEL: 10.0,
+	SoundEvent.SPARK: 8.0,
+	SoundEvent.COMPLETION: 12.0,
+	SoundEvent.BRAKE_SCREECH: 10.0,
+	SoundEvent.BIKE_MOUNT: 8.0,
+	SoundEvent.BIKE_DISMOUNT: 8.0,
+}
+
 static func event_to_slot_id(event: SoundEvent) -> String:
 	return EVENT_TO_SLOT_MAP.get(event, "")
 
@@ -852,8 +861,7 @@ func _play_production_transient(event: SoundEvent, pos: Vector3) -> bool:
 	if stream == null:
 		return false
 	var player_3d := AudioStreamPlayer3D.new()
-	player_3d.unit_size = 10.0
-	player_3d.max_distance = 30.0
+	player_3d.unit_size = float(PRODUCTION_TRANSIENT_UNIT_SIZES.get(event, 10.0))
 	player_3d.bus = &"Master"
 	player_3d.stream = stream
 	_register_and_play_transient(player_3d, pos, maxf(0.05, stream.get_length()))
