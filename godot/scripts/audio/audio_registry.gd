@@ -108,7 +108,7 @@ const SLOTS: Dictionary = {
 		"slot_id": "player.signal_lock_pulse",
 		"domain": Domain.PLAYER,
 		"diegesis": Diegesis.HYBRID,
-		"spatial_type": SpatialType.DIEGETIC_3D,
+		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.SIGNATURE_ECHO,
 		"playback_type": PlaybackType.TRANSIENT,
 		"is_looping": false,
