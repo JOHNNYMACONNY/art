@@ -64,9 +64,11 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 120,
 		"max_concurrency": 4,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Footstep impact on metal / dirt ground"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/player/sfx_player_footstep.wav",
+		"source_provenance": "GTA_SA:FEET:BANK_0:SOUND_4",
+		"description": "Courier reinforced work-boot footstep on salvage tarmac / dusty industrial ground"
 	},
 	"player.bike_mount": {
 		"slot_id": "player.bike_mount",
@@ -477,12 +479,14 @@ const SLOTS: Dictionary = {
 		"playback_type": PlaybackType.CONTINUOUS_LOOP,
 		"is_looping": true,
 		"loop_start_sec": 0.0,
-		"loop_end_sec": 5.0,
+		"loop_end_sec": 4.4999,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Dry scrap valley ambient wind loop"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/world/amb_world_scrapyard_wind.wav",
+		"source_provenance": "GTA_SA:SCRIPT:BANK_350:SOUND_0",
+		"description": "Dry exposed scrapyard/desert ambient wind loop"
 	},
 	"world.radio_chatter": {
 		"slot_id": "world.radio_chatter",
