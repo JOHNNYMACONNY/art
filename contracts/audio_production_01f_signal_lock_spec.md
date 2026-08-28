@@ -1,6 +1,6 @@
 # Audio Production 01F — Signal Lock Pulse
 
-**State:** SOURCE_SELECTED__IMPLEMENTATION_PENDING  
+**State:** SOURCE_SELECTED__IMPLEMENTED__VERIFYING  
 **Baseline:** `main@6a9e42b0c12a1c357dd695138ce8e962cfa7e873`  
 **Semantic slot:** `player.signal_lock_pulse`  
 **Runtime event:** `AudioManager.SoundEvent.SIGNAL_LOCK`
@@ -41,32 +41,28 @@ Candidate B (`GENRL / Bank 138 / Sound 38`) remains runner-up audition evidence 
 
 ## Runtime authority
 
-`SignalTuner._lock_signal()` currently emits:
+`SignalTuner._lock_signal()` emits:
 
 `audio_event_triggered.emit("SIGNAL_LOCK", global_position)`
 
-The current `AudioManager` implementation plays `SIGNAL_LOCK` via `_play_synth_sweep(pos, 440.0, 880.0, 0.35, 0.5)`, which creates an `AudioStreamPlayer3D` with `unit_size = 10.0` at the supplied tuner world position.
+`AudioManager` has always played `SIGNAL_LOCK` through a bounded `AudioStreamPlayer3D` at the supplied tuner position. The prior procedural path is `_play_synth_sweep(pos, 440.0, 880.0, 0.35, 0.5)` with `unit_size = 10.0`.
 
-Therefore the authoritative live behavior is spatialized 3D playback at the tuner.
+Therefore the authoritative shipping behavior remains spatialized 3D playback at the tuner.
 
-## Semantic metadata repair
+## Hybrid semantic/reference boundary
 
-The registry currently labels `player.signal_lock_pulse` as:
+`player.signal_lock_pulse` predates 01F as a HYBRID semantic slot with `spatial_type = NON_DIEGETIC_2D`. The retained M21 local-reference contract directly uses this slot as its canonical 2D reference-transient fixture.
 
-- `diegesis = HYBRID`
-- `spatial_type = NON_DIEGETIC_2D`
+An initial 01F candidate changed the registry `spatial_type` to `DIEGETIC_3D` to mirror shipping runtime behavior. Exact-head canonical compatibility correctly failed because that mutation broke the retained M21 reference contract.
 
-That spatial label contradicts the live runtime behavior.
+01F therefore preserves the established semantic/reference metadata:
 
-01F must:
+- `diegesis = HYBRID`;
+- `spatial_type = NON_DIEGETIC_2D`;
+- `mix_group = SIGNATURE_ECHO`;
+- existing transient/non-looping lifecycle, cooldown, and concurrency semantics.
 
-- preserve `diegesis = HYBRID`;
-- repair `spatial_type` to `DIEGETIC_3D`;
-- preserve `mix_group = SIGNATURE_ECHO`;
-- preserve transient/non-looping lifecycle;
-- preserve current cooldown/concurrency semantics.
-
-This is a metadata correction to match existing gameplay, not a gameplay behavior change.
+This does **not** change shipping playback: `SIGNAL_LOCK` production playback remains an explicitly tested 3D transient at the tuner's authoritative world position. The distinction is intentional: the registry field retains the legacy HYBRID reference-presentation contract while the live runtime event remains 3D.
 
 ## Production asset contract
 
@@ -91,27 +87,29 @@ The selected production asset must:
 
 1. `AudioManager.event_to_slot_id(SIGNAL_LOCK)` returns `player.signal_lock_pulse`.
 2. `AudioManager` resolves the production stream through `AudioRegistry`.
-3. Production playback remains one bounded `AudioStreamPlayer3D` at the exact position supplied by gameplay.
+3. Shipping production playback remains one bounded `AudioStreamPlayer3D` at the exact position supplied by gameplay.
 4. Preserve `unit_size = 10.0` from the existing procedural path.
 5. Do not add a new `max_distance` override solely for production playback.
 6. If the production stream is absent/unloaded, the existing `440 Hz -> 880 Hz`, `0.35 s`, volume `0.5` sweep remains independently reachable.
-7. Near-lock enter/exit behavior is unchanged.
-8. Tuner state, dwell timing, target frequency, lock tolerance, input behavior, and visual response remain unchanged.
-9. No second semantic slot is migrated in 01F.
+7. The retained M21 direct local-reference fixture for this HYBRID slot remains 2D.
+8. Near-lock enter/exit behavior is unchanged.
+9. Tuner state, dwell timing, target frequency, lock tolerance, input behavior, and visual response remain unchanged.
+10. No second semantic slot is migrated in 01F.
 
 ## Automated verification
 
 Exact-head verification must prove:
 
-- slot metadata repair: HYBRID diegesis + DIEGETIC_3D spatiality;
+- slot semantic/reference metadata remains HYBRID + NON_DIEGETIC_2D;
 - canonical production path `res://audio/player/sfx_player_signal_lock_pulse.wav`;
 - exact source provenance `GTA_SA:GENRL:BANK_143:SOUND_31`;
 - production WAV is mono 16-bit PCM at 23,000 Hz and approximately 0.3780 s;
 - `SIGNAL_LOCK -> player.signal_lock_pulse` mapping;
 - production stream resolves through registry;
-- production event creates a bounded `AudioStreamPlayer3D` at an arbitrary supplied test position;
-- production voice preserves `unit_size = 10.0`;
+- shipping production event creates a bounded `AudioStreamPlayer3D` at an arbitrary supplied test position;
+- production voice preserves `unit_size = 10.0` and adds no max-distance override;
 - procedural fallback remains independently reachable and retains ~0.35 s sweep duration;
+- retained M21 2D reference-transient/reset behavior remains green;
 - Signal Tuner gameplay contract remains green;
 - Audio Runtime, semantic manifest, 01B/01C/01D production contracts, and repository-required compatibility remain green.
 
