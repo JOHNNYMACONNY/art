@@ -31,7 +31,7 @@ GTA Chinatown Wars = reference for:
 - tactile contextual interactions
 
 DO_NOT_COPY
-- GTA assets
+- GTA assets, except owner-authorized production-audio slices with exact source provenance recorded in the accepted audio spec
 - characters
 - map designs
 - UI artwork
@@ -39,6 +39,12 @@ DO_NOT_COPY
 - typography
 - missions
 - proprietary content
+
+OWNER_AUTHORIZED_GTA_AUDIO_EXCEPTION
+- scoped to production-audio workstreams explicitly authorized by the project owner
+- exact GTA source pak/bank/sound identity must be recorded in the accepted production-audio spec
+- only selected production audio enters the repository; archives and audition candidates remain local
+- this project rule records implementation authority and does not itself assert independent legal/license clearance
 
 ECHOS_IDENTITY
 - industrial scrap-world

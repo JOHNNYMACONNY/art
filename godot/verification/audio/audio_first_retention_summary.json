@@ -112,7 +112,6 @@
         "interaction.wire_spark",
         "interaction.battery_insert",
         "interaction.core_extracted",
-        "interaction.gate_triggered",
         "vehicle.engine_rev",
         "vehicle.brake_screech",
         "vehicle.collision_glance",
@@ -155,7 +154,8 @@
       "ORIGINAL_WIP": [],
       "ORIGINAL_FINAL": [],
       "LICENSED_FINAL": [
-        "world.fb13_thrum"
+        "world.fb13_thrum",
+        "interaction.gate_triggered"
       ]
     },
     "missing_or_blocked": [],
