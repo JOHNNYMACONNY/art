@@ -410,9 +410,11 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Memory echo sequence onset drone"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/echo/sfx_echo_onset.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_37",
+		"description": "Memory echo electrical carrier rupture / discovery onset"
 	},
 	"echo.bed_loop": {
 		"slot_id": "echo.bed_loop",
@@ -420,15 +422,17 @@ const SLOTS: Dictionary = {
 		"diegesis": Diegesis.NON_DIEGETIC,
 		"spatial_type": SpatialType.NON_DIEGETIC_2D,
 		"mix_group": MixGroup.SIGNATURE_ECHO,
-		"playback_type": PlaybackType.CONTINUOUS_LOOP,
-		"is_looping": true,
+		"playback_type": PlaybackType.TRANSIENT,
+		"is_looping": false,
 		"loop_start_sec": 0.0,
-		"loop_end_sec": 4.0,
+		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Memory echo ambient shimmer and harmonic bed"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/echo/sfx_echo_peak.wav",
+		"source_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_78",
+		"description": "Finite Memory Echo peak apparition / fractured harmonic signal ghost"
 	},
 	"echo.completion": {
 		"slot_id": "echo.completion",
@@ -442,9 +446,11 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Memory echo resolution stinger and chord decay"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/echo/sfx_echo_completion_tail.wav",
+		"source_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_60",
+		"description": "Memory echo electrical shimmer resolution tail / signal dissolve"
 	},
 	"echo.radio_interference": {
 		"slot_id": "echo.radio_interference",
