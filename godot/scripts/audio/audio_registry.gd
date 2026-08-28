@@ -324,9 +324,11 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Disturbance alert sweep / alarm trigger stinger"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/pursuit/sfx_pursuit_disturbance_alert.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_138:SOUND_40",
+		"description": "Urgent electronic security detection alert before pursuit siren escalation"
 	},
 	"pursuit.siren_alarm": {
 		"slot_id": "pursuit.siren_alarm",
@@ -372,9 +374,11 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
-		"description": "Clean evasion resolution stinger"
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/pursuit/sfx_pursuit_evaded_stinger.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_45",
+		"description": "Calm descending electronic release cue for successful pursuit break"
 	},
 	"pursuit.intercepted_impact": {
 		"slot_id": "pursuit.intercepted_impact",

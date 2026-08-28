@@ -9,6 +9,7 @@ const GateSlamAudioProductionContract = preload("res://tests/gate_slam_audio_pro
 const GoldenLoopTransientsAudioProductionContract = preload("res://tests/golden_loop_transients_audio_production_contract.gd")
 const SignalLockAudioProductionContract = preload("res://tests/signal_lock_audio_production_contract.gd")
 const ImpactsCollisionsAudioProductionContract = preload("res://tests/impacts_collisions_audio_production_contract.gd")
+const PursuitAlertEvasionAudioProductionContract = preload("res://tests/pursuit_alert_evasion_audio_production_contract.gd")
 
 var _manager: Node = null
 
@@ -114,6 +115,11 @@ func _run() -> void:
 	var impacts_error: String = ImpactsCollisionsAudioProductionContract.verify(_manager)
 	if not impacts_error.is_empty():
 		await _fail("Audio Production 01G: %s" % impacts_error)
+		return
+
+	var pursuit_pack_error: String = PursuitAlertEvasionAudioProductionContract.verify(_manager)
+	if not pursuit_pack_error.is_empty():
+		await _fail("Audio Production 01H: %s" % pursuit_pack_error)
 		return
 
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
@@ -229,7 +235,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01G impacts/collisions + 01F signal lock + 01D six-transient pack + 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01H pursuit alert/evasion + 01G impacts/collisions + 01F signal lock + 01D six-transient pack + 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
 
 	active_transients = []
 	tuner_player = null
