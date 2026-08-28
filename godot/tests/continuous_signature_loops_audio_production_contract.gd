@@ -108,27 +108,49 @@ static func verify(manager: Node) -> String:
 	if engine_player.stream != engine_stream:
 		return "vehicle feedback replaced production engine stream"
 
-	# Pursuit pressure preserves exact pitch/gain interpolation and player ownership.
+	# Pursuit pressure preserves the full far/mid/near pitch/gain curve and player ownership.
+	manager.call("set_pursuit_pressure", 20.0, Vector3(20.0, 0.0, 0.0))
+	if absf(siren_player.pitch_scale - 1.0) > 0.01 or absf(siren_player.volume_db - -4.0) > 0.01:
+		return "siren far-pressure pitch/gain changed"
 	manager.call("set_pursuit_pressure", 12.5, Vector3(7.0, 0.0, 4.0))
-	if absf(engine_player.volume_db - minf(expected_db, -12.0)) > 0.01:
-		return "priority-state engine duck changed"
-	if absf(siren_player.pitch_scale - 1.225) > 0.01:
-		return "siren pressure pitch interpolation changed"
-	if absf(siren_player.volume_db - -0.5) > 0.01:
-		return "siren pressure gain interpolation changed"
+	if absf(siren_player.pitch_scale - 1.225) > 0.01 or absf(siren_player.volume_db - -0.5) > 0.01:
+		return "siren mid-pressure pitch/gain changed"
 	if siren_player.global_position.distance_to(Vector3(7.0, 0.0, 4.0)) > 0.01:
 		return "siren lost pursuer position ownership"
+	manager.call("set_pursuit_pressure", 5.0, Vector3(2.0, 0.0, 1.0))
+	if absf(siren_player.pitch_scale - 1.45) > 0.01 or absf(siren_player.volume_db - 3.0) > 0.01:
+		return "siren near-pressure pitch/gain changed"
 
-	# Interference proximity/mix behavior remains on the same selected loop.
+	# Under live pursuit pressure, high-output telemetry must hit the existing -12 dB priority cap.
+	manager.call("update_vehicle_feedback", {"speed_ratio": 1.0, "load_ratio": 1.0, "traction_state": "STABLE", "slip_intensity": 0.0}, Vector3(4.0, 0.0, -1.0))
+	var priority_pitch := clampf(0.76 + 1.0 * 1.05 + 1.0 * 0.28, 0.72, 2.12)
+	if absf(engine_player.pitch_scale - priority_pitch) > 0.01:
+		return "priority-state engine pitch formula changed"
+	if absf(engine_player.volume_db - -12.0) > 0.01:
+		return "priority-state engine gain cap changed"
+	if engine_player.stream != engine_stream:
+		return "priority-state vehicle feedback replaced production engine stream"
+
+	# Interference proximity/mix behavior remains on the same selected loop across outer/mid/inner range.
 	manager.call("clear_pursuit_pressure")
 	manager.call("set_mix_state", AudioManagerScript.MixState.CALM)
-	manager.call("update_radio_interference", Vector3.ZERO, Vector3(10.5, 0.0, 0.0), true)
+	manager.call("update_radio_interference", Vector3.ZERO, Vector3(17.0, 0.0, 0.0), true)
 	if interference_player.stream != interference_stream:
-		return "interference update replaced production stream"
+		return "interference outer update replaced production stream"
+	if absf(interference_player.volume_db - -28.8) > 0.25:
+		return "interference outer-proximity gain changed"
+	if absf(float(manager.call("get_radio_contamination_db")) - -0.2667) > 0.1:
+		return "interference outer contamination curve changed"
+	manager.call("update_radio_interference", Vector3.ZERO, Vector3(10.5, 0.0, 0.0), true)
 	if absf(interference_player.volume_db - -21.0) > 0.2:
 		return "interference mid-proximity gain changed"
 	if absf(float(manager.call("get_radio_contamination_db")) - -2.0) > 0.2:
-		return "interference contamination curve changed"
+		return "interference mid contamination curve changed"
+	manager.call("update_radio_interference", Vector3.ZERO, Vector3(3.0, 0.0, 0.0), true)
+	if absf(interference_player.volume_db - -12.0) > 0.2:
+		return "interference inner-proximity gain changed"
+	if absf(float(manager.call("get_radio_contamination_db")) - -4.0) > 0.2:
+		return "interference inner contamination curve changed"
 	manager.call("set_mix_state", AudioManagerScript.MixState.MEMORY_ECHO)
 	manager.call("update_radio_interference", Vector3.ZERO, Vector3(4.0, 0.0, 0.0), true)
 	if interference_player.playing or interference_player.volume_db > -70.0:
