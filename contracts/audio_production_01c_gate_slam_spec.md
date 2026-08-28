@@ -1,6 +1,6 @@
 # Audio Production 01C — Signal Gate Slam
 
-**State:** CANDIDATE_SELECTION_REQUIRED  
+**State:** SOURCE_SELECTED__IMPLEMENTATION_PENDING  
 **Baseline:** `main@92c35122c23919f7bef00b0352084a7b7e4b725c`  
 **Semantic slot:** `interaction.gate_triggered`  
 **Runtime event:** `AudioManager.SoundEvent.GATE_SLAM`
@@ -11,6 +11,27 @@ Replace the Signal Gate's procedural downward sweep with one production transien
 
 This is one bounded production-audio replacement. It does not authorize another slot, loop, ambience layer, vehicle layer, pursuit siren, radio asset, or audio framework redesign.
 
+## Selected source
+
+Human audition selected exactly:
+
+`GTA_SA:GENRL:BANK_42:SOUND_0`
+
+Audition evidence:
+
+- native duration: `0.5538 s`;
+- native sample rate: `18,000 Hz`;
+- mono 16-bit linear PCM extraction;
+- heavy industrial container/barrier-drop character with pre-hinge mechanical texture and metallic impact;
+- human listening PASS on Mac/mobile speakers and five-pulse repetition test;
+- no audible extraction artifact, truncation, pitch/speed error, or boundary pop;
+- no production gain change required;
+- preserve native 18 kHz rate;
+- apply only a minimal ~1.5 ms boundary taper for production safety;
+- no other processing required.
+
+Candidate B/C/D remain audition evidence only and must not enter the production tree.
+
 ## Existing behavior retained
 
 - `SignalGateInteractable` owns gate state and its 0.3 s physical barrier swing.
@@ -19,31 +40,11 @@ This is one bounded production-audio replacement. It does not authorize another 
 - Current fallback remains the existing procedural `240 Hz -> 60 Hz`, `0.45 s` sweep.
 - Gate collision timing, sweep safety, pursuer detour, evasion logic, camera, HUD, radio reactions, and mission state do not change.
 
-## Candidate source restriction
+## Source boundary
 
-Production candidate selection must use only the locally stored GTA San Andreas audio library already indexed by Audio Intake 01A.
-
-The selected source must record exact identity as:
-
-`GTA_SA:<PAK>:BANK_<bank_id>:SOUND_<sound_index>`
+Production candidate selection uses only the locally stored GTA San Andreas audio library already indexed by Audio Intake 01A.
 
 Do not copy archive containers or unselected candidates into Git. Audition/extraction staging remains ignored/local.
-
-## Listening target
-
-The selected sound should read as a heavy civic/scrap barrier mechanism at gameplay distance:
-
-- immediate enough to confirm the route switch;
-- mechanical/metallic rather than musical or magical;
-- substantial without reading as an explosion or vehicle crash;
-- compatible with a fast 0.3 s barrier swing;
-- clear through pursuit pressure and siren content without excessive high-frequency fatigue;
-- useful on small speakers without depending on sub-bass;
-- naturally localizable from the gate's world position;
-- free of obvious extraction click, truncation, wrong pitch/speed, or codec artifacts;
-- tolerable across repeated retry/chase loops.
-
-Prefer a compact transient roughly 0.20–0.80 s. Duration is a listening constraint, not a reason to time-stretch an otherwise unsuitable source.
 
 ## Production asset contract
 
@@ -53,11 +54,13 @@ Canonical destination:
 
 The curated production asset must:
 
+- derive from exactly `GTA_SA:GENRL:BANK_42:SOUND_0`;
 - be mono `AudioStreamWAV` suitable for `AudioStreamPlayer3D`;
 - use 16-bit PCM;
-- retain source sample rate unless a concrete playback defect requires resampling;
-- preserve natural envelope with only minimal gain/boundary treatment;
-- avoid baked reverb or speculative processing;
+- preserve native `18,000 Hz` sample rate;
+- retain the natural envelope at approximately `0.5538 s`;
+- receive no gain normalization or speculative EQ/compression/reverb;
+- use only the approved minimal boundary taper;
 - stay comfortably below the 15 MB per-slice intake ceiling.
 
 `AudioRegistry` is the canonical source of production path and provenance. Do not duplicate the path as an independent constant in `AudioManager`.
@@ -65,7 +68,7 @@ The curated production asset must:
 ## Runtime contract
 
 1. `interaction.gate_triggered` remains `DIEGETIC_3D`, `CRITICAL_THREAT`, transient, non-looping.
-2. Once selected, the slot records the production asset path and exact GTA source provenance and no longer requires replacement.
+2. The slot records the production asset path and exact source provenance `GTA_SA:GENRL:BANK_42:SOUND_0` and no longer requires replacement.
 3. `AudioManager.event_to_slot_id(GATE_SLAM)` returns `interaction.gate_triggered`.
 4. `AudioManager` resolves the production stream through `AudioRegistry`.
 5. `GATE_SLAM` production playback uses the existing transient voice budget and the position supplied by `ScrapTestBlock` — the actual `signal_gate.global_position`.
@@ -76,8 +79,8 @@ The curated production asset must:
 
 Exact-head verification must prove:
 
-- slot metadata and canonical path/provenance;
-- valid production WAV characteristics;
+- slot metadata and exact canonical path/provenance;
+- production WAV is mono 16-bit PCM at 18,000 Hz and approximately 0.5538 s;
 - `GATE_SLAM -> interaction.gate_triggered` semantic mapping;
 - production stream resolution;
 - production playback through `AudioStreamPlayer3D` at an arbitrary supplied test position;
@@ -102,4 +105,4 @@ On the exact clean candidate SHA, trigger the real gate during pursuit and judge
 
 ## Completion
 
-01C reaches PASS only after one selected GTA source is integrated, exact-head automated verification passes, exact-head human in-game listening passes, fresh Standards/Spec review passes, the PR is merged, and exact-main verification is green.
+01C reaches PASS only after the selected GTA source is integrated, exact-head automated verification passes, exact-head human in-game listening passes, fresh Standards/Spec review passes, the PR is merged, and exact-main verification is green.
