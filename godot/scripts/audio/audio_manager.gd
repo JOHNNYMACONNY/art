@@ -138,7 +138,9 @@ const EVENT_TO_SLOT_MAP: Dictionary = {
 	SoundEvent.BRAKE_SCREECH: "vehicle.brake_screech",
 	SoundEvent.BIKE_MOUNT: "player.bike_mount",
 	SoundEvent.BIKE_DISMOUNT: "player.bike_dismount",
+	SoundEvent.DISTURBANCE_ALERT: "pursuit.disturbance_alert",
 	SoundEvent.PURSUIT_INTERCEPTED: "pursuit.intercepted_impact",
+	SoundEvent.EVASION_RELEASE: "pursuit.evaded_stinger",
 	SoundEvent.COLLISION_GLANCE: "vehicle.collision_glance",
 	SoundEvent.COLLISION_HEAD_ON: "vehicle.collision_hard",
 	SoundEvent.GATE_SLAM: "interaction.gate_triggered",
@@ -153,7 +155,9 @@ const PRODUCTION_TRANSIENT_EVENTS: Array[SoundEvent] = [
 	SoundEvent.BRAKE_SCREECH,
 	SoundEvent.BIKE_MOUNT,
 	SoundEvent.BIKE_DISMOUNT,
+	SoundEvent.DISTURBANCE_ALERT,
 	SoundEvent.PURSUIT_INTERCEPTED,
+	SoundEvent.EVASION_RELEASE,
 	SoundEvent.COLLISION_GLANCE,
 	SoundEvent.COLLISION_HEAD_ON,
 ]
@@ -166,7 +170,9 @@ const PRODUCTION_TRANSIENT_UNIT_SIZES: Dictionary = {
 	SoundEvent.BRAKE_SCREECH: 10.0,
 	SoundEvent.BIKE_MOUNT: 8.0,
 	SoundEvent.BIKE_DISMOUNT: 8.0,
+	SoundEvent.DISTURBANCE_ALERT: 10.0,
 	SoundEvent.PURSUIT_INTERCEPTED: 10.0,
+	SoundEvent.EVASION_RELEASE: 10.0,
 	SoundEvent.COLLISION_GLANCE: 10.0,
 	SoundEvent.COLLISION_HEAD_ON: 10.0,
 }
@@ -305,10 +311,11 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 				_play_reference_stream(ref_stream, slot_id, pos)
 				return
 
-	# PURSUIT_INTERCEPTED owns non-audio state transitions that must happen for
-	# both production and procedural playback. Keep them ahead of the production
-	# early-return so source replacement cannot bypass gameplay/mix authority.
-	if event == SoundEvent.PURSUIT_INTERCEPTED:
+	# Critical non-audio event side effects must happen regardless of whether the
+	# production stream is present. Keep them ahead of the production early-return.
+	if event == SoundEvent.DISTURBANCE_ALERT:
+		set_siren_audio(true, pos)
+	elif event == SoundEvent.PURSUIT_INTERCEPTED:
 		_is_decaying_pursuit_pressure = false
 		set_radio_duck(-24.0, 0.05)
 
@@ -352,7 +359,6 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 			_play_synth_rejection_buzz(pos)
 		SoundEvent.DISTURBANCE_ALERT:
 			_play_synth_sweep(pos, 350.0, 700.0, 0.4, 0.6)
-			set_siren_audio(true, pos)
 		SoundEvent.PURSUIT_INTERCEPTED:
 			_play_synth_sweep(pos, 400.0, 100.0, 0.5, 0.7)
 		SoundEvent.EVASION_RELEASE:
