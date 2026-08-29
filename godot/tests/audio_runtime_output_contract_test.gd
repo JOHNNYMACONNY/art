@@ -135,6 +135,7 @@ func _run() -> void:
 		await _fail("Audio Production 01K: %s" % living_yard_error)
 		return
 
+	# Keep the 01L production-media contract inside this exact-head runtime gate before generic output probes.
 	var continuous_loops_error: String = ContinuousSignatureLoopsAudioProductionContract.verify(_manager)
 	if not continuous_loops_error.is_empty():
 		await _fail("Audio Production 01L: %s" % continuous_loops_error)
