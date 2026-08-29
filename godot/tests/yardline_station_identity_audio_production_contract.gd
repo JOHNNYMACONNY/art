@@ -69,6 +69,14 @@ static func _verify_slot(target: Dictionary) -> String:
 	if AudioRegistryScript.get_source_provenance(slot_id) != String(target["provenance"]):
 		return "%s source provenance mismatch" % slot_id
 
+	var lock: Dictionary = SelectionLockScript.get_selection(slot_id)
+	if lock.is_empty():
+		return "%s selection lock missing" % slot_id
+	if String(lock.get("production_path", "")) != String(target["production_path"]):
+		return "%s production path mismatch against lock" % slot_id
+	if String(lock.get("winner_provenance", "")) != String(target["provenance"]):
+		return "%s provenance mismatch against lock" % slot_id
+
 	var path: String = String(target["production_path"])
 	if not FileAccess.file_exists(path):
 		return "%s production media file missing" % slot_id
@@ -77,10 +85,14 @@ static func _verify_slot(target: Dictionary) -> String:
 		return "%s production stream failed to load" % slot_id
 	if stream.format != AudioStreamWAV.FORMAT_16_BITS or stream.stereo:
 		return "%s must be mono PCM16" % slot_id
-	if stream.mix_rate != int(target["rate"]):
+	if stream.mix_rate != int(target["rate"]) or stream.mix_rate != int(lock.get("winner_sample_rate", 0)):
 		return "%s sample rate mismatch" % slot_id
 	if absf(stream.get_length() - float(target["duration"])) > 0.01:
 		return "%s duration mismatch" % slot_id
+	if stream.data.size() != int(lock.get("winner_raw_bytes", 0)):
+		return "%s raw PCM byte count mismatch against lock" % slot_id
+	var raw_sha: String = FileAccess.get_sha256(path)
+	# FileAccess.get_sha256 computes hash of entire WAV container, or verify stream data size and frames
 	if stream.loop_mode != AudioStreamWAV.LOOP_DISABLED:
 		return "%s must remain non-looping" % slot_id
 	return ""
