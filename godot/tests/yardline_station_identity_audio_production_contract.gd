@@ -87,12 +87,18 @@ static func _verify_slot(target: Dictionary) -> String:
 		return "%s must be mono PCM16" % slot_id
 	if stream.mix_rate != int(target["rate"]) or stream.mix_rate != int(lock.get("winner_sample_rate", 0)):
 		return "%s sample rate mismatch" % slot_id
-	if absf(stream.get_length() - float(target["duration"])) > 0.01:
-		return "%s duration mismatch" % slot_id
 	if stream.data.size() != int(lock.get("winner_raw_bytes", 0)):
 		return "%s raw PCM byte count mismatch against lock" % slot_id
-	var raw_sha: String = FileAccess.get_sha256(path)
-	# FileAccess.get_sha256 computes hash of entire WAV container, or verify stream data size and frames
+	if (stream.data.size() / 2) != int(lock.get("winner_frames", 0)):
+		return "%s exact frame count mismatch against lock" % slot_id
+
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	ctx.update(stream.data)
+	var data_sha: String = ctx.finish().hex_encode()
+	if data_sha != String(lock.get("winner_raw_sha256", "")):
+		return "%s exact PCM SHA-256 mismatch against lock" % slot_id
+
 	if stream.loop_mode != AudioStreamWAV.LOOP_DISABLED:
 		return "%s must remain non-looping" % slot_id
 	return ""
