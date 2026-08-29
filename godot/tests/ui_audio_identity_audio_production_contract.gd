@@ -3,6 +3,7 @@ extends RefCounted
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const UIAudioSemanticRegistryScript = preload("res://scripts/audio/ui_audio_semantic_registry.gd")
 const SelectionLockScript = preload("res://tests/ui_audio_identity_selection_lock.gd")
+const CandidateSelectionContract = preload("res://tests/ui_audio_identity_candidate_selection_contract.gd")
 
 const EXPECTED_SELECTIONS: Dictionary = {
 	"ui.nav_move": {
@@ -70,11 +71,37 @@ const EXPECTED_SELECTIONS: Dictionary = {
 	},
 }
 
+const REQUIRED_IMPORT_SETTINGS: Array[String] = [
+	"force/8_bit=false",
+	"force/mono=false",
+	"force/max_rate=false",
+	"edit/trim=false",
+	"edit/normalize=false",
+	"edit/loop_mode=0",
+	"compress/mode=0",
+]
+
+static func _verify_import_settings(prod_path: String) -> String:
+	var import_path := "%s.import" % prod_path
+	if not FileAccess.file_exists(import_path):
+		return "production import sidecar missing: %s" % import_path
+	var import_text := FileAccess.get_file_as_string(import_path)
+	for required_setting in REQUIRED_IMPORT_SETTINGS:
+		if not import_text.contains(required_setting):
+			return "%s missing locked import setting: %s" % [prod_path, required_setting]
+	return ""
+
 static func verify(manager: Node, layer: Node) -> String:
 	if manager == null or layer == null:
 		return "01N production guard requires AudioManager + UIAudioIdentityLayer"
 	if not layer.has_method("_create_fallback_stream"):
 		return "UIAudioIdentityLayer procedural fallback seam is absent"
+
+	# Reuse the evolved candidate contract so exact UI semantic/runtime policy,
+	# production presence, and independently reachable fallbacks stay locked.
+	var candidate_error: String = CandidateSelectionContract.verify(manager, layer)
+	if not candidate_error.is_empty():
+		return "candidate/runtime policy regression: %s" % candidate_error
 
 	var expected_slots: Array[String] = []
 	for slot_id in EXPECTED_SELECTIONS.keys():
@@ -89,17 +116,20 @@ static func verify(manager: Node, layer: Node) -> String:
 		if not UIAudioSemanticRegistryScript.has_slot(slot_id):
 			return "01N target slot missing from UI semantic registry: %s" % slot_id
 		var meta: Dictionary = UIAudioSemanticRegistryScript.get_slot(slot_id)
-		if int(meta.get("asset_status", -1)) != AudioRegistryScript.AssetStatus.LICENSED_FINAL:
+		var asset_status := int(meta.get("asset_status", -1))
+		if asset_status != AudioRegistryScript.AssetStatus.LICENSED_FINAL:
 			return "%s was not promoted to LICENSED_FINAL" % slot_id
 		if bool(meta.get("replacement_required", true)):
 			return "%s has replacement_required != false" % slot_id
+		if AudioRegistryScript.is_reference_allowed_for_status(asset_status):
+			return "%s LICENSED_FINAL status still permits local reference override" % slot_id
 
 		var exp_info: Dictionary = EXPECTED_SELECTIONS[slot_id]
 		var selection: Dictionary = SelectionLockScript.get_selection(slot_id)
 		if selection.is_empty():
 			return "%s missing from SelectionLockScript" % slot_id
 
-		# Cross-validate EXPECTED_SELECTIONS against SelectionLockScript
+		# Cross-validate EXPECTED_SELECTIONS against SelectionLockScript.
 		if String(exp_info["path"]) != String(selection.get("production_path", "")) \
 		or String(exp_info["provenance"]) != String(selection.get("winner_provenance", "")) \
 		or int(exp_info["sample_rate"]) != int(selection.get("sample_rate_hz", 0)) \
@@ -117,6 +147,9 @@ static func verify(manager: Node, layer: Node) -> String:
 
 		if not ResourceLoader.exists(prod_path) or not FileAccess.file_exists(prod_path):
 			return "%s production resource does not exist: %s" % [slot_id, prod_path]
+		var import_error := _verify_import_settings(prod_path)
+		if not import_error.is_empty():
+			return "%s: %s" % [slot_id, import_error]
 
 		var stream = load(prod_path)
 		if not (stream is AudioStreamWAV):
@@ -133,7 +166,6 @@ static func verify(manager: Node, layer: Node) -> String:
 		if wav.data.size() != int(selection.get("raw_bytes", 0)):
 			return "%s raw byte size mismatch: %d vs %d" % [slot_id, wav.data.size(), int(selection.get("raw_bytes", 0))]
 
-		# Frame count and duration verification
 		var actual_frames := wav.data.size() / 2
 		if actual_frames != int(selection.get("frames", 0)):
 			return "%s actual frames mismatch: %d vs %d" % [slot_id, actual_frames, int(selection.get("frames", 0))]
@@ -141,12 +173,10 @@ static func verify(manager: Node, layer: Node) -> String:
 		if absf(actual_duration - float(selection.get("duration_sec", 0.0))) > 0.0005:
 			return "%s actual duration mismatch: %f vs %f" % [slot_id, actual_duration, float(selection.get("duration_sec", 0.0))]
 
-		# File SHA check
 		var file_sha := FileAccess.get_sha256(prod_path)
 		if file_sha != String(exp_info["file_sha256"]):
 			return "%s file SHA256 mismatch: %s vs %s" % [slot_id, file_sha, exp_info["file_sha256"]]
 
-		# Raw PCM SHA check
 		var ctx := HashingContext.new()
 		ctx.start(HashingContext.HASH_SHA256)
 		ctx.update(wav.data)
@@ -154,7 +184,6 @@ static func verify(manager: Node, layer: Node) -> String:
 		if pcm_sha != String(selection.get("raw_pcm_sha256", "")):
 			return "%s raw PCM SHA256 mismatch: %s vs %s" % [slot_id, pcm_sha, String(selection.get("raw_pcm_sha256", ""))]
 
-		# Verify fallback remains functional
 		var fallback = layer.call("_create_fallback_stream", slot_id)
 		if not (fallback is AudioStreamWAV):
 			return "%s procedural fallback is not AudioStreamWAV" % slot_id
