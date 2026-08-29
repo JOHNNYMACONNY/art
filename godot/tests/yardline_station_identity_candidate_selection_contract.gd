@@ -3,6 +3,7 @@ extends RefCounted
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
 const RadioProgramPlayerScript = preload("res://scripts/audio/radio/radio_program_player.gd")
+const SelectionLockScript = preload("res://tests/yardline_station_identity_selection_lock.gd")
 
 const TARGETS := [
 	{
@@ -12,6 +13,13 @@ const TARGETS := [
 		"context": "SWEEPER",
 		"duration": 0.8,
 		"base_freq_hz": 520.0,
+		"production_path": "res://audio/radio/rad_yardline_dj_sweeper.wav",
+		"winner_provenance": "GTA_SA:GENRL:BANK_44:SOUND_2",
+		"winner_sample_rate": 18000,
+		"winner_frames": 8016,
+		"winner_duration_sec": 0.4453,
+		"winner_raw_sha256": "188837f05074b791060d41d5265851be7ef84b443c54b4f42d8fd40f941022b3",
+		"runner_up_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_16",
 	},
 	{
 		"slot": "radio.yardline.station_id_01",
@@ -20,6 +28,13 @@ const TARGETS := [
 		"context": "",
 		"duration": 1.5,
 		"base_freq_hz": 660.0,
+		"production_path": "res://audio/radio/rad_yardline_station_id_01.wav",
+		"winner_provenance": "GTA_SA:GENRL:BANK_44:SOUND_3",
+		"winner_sample_rate": 18000,
+		"winner_frames": 18176,
+		"winner_duration_sec": 1.0098,
+		"winner_raw_sha256": "a742e3d686fcfa91f8b643e0a820580a78dcd40db34f4c73ce517c894340c842",
+		"runner_up_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_2",
 	},
 	{
 		"slot": "radio.yardline.station_id_02",
@@ -28,8 +43,44 @@ const TARGETS := [
 		"context": "",
 		"duration": 0.8,
 		"base_freq_hz": 880.0,
+		"production_path": "res://audio/radio/rad_yardline_station_id_02.wav",
+		"winner_provenance": "GTA_SA:GENRL:BANK_44:SOUND_4",
+		"winner_sample_rate": 18000,
+		"winner_frames": 11872,
+		"winner_duration_sec": 0.6596,
+		"winner_raw_sha256": "7550cdb3f12086f78bea71b752b0edbd5e1f46b1e83136c459de5cc978d99051",
+		"runner_up_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_13",
 	},
 ]
+
+static func _verify_selection_lock(target: Dictionary) -> String:
+	var slot_id: String = String(target["slot"])
+	var selection: Dictionary = SelectionLockScript.get_selection(slot_id)
+	if selection.is_empty():
+		return "%s locked source selection missing" % slot_id
+	if String(selection.get("production_path", "")) != String(target["production_path"]):
+		return "%s production path lock changed" % slot_id
+	if String(selection.get("winner_provenance", "")) != String(target["winner_provenance"]):
+		return "%s winner provenance lock changed" % slot_id
+	if int(selection.get("winner_sample_rate", 0)) != int(target["winner_sample_rate"]):
+		return "%s winner sample-rate lock changed" % slot_id
+	if int(selection.get("winner_channels", 0)) != 1:
+		return "%s winner channel lock changed" % slot_id
+	if int(selection.get("winner_bit_depth", 0)) != 16:
+		return "%s winner bit-depth lock changed" % slot_id
+	if int(selection.get("winner_frames", 0)) != int(target["winner_frames"]):
+		return "%s winner frame-count lock changed" % slot_id
+	if absf(float(selection.get("winner_duration_sec", 0.0)) - float(target["winner_duration_sec"])) > 0.0001:
+		return "%s winner duration lock changed" % slot_id
+	if String(selection.get("winner_raw_sha256", "")) != String(target["winner_raw_sha256"]):
+		return "%s winner raw SHA lock changed" % slot_id
+	if String(selection.get("runner_up_provenance", "")) != String(target["runner_up_provenance"]):
+		return "%s runner-up provenance lock changed" % slot_id
+	if String(selection.get("edge_treatment", "")) != "NONE_NATURAL_BOUNDARY":
+		return "%s edge-treatment lock changed" % slot_id
+	if ResourceLoader.exists(String(selection["production_path"])):
+		return "%s production media appeared while candidate-stage guard is still active" % slot_id
+	return ""
 
 static func _verify_registry_slot(target: Dictionary) -> String:
 	var slot_id: String = String(target["slot"])
@@ -47,17 +98,17 @@ static func _verify_registry_slot(target: Dictionary) -> String:
 	if slot.get("playback_type") != AudioRegistryScript.PlaybackType.TRANSIENT:
 		return "%s playback type changed" % slot_id
 	if bool(slot.get("is_looping", true)):
-		return "%s must remain non-looping during candidate selection" % slot_id
+		return "%s must remain non-looping before production ingestion" % slot_id
 	if int(slot.get("max_concurrency", 0)) != 1:
 		return "%s max concurrency changed" % slot_id
 	if slot.get("asset_status") != AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK:
-		return "%s must remain PROCEDURAL_FALLBACK until a human winner is locked" % slot_id
+		return "%s must remain PROCEDURAL_FALLBACK until production ingestion begins" % slot_id
 	if not bool(slot.get("replacement_required", false)):
-		return "%s must remain replacement-required during candidate selection" % slot_id
+		return "%s must remain replacement-required until production ingestion begins" % slot_id
 	if not AudioRegistryScript.get_production_asset_path(slot_id).is_empty():
-		return "%s acquired a production path before source lock" % slot_id
+		return "%s acquired a production path before production ingestion" % slot_id
 	if not AudioRegistryScript.get_source_provenance(slot_id).is_empty():
-		return "%s acquired source provenance before source lock" % slot_id
+		return "%s acquired registry provenance before production ingestion" % slot_id
 	return ""
 
 static func _verify_catalog_target(target: Dictionary) -> String:
@@ -120,6 +171,15 @@ static func verify() -> String:
 	if absf(float(station.get("frequency_mhz", 0.0)) - 88.3) > 0.001:
 		return "Yardline frequency changed"
 
+	var expected_slots: Array[String] = [
+		"radio.yardline.dj_sweeper",
+		"radio.yardline.station_id_01",
+		"radio.yardline.station_id_02",
+	]
+	expected_slots.sort()
+	if SelectionLockScript.get_target_slots() != expected_slots:
+		return "01M source-selection lock must contain exactly the three authorized Yardline targets"
+
 	var station_ids: Array[Dictionary] = RadioStationCatalogScript.get_items_by_category(
 		RadioStationCatalogScript.DEFAULT_STATION_ID,
 		RadioStationCatalogScript.Category.STATION_ID
@@ -128,6 +188,9 @@ static func verify() -> String:
 		return "01M expects exactly the existing two Yardline station ID items"
 
 	for target in TARGETS:
+		var selection_error := _verify_selection_lock(target)
+		if not selection_error.is_empty():
+			return selection_error
 		var registry_error := _verify_registry_slot(target)
 		if not registry_error.is_empty():
 			return registry_error
