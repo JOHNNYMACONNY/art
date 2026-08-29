@@ -51,10 +51,18 @@ const TARGET_METADATA: Dictionary = {
 	},
 }
 
+const EXPECTED_SLOT_SET: Array[String] = [
+	"interaction.battery_insert",
+	"interaction.panel_pry",
+	"interaction.wire_clip",
+	"pursuit.pursuer_sweep",
+	"world.radio_chatter",
+]
+
 static func verify() -> String:
 	var target_slots := SelectionLockScript.get_target_slots()
-	if target_slots.size() != 5:
-		return "Expected exactly 5 target slots in 01P tactical selection lock, found %d" % target_slots.size()
+	if target_slots != EXPECTED_SLOT_SET:
+		return "01P target slots mismatch: expected %s, got %s" % [str(EXPECTED_SLOT_SET), str(target_slots)]
 
 	for slot_id in target_slots:
 		if not AudioRegistryScript.has_slot(slot_id):
@@ -96,8 +104,11 @@ static func verify() -> String:
 		var prod_path: String = String(lock.get("production_path", ""))
 		if FileAccess.file_exists(prod_path):
 			return "%s production WAV %s must NOT exist prior to media authorization" % [slot_id, prod_path]
+		var import_path := "%s.import" % prod_path
+		if FileAccess.file_exists(import_path):
+			return "%s production import sidecar %s must NOT exist prior to media authorization" % [slot_id, import_path]
 
-		# Verify winner lock schema completeness
+		# Verify winner lock schema completeness & exact value checks
 		var req_winner_fields := [
 			"winner_provenance", "winner_sample_rate", "winner_frames",
 			"winner_raw_bytes", "winner_duration_sec", "winner_peak_db",
@@ -109,5 +120,12 @@ static func verify() -> String:
 		for f in req_winner_fields:
 			if not lock.has(f):
 				return "%s lock missing required field %s" % [slot_id, f]
+		
+		if int(lock["winner_sample_rate"]) <= 0 or int(lock["winner_frames"]) <= 0:
+			return "%s invalid winner format parameters" % slot_id
+		if int(lock["winner_raw_bytes"]) != int(lock["winner_frames"]) * 2:
+			return "%s winner byte count is not mono PCM16" % slot_id
+		if String(lock["winner_raw_sha256"]).is_empty() or String(lock["winner_container_sha256"]).is_empty():
+			return "%s winner hashes cannot be empty" % slot_id
 
 	return ""
