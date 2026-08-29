@@ -53,12 +53,12 @@ static func verify(manager: Node, layer: Node) -> String:
 		or String(meta.get("mix_group", "")) != "INCIDENTAL_UI" \
 		or String(meta.get("playback_type", "")) != "TRANSIENT":
 			return "%s escaped the locked incidental UI semantic policy" % slot_id
-		if int(meta.get("asset_status", -1)) != AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK:
-			return "%s was promoted before 01N production ingestion authorization" % slot_id
-		if not bool(meta.get("replacement_required", false)):
-			return "%s cleared replacement_required before 01N production ingestion" % slot_id
-		if not String(meta.get("production_asset_path", "")).is_empty() or not String(meta.get("source_provenance", "")).is_empty():
-			return "%s gained production metadata during candidate selection" % slot_id
+		if int(meta.get("asset_status", -1)) != AudioRegistryScript.AssetStatus.LICENSED_FINAL:
+			return "%s is not promoted to LICENSED_FINAL" % slot_id
+		if bool(meta.get("replacement_required", true)):
+			return "%s still requires replacement after 01N media ingestion" % slot_id
+		if String(meta.get("production_asset_path", "")).is_empty() or String(meta.get("source_provenance", "")).is_empty():
+			return "%s missing production metadata in 01N media checkpoint" % slot_id
 
 		var runtime_policy: Array = EXPECTED_RUNTIME_POLICY[slot_id]
 		if int(meta.get("cooldown_msec", -1)) != int(runtime_policy[0]) \
@@ -91,8 +91,8 @@ static func verify(manager: Node, layer: Node) -> String:
 			return "%s raw byte count is inconsistent with mono PCM16 frames" % slot_id
 
 		var production_path := String(selection.get("production_path", ""))
-		if ResourceLoader.exists(production_path) or FileAccess.file_exists(production_path):
-			return "%s production media exists before the 01N ingestion checkpoint" % slot_id
+		if not ResourceLoader.exists(production_path) or not FileAccess.file_exists(production_path):
+			return "%s production media does not exist at expected path: %s" % [slot_id, production_path]
 
 		var fallback = layer.call("_create_fallback_stream", slot_id)
 		if not (fallback is AudioStreamWAV):

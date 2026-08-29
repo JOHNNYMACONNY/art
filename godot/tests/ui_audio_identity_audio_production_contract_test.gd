@@ -2,7 +2,7 @@ extends SceneTree
 
 const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 const UIAudioIdentityLayerScript = preload("res://scripts/audio/ui_audio_identity_layer.gd")
-const CandidateContract = preload("res://tests/ui_audio_identity_candidate_selection_contract.gd")
+const ProductionContract = preload("res://tests/ui_audio_identity_audio_production_contract.gd")
 
 var _manager: Node = null
 
@@ -18,15 +18,15 @@ func _run() -> void:
 	layer.call("configure", _manager)
 	await process_frame
 
-	var error := CandidateContract.verify(_manager, layer)
+	var error := ProductionContract.verify(_manager, layer)
 	if not error.is_empty():
-		push_error("[AUDIO_PRODUCTION_01N_CANDIDATE] %s" % error)
+		push_error("[AUDIO_PRODUCTION_01N_MEDIA] %s" % error)
 		_manager.queue_free()
 		await process_frame
 		quit(1)
 		return
 
-	print("[AUDIO_PRODUCTION_01N_CANDIDATE] PASS (7 UI winner selections locked; registry promoted to LICENSED_FINAL; production media verified; procedural fallbacks retained)")
+	print("[AUDIO_PRODUCTION_01N_MEDIA] PASS (7 UI production assets ingested; stream loading verified; bit-exact container + raw PCM hashes confirmed; fallbacks retained)")
 	_manager.queue_free()
 	await process_frame
 	quit(0)

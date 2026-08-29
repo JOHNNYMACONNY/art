@@ -44,14 +44,7 @@
         "radio.yardline.advert_01",
         "radio.yardline.advert_02",
         "radio.yardline.world_pursuit",
-        "radio.yardline.world_gate",
-        "ui.nav_move",
-        "ui.nav_confirm",
-        "ui.nav_back",
-        "ui.mode_switch",
-        "ui.reject",
-        "ui.radio_station_step",
-        "ui.replay_retry_confirm"
+        "radio.yardline.world_gate"
       ],
       "REFERENCE_ONLY": [],
       "ORIGINAL_WIP": [],
@@ -81,7 +74,14 @@
         "echo.radio_interference",
         "radio.yardline.dj_sweeper",
         "radio.yardline.station_id_01",
-        "radio.yardline.station_id_02"
+        "radio.yardline.station_id_02",
+        "ui.nav_move",
+        "ui.nav_confirm",
+        "ui.nav_back",
+        "ui.mode_switch",
+        "ui.reject",
+        "ui.radio_station_step",
+        "ui.replay_retry_confirm"
       ]
     },
     "retained_candidate_evidence": {
