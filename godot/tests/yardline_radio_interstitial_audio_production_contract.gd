@@ -4,6 +4,7 @@ const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
 const RadioProgramPlayerScript = preload("res://scripts/audio/radio/radio_program_player.gd")
 const SelectionLockScript = preload("res://tests/yardline_radio_interstitial_selection_lock.gd")
+const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
 
 const TARGETS: Array[Dictionary] = [
 	{
@@ -80,6 +81,26 @@ const TARGETS: Array[Dictionary] = [
 	},
 ]
 
+const REQUIRED_IMPORT_SETTINGS: Array[String] = [
+	"force/8_bit=false",
+	"force/mono=false",
+	"force/max_rate=false",
+	"edit/trim=false",
+	"edit/normalize=false",
+	"edit/loop_mode=0",
+	"compress/mode=0",
+]
+
+static func _verify_import_settings(prod_path: String) -> String:
+	var import_path := "%s.import" % prod_path
+	if not FileAccess.file_exists(import_path):
+		return "production import sidecar missing: %s" % import_path
+	var import_text := FileAccess.get_file_as_string(import_path)
+	for required_setting in REQUIRED_IMPORT_SETTINGS:
+		if not import_text.contains(required_setting):
+			return "%s missing locked import setting: %s" % [prod_path, required_setting]
+	return ""
+
 static func _verify_slot(target: Dictionary) -> String:
 	var slot_id: String = String(target["slot"])
 	var slot: Dictionary = AudioRegistryScript.get_slot(slot_id)
@@ -103,6 +124,8 @@ static func _verify_slot(target: Dictionary) -> String:
 		return "%s must be LICENSED_FINAL" % slot_id
 	if bool(slot.get("replacement_required", true)):
 		return "%s replacement_required must be false" % slot_id
+	if AudioRegistryScript.is_reference_allowed_for_status(slot.get("asset_status")):
+		return "%s LICENSED_FINAL slots must reject local reference override" % slot_id
 	if AudioRegistryScript.get_production_asset_path(slot_id) != String(target["production_path"]):
 		return "%s production path mismatch" % slot_id
 	if AudioRegistryScript.get_source_provenance(slot_id) != String(target["provenance"]):
@@ -119,6 +142,10 @@ static func _verify_slot(target: Dictionary) -> String:
 	var path: String = String(target["production_path"])
 	if not FileAccess.file_exists(path):
 		return "%s production media file missing" % slot_id
+	var import_error := _verify_import_settings(path)
+	if not import_error.is_empty():
+		return "%s: %s" % [slot_id, import_error]
+
 	var stream := load(path) as AudioStreamWAV
 	if stream == null or stream.data.is_empty():
 		return "%s production stream failed to load" % slot_id
