@@ -112,6 +112,8 @@ static func _verify_slot(target: Dictionary) -> String:
 		return "%s asset_status must be LICENSED_FINAL" % slot_id
 	if bool(slot_meta.get("replacement_required", true)):
 		return "%s replacement_required must be false" % slot_id
+	if AudioRegistryScript.is_reference_allowed_for_status(int(slot_meta.get("asset_status", -1))):
+		return "%s LICENSED_FINAL slot must reject local reference override" % slot_id
 
 	var path: String = AudioRegistryScript.get_production_asset_path(slot_id)
 	if path != String(target.get("production_path", "")):
@@ -122,11 +124,27 @@ static func _verify_slot(target: Dictionary) -> String:
 	var lock: Dictionary = SelectionLockScript.get_selection(slot_id)
 	if lock.is_empty():
 		return "%s selection lock missing" % slot_id
-	if lock.get("winner_provenance") != target.get("provenance"):
+	if String(lock.get("production_path", "")) != String(target.get("production_path", "")):
+		return "%s lock production path mismatch" % slot_id
+	if String(lock.get("winner_provenance", "")) != String(target.get("provenance", "")):
 		return "%s lock provenance mismatch" % slot_id
-	if lock.get("winner_container_sha256") != target.get("container_sha256"):
+	if int(lock.get("winner_sample_rate", 0)) != int(target.get("rate", 0)):
+		return "%s lock sample-rate mismatch" % slot_id
+	if int(lock.get("winner_channels", 0)) != int(target.get("channels", 0)):
+		return "%s lock channel-count mismatch" % slot_id
+	if int(lock.get("winner_bit_depth", 0)) != int(target.get("bit_depth", 0)):
+		return "%s lock bit-depth mismatch" % slot_id
+	if int(lock.get("winner_frames", 0)) != int(target.get("frames", 0)):
+		return "%s lock frame-count mismatch" % slot_id
+	if absf(float(lock.get("winner_duration_sec", 0.0)) - float(target.get("duration", 0.0))) > 0.0001:
+		return "%s lock duration mismatch" % slot_id
+	if absf(float(lock.get("winner_peak_db", 0.0)) - float(target.get("peak_db", 0.0))) > 0.001:
+		return "%s lock peak mismatch" % slot_id
+	if absf(float(lock.get("winner_rms_db", 0.0)) - float(target.get("rms_db", 0.0))) > 0.001:
+		return "%s lock RMS mismatch" % slot_id
+	if String(lock.get("winner_container_sha256", "")) != String(target.get("container_sha256", "")):
 		return "%s lock container SHA mismatch" % slot_id
-	if lock.get("winner_raw_sha256") != target.get("raw_pcm_sha256"):
+	if String(lock.get("winner_raw_sha256", "")) != String(target.get("raw_pcm_sha256", "")):
 		return "%s lock raw PCM SHA mismatch" % slot_id
 
 	var import_err := _verify_import_settings(path)
@@ -144,6 +162,15 @@ static func _verify_slot(target: Dictionary) -> String:
 	var raw_pcm := _extract_raw_pcm_data(file_bytes)
 	if raw_pcm.is_empty():
 		return "%s failed to extract raw PCM data from %s" % [slot_id, path]
+	var expected_raw_bytes := int(lock.get("winner_raw_bytes", 0))
+	if raw_pcm.size() != expected_raw_bytes:
+		return "%s raw PCM byte count mismatch: expected %d, got %d" % [slot_id, expected_raw_bytes, raw_pcm.size()]
+	var bytes_per_frame := int(target.get("channels", 0)) * int(target.get("bit_depth", 0)) / 8
+	if bytes_per_frame <= 0 or raw_pcm.size() % bytes_per_frame != 0:
+		return "%s raw PCM byte count is not frame-aligned" % slot_id
+	var actual_frames := raw_pcm.size() / bytes_per_frame
+	if actual_frames != int(lock.get("winner_frames", 0)):
+		return "%s raw PCM frame count mismatch: expected %d, got %d" % [slot_id, int(lock.get("winner_frames", 0)), actual_frames]
 
 	var ctx := HashingContext.new()
 	ctx.start(HashingContext.HASH_SHA256)
@@ -151,6 +178,20 @@ static func _verify_slot(target: Dictionary) -> String:
 	var actual_raw_sha := ctx.finish().hex_encode()
 	if actual_raw_sha != String(target.get("raw_pcm_sha256", "")):
 		return "%s raw PCM SHA-256 mismatch: expected %s, got %s" % [slot_id, target.get("raw_pcm_sha256", ""), actual_raw_sha]
+
+	var stream := load(path) as AudioStreamWAV
+	if stream == null or stream.data.is_empty():
+		return "%s production WAV failed to load as non-empty AudioStreamWAV" % slot_id
+	if stream.format != AudioStreamWAV.FORMAT_16_BITS:
+		return "%s production WAV must remain PCM16" % slot_id
+	if stream.stereo:
+		return "%s production WAV must remain mono" % slot_id
+	if stream.mix_rate != int(lock.get("winner_sample_rate", 0)):
+		return "%s loaded sample-rate mismatch: expected %d, got %d" % [slot_id, int(lock.get("winner_sample_rate", 0)), stream.mix_rate]
+	if stream.data.size() != expected_raw_bytes:
+		return "%s loaded stream byte count mismatch: expected %d, got %d" % [slot_id, expected_raw_bytes, stream.data.size()]
+	if absf(stream.get_length() - float(lock.get("winner_duration_sec", 0.0))) > 0.0005:
+		return "%s loaded duration mismatch: expected %.4fs, got %.4fs" % [slot_id, float(lock.get("winner_duration_sec", 0.0)), stream.get_length()]
 
 	return ""
 
@@ -215,5 +256,5 @@ static func _extract_raw_pcm_data(wav_bytes: PackedByteArray) -> PackedByteArray
 			var start := offset + 8
 			var end := mini(start + chunk_size, wav_bytes.size())
 			return wav_bytes.slice(start, end)
-		offset += 8 + chunk_size
+		offset += 8 + chunk_size + (chunk_size % 2)
 	return PackedByteArray()
