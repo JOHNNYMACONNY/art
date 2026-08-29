@@ -117,6 +117,8 @@ static func _verify_selection_lock(target: Dictionary) -> String:
 		return "%s winner frame-count lock changed" % slot_id
 	if absf(float(selection.get("winner_duration_sec", 0.0)) - float(target["winner_duration_sec"])) > 0.0001:
 		return "%s winner duration lock changed" % slot_id
+	if not selection.has("winner_peak_db") or not selection.has("winner_rms_db"):
+		return "%s winner peak/RMS metadata missing in selection lock" % slot_id
 	if String(selection.get("winner_raw_sha256", "")) != String(target["winner_raw_sha256"]):
 		return "%s winner raw SHA lock changed" % slot_id
 	if String(selection.get("runner_up_provenance", "")) != String(target["runner_up_provenance"]):
