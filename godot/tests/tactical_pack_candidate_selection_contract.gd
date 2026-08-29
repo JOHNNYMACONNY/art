@@ -61,8 +61,11 @@ const EXPECTED_SLOT_SET: Array[String] = [
 
 const SELECTION_TRUTH: Dictionary = {
 	"interaction.panel_pry": {
+		"production_path": "res://audio/interaction/sfx_interaction_panel_pry.wav",
 		"winner_provenance": "GTA_SA:GENRL:BANK_76:SOUND_2",
 		"winner_sample_rate": 18000,
+		"winner_channels": 1,
+		"winner_bit_depth": 16,
 		"winner_frames": 17463,
 		"winner_raw_bytes": 34926,
 		"winner_duration_sec": 0.9702,
@@ -81,8 +84,11 @@ const SELECTION_TRUTH: Dictionary = {
 		"runner_container_sha256": "74bdd593ccbddc5db69ad8835edaea0d602e00093697bbadf82f8f96e21def5a",
 	},
 	"interaction.wire_clip": {
+		"production_path": "res://audio/interaction/sfx_interaction_wire_clip.wav",
 		"winner_provenance": "GTA_SA:GENRL:BANK_143:SOUND_17",
 		"winner_sample_rate": 23000,
+		"winner_channels": 1,
+		"winner_bit_depth": 16,
 		"winner_frames": 1999,
 		"winner_raw_bytes": 3998,
 		"winner_duration_sec": 0.0869,
@@ -101,8 +107,11 @@ const SELECTION_TRUTH: Dictionary = {
 		"runner_container_sha256": "504eb17e779644598c12f28b901952f05c5504f1c7d1d2104e05eca3f0f16475",
 	},
 	"interaction.battery_insert": {
+		"production_path": "res://audio/interaction/sfx_interaction_battery_insert.wav",
 		"winner_provenance": "GTA_SA:GENRL:BANK_45:SOUND_1",
 		"winner_sample_rate": 18000,
+		"winner_channels": 1,
+		"winner_bit_depth": 16,
 		"winner_frames": 13804,
 		"winner_raw_bytes": 27608,
 		"winner_duration_sec": 0.7669,
@@ -121,8 +130,11 @@ const SELECTION_TRUTH: Dictionary = {
 		"runner_container_sha256": "f232b804dbaa2daf18a742979a7d6859f6c79357bb166a57b850f7c3b052d7ca",
 	},
 	"pursuit.pursuer_sweep": {
+		"production_path": "res://audio/pursuit/loop_pursuit_scanner_sweep.wav",
 		"winner_provenance": "GTA_SA:GENRL:BANK_138:SOUND_43",
 		"winner_sample_rate": 20900,
+		"winner_channels": 1,
+		"winner_bit_depth": 16,
 		"winner_frames": 8041,
 		"winner_raw_bytes": 16082,
 		"winner_duration_sec": 0.3847,
@@ -141,8 +153,11 @@ const SELECTION_TRUTH: Dictionary = {
 		"runner_container_sha256": "819e42aa2faecf95715eb626c5322c843ebe25381884911e23ac11389479212b",
 	},
 	"world.radio_chatter": {
+		"production_path": "res://audio/world/sfx_world_radio_chatter.wav",
 		"winner_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_16",
 		"winner_sample_rate": 15000,
+		"winner_channels": 1,
+		"winner_bit_depth": 16,
 		"winner_frames": 9909,
 		"winner_raw_bytes": 19818,
 		"winner_duration_sec": 0.6606,
