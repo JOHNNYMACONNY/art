@@ -18,8 +18,13 @@ const TARGETS: Array[Dictionary] = [
 		"winner_sample_rate": 11025,
 		"winner_frames": 54096,
 		"winner_duration_sec": 4.9067,
+		"winner_peak_db": -1.78,
+		"winner_rms_db": -13.15,
 		"winner_raw_sha256": "8d1b2f2d7f6fdef285619f5092642dfff17fd85b7d1b2091ad546e865c35b526",
 		"runner_up_provenance": "GTA_SA:GENRL:BANK_65:SOUND_0",
+		"runner_up_sample_rate": 18000,
+		"runner_up_frames": 73045,
+		"runner_up_duration_sec": 4.0581,
 	},
 	{
 		"slot": "radio.yardline.dj_link_outro",
@@ -33,8 +38,13 @@ const TARGETS: Array[Dictionary] = [
 		"winner_sample_rate": 11025,
 		"winner_frames": 30855,
 		"winner_duration_sec": 2.7986,
+		"winner_peak_db": -2.04,
+		"winner_rms_db": -13.97,
 		"winner_raw_sha256": "8aae0b29afb325f841a404fd8925ce1e9cd58510dd1eada70d13fd0c3290b0f0",
 		"runner_up_provenance": "GTA_SA:GENRL:BANK_130:SOUND_0",
+		"runner_up_sample_rate": 18000,
+		"runner_up_frames": 12179,
+		"runner_up_duration_sec": 0.6766,
 	},
 	{
 		"slot": "radio.yardline.advert_01",
@@ -48,8 +58,13 @@ const TARGETS: Array[Dictionary] = [
 		"winner_sample_rate": 28000,
 		"winner_frames": 277088,
 		"winner_duration_sec": 9.896,
+		"winner_peak_db": -0.80,
+		"winner_rms_db": -16.69,
 		"winner_raw_sha256": "e4d4d6da12ce7672ba48e55f3313fad7996d4fcf151d3021b19d666cb731dd1c",
 		"runner_up_provenance": "GTA_SA:GENRL:BANK_82:SOUND_2",
+		"runner_up_sample_rate": 28000,
+		"runner_up_frames": 277172,
+		"runner_up_duration_sec": 9.899,
 	},
 	{
 		"slot": "radio.yardline.advert_02",
@@ -63,8 +78,13 @@ const TARGETS: Array[Dictionary] = [
 		"winner_sample_rate": 28000,
 		"winner_frames": 277116,
 		"winner_duration_sec": 9.897,
+		"winner_peak_db": -2.86,
+		"winner_rms_db": -16.54,
 		"winner_raw_sha256": "2d3b2a11053b8aa57903d88a5bba0362e527712ac60f5024dfd1baf990084063",
 		"runner_up_provenance": "GTA_SA:GENRL:BANK_82:SOUND_6",
+		"runner_up_sample_rate": 28000,
+		"runner_up_frames": 276724,
+		"runner_up_duration_sec": 9.883,
 	},
 	{
 		"slot": "radio.yardline.world_pursuit",
@@ -78,8 +98,13 @@ const TARGETS: Array[Dictionary] = [
 		"winner_sample_rate": 18000,
 		"winner_frames": 17303,
 		"winner_duration_sec": 0.9613,
+		"winner_peak_db": -0.50,
+		"winner_rms_db": -13.23,
 		"winner_raw_sha256": "30384854c45363f4bd599ddecb65f7bbaf8df4a975319a7e44f5e12847f0cfc4",
 		"runner_up_provenance": "GTA_SA:GENRL:BANK_81:SOUND_0",
+		"runner_up_sample_rate": 18000,
+		"runner_up_frames": 49756,
+		"runner_up_duration_sec": 2.7642,
 	},
 	{
 		"slot": "radio.yardline.world_gate",
@@ -93,8 +118,13 @@ const TARGETS: Array[Dictionary] = [
 		"winner_sample_rate": 18000,
 		"winner_frames": 58550,
 		"winner_duration_sec": 3.2528,
+		"winner_peak_db": -2.00,
+		"winner_rms_db": -12.61,
 		"winner_raw_sha256": "3b2069e92b5c5bac4722550e62054094eaf7d34e022858985e10a3ce5f08f8ee",
 		"runner_up_provenance": "GTA_SA:GENRL:BANK_115:SOUND_1",
+		"runner_up_sample_rate": 18000,
+		"runner_up_frames": 21083,
+		"runner_up_duration_sec": 1.1713,
 	},
 ]
 
@@ -117,12 +147,20 @@ static func _verify_selection_lock(target: Dictionary) -> String:
 		return "%s winner frame-count lock changed" % slot_id
 	if absf(float(selection.get("winner_duration_sec", 0.0)) - float(target["winner_duration_sec"])) > 0.0001:
 		return "%s winner duration lock changed" % slot_id
-	if not selection.has("winner_peak_db") or not selection.has("winner_rms_db"):
-		return "%s winner peak/RMS metadata missing in selection lock" % slot_id
+	if absf(float(selection.get("winner_peak_db", 0.0)) - float(target["winner_peak_db"])) > 0.001:
+		return "%s winner peak lock changed" % slot_id
+	if absf(float(selection.get("winner_rms_db", 0.0)) - float(target["winner_rms_db"])) > 0.001:
+		return "%s winner RMS lock changed" % slot_id
 	if String(selection.get("winner_raw_sha256", "")) != String(target["winner_raw_sha256"]):
 		return "%s winner raw SHA lock changed" % slot_id
 	if String(selection.get("runner_up_provenance", "")) != String(target["runner_up_provenance"]):
 		return "%s runner-up provenance lock changed" % slot_id
+	if int(selection.get("runner_up_sample_rate", 0)) != int(target["runner_up_sample_rate"]):
+		return "%s runner-up sample-rate lock changed" % slot_id
+	if int(selection.get("runner_up_frames", 0)) != int(target["runner_up_frames"]):
+		return "%s runner-up frame-count lock changed" % slot_id
+	if absf(float(selection.get("runner_up_duration_sec", 0.0)) - float(target["runner_up_duration_sec"])) > 0.0001:
+		return "%s runner-up duration lock changed" % slot_id
 	return ""
 
 static func _verify_registry_slot(target: Dictionary) -> String:
