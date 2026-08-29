@@ -179,18 +179,18 @@ static func verify(manager: Node) -> String:
 	if manager.get("_ambient_wind_player").get_instance_id() != wind_player_id:
 		return "wind restart created duplicate player authority"
 
-	# Chatter remains retention-only.
+	# Chatter slot verified (promoted to LICENSED_FINAL in Audio Production 01P).
 	var chatter_slot: Dictionary = AudioRegistryScript.get_slot(CHATTER_SLOT)
 	if chatter_slot.is_empty():
 		return "world.radio_chatter slot missing"
-	if chatter_slot.get("asset_status") != AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK:
-		return "radio chatter must remain procedural/retention-only"
-	if chatter_slot.get("replacement_required") != true:
-		return "radio chatter must remain replacement-required"
-	if not AudioRegistryScript.get_production_asset_path(CHATTER_SLOT).is_empty():
-		return "radio chatter must not gain production path"
-	if not AudioRegistryScript.get_source_provenance(CHATTER_SLOT).is_empty():
-		return "radio chatter must not gain production provenance"
+	if chatter_slot.get("asset_status") != AudioRegistryScript.AssetStatus.LICENSED_FINAL:
+		return "radio chatter must be LICENSED_FINAL post-01P"
+	if chatter_slot.get("replacement_required") != false:
+		return "radio chatter must clear replacement-required post-01P"
+	if AudioRegistryScript.get_production_asset_path(CHATTER_SLOT) != "res://audio/world/sfx_world_radio_chatter.wav":
+		return "radio chatter production path mismatch"
+	if AudioRegistryScript.get_source_provenance(CHATTER_SLOT) != "GTA_SA:SCRIPT:BANK_356:SOUND_16":
+		return "radio chatter production provenance mismatch"
 	if AudioManagerScript.EVENT_TO_SLOT_MAP.values().has(CHATTER_SLOT):
 		return "radio chatter must not gain AudioManager event mapping"
 

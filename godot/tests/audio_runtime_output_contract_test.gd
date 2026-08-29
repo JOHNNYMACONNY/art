@@ -16,7 +16,7 @@ const ContinuousSignatureLoopsAudioProductionContract = preload("res://tests/con
 const YardlineStationIdentityAudioProductionContract = preload("res://tests/yardline_station_identity_audio_production_contract.gd")
 const UIAudioIdentityAudioProductionContract = preload("res://tests/ui_audio_identity_audio_production_contract.gd")
 const YardlineRadioInterstitialAudioProductionContract = preload("res://tests/yardline_radio_interstitial_audio_production_contract.gd")
-const TacticalPackCandidateSelectionContract = preload("res://tests/tactical_pack_candidate_selection_contract.gd")
+const TacticalPackAudioProductionContract = preload("res://tests/tactical_pack_audio_production_contract.gd")
 
 var _manager: Node = null
 
@@ -174,10 +174,10 @@ func _run() -> void:
 		return
 	await process_frame
 
-	# Keep the 01P candidate-selection contract inside this exact-head runtime gate before generic output probes.
-	var tactical_candidate_error: String = TacticalPackCandidateSelectionContract.verify()
-	if not tactical_candidate_error.is_empty():
-		await _fail("Audio Production 01P candidate: %s" % tactical_candidate_error)
+	# Keep the 01P production-media contract inside this exact-head runtime gate before generic output probes.
+	var tactical_media_error: String = TacticalPackAudioProductionContract.verify()
+	if not tactical_media_error.is_empty():
+		await _fail("Audio Production 01P: %s" % tactical_media_error)
 		return
 	await process_frame
 
@@ -294,7 +294,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01P tactical candidate lock + Audio Production 01O Yardline interstitial media + 01N UI identity media + 01M Yardline station identity + 01L continuous signature loops + 01K footstep/wind + 01J Memory Echo arc + 01H pursuit alert/evasion + 01G impacts/collisions + 01F signal lock + 01D six-transient pack + 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01P tactical media + Audio Production 01O Yardline interstitial media + 01N UI identity media + 01M Yardline station identity + 01L continuous signature loops + 01K footstep/wind + 01J Memory Echo arc + 01H pursuit alert/evasion + 01G impacts/collisions + 01F signal lock + 01D six-transient pack + 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
 
 	active_transients = []
 	tuner_player = null

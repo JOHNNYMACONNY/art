@@ -28,11 +28,6 @@
     "total_slots": 49,
     "slots_by_status": {
       "PROCEDURAL_FALLBACK": [
-        "interaction.panel_pry",
-        "interaction.wire_clip",
-        "interaction.battery_insert",
-        "pursuit.pursuer_sweep",
-        "world.radio_chatter",
         "radio.yardline.song_01.intro",
         "radio.yardline.song_01.body",
         "radio.yardline.song_01.outro",
@@ -81,7 +76,12 @@
         "radio.yardline.advert_01",
         "radio.yardline.advert_02",
         "radio.yardline.world_pursuit",
-        "radio.yardline.world_gate"
+        "radio.yardline.world_gate",
+        "interaction.panel_pry",
+        "interaction.wire_clip",
+        "interaction.battery_insert",
+        "pursuit.pursuer_sweep",
+        "world.radio_chatter"
       ]
     },
     "retained_candidate_evidence": {
