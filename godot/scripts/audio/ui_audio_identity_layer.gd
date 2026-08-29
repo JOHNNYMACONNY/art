@@ -79,6 +79,10 @@ func play_semantic(slot_id: String) -> bool:
 
 	var stream: AudioStream = AudioReferenceResolverScript.resolve_stream(slot_id)
 	if stream == null:
+		var prod_path: String = UIAudioSemanticRegistryScript.get_production_asset_path(slot_id)
+		if not prod_path.is_empty() and ResourceLoader.exists(prod_path):
+			stream = load(prod_path) as AudioStream
+	if stream == null:
 		stream = _create_fallback_stream(slot_id)
 	if stream == null:
 		return false
