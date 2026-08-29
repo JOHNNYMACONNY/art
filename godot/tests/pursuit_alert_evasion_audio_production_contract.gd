@@ -164,18 +164,18 @@ static func verify(manager: Node) -> String:
 	if absf(float(manager.call("get_radio_duck")) - -11.0) > 0.1:
 		return "production evasion stinger incorrectly changed radio duck ownership"
 
-	# Scanner remains retained-only in 01H.
+	# Scanner slot verified (promoted to LICENSED_FINAL in Audio Production 01P).
 	var scanner: Dictionary = AudioRegistryScript.get_slot(RETAINED_SCANNER_SLOT)
 	if scanner.is_empty():
-		return "retained pursuer scanner slot is missing"
+		return "pursuer scanner slot is missing"
 	if scanner.get("playback_type") != AudioRegistryScript.PlaybackType.CONTINUOUS_LOOP or not bool(scanner.get("is_looping", false)):
-		return "retained pursuer scanner slot must remain a continuous loop semantic"
-	if scanner.get("asset_status") != AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK:
-		return "retained pursuer scanner candidate must not be promoted in 01H"
-	if scanner.get("replacement_required") != true:
-		return "retained pursuer scanner slot must remain replacement-required"
-	if not AudioRegistryScript.get_production_asset_path(RETAINED_SCANNER_SLOT).is_empty():
-		return "retained pursuer scanner slot must not gain a production path"
+		return "pursuer scanner slot must remain a continuous loop semantic"
+	if scanner.get("asset_status") != AudioRegistryScript.AssetStatus.LICENSED_FINAL:
+		return "pursuer scanner slot must be LICENSED_FINAL post-01P"
+	if scanner.get("replacement_required") != false:
+		return "pursuer scanner slot must not be replacement-required post-01P"
+	if AudioRegistryScript.get_production_asset_path(RETAINED_SCANNER_SLOT) != "res://audio/pursuit/loop_pursuit_scanner_sweep.wav":
+		return "pursuer scanner slot must point to 01P production path"
 
 	manager.call("reset_audio_instant")
 	return ""

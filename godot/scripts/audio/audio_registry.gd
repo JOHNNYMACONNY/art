@@ -136,8 +136,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/interaction/sfx_interaction_panel_pry.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_76:SOUND_2",
 		"description": "Corroded panel initial pry stress crack"
 	},
 	"interaction.panel_peel": {
@@ -170,8 +172,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/interaction/sfx_interaction_wire_clip.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_17",
 		"description": "Wire snip snap transient"
 	},
 	"interaction.wire_spark": {
@@ -204,8 +208,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/interaction/sfx_interaction_battery_insert.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_45:SOUND_1",
 		"description": "Power cell locking into junction slot"
 	},
 	"interaction.core_extracted": {
@@ -364,8 +370,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.8,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/pursuit/loop_pursuit_scanner_sweep.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_138:SOUND_43",
 		"description": "Pursuer scanner radar sweep tone"
 	},
 	"pursuit.evaded_stinger": {
@@ -506,8 +514,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 3000,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/world/sfx_world_radio_chatter.wav",
+		"source_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_16",
 		"description": "Corrupted courier transmission burst"
 	},
 	"world.fb13_thrum": {

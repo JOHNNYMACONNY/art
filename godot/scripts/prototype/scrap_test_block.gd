@@ -6962,7 +6962,7 @@ func _run_v8_m21_audio_registry_assertions() -> void:
 	assert(threat_mix.size() >= 4, "FAIL 2: CRITICAL_THREAT mix group must contain at least 4 slots (found %d)" % threat_mix.size())
 
 	var backlog: Array[Dictionary] = AudioRegistryScript.get_replacement_backlog()
-	assert(backlog.size() >= 11, "FAIL 2: Replacement backlog should track slots requiring original/licensed audio (found %d)" % backlog.size())
+	assert(backlog.size() >= 6, "FAIL 2: Replacement backlog should track slots requiring original/licensed audio (found %d)" % backlog.size())
 	print("  -> Assertion 2 PASS: Domain, Diegesis, Mix Group, and Backlog queries verified!")
 
 	# -------------------------------------------------------------------------
