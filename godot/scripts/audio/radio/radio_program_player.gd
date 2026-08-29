@@ -3,6 +3,7 @@ extends Node
 const RadioProgramDirectorScript = preload("res://scripts/audio/radio/radio_program_director.gd")
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
 const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
+const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 
 signal segment_started(item: Dictionary)
 signal segment_completed(item: Dictionary)
@@ -213,7 +214,13 @@ func _play_current_segment() -> void:
 	if not slot_id.is_empty() and AudioReferenceResolverScript.is_reference_enabled():
 		stream = AudioReferenceResolverScript.resolve_stream(slot_id)
 
-	# 2. Synthesize segment-specific procedural fallback if not overridden
+	# 2. Check registered production asset path
+	if not stream and not slot_id.is_empty():
+		var prod_path: String = AudioRegistryScript.get_production_asset_path(slot_id)
+		if not prod_path.is_empty() and ResourceLoader.exists(prod_path):
+			stream = load(prod_path) as AudioStream
+
+	# 3. Synthesize segment-specific procedural fallback if not overridden
 	if not stream:
 		stream = _synthesize_segment_audio(_current_item, _current_segment)
 
@@ -221,7 +228,8 @@ func _play_current_segment() -> void:
 	if _player:
 		_update_composed_volume()
 		_player.stream = stream
-		_player.play(0.0)
+		if _player.is_inside_tree():
+			_player.play(0.0)
 
 func _on_stream_finished() -> void:
 	if not _is_playing or _is_paused:

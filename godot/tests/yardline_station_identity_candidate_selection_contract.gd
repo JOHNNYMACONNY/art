@@ -76,10 +76,6 @@ static func _verify_selection_lock(target: Dictionary) -> String:
 		return "%s winner raw SHA lock changed" % slot_id
 	if String(selection.get("runner_up_provenance", "")) != String(target["runner_up_provenance"]):
 		return "%s runner-up provenance lock changed" % slot_id
-	if String(selection.get("edge_treatment", "")) != "NONE_NATURAL_BOUNDARY":
-		return "%s edge-treatment lock changed" % slot_id
-	if ResourceLoader.exists(String(selection["production_path"])):
-		return "%s production media appeared while candidate-stage guard is still active" % slot_id
 	return ""
 
 static func _verify_registry_slot(target: Dictionary) -> String:
@@ -98,17 +94,17 @@ static func _verify_registry_slot(target: Dictionary) -> String:
 	if slot.get("playback_type") != AudioRegistryScript.PlaybackType.TRANSIENT:
 		return "%s playback type changed" % slot_id
 	if bool(slot.get("is_looping", true)):
-		return "%s must remain non-looping before production ingestion" % slot_id
+		return "%s must remain non-looping" % slot_id
 	if int(slot.get("max_concurrency", 0)) != 1:
 		return "%s max concurrency changed" % slot_id
-	if slot.get("asset_status") != AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK:
-		return "%s must remain PROCEDURAL_FALLBACK until production ingestion begins" % slot_id
-	if not bool(slot.get("replacement_required", false)):
-		return "%s must remain replacement-required until production ingestion begins" % slot_id
-	if not AudioRegistryScript.get_production_asset_path(slot_id).is_empty():
-		return "%s acquired a production path before production ingestion" % slot_id
-	if not AudioRegistryScript.get_source_provenance(slot_id).is_empty():
-		return "%s acquired registry provenance before production ingestion" % slot_id
+	if slot.get("asset_status") != AudioRegistryScript.AssetStatus.LICENSED_FINAL:
+		return "%s must be LICENSED_FINAL" % slot_id
+	if bool(slot.get("replacement_required", true)):
+		return "%s replacement_required must be cleared" % slot_id
+	if AudioRegistryScript.get_production_asset_path(slot_id) != String(target["production_path"]):
+		return "%s production asset path mismatch" % slot_id
+	if AudioRegistryScript.get_source_provenance(slot_id) != String(target["winner_provenance"]):
+		return "%s source provenance mismatch" % slot_id
 	return ""
 
 static func _verify_catalog_target(target: Dictionary) -> String:

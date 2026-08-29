@@ -41,9 +41,6 @@
         "radio.yardline.song_04.body",
         "radio.yardline.dj_link_intro",
         "radio.yardline.dj_link_outro",
-        "radio.yardline.dj_sweeper",
-        "radio.yardline.station_id_01",
-        "radio.yardline.station_id_02",
         "radio.yardline.advert_01",
         "radio.yardline.advert_02",
         "radio.yardline.world_pursuit",
@@ -81,7 +78,10 @@
         "world.ambient_wind",
         "vehicle.engine_rev",
         "pursuit.siren_alarm",
-        "echo.radio_interference"
+        "echo.radio_interference",
+        "radio.yardline.dj_sweeper",
+        "radio.yardline.station_id_01",
+        "radio.yardline.station_id_02"
       ]
     },
     "retained_candidate_evidence": {

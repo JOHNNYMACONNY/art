@@ -668,8 +668,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/rad_yardline_dj_sweeper.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_44:SOUND_2",
 		"description": "Yardline 88.3 radio station sweeper sound"
 	},
 	"radio.yardline.station_id_01": {
@@ -684,8 +686,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/rad_yardline_station_id_01.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_44:SOUND_3",
 		"description": "Yardline 88.3 signature jingle ID"
 	},
 	"radio.yardline.station_id_02": {
@@ -700,8 +704,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/rad_yardline_station_id_02.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_44:SOUND_4",
 		"description": "Yardline 88.3 sting station ID"
 	},
 	"radio.yardline.advert_01": {

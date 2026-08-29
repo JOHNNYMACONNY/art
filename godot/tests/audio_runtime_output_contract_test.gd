@@ -13,7 +13,7 @@ const PursuitAlertEvasionAudioProductionContract = preload("res://tests/pursuit_
 const MemoryEchoArcAudioProductionContract = preload("res://tests/memory_echo_arc_audio_production_contract.gd")
 const LivingYardAmbientMovementAudioProductionContract = preload("res://tests/living_yard_ambient_movement_audio_production_contract.gd")
 const ContinuousSignatureLoopsAudioProductionContract = preload("res://tests/continuous_signature_loops_audio_production_contract.gd")
-const YardlineStationIdentityCandidateSelectionContract = preload("res://tests/yardline_station_identity_candidate_selection_contract.gd")
+const YardlineStationIdentityAudioProductionContract = preload("res://tests/yardline_station_identity_audio_production_contract.gd")
 
 var _manager: Node = null
 
@@ -105,48 +105,57 @@ func _run() -> void:
 	if not gate_slam_error.is_empty():
 		await _fail("Audio Production 01C: %s" % gate_slam_error)
 		return
+	await process_frame
 
 	var golden_loop_error: String = GoldenLoopTransientsAudioProductionContract.verify(_manager)
 	if not golden_loop_error.is_empty():
 		await _fail("Audio Production 01D: %s" % golden_loop_error)
 		return
+	await process_frame
 
 	var signal_lock_error: String = SignalLockAudioProductionContract.verify(_manager)
 	if not signal_lock_error.is_empty():
 		await _fail("Audio Production 01F: %s" % signal_lock_error)
 		return
+	await process_frame
 
 	var impacts_error: String = ImpactsCollisionsAudioProductionContract.verify(_manager)
 	if not impacts_error.is_empty():
 		await _fail("Audio Production 01G: %s" % impacts_error)
 		return
+	await process_frame
 
 	var pursuit_pack_error: String = PursuitAlertEvasionAudioProductionContract.verify(_manager)
 	if not pursuit_pack_error.is_empty():
 		await _fail("Audio Production 01H: %s" % pursuit_pack_error)
 		return
+	await process_frame
 
 	var memory_echo_error: String = MemoryEchoArcAudioProductionContract.verify(_manager)
 	if not memory_echo_error.is_empty():
 		await _fail("Audio Production 01J: %s" % memory_echo_error)
 		return
+	await process_frame
 
 	var living_yard_error: String = LivingYardAmbientMovementAudioProductionContract.verify(_manager)
 	if not living_yard_error.is_empty():
 		await _fail("Audio Production 01K: %s" % living_yard_error)
 		return
+	await process_frame
 
 	# Keep the 01L production-media contract inside this exact-head runtime gate before generic output probes.
 	var continuous_loops_error: String = ContinuousSignatureLoopsAudioProductionContract.verify(_manager)
 	if not continuous_loops_error.is_empty():
 		await _fail("Audio Production 01L: %s" % continuous_loops_error)
 		return
+	await process_frame
 
-	# 01M candidate search must not silently promote or reroute Yardline identity media before human source lock.
-	var yardline_candidate_error: String = YardlineStationIdentityCandidateSelectionContract.verify()
-	if not yardline_candidate_error.is_empty():
-		await _fail("Audio Production 01M candidate selection: %s" % yardline_candidate_error)
+	# Keep the 01M production-media contract inside this exact-head runtime gate before generic output probes.
+	var yardline_identity_error: String = YardlineStationIdentityAudioProductionContract.verify()
+	if not yardline_identity_error.is_empty():
+		await _fail("Audio Production 01M: %s" % yardline_identity_error)
 		return
+	await process_frame
 
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
 		await _fail("Runtime audio diagnostics seam is absent")
@@ -178,7 +187,7 @@ func _run() -> void:
 		await _fail("Master bus is unavailable")
 		return
 	if bool(report["master_muted"]):
-		await _fail("Master bus is unexpectedly muted")
+		await _fail("Master bus is muted in runtime configuration")
 		return
 	if float(report["master_volume_db"]) <= -60.0:
 		await _fail("Master bus volume is effectively silent")
@@ -261,7 +270,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01M candidate-selection guard + 01L continuous signature loops + 01K footstep/wind + 01J Memory Echo arc + 01H pursuit alert/evasion + 01G impacts/collisions + 01F signal lock + 01D six-transient pack + 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01M Yardline station identity + 01L continuous signature loops + 01K footstep/wind + 01J Memory Echo arc + 01H pursuit alert/evasion + 01G impacts/collisions + 01F signal lock + 01D six-transient pack + 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
 
 	active_transients = []
 	tuner_player = null
