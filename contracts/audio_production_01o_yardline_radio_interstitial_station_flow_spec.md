@@ -1,13 +1,13 @@
 # Audio Production 01O — Yardline Radio Interstitial & Station Flow Pack
 
-**State:** SOURCES_SELECTED__PRODUCTION_INGESTION_NOT_YET_AUTHORIZED  
-**Baseline:** `main@591ed118d1ac39dfd2eb747898d55b7fd63f5775`
+**State:** SOURCES_SELECTED__PRODUCTION_INGESTION_AUTHORIZED  
+**Baseline:** `main@8d56b7a5ba8b5768bfe0c429ef1811df03b7f539`
 
 ## Intent
 
-Lock six remaining procedural-fallback Yardline Radio interstitial and station-flow slots. The six targets are transient/non-looping, domain `RADIO`, mix group `RADIO_MUSIC`, max concurrency 1. They must function as a coherent station flow sequence — intro opener → content → outro hand-off — while the two adverts remain mutually distinct and the two world-event bulletins communicate urgency differences without colliding perceptually with gameplay threat cues.
+Replace the six procedural Yardline Radio interstitial and station-flow slots with a coherent production GTA SA interstitial flow pack, while preserving radio playback, sequencing, ducking, lifecycle, and fallback architecture.
 
-Human candidate audition is complete. The six winners below are locked. No production WAV ingestion or registry path promotion is authorized at this stage.
+Human candidate audition is complete. The six winners below are locked and production ingestion of exactly those winners into `res://audio/radio/` is authorized.
 
 ## Locked target set
 

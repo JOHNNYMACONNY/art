@@ -6962,7 +6962,7 @@ func _run_v8_m21_audio_registry_assertions() -> void:
 	assert(threat_mix.size() >= 4, "FAIL 2: CRITICAL_THREAT mix group must contain at least 4 slots (found %d)" % threat_mix.size())
 
 	var backlog: Array[Dictionary] = AudioRegistryScript.get_replacement_backlog()
-	assert(backlog.size() >= 15, "FAIL 2: Replacement backlog should track slots requiring original/licensed audio (found %d)" % backlog.size())
+	assert(backlog.size() >= 11, "FAIL 2: Replacement backlog should track slots requiring original/licensed audio (found %d)" % backlog.size())
 	print("  -> Assertion 2 PASS: Domain, Diegesis, Mix Group, and Backlog queries verified!")
 
 	# -------------------------------------------------------------------------
@@ -7288,7 +7288,12 @@ func _run_v8_m22_radio_director_assertions() -> void:
 		assert(meta["domain"] == AudioRegistryScript.Domain.RADIO, "FAIL 2: Slot %s must have Domain.RADIO" % slot_id)
 		assert(meta["diegesis"] == AudioRegistryScript.Diegesis.DIEGETIC, "FAIL 2: Slot %s must have Diegesis.DIEGETIC" % slot_id)
 		assert(meta["mix_group"] == AudioRegistryScript.MixGroup.RADIO_MUSIC, "FAIL 2: Slot %s mix_group must be RADIO_MUSIC" % slot_id)
-		var is_prod_final: bool = slot_id in ["radio.yardline.dj_sweeper", "radio.yardline.station_id_01", "radio.yardline.station_id_02"]
+		var is_prod_final: bool = slot_id in [
+			"radio.yardline.dj_sweeper", "radio.yardline.station_id_01", "radio.yardline.station_id_02",
+			"radio.yardline.dj_link_intro", "radio.yardline.dj_link_outro",
+			"radio.yardline.advert_01", "radio.yardline.advert_02",
+			"radio.yardline.world_pursuit", "radio.yardline.world_gate"
+		]
 		var exp_status = AudioRegistryScript.AssetStatus.LICENSED_FINAL if is_prod_final else AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK
 		var exp_replacement: bool = not is_prod_final
 		assert(meta["asset_status"] == exp_status, "FAIL 2: Slot %s asset_status mismatch" % slot_id)
