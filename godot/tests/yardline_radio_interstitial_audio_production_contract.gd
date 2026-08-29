@@ -158,6 +158,10 @@ static func _verify_slot(target: Dictionary) -> String:
 	if (stream.data.size() / 2) != int(lock.get("winner_frames", 0)):
 		return "%s exact frame count mismatch against lock" % slot_id
 
+	var actual_dur := float(stream.data.size() / 2) / float(stream.mix_rate)
+	if absf(actual_dur - float(lock.get("winner_duration_sec", 0.0))) > 0.001:
+		return "%s actual stream duration mismatch against lock" % slot_id
+
 	var ctx := HashingContext.new()
 	ctx.start(HashingContext.HASH_SHA256)
 	ctx.update(stream.data)
@@ -179,6 +183,13 @@ static func verify() -> String:
 		return "Yardline station missing"
 	if String(station.get("name", "")) != "YARDLINE 88.3":
 		return "Yardline station name changed"
+
+	var expected_slots: Array[String] = []
+	for target in TARGETS:
+		expected_slots.append(String(target["slot"]))
+	expected_slots.sort()
+	if expected_slots != SelectionLockScript.get_target_slots():
+		return "01O production contract target set must exactly match SelectionLock target set"
 
 	for target in TARGETS:
 		var slot_err := _verify_slot(target)
