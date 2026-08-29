@@ -38,13 +38,7 @@
         "radio.yardline.song_01.outro",
         "radio.yardline.song_02.body",
         "radio.yardline.song_03.body",
-        "radio.yardline.song_04.body",
-        "radio.yardline.dj_link_intro",
-        "radio.yardline.dj_link_outro",
-        "radio.yardline.advert_01",
-        "radio.yardline.advert_02",
-        "radio.yardline.world_pursuit",
-        "radio.yardline.world_gate"
+        "radio.yardline.song_04.body"
       ],
       "REFERENCE_ONLY": [],
       "ORIGINAL_WIP": [],
@@ -81,7 +75,13 @@
         "ui.mode_switch",
         "ui.reject",
         "ui.radio_station_step",
-        "ui.replay_retry_confirm"
+        "ui.replay_retry_confirm",
+        "radio.yardline.dj_link_intro",
+        "radio.yardline.dj_link_outro",
+        "radio.yardline.advert_01",
+        "radio.yardline.advert_02",
+        "radio.yardline.world_pursuit",
+        "radio.yardline.world_gate"
       ]
     },
     "retained_candidate_evidence": {

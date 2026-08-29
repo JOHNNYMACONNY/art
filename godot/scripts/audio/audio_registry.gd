@@ -636,8 +636,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/rad_yardline_dj_link_intro.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_84:SOUND_0",
 		"description": "Yardline 88.3 DJ voice intro link"
 	},
 	"radio.yardline.dj_link_outro": {
@@ -652,8 +654,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/rad_yardline_dj_link_outro.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_84:SOUND_1",
 		"description": "Yardline 88.3 DJ voice outro link"
 	},
 	"radio.yardline.dj_sweeper": {
@@ -722,8 +726,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/rad_yardline_advert_01.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_82:SOUND_0",
 		"description": "Yardline 88.3 satirical surplus salvage advert"
 	},
 	"radio.yardline.advert_02": {
@@ -738,8 +744,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/rad_yardline_advert_02.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_82:SOUND_4",
 		"description": "Yardline 88.3 hydro-ration commercial advert"
 	},
 	"radio.yardline.world_pursuit": {
@@ -754,8 +762,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/rad_yardline_world_pursuit.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_91:SOUND_0",
 		"description": "Yardline 88.3 scrap yard pursuit bulletin"
 	},
 	"radio.yardline.world_gate": {
@@ -770,10 +780,12 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/rad_yardline_world_gate.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_91:SOUND_1",
 		"description": "Yardline 88.3 perimeter barrier activity alert"
-	}
+	},
 }
 
 static func is_reference_allowed_for_status(status: int) -> bool:
