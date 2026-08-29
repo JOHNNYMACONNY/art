@@ -190,6 +190,11 @@ static func _verify_registry_slot(target: Dictionary) -> String:
 		return "%s production asset path must remain empty at candidate stage" % slot_id
 	if not AudioRegistryScript.get_source_provenance(slot_id).is_empty():
 		return "%s source provenance must remain empty at candidate stage" % slot_id
+	var planned_path: String = String(target["production_path"])
+	if FileAccess.file_exists(planned_path) or ResourceLoader.exists(planned_path):
+		return "%s production media must remain absent before ingestion authorization" % slot_id
+	if FileAccess.file_exists("%s.import" % planned_path):
+		return "%s production import sidecar must remain absent before ingestion authorization" % slot_id
 	return ""
 
 static func _verify_catalog_target(target: Dictionary) -> String:
