@@ -14,6 +14,7 @@ const MemoryEchoArcAudioProductionContract = preload("res://tests/memory_echo_ar
 const LivingYardAmbientMovementAudioProductionContract = preload("res://tests/living_yard_ambient_movement_audio_production_contract.gd")
 const ContinuousSignatureLoopsAudioProductionContract = preload("res://tests/continuous_signature_loops_audio_production_contract.gd")
 const YardlineStationIdentityAudioProductionContract = preload("res://tests/yardline_station_identity_audio_production_contract.gd")
+const UIAudioIdentityCandidateSelectionContract = preload("res://tests/ui_audio_identity_candidate_selection_contract.gd")
 
 var _manager: Node = null
 
@@ -157,6 +158,14 @@ func _run() -> void:
 		return
 	await process_frame
 
+	# 01N is a candidate-selection checkpoint: lock the seven winners while proving
+	# production media/status promotion has not begun and all fallbacks remain reachable.
+	var ui_candidate_error: String = UIAudioIdentityCandidateSelectionContract.verify(_manager, ui_layer)
+	if not ui_candidate_error.is_empty():
+		await _fail("Audio Production 01N candidate selection: %s" % ui_candidate_error)
+		return
+	await process_frame
+
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
 		await _fail("Runtime audio diagnostics seam is absent")
 		return
@@ -270,7 +279,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01M Yardline station identity + 01L continuous signature loops + 01K footstep/wind + 01J Memory Echo arc + 01H pursuit alert/evasion + 01G impacts/collisions + 01F signal lock + 01D six-transient pack + 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01N UI candidate lock + 01M Yardline station identity + 01L continuous signature loops + 01K footstep/wind + 01J Memory Echo arc + 01H pursuit alert/evasion + 01G impacts/collisions + 01F signal lock + 01D six-transient pack + 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
 
 	active_transients = []
 	tuner_player = null
