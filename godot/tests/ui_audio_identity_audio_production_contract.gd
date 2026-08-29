@@ -81,6 +81,10 @@ static func verify(manager: Node, layer: Node) -> String:
 		expected_slots.append(String(slot_id))
 	expected_slots.sort()
 
+	var locked_slots := SelectionLockScript.get_target_slots()
+	if expected_slots != locked_slots:
+		return "01N production target set drifted from SelectionLockScript: %s vs %s" % [expected_slots, locked_slots]
+
 	for slot_id in expected_slots:
 		if not UIAudioSemanticRegistryScript.has_slot(slot_id):
 			return "01N target slot missing from UI semantic registry: %s" % slot_id
@@ -91,6 +95,19 @@ static func verify(manager: Node, layer: Node) -> String:
 			return "%s has replacement_required != false" % slot_id
 
 		var exp_info: Dictionary = EXPECTED_SELECTIONS[slot_id]
+		var selection: Dictionary = SelectionLockScript.get_selection(slot_id)
+		if selection.is_empty():
+			return "%s missing from SelectionLockScript" % slot_id
+
+		# Cross-validate EXPECTED_SELECTIONS against SelectionLockScript
+		if String(exp_info["path"]) != String(selection.get("production_path", "")) \
+		or String(exp_info["provenance"]) != String(selection.get("winner_provenance", "")) \
+		or int(exp_info["sample_rate"]) != int(selection.get("sample_rate_hz", 0)) \
+		or int(exp_info["frames"]) != int(selection.get("frames", 0)) \
+		or int(exp_info["raw_bytes"]) != int(selection.get("raw_bytes", 0)) \
+		or String(exp_info["raw_sha256"]) != String(selection.get("raw_pcm_sha256", "")):
+			return "%s EXPECTED_SELECTIONS drifted from SelectionLockScript" % slot_id
+
 		var prod_path: String = String(meta.get("production_asset_path", ""))
 		if prod_path != String(exp_info["path"]):
 			return "%s production asset path mismatch: %s vs %s" % [slot_id, prod_path, exp_info["path"]]
@@ -98,7 +115,7 @@ static func verify(manager: Node, layer: Node) -> String:
 		if prov != String(exp_info["provenance"]):
 			return "%s provenance mismatch: %s vs %s" % [slot_id, prov, exp_info["provenance"]]
 
-		if not ResourceLoader.exists(prod_path):
+		if not ResourceLoader.exists(prod_path) or not FileAccess.file_exists(prod_path):
 			return "%s production resource does not exist: %s" % [slot_id, prod_path]
 
 		var stream = load(prod_path)
@@ -111,10 +128,18 @@ static func verify(manager: Node, layer: Node) -> String:
 			return "%s production WAV format is not 16-bit PCM" % slot_id
 		if int(wav.loop_mode) != 0:
 			return "%s production WAV loop mode is not disabled" % slot_id
-		if int(wav.mix_rate) != int(exp_info["sample_rate"]):
-			return "%s mix rate mismatch: %d vs %d" % [slot_id, wav.mix_rate, exp_info["sample_rate"]]
-		if wav.data.size() != int(exp_info["raw_bytes"]):
-			return "%s raw byte size mismatch: %d vs %d" % [slot_id, wav.data.size(), exp_info["raw_bytes"]]
+		if int(wav.mix_rate) != int(selection.get("sample_rate_hz", 0)):
+			return "%s mix rate mismatch: %d vs %d" % [slot_id, wav.mix_rate, int(selection.get("sample_rate_hz", 0))]
+		if wav.data.size() != int(selection.get("raw_bytes", 0)):
+			return "%s raw byte size mismatch: %d vs %d" % [slot_id, wav.data.size(), int(selection.get("raw_bytes", 0))]
+
+		# Frame count and duration verification
+		var actual_frames := wav.data.size() / 2
+		if actual_frames != int(selection.get("frames", 0)):
+			return "%s actual frames mismatch: %d vs %d" % [slot_id, actual_frames, int(selection.get("frames", 0))]
+		var actual_duration := float(actual_frames) / float(wav.mix_rate)
+		if absf(actual_duration - float(selection.get("duration_sec", 0.0))) > 0.0005:
+			return "%s actual duration mismatch: %f vs %f" % [slot_id, actual_duration, float(selection.get("duration_sec", 0.0))]
 
 		# File SHA check
 		var file_sha := FileAccess.get_sha256(prod_path)
@@ -126,8 +151,8 @@ static func verify(manager: Node, layer: Node) -> String:
 		ctx.start(HashingContext.HASH_SHA256)
 		ctx.update(wav.data)
 		var pcm_sha := ctx.finish().hex_encode()
-		if pcm_sha != String(exp_info["raw_sha256"]):
-			return "%s raw PCM SHA256 mismatch: %s vs %s" % [slot_id, pcm_sha, exp_info["raw_sha256"]]
+		if pcm_sha != String(selection.get("raw_pcm_sha256", "")):
+			return "%s raw PCM SHA256 mismatch: %s vs %s" % [slot_id, pcm_sha, String(selection.get("raw_pcm_sha256", ""))]
 
 		# Verify fallback remains functional
 		var fallback = layer.call("_create_fallback_stream", slot_id)
