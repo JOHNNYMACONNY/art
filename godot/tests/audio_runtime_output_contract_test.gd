@@ -105,48 +105,57 @@ func _run() -> void:
 	if not gate_slam_error.is_empty():
 		await _fail("Audio Production 01C: %s" % gate_slam_error)
 		return
+	await process_frame
 
 	var golden_loop_error: String = GoldenLoopTransientsAudioProductionContract.verify(_manager)
 	if not golden_loop_error.is_empty():
 		await _fail("Audio Production 01D: %s" % golden_loop_error)
 		return
+	await process_frame
 
 	var signal_lock_error: String = SignalLockAudioProductionContract.verify(_manager)
 	if not signal_lock_error.is_empty():
 		await _fail("Audio Production 01F: %s" % signal_lock_error)
 		return
+	await process_frame
 
 	var impacts_error: String = ImpactsCollisionsAudioProductionContract.verify(_manager)
 	if not impacts_error.is_empty():
 		await _fail("Audio Production 01G: %s" % impacts_error)
 		return
+	await process_frame
 
 	var pursuit_pack_error: String = PursuitAlertEvasionAudioProductionContract.verify(_manager)
 	if not pursuit_pack_error.is_empty():
 		await _fail("Audio Production 01H: %s" % pursuit_pack_error)
 		return
+	await process_frame
 
 	var memory_echo_error: String = MemoryEchoArcAudioProductionContract.verify(_manager)
 	if not memory_echo_error.is_empty():
 		await _fail("Audio Production 01J: %s" % memory_echo_error)
 		return
+	await process_frame
 
 	var living_yard_error: String = LivingYardAmbientMovementAudioProductionContract.verify(_manager)
 	if not living_yard_error.is_empty():
 		await _fail("Audio Production 01K: %s" % living_yard_error)
 		return
+	await process_frame
 
 	# Keep the 01L production-media contract inside this exact-head runtime gate before generic output probes.
 	var continuous_loops_error: String = ContinuousSignatureLoopsAudioProductionContract.verify(_manager)
 	if not continuous_loops_error.is_empty():
 		await _fail("Audio Production 01L: %s" % continuous_loops_error)
 		return
+	await process_frame
 
 	# Keep the 01M production-media contract inside this exact-head runtime gate before generic output probes.
 	var yardline_identity_error: String = YardlineStationIdentityAudioProductionContract.verify()
 	if not yardline_identity_error.is_empty():
 		await _fail("Audio Production 01M: %s" % yardline_identity_error)
 		return
+	await process_frame
 
 	if not _manager.has_method("get_runtime_audio_diagnostics"):
 		await _fail("Runtime audio diagnostics seam is absent")
