@@ -16,6 +16,7 @@ const TARGETS := [
 		"rate": 18000,
 		"duration": 0.4453,
 		"fallback_duration": 0.8,
+		"container_sha256": "db16c19be63b8f3298599faf88b261dda952768d2dbe45bd6f4833c61b656a06",
 	},
 	{
 		"slot": "radio.yardline.station_id_01",
@@ -27,6 +28,7 @@ const TARGETS := [
 		"rate": 18000,
 		"duration": 1.0098,
 		"fallback_duration": 1.5,
+		"container_sha256": "2913c916a74fe79d78763906eaca0c4e6f72a0d47d2f587cc4d85af75d0f93a8",
 	},
 	{
 		"slot": "radio.yardline.station_id_02",
@@ -38,6 +40,7 @@ const TARGETS := [
 		"rate": 18000,
 		"duration": 0.6596,
 		"fallback_duration": 0.8,
+		"container_sha256": "67cb10eef591c692e42bf050775124b84a22713ee65e19a76ccecd02629b4752",
 	},
 ]
 
@@ -98,6 +101,10 @@ static func _verify_slot(target: Dictionary) -> String:
 	var data_sha: String = ctx.finish().hex_encode()
 	if data_sha != String(lock.get("winner_raw_sha256", "")):
 		return "%s exact PCM SHA-256 mismatch against lock" % slot_id
+
+	var file_sha: String = FileAccess.get_sha256(path)
+	if file_sha != String(target.get("container_sha256", "")):
+		return "%s container file SHA-256 mismatch against spec" % slot_id
 
 	if stream.loop_mode != AudioStreamWAV.LOOP_DISABLED:
 		return "%s must remain non-looping" % slot_id
