@@ -179,7 +179,7 @@ static func _verify_slot(target: Dictionary) -> String:
 	if actual_raw_sha != String(target.get("raw_pcm_sha256", "")):
 		return "%s raw PCM SHA-256 mismatch: expected %s, got %s" % [slot_id, target.get("raw_pcm_sha256", ""), actual_raw_sha]
 
-	var stream := load(path) as AudioStreamWAV
+	var stream := AudioStreamWAV.load_from_file(path)
 	if stream == null or stream.data.is_empty():
 		return "%s production WAV failed to load as non-empty AudioStreamWAV" % slot_id
 	if stream.format != AudioStreamWAV.FORMAT_16_BITS:
