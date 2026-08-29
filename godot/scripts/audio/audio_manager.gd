@@ -196,6 +196,16 @@ const ECHO_PRODUCTION_EVENTS: Array[SoundEvent] = [
 static func event_to_slot_id(event: SoundEvent) -> String:
 	return EVENT_TO_SLOT_MAP.get(event, "")
 
+func _load_registry_loop_or_fallback(slot_id: String, fallback_stream: AudioStreamWAV) -> AudioStreamWAV:
+	var asset_path: String = AudioRegistryScript.get_production_asset_path(slot_id)
+	if not asset_path.is_empty() and ResourceLoader.exists(asset_path):
+		var production_stream := load(asset_path) as AudioStreamWAV
+		if production_stream != null:
+			production_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			return production_stream
+	fallback_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	return fallback_stream
+
 func _ready() -> void:
 	add_to_group("audio_manager")
 	var fb13_asset_path: String = AudioRegistryScript.get_production_asset_path("world.fb13_thrum")
@@ -211,18 +221,15 @@ func _ready() -> void:
 			_ambient_wind_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_load_production_transient_streams()
 	_load_echo_production_streams()
-	_engine_stream = _create_noise_wav(0.5, 0.4)
-	_engine_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_engine_stream = _load_registry_loop_or_fallback("vehicle.engine_rev", _create_noise_wav(0.5, 0.4))
 	_hum_stream = _create_tone_wav(120.0, 0.5, 0.3)
 	_hum_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_static_stream = _create_noise_wav(0.5, 0.25)
 	_static_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	_siren_stream = _create_tone_wav(440.0, 0.6, 0.4)
-	_siren_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_siren_stream = _load_registry_loop_or_fallback("pursuit.siren_alarm", _create_tone_wav(440.0, 0.6, 0.4))
 	_tension_stream = _create_harmonic_drone_wav(110.0, 220.0, 1.0, 0.35)
 	_tension_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	_radio_interference_stream = _create_fractured_carrier_wav(1.0, 0.3)
-	_radio_interference_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_radio_interference_stream = _load_registry_loop_or_fallback("echo.radio_interference", _create_fractured_carrier_wav(1.0, 0.3))
 	
 	_hum_player = AudioStreamPlayer3D.new()
 	_hum_player.name = "ProximityHumPlayer"
