@@ -8030,6 +8030,7 @@ func _run_v8_m23_assertions() -> void:
 	_on_radio_toggle_pressed()
 	var eng_wait := Time.get_ticks_msec()
 	while not r_player.is_paused() and Time.get_ticks_msec() - eng_wait < 600:
+		courier_bike.current_speed = 5.0
 		await get_tree().process_frame
 	assert(r_player.is_paused() == true, "FAIL 11: Radio paused")
 	assert(audio_mgr._engine_player.playing == true, "FAIL 11: Engine rev unaffected by radio pause")
