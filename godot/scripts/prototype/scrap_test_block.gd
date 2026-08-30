@@ -8020,20 +8020,24 @@ func _run_v8_m23_assertions() -> void:
 	print("\n[ASSERTION 11] Testing Vehicle Engine & Radio Audio Decoupling + Reference Fallback...")
 	courier_bike.current_speed = 5.0
 	_on_bike_mounted(player)
-	audio_mgr.set_engine_audio(0.5, courier_bike.global_position)
+	audio_mgr.update_vehicle_feedback({"speed_ratio": 0.5, "load_ratio": 0.5, "traction_state": "STABLE", "slip_intensity": 0.0}, courier_bike.global_position)
+	assert(audio_mgr.get_vehicle_feedback_snapshot().get("active", false) == true, "FAIL 11: Vehicle feedback active")
 	assert(r_player.is_playing() == true, "FAIL 11: Radio playing simultaneously")
 
 	_on_radio_toggle_pressed()
 	var eng_wait := Time.get_ticks_msec()
 	while not r_player.is_paused() and Time.get_ticks_msec() - eng_wait < 1000:
 		courier_bike.current_speed = 5.0
-		audio_mgr.set_engine_audio(0.5, courier_bike.global_position)
+		audio_mgr.update_vehicle_feedback({"speed_ratio": 0.5, "load_ratio": 0.5, "traction_state": "STABLE", "slip_intensity": 0.0}, courier_bike.global_position)
 		await get_tree().process_frame
 	assert(r_player.is_paused() == true, "FAIL 11: Radio paused")
+	assert(audio_mgr.get_vehicle_feedback_snapshot().get("active", false) == true, "FAIL 11: Vehicle feedback unaffected by radio pause")
 
 	courier_bike.current_speed = 0.0
 	_on_bike_dismounted()
+	audio_mgr.clear_vehicle_feedback()
 	await get_tree().process_frame
+	assert(audio_mgr.get_vehicle_feedback_snapshot().get("active", false) == false, "FAIL 11: Vehicle feedback cleared upon dismount")
 
 	# Local Reference Resilience (Missing Manifest)
 	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "1")
