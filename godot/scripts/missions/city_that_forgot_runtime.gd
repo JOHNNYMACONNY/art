@@ -214,12 +214,22 @@ func _on_echo_completed() -> void:
 		_fresh_pursuit_started = root_pursuit_state == int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT) \
 		or root_pursuit_state == int(ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE)
 
+var _subtitle_tween: Tween
+
 func _refresh_hud() -> void:
 	if _mission_title == null or _objective_label == null or _contact_label == null:
 		return
 	_mission_title.text = "THE CITY THAT FORGOT // SISTER KAEL"
 	_objective_label.text = mission.objective
 	_contact_label.text = mission.contact_line
+	_contact_label.modulate.a = 1.0
+	if _subtitle_tween != null and _subtitle_tween.is_valid():
+		_subtitle_tween.kill()
+	if not mission.contact_line.is_empty():
+		_subtitle_tween = _contact_label.create_tween()
+		if _subtitle_tween != null:
+			_subtitle_tween.tween_interval(5.5)
+			_subtitle_tween.tween_property(_contact_label, "modulate:a", 0.0, 0.8)
 
 func _reset_for_full_replay() -> void:
 	mission = MissionScript.new()

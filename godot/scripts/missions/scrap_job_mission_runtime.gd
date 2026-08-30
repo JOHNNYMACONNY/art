@@ -143,48 +143,71 @@ func _ensure_hud() -> void:
 	_make_input_transparent(_mission_panel)
 	_mission_panel.z_index = 40
 	_mission_panel.offset_left = 24.0
-	_mission_panel.offset_top = 78.0
-	_mission_panel.offset_right = 500.0
-	_mission_panel.offset_bottom = 200.0
+	_mission_panel.offset_top = 40.0
+	_mission_panel.offset_right = 460.0
+	_mission_panel.offset_bottom = 160.0
+
+	var flat_style := StyleBoxFlat.new()
+	flat_style.bg_color = Color(0.04, 0.05, 0.07, 0.45)
+	flat_style.corner_radius_top_left = 4
+	flat_style.corner_radius_top_right = 4
+	flat_style.corner_radius_bottom_right = 4
+	flat_style.corner_radius_bottom_left = 4
+	flat_style.content_margin_left = 10
+	flat_style.content_margin_top = 6
+	flat_style.content_margin_right = 10
+	flat_style.content_margin_bottom = 6
+	_mission_panel.add_theme_stylebox_override("panel", flat_style)
 	safe_root.add_child(_mission_panel)
 
 	var margin := MarginContainer.new()
 	margin.name = "MissionMargin"
 	_make_input_transparent(margin)
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 8)
+	margin.add_theme_constant_override("margin_left", 4)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_right", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
 	_mission_panel.add_child(margin)
 
 	var stack := VBoxContainer.new()
 	stack.name = "MissionStack"
 	_make_input_transparent(stack)
-	stack.add_theme_constant_override("separation", 4)
+	stack.add_theme_constant_override("separation", 3)
 	margin.add_child(stack)
 
 	var title := Label.new()
 	title.name = "MissionTitle"
 	_make_input_transparent(title)
 	title.text = "SCRAP JOB 01 // CITY PROPERTY"
-	title.add_theme_font_size_override("font_size", 17)
+	title.add_theme_font_size_override("font_size", 13)
+	title.add_theme_color_override("font_color", Color(1.0, 0.82, 0.22, 1.0))
+	title.add_theme_constant_override("outline_size", 3)
+	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	stack.add_child(title)
 
 	_objective_label = Label.new()
 	_objective_label.name = "ObjectiveLabel"
 	_make_input_transparent(_objective_label)
 	_objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_objective_label.custom_minimum_size = Vector2(440.0, 0.0)
-	_objective_label.add_theme_font_size_override("font_size", 15)
+	_objective_label.custom_minimum_size = Vector2(400.0, 0.0)
+	_objective_label.add_theme_font_size_override("font_size", 14)
+	_objective_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	_objective_label.add_theme_constant_override("outline_size", 3)
+	_objective_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	stack.add_child(_objective_label)
 
 	_contact_label = Label.new()
 	_contact_label.name = "ContactLabel"
 	_make_input_transparent(_contact_label)
 	_contact_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_contact_label.custom_minimum_size = Vector2(440.0, 0.0)
+	_contact_label.custom_minimum_size = Vector2(400.0, 0.0)
 	_contact_label.add_theme_font_size_override("font_size", 12)
+	_contact_label.add_theme_color_override("font_color", Color(0.85, 0.94, 1.0, 0.9))
+	_contact_label.add_theme_constant_override("outline_size", 3)
+	_contact_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	stack.add_child(_contact_label)
+
+var _subtitle_tween: Tween
 
 func _refresh_hud() -> void:
 	_ensure_hud()
@@ -192,3 +215,11 @@ func _refresh_hud() -> void:
 		return
 	_objective_label.text = mission.objective
 	_contact_label.text = mission.contact_line
+	_contact_label.modulate.a = 1.0
+	if _subtitle_tween != null and _subtitle_tween.is_valid():
+		_subtitle_tween.kill()
+	if not mission.contact_line.is_empty():
+		_subtitle_tween = _contact_label.create_tween()
+		if _subtitle_tween != null:
+			_subtitle_tween.tween_interval(5.5)
+			_subtitle_tween.tween_property(_contact_label, "modulate:a", 0.0, 0.8)
