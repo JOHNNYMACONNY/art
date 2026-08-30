@@ -92,14 +92,13 @@ Stop and reassess if work trends toward:
 - 01B established the first real contiguous Gears production block.
 - 01C authored Mayor Burn's garage inside that geography.
 - 01D authored the Silent Core infrastructure pocket inside that geography.
+- 01E / Issue #89 qualified retained-camera readability and desktop render cost (`VISUAL_PERF_CHECKPOINT_PASS`).
 
 Do not recreate these because an older document describes them as future work.
 
-### NEXT — Issue #89
+### NEXT
 
-Qualify the current production slice at the real retained camera and measure desktop rendering cost before materially expanding the district.
-
-This checkpoint should use the existing production scene and current visual canon. It does **not** authorize camera retuning, gameplay changes, new acreage, broad asset production, or audio work.
+Exploit the qualified Gears production slice with bounded authored missions/events before authorizing further district expansion.
 
 ## Implementation use
 
