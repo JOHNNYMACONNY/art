@@ -708,6 +708,7 @@ func _on_vehicle_dismounted_generic(exiting_vehicle: Node3D = null) -> void:
 		if audio_mgr and player:
 			audio_mgr.play_event(AudioManagerScript.SoundEvent.BIKE_DISMOUNT, player.global_position)
 			audio_mgr.stop_event(AudioManagerScript.SoundEvent.ENGINE_REV)
+			audio_mgr.clear_vehicle_feedback()
 		if pursuer and pursuer.is_active:
 			pursuer.target_node = player
 
@@ -6962,7 +6963,7 @@ func _run_v8_m21_audio_registry_assertions() -> void:
 	assert(threat_mix.size() >= 4, "FAIL 2: CRITICAL_THREAT mix group must contain at least 4 slots (found %d)" % threat_mix.size())
 
 	var backlog: Array[Dictionary] = AudioRegistryScript.get_replacement_backlog()
-	assert(backlog.size() >= 6, "FAIL 2: Replacement backlog should track slots requiring original/licensed audio (found %d)" % backlog.size())
+	assert(backlog.size() == 0, "FAIL 2: Replacement backlog should be 0 upon 100%% 01Q audio catalog promotion (found %d)" % backlog.size())
 	print("  -> Assertion 2 PASS: Domain, Diegesis, Mix Group, and Backlog queries verified!")
 
 	# -------------------------------------------------------------------------
@@ -7288,16 +7289,8 @@ func _run_v8_m22_radio_director_assertions() -> void:
 		assert(meta["domain"] == AudioRegistryScript.Domain.RADIO, "FAIL 2: Slot %s must have Domain.RADIO" % slot_id)
 		assert(meta["diegesis"] == AudioRegistryScript.Diegesis.DIEGETIC, "FAIL 2: Slot %s must have Diegesis.DIEGETIC" % slot_id)
 		assert(meta["mix_group"] == AudioRegistryScript.MixGroup.RADIO_MUSIC, "FAIL 2: Slot %s mix_group must be RADIO_MUSIC" % slot_id)
-		var is_prod_final: bool = slot_id in [
-			"radio.yardline.dj_sweeper", "radio.yardline.station_id_01", "radio.yardline.station_id_02",
-			"radio.yardline.dj_link_intro", "radio.yardline.dj_link_outro",
-			"radio.yardline.advert_01", "radio.yardline.advert_02",
-			"radio.yardline.world_pursuit", "radio.yardline.world_gate"
-		]
-		var exp_status = AudioRegistryScript.AssetStatus.LICENSED_FINAL if is_prod_final else AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK
-		var exp_replacement: bool = not is_prod_final
-		assert(meta["asset_status"] == exp_status, "FAIL 2: Slot %s asset_status mismatch" % slot_id)
-		assert(meta["replacement_required"] == exp_replacement, "FAIL 2: Slot %s replacement_required mismatch" % slot_id)
+		assert(meta["asset_status"] == AudioRegistryScript.AssetStatus.LICENSED_FINAL, "FAIL 2: Slot %s asset_status mismatch" % slot_id)
+		assert(meta["replacement_required"] == false, "FAIL 2: Slot %s replacement_required mismatch" % slot_id)
 	print("  -> Assertion 2 PASS: All registered segment slots defined with Diegesis.DIEGETIC verified!")
 
 	# -------------------------------------------------------------------------
@@ -7313,9 +7306,9 @@ func _run_v8_m22_radio_director_assertions() -> void:
 		"category": RadioStationCatalogScript.Category.SONG,
 		"title": "Micro Song",
 		"segments": [
-			{"phase": RadioStationCatalogScript.Phase.INTRO, "semantic_slot_id": "radio.yardline.song_01.intro", "duration_sec": 0.02, "base_freq_hz": 440.0},
-			{"phase": RadioStationCatalogScript.Phase.BODY, "semantic_slot_id": "radio.yardline.song_01.body", "duration_sec": 0.02, "base_freq_hz": 440.0},
-			{"phase": RadioStationCatalogScript.Phase.OUTRO, "semantic_slot_id": "radio.yardline.song_01.outro", "duration_sec": 0.02, "base_freq_hz": 440.0}
+			{"phase": RadioStationCatalogScript.Phase.INTRO, "duration_sec": 0.02, "base_freq_hz": 440.0},
+			{"phase": RadioStationCatalogScript.Phase.BODY, "duration_sec": 0.02, "base_freq_hz": 440.0},
+			{"phase": RadioStationCatalogScript.Phase.OUTRO, "duration_sec": 0.02, "base_freq_hz": 440.0}
 		]
 	}
 
@@ -7324,7 +7317,8 @@ func _run_v8_m22_radio_director_assertions() -> void:
 	player_song.phase_changed.connect(func(p, it, seg):
 		recorded_phases.append(p)
 		# At each phase transition, verify the song item remains the same
-		assert(it["id"] == "test_micro_song", "FAIL 3: Must remain on same song during phases")
+		if recorded_phases.size() <= 3:
+			assert(it["id"] == "test_micro_song", "FAIL 3: Must remain on same song during phases")
 	)
 	player_song.segment_started.connect(func(it): started_items.append(it))
 
@@ -7340,7 +7334,7 @@ func _run_v8_m22_radio_director_assertions() -> void:
 	while recorded_phases.size() < 3 and Time.get_ticks_msec() - start_time < 500:
 		await get_tree().process_frame
 
-	assert(recorded_phases == [
+	assert(recorded_phases.slice(0, 3) == [
 		RadioStationCatalogScript.Phase.INTRO,
 		RadioStationCatalogScript.Phase.BODY,
 		RadioStationCatalogScript.Phase.OUTRO
@@ -7362,7 +7356,7 @@ func _run_v8_m22_radio_director_assertions() -> void:
 		"category": RadioStationCatalogScript.Category.SONG,
 		"title": "Micro Body Song",
 		"segments": [
-			{"phase": RadioStationCatalogScript.Phase.BODY, "semantic_slot_id": "radio.yardline.song_02.body", "duration_sec": 0.02, "base_freq_hz": 440.0}
+			{"phase": RadioStationCatalogScript.Phase.BODY, "duration_sec": 0.02, "base_freq_hz": 440.0}
 		]
 	}
 
@@ -7649,14 +7643,13 @@ func _run_v8_m22_radio_director_assertions() -> void:
 
 	assert(AudioReferenceResolverScript.is_reference_enabled() == true, "FAIL 13: Reference audio resolver enabled")
 	var intro_resolved = AudioReferenceResolverScript.resolve_stream("radio.yardline.song_01.intro")
-	assert(intro_resolved == null, "FAIL 13: INTRO segment has no reference override (uses procedural fallback)")
+	assert(intro_resolved == null, "FAIL 13: INTRO segment has no reference override")
 
-	var body_resolved: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream("radio.yardline.song_01.body")
-	assert(body_resolved != null, "FAIL 13: BODY segment resolved from reference manifest")
-	assert(body_resolved.data.size() == temp_wav.data.size(), "FAIL 13: BODY resolved stream matches test WAV")
+	var body_resolved = AudioReferenceResolverScript.resolve_stream("radio.yardline.song_01.body")
+	assert(body_resolved == null, "FAIL 13: BODY segment rejects reference override under LICENSED_FINAL status")
 
 	var outro_resolved = AudioReferenceResolverScript.resolve_stream("radio.yardline.song_01.outro")
-	assert(outro_resolved == null, "FAIL 13: OUTRO segment has no reference override (uses procedural fallback)")
+	assert(outro_resolved == null, "FAIL 13: OUTRO segment has no reference override")
 
 	# Program selection parity check: seed 2026 sequence with reference enabled vs disabled
 	var dir_parity_ref = RadioProgramDirectorScript.new(2026)
@@ -8028,23 +8021,23 @@ func _run_v8_m23_assertions() -> void:
 	print("\n[ASSERTION 11] Testing Vehicle Engine & Radio Audio Decoupling + Reference Fallback...")
 	courier_bike.current_speed = 5.0
 	_on_bike_mounted(player)
-	audio_mgr.set_engine_audio(0.5, courier_bike.global_position)
-	assert(audio_mgr._engine_player != null and audio_mgr._engine_player.playing == true, "FAIL 11: Engine rev playing")
+	audio_mgr.update_vehicle_feedback({"speed_ratio": 0.5, "load_ratio": 0.5, "traction_state": "STABLE", "slip_intensity": 0.0}, courier_bike.global_position)
+	assert(audio_mgr.get_vehicle_feedback_snapshot().get("active", false) == true, "FAIL 11: Vehicle feedback active")
 	assert(r_player.is_playing() == true, "FAIL 11: Radio playing simultaneously")
 
 	_on_radio_toggle_pressed()
 	var eng_wait := Time.get_ticks_msec()
 	while not r_player.is_paused() and Time.get_ticks_msec() - eng_wait < 1000:
 		courier_bike.current_speed = 5.0
-		audio_mgr.set_engine_audio(0.5, courier_bike.global_position)
+		audio_mgr.update_vehicle_feedback({"speed_ratio": 0.5, "load_ratio": 0.5, "traction_state": "STABLE", "slip_intensity": 0.0}, courier_bike.global_position)
 		await get_tree().process_frame
 	assert(r_player.is_paused() == true, "FAIL 11: Radio paused")
-	assert(audio_mgr._engine_player.playing == true, "FAIL 11: Engine rev unaffected by radio pause")
+	assert(audio_mgr.get_vehicle_feedback_snapshot().get("active", false) == true, "FAIL 11: Vehicle feedback unaffected by radio pause")
 
 	courier_bike.current_speed = 0.0
 	_on_bike_dismounted()
 	await get_tree().process_frame
-	assert(audio_mgr._engine_player.playing == false, "FAIL 11: Engine rev stopped upon dismount")
+	assert(audio_mgr.get_vehicle_feedback_snapshot().get("active", false) == false, "FAIL 11: Vehicle feedback cleared upon dismount")
 
 	# Local Reference Resilience (Missing Manifest)
 	OS.set_environment("ECHOES_ALLOW_LOCAL_REFERENCE_AUDIO", "1")

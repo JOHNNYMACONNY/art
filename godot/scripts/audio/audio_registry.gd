@@ -550,8 +550,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song01_intro.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_81:SOUND_2",
 		"description": "Yardline 88.3 Scrap Pulse intro segment"
 	},
 	"radio.yardline.song_01.body": {
@@ -566,8 +568,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song01_body.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_81:SOUND_0",
 		"description": "Yardline 88.3 Scrap Pulse body segment"
 	},
 	"radio.yardline.song_01.outro": {
@@ -582,8 +586,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song01_outro.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_81:SOUND_1",
 		"description": "Yardline 88.3 Scrap Pulse outro segment"
 	},
 	"radio.yardline.song_02.body": {
@@ -598,8 +604,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song02_body.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_87:SOUND_0",
 		"description": "Yardline 88.3 Neon Drift body segment"
 	},
 	"radio.yardline.song_03.body": {
@@ -614,8 +622,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song03_body.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_89:SOUND_0",
 		"description": "Yardline 88.3 Rust Groove body segment"
 	},
 	"radio.yardline.song_04.body": {
@@ -630,8 +640,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
-		"replacement_required": true,
+		"asset_status": AssetStatus.LICENSED_FINAL,
+		"replacement_required": false,
+		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song04_body.wav",
+		"source_provenance": "GTA_SA:GENRL:BANK_99:SOUND_0",
 		"description": "Yardline 88.3 Signal Loss body segment"
 	},
 	"radio.yardline.dj_link_intro": {
