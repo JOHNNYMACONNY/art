@@ -198,7 +198,7 @@
         "bit_depth": 16,
         "raw_bytes": 30786,
         "raw_sha256": "7148e41f97a8306476ac33309a7f9b772be1365b60ad3955fadb17d85dfc7e2d",
-        "container_sha256": "81f1816f1c4df8217bb66405bc93c048bca6bc87f169f4b732bc051c5f3408a2",
+        "container_sha256": "463d61099f4210a4472f349b08e9f2b1d11d03a57860c45cbb2215b1ceb93d4a",
         "disposition": "LICENSED_FINAL__01Q_PROMOTED",
         "note": "Promoted to LICENSED_FINAL in Audio Production 01Q at res://audio/radio/yardline/music/sfx_radio_song01_intro.wav."
       },
@@ -210,7 +210,7 @@
         "bit_depth": 16,
         "raw_bytes": 99512,
         "raw_sha256": "45eac308b2f4482581be0a2b7b92fe032a4a6d051786ac6df638fbef2d3312e6",
-        "container_sha256": "65b93708f515ee04ec32f059cb0d97034cfcf5ce94c4897214a1e94119f9bc13",
+        "container_sha256": "0c4b46c7ce33871bf55aa120605f1a07a64752eb9f4ae3e9dec109e210b544cb",
         "disposition": "LICENSED_FINAL__01Q_PROMOTED",
         "note": "Promoted to LICENSED_FINAL in Audio Production 01Q at res://audio/radio/yardline/music/sfx_radio_song01_body.wav."
       },
@@ -222,7 +222,7 @@
         "bit_depth": 16,
         "raw_bytes": 57398,
         "raw_sha256": "c52ce1a17a7287ba85aa246830bbb632483c623f7077284d2cfdf8f8bb04f345",
-        "container_sha256": "099a9cf31ae247547ddb8dbe91ef146603a110a1b630f9a565ebdd1936c53518",
+        "container_sha256": "71871186feaf1c379fc05ad6c68e0fd9d818fef54e521c3ad0bb7c65dc8f0ecc",
         "disposition": "LICENSED_FINAL__01Q_PROMOTED",
         "note": "Promoted to LICENSED_FINAL in Audio Production 01Q at res://audio/radio/yardline/music/sfx_radio_song01_outro.wav."
       },
@@ -234,7 +234,7 @@
         "bit_depth": 16,
         "raw_bytes": 141512,
         "raw_sha256": "ae4890dcbd4107b0d831c146dbeacb6b31d5a0c65436f9dc00079db9bab0ee72",
-        "container_sha256": "3df4b9e4a3aa58e0a3070aa5a42099ea63a0eeb9bbdae99fb1f81d115998797f",
+        "container_sha256": "9983f5a3fc405249cbd4c8869ab07e20e800ef8f583ccee2c56fb0d03983a2d5",
         "disposition": "LICENSED_FINAL__01Q_PROMOTED",
         "note": "Promoted to LICENSED_FINAL in Audio Production 01Q at res://audio/radio/yardline/music/sfx_radio_song02_body.wav."
       },
@@ -246,7 +246,7 @@
         "bit_depth": 16,
         "raw_bytes": 101192,
         "raw_sha256": "856218a9fa55c79faedafc9a64c505ff09a5796147b67d5df2d972dd06541690",
-        "container_sha256": "e30dd4ae3ea75e53e77fe58ec8a57497d344ff9fa3881ef1604ee0c64eb2a8eb",
+        "container_sha256": "ae362bb8ed4532df469790ad91578a8e9f5efb625e2a3a2939b5a8a297d95708",
         "disposition": "LICENSED_FINAL__01Q_PROMOTED",
         "note": "Promoted to LICENSED_FINAL in Audio Production 01Q at res://audio/radio/yardline/music/sfx_radio_song03_body.wav."
       },
@@ -258,7 +258,7 @@
         "bit_depth": 16,
         "raw_bytes": 109704,
         "raw_sha256": "50f51523c7066d3497dcbe86b8f505976b4b2f005dc208983f61b75c9b906d64",
-        "container_sha256": "fc13a7c64c5970c6729547cb02c2e0a2ca75d8aa71a533bf4e8c187be7b6294d",
+        "container_sha256": "03256ce856bafbfdfdfb742993c82cf34d8e99b48363a9b154e8d44c955f08b1",
         "disposition": "LICENSED_FINAL__01Q_PROMOTED",
         "note": "Promoted to LICENSED_FINAL in Audio Production 01Q at res://audio/radio/yardline/music/sfx_radio_song04_body.wav."
       },
