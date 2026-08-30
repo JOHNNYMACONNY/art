@@ -2,6 +2,7 @@ class_name YardlineMusicCandidateSelectionContract
 extends RefCounted
 
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
+const UIAudioSemanticRegistryScript = preload("res://scripts/audio/ui_audio_semantic_registry.gd")
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
 const RadioProgramPlayerScript = preload("res://scripts/audio/radio/radio_program_player.gd")
 const SelectionLockScript = preload("res://tests/yardline_music_selection_lock.gd")
@@ -233,6 +234,80 @@ static func _verify_registry(target: Dictionary) -> String:
 		return "%s production import sidecar must not exist before ingestion authorization" % slot_id
 	return ""
 
+static func _extract_raw_pcm_data(wav_bytes: PackedByteArray) -> PackedByteArray:
+	if wav_bytes.size() < 44:
+		return PackedByteArray()
+	if wav_bytes[0] != 0x52 or wav_bytes[1] != 0x49 or wav_bytes[2] != 0x46 or wav_bytes[3] != 0x46:
+		return PackedByteArray()
+	var offset := 12
+	while offset + 8 <= wav_bytes.size():
+		var chunk_id := char(wav_bytes[offset]) + char(wav_bytes[offset + 1]) + char(wav_bytes[offset + 2]) + char(wav_bytes[offset + 3])
+		var chunk_size := wav_bytes[offset + 4] | (wav_bytes[offset + 5] << 8) | (wav_bytes[offset + 6] << 16) | (wav_bytes[offset + 7] << 24)
+		if chunk_id == "data":
+			var start := offset + 8
+			var end := mini(start + chunk_size, wav_bytes.size())
+			return wav_bytes.slice(start, end)
+		offset += 8 + chunk_size + (chunk_size % 2)
+	return PackedByteArray()
+
+static func _raw_pcm_sha256(path: String) -> String:
+	var wav_bytes := FileAccess.get_file_as_bytes(path)
+	var raw_pcm := _extract_raw_pcm_data(wav_bytes)
+	if raw_pcm.is_empty():
+		return ""
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	ctx.update(raw_pcm)
+	return ctx.finish().hex_encode()
+
+static func _verify_collision_free() -> String:
+	var winner_provenances: Dictionary = {}
+	var winner_raw_hashes: Dictionary = {}
+	for target in TARGETS:
+		var slot_id := String(target["slot"])
+		var provenance := String(target["winner_provenance"])
+		var raw_hash := String(target["winner_raw_sha256"])
+		if winner_provenances.has(provenance):
+			return "%s winner provenance collides with %s" % [slot_id, winner_provenances[provenance]]
+		if winner_raw_hashes.has(raw_hash):
+			return "%s winner raw PCM collides with %s" % [slot_id, winner_raw_hashes[raw_hash]]
+		winner_provenances[provenance] = slot_id
+		winner_raw_hashes[raw_hash] = slot_id
+
+	for existing_slot_id in AudioRegistryScript.get_all_slots().keys():
+		var existing_meta: Dictionary = AudioRegistryScript.get_slot(String(existing_slot_id))
+		if existing_meta.get("asset_status") != AudioRegistryScript.AssetStatus.LICENSED_FINAL:
+			continue
+		var existing_provenance := AudioRegistryScript.get_source_provenance(String(existing_slot_id))
+		if not existing_provenance.is_empty() and winner_provenances.has(existing_provenance):
+			return "%s winner provenance collides with promoted slot %s" % [winner_provenances[existing_provenance], existing_slot_id]
+		var existing_path := AudioRegistryScript.get_production_asset_path(String(existing_slot_id))
+		if existing_path.is_empty() or not FileAccess.file_exists(existing_path):
+			continue
+		var existing_raw_hash := _raw_pcm_sha256(existing_path)
+		if existing_raw_hash.is_empty():
+			return "failed to fingerprint promoted production asset %s" % existing_slot_id
+		if winner_raw_hashes.has(existing_raw_hash):
+			return "%s winner raw PCM collides with promoted slot %s" % [winner_raw_hashes[existing_raw_hash], existing_slot_id]
+
+	for existing_slot_id in UIAudioSemanticRegistryScript.get_all_slots().keys():
+		var existing_meta: Dictionary = UIAudioSemanticRegistryScript.get_slot(String(existing_slot_id))
+		if existing_meta.get("asset_status") != AudioRegistryScript.AssetStatus.LICENSED_FINAL:
+			continue
+		var existing_provenance := UIAudioSemanticRegistryScript.get_source_provenance(String(existing_slot_id))
+		if not existing_provenance.is_empty() and winner_provenances.has(existing_provenance):
+			return "%s winner provenance collides with promoted UI slot %s" % [winner_provenances[existing_provenance], existing_slot_id]
+		var existing_path := UIAudioSemanticRegistryScript.get_production_asset_path(String(existing_slot_id))
+		if existing_path.is_empty() or not FileAccess.file_exists(existing_path):
+			continue
+		var existing_raw_hash := _raw_pcm_sha256(existing_path)
+		if existing_raw_hash.is_empty():
+			return "failed to fingerprint promoted UI production asset %s" % existing_slot_id
+		if winner_raw_hashes.has(existing_raw_hash):
+			return "%s winner raw PCM collides with promoted UI slot %s" % [winner_raw_hashes[existing_raw_hash], existing_slot_id]
+
+	return ""
+
 static func _find_segment(item: Dictionary, slot_id: String) -> Dictionary:
 	for segment in item.get("segments", []):
 		if String(segment.get("semantic_slot_id", "")) == slot_id:
@@ -279,6 +354,10 @@ static func verify() -> String:
 	actual_slots.sort()
 	if actual_slots != _expected_slots():
 		return "01Q selection lock must contain exactly the six authorized music slots"
+
+	var collision_error := _verify_collision_free()
+	if not collision_error.is_empty():
+		return collision_error
 
 	var station := RadioStationCatalogScript.get_station(RadioStationCatalogScript.DEFAULT_STATION_ID)
 	if station.is_empty() or String(station.get("name", "")) != "YARDLINE 88.3":
