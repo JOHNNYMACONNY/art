@@ -20,13 +20,12 @@ Always refresh current `main`, open PRs/issues and relevant CI/runtime evidence 
 
 ### NEXT
 
-- **#89 — Open World Expansion 01E: Gears retained-camera readability & performance checkpoint.**
-- Goal: qualify the existing Gears production slice at the retained camera and establish desktop render cost before materially multiplying acreage.
-- This is verification/instrumentation first, not a camera redesign or a new district block.
+- **Authored gameplay on existing Gears geography.** Exploit the qualified Gears production block before authorizing further map expansion.
+- Align next just-in-time mission/event ticket with repo truth.
 
 ### DEFERRED
 
-- More Gears acreage until #89 resolves representative readability/performance debt or records a concrete blocker.
+- More Gears acreage until next bounded gameplay slice exercises existing geography.
 - PR #44 camera-occlusion experiment; retained camera follow is the production baseline.
 - Experimental nonlinear touch steering; linear steering remains default until physical-device qualification.
 - Broad fresh-player perceptual studies unless a current decision genuinely requires them.
@@ -48,6 +47,7 @@ These gates do not automatically block unrelated code-first work.
 - Open World Expansion 01C / PR #65 — Mayor Burn garage integration, merged.
 - Open World Expansion 01D / PR #66 — Silent Core infrastructure integration, merged.
 - World Event 01 / PR #68 — bounded FB-13 infrastructure-thrum use of existing geography, merged.
+- Issue #89 / Open World Expansion 01E — Gears retained-camera readability & performance checkpoint, complete (`VISUAL_PERF_CHECKPOINT_PASS`).
 
 Do not recreate completed 01A–01D work because an older roadmap still describes it as future work.
 

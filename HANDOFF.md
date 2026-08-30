@@ -1,6 +1,6 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `GEARS_FOUNDATION_01A_01D__FB13_THRUM_WORLD_EVENT_MERGED__CODE_VERIFIED__PUBLIC_PLAYTEST_CURRENT__VISUAL_PERF_AUDIO_DEBT_DEFERRED`  
+**Status:** `GEARS_FOUNDATION_01A_01E__FB13_THRUM_WORLD_EVENT_MERGED__VISUAL_PERF_CHECKPOINT_PASSED__CODE_VERIFIED__PUBLIC_PLAYTEST_CURRENT__AUDIO_TOUCH_DEFERRED`  
 **Current gameplay/world baseline:** `4c45c3d7219903b4d497eda6d32b6316c07f7568`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
@@ -225,17 +225,19 @@ Do not replace these production-scene contracts with a parallel gameplay simulat
 
 Functional/code verification and perceptual qualification remain separate.
 
+### Completed — Issue #89 Checkpoint (`VISUAL_PERF_CHECKPOINT_PASS`)
+
+- **Retained-camera captures:** Nine representative rendered states qualified from the real production scene (quiet traversal, Courier Bike, pursuit, shortcut intersection, Burn garage, Silent Core, day, dusk, FB-13 thrum).
+- **Structural render cost:** Net Gears production delta measured at +56 draw calls, +1,068 primitives, +89 objects versus retained yard control (reduced from un-retired +173/+2,376/+173).
+
 Still deferred and **not to be represented as completed**:
 
-- fresh retained-camera captures of representative Gears traversal, Bike, Pursuer/chase, alternate route, signage/landmark, Burn garage, Silent Core, day/dusk states, and the FB-13 mechanism-resonance pulse;
-- candidate desktop average/P95 frame-time plus draw/object cost measured against the retained baseline;
+- native desktop average/P95 frame-time qualification on dedicated desktop hardware (llvmpipe/CI single-frame timing remains advisory smoke only);
 - broader fresh-player perceptual qualification;
 - physical touch-conditioner A/B;
 - human/windowed listening for the FB-13 thrum and any other real listening-quality question.
 
-The owner explicitly chose the momentum policy: small reversible increments may merge with this verification debt visible, but the debt must be resolved **before materially multiplying district acreage/content based on unobserved readability/performance assumptions**.
-
-Current capability limitation: the repo's proven `ctw-feel-verify.yml` can generate fresh Xvfb/windowed rendered PNGs, but it is hard-wired to the legacy `codex/ctw-feel-01-harness` branch. The available GitHub connection can only create/write guarded `chatgpt/*` branches and is not authorized by its token to mutate Actions workflow files. `audio-runtime-31.yml` remains headless and proves routing/output contracts, not human listening quality. Therefore do not invent screenshot/listening PASS from these automated gates.
+The owner explicitly chose the momentum policy: small reversible increments may merge with remaining debt visible, but map expansion must prioritize authored content on existing geography before adding acreage.
 
 ## Scope discipline
 
