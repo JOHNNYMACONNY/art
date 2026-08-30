@@ -164,12 +164,22 @@ func _set_return_zone_visible(visible_value: bool) -> void:
 	if _return_zone != null:
 		_return_zone.visible = visible_value
 
+var _subtitle_tween: Tween
+
 func _refresh_hud() -> void:
 	if _mission_title == null or _objective_label == null or _contact_label == null:
 		return
 	_mission_title.text = "CIVIC REPOSSESSION // MAYOR BURN"
 	_objective_label.text = mission.objective
 	_contact_label.text = mission.contact_line
+	_contact_label.modulate.a = 1.0
+	if _subtitle_tween != null and _subtitle_tween.is_valid():
+		_subtitle_tween.kill()
+	if not mission.contact_line.is_empty():
+		_subtitle_tween = _contact_label.create_tween()
+		if _subtitle_tween != null:
+			_subtitle_tween.tween_interval(5.5)
+			_subtitle_tween.tween_property(_contact_label, "modulate:a", 0.0, 0.8)
 
 func _restore_mission_one_hud() -> void:
 	if _mission_title == null or _objective_label == null or _contact_label == null or _mission_one_runtime == null:
@@ -177,6 +187,14 @@ func _restore_mission_one_hud() -> void:
 	_mission_title.text = "SCRAP JOB 01 // CITY PROPERTY"
 	_objective_label.text = _mission_one_runtime.mission.objective
 	_contact_label.text = _mission_one_runtime.mission.contact_line
+	_contact_label.modulate.a = 1.0
+	if _subtitle_tween != null and _subtitle_tween.is_valid():
+		_subtitle_tween.kill()
+	if not _mission_one_runtime.mission.contact_line.is_empty():
+		_subtitle_tween = _contact_label.create_tween()
+		if _subtitle_tween != null:
+			_subtitle_tween.tween_interval(5.5)
+			_subtitle_tween.tween_property(_contact_label, "modulate:a", 0.0, 0.8)
 
 func _reset_for_full_replay() -> void:
 	mission = MissionScript.new()

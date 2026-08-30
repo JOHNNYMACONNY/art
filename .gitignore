@@ -18,3 +18,7 @@ __pycache__/
 /local_sound_library/
 /audio_staging/
 
+# Web export and temp builds
+/build/
+/.godot-web-project/
+

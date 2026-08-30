@@ -447,6 +447,8 @@ func _apply_golden_slice_design_tokens() -> void:
 		proximity_label.visible = debug_hud_enabled
 	if action_button:
 		action_button.add_theme_color_override("font_color", Color(0.1, 0.9, 1.0, 1.0))
+		if OS.has_feature("pc") or OS.has_feature("macos") or OS.has_feature("windows") or OS.has_feature("linux"):
+			action_button.text = "[E] ACTION"
 	if route_switch_button:
 		route_switch_button.add_theme_color_override("font_color", Color(0.1, 0.9, 1.0, 1.0))
 	if handbrake_button:
