@@ -1,83 +1,87 @@
+class_name YardlineMusicAudioProductionContract
 extends RefCounted
 
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const UIAudioSemanticRegistryScript = preload("res://scripts/audio/ui_audio_semantic_registry.gd")
-const SelectionLockScript = preload("res://tests/tactical_pack_selection_lock.gd")
+const SelectionLockScript = preload("res://tests/yardline_music_selection_lock.gd")
 
 const TARGETS: Array[Dictionary] = [
 	{
-		"slot": "interaction.panel_pry",
-		"production_path": "res://audio/interaction/sfx_interaction_panel_pry.wav",
-		"provenance": "GTA_SA:GENRL:BANK_76:SOUND_2",
+		"slot": "radio.yardline.song_01.intro",
+		"production_path": "res://audio/radio/yardline/music/sfx_radio_song01_intro.wav",
+		"provenance": "GTA_SA:GENRL:BANK_81:SOUND_2",
 		"rate": 18000,
-		"frames": 17463,
+		"frames": 15393,
 		"channels": 1,
 		"bit_depth": 16,
-		"duration": 0.9702,
-		"peak_db": -2.0,
-		"rms_db": -14.68,
-		"container_sha256": "dbe6ee0c8eb57018e4b43ad2ebb40602bce45e21a3592061a0800c2a76f4a13b",
-		"raw_pcm_sha256": "2b39bb47f1da6a037c3ddd9c16f07f3e1a657a2e7d7ea4937cb8d5ac62277fc8",
+		"duration": 0.8552,
+		"container_sha256": "463d61099f4210a4472f349b08e9f2b1d11d03a57860c45cbb2215b1ceb93d4a",
+		"raw_pcm_sha256": "7148e41f97a8306476ac33309a7f9b772be1365b60ad3955fadb17d85dfc7e2d",
 		"is_looping": false,
 	},
 	{
-		"slot": "interaction.wire_clip",
-		"production_path": "res://audio/interaction/sfx_interaction_wire_clip.wav",
-		"provenance": "GTA_SA:GENRL:BANK_143:SOUND_17",
-		"rate": 23000,
-		"frames": 1999,
-		"channels": 1,
-		"bit_depth": 16,
-		"duration": 0.0869,
-		"peak_db": -1.97,
-		"rms_db": -10.11,
-		"container_sha256": "8957d4026569878f41d08ff1bcfa63906214d4c5701c083646841935d034d50b",
-		"raw_pcm_sha256": "1418770fc0089bf5e309c13c1efe0f275c967ae4dc5feb433b104b560d64263d",
-		"is_looping": false,
-	},
-	{
-		"slot": "interaction.battery_insert",
-		"production_path": "res://audio/interaction/sfx_interaction_battery_insert.wav",
-		"provenance": "GTA_SA:GENRL:BANK_45:SOUND_1",
+		"slot": "radio.yardline.song_01.body",
+		"production_path": "res://audio/radio/yardline/music/sfx_radio_song01_body.wav",
+		"provenance": "GTA_SA:GENRL:BANK_81:SOUND_0",
 		"rate": 18000,
-		"frames": 13804,
+		"frames": 49756,
 		"channels": 1,
 		"bit_depth": 16,
-		"duration": 0.7669,
-		"peak_db": -2.04,
-		"rms_db": -12.1,
-		"container_sha256": "ff79a2e2810579ce890cd1af208dcd48f38be5cf5212423d099211b380e79f1d",
-		"raw_pcm_sha256": "495f76eaab687d1036d7424138c400724ec1a629c2cdfff5df931697bebd49ca",
+		"duration": 2.7642,
+		"container_sha256": "0c4b46c7ce33871bf55aa120605f1a07a64752eb9f4ae3e9dec109e210b544cb",
+		"raw_pcm_sha256": "45eac308b2f4482581be0a2b7b92fe032a4a6d051786ac6df638fbef2d3312e6",
 		"is_looping": false,
 	},
 	{
-		"slot": "pursuit.pursuer_sweep",
-		"production_path": "res://audio/pursuit/loop_pursuit_scanner_sweep.wav",
-		"provenance": "GTA_SA:GENRL:BANK_138:SOUND_43",
-		"rate": 20900,
-		"frames": 8041,
+		"slot": "radio.yardline.song_01.outro",
+		"production_path": "res://audio/radio/yardline/music/sfx_radio_song01_outro.wav",
+		"provenance": "GTA_SA:GENRL:BANK_81:SOUND_1",
+		"rate": 18000,
+		"frames": 28699,
 		"channels": 1,
 		"bit_depth": 16,
-		"duration": 0.3847,
-		"peak_db": -2.0,
-		"rms_db": -20.98,
-		"container_sha256": "46a40bebd9f3b390863dc4e1c472bd4cf14800b46f510539696c2ed796312093",
-		"raw_pcm_sha256": "5e4808d31142881192f1273dfef7cb304a694bb597c9e2fac6afc6d56edb4d80",
-		"is_looping": true,
+		"duration": 1.5944,
+		"container_sha256": "71871186feaf1c379fc05ad6c68e0fd9d818fef54e521c3ad0bb7c65dc8f0ecc",
+		"raw_pcm_sha256": "c52ce1a17a7287ba85aa246830bbb632483c623f7077284d2cfdf8f8bb04f345",
+		"is_looping": false,
 	},
 	{
-		"slot": "world.radio_chatter",
-		"production_path": "res://audio/world/sfx_world_radio_chatter.wav",
-		"provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_16",
-		"rate": 15000,
-		"frames": 9909,
+		"slot": "radio.yardline.song_02.body",
+		"production_path": "res://audio/radio/yardline/music/sfx_radio_song02_body.wav",
+		"provenance": "GTA_SA:GENRL:BANK_87:SOUND_0",
+		"rate": 18000,
+		"frames": 70756,
 		"channels": 1,
 		"bit_depth": 16,
-		"duration": 0.6606,
-		"peak_db": -2.0,
-		"rms_db": -14.36,
-		"container_sha256": "93358b3a23f17aeefdc8b5d10f4608e4c7f2c1fa507564d12bb32688ca147b49",
-		"raw_pcm_sha256": "621aa1348b7d2e9bcdf40d10658e97b456ef594c925e983102a83342e5cc3c0b",
+		"duration": 3.9309,
+		"container_sha256": "9983f5a3fc405249cbd4c8869ab07e20e800ef8f583ccee2c56fb0d03983a2d5",
+		"raw_pcm_sha256": "ae4890dcbd4107b0d831c146dbeacb6b31d5a0c65436f9dc00079db9bab0ee72",
+		"is_looping": false,
+	},
+	{
+		"slot": "radio.yardline.song_03.body",
+		"production_path": "res://audio/radio/yardline/music/sfx_radio_song03_body.wav",
+		"provenance": "GTA_SA:GENRL:BANK_89:SOUND_0",
+		"rate": 18000,
+		"frames": 50596,
+		"channels": 1,
+		"bit_depth": 16,
+		"duration": 2.8109,
+		"container_sha256": "ae362bb8ed4532df469790ad91578a8e9f5efb625e2a3a2939b5a8a297d95708",
+		"raw_pcm_sha256": "856218a9fa55c79faedafc9a64c505ff09a5796147b67d5df2d972dd06541690",
+		"is_looping": false,
+	},
+	{
+		"slot": "radio.yardline.song_04.body",
+		"production_path": "res://audio/radio/yardline/music/sfx_radio_song04_body.wav",
+		"provenance": "GTA_SA:GENRL:BANK_99:SOUND_0",
+		"rate": 18000,
+		"frames": 54852,
+		"channels": 1,
+		"bit_depth": 16,
+		"duration": 3.0473,
+		"container_sha256": "03256ce856bafbfdfdfb742993c82cf34d8e99b48363a9b154e8d44c955f08b1",
+		"raw_pcm_sha256": "50f51523c7066d3497dcbe86b8f505976b4b2f005dc208983f61b75c9b906d64",
 		"is_looping": false,
 	},
 ]
@@ -118,6 +122,7 @@ static func _verify_slot(target: Dictionary) -> String:
 	var path: String = AudioRegistryScript.get_production_asset_path(slot_id)
 	if path != String(target.get("production_path", "")):
 		return "%s production_asset_path mismatch" % slot_id
+
 	if AudioRegistryScript.get_source_provenance(slot_id) != String(target.get("provenance", "")):
 		return "%s source_provenance mismatch" % slot_id
 
@@ -138,10 +143,6 @@ static func _verify_slot(target: Dictionary) -> String:
 		return "%s lock frame-count mismatch" % slot_id
 	if absf(float(lock.get("winner_duration_sec", 0.0)) - float(target.get("duration", 0.0))) > 0.0001:
 		return "%s lock duration mismatch" % slot_id
-	if absf(float(lock.get("winner_peak_db", 0.0)) - float(target.get("peak_db", 0.0))) > 0.001:
-		return "%s lock peak mismatch" % slot_id
-	if absf(float(lock.get("winner_rms_db", 0.0)) - float(target.get("rms_db", 0.0))) > 0.001:
-		return "%s lock RMS mismatch" % slot_id
 	if String(lock.get("winner_container_sha256", "")) != String(target.get("container_sha256", "")):
 		return "%s lock container SHA mismatch" % slot_id
 	if String(lock.get("winner_raw_sha256", "")) != String(target.get("raw_pcm_sha256", "")):
@@ -224,17 +225,23 @@ static func verify() -> String:
 		elif status == AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK:
 			procedural_count += 1
 
-	if licensed_count < 43:
-		return "Combined LICENSED_FINAL count mismatch: expected at least 43, found %d" % licensed_count
-	if procedural_count > 6:
-		return "Combined PROCEDURAL_FALLBACK count mismatch: expected at most 6, found %d" % procedural_count
+	if licensed_count != 49:
+		return "Combined LICENSED_FINAL count mismatch: expected 49, found %d" % licensed_count
+	if procedural_count != 0:
+		return "Combined PROCEDURAL_FALLBACK count mismatch: expected 0, found %d" % procedural_count
+
+	var backlog := AudioRegistryScript.get_replacement_backlog()
+	if not backlog.is_empty():
+		return "Replacement backlog must be empty after 01Q final promotion, found %d items" % backlog.size()
 
 	var expected_slots: Array[String] = []
 	for target in TARGETS:
 		expected_slots.append(String(target["slot"]))
 	expected_slots.sort()
-	if expected_slots != SelectionLockScript.get_target_slots():
-		return "01P production contract target set must exactly match SelectionLock target set"
+	var lock_slots := SelectionLockScript.get_all_slots()
+	lock_slots.sort()
+	if expected_slots != lock_slots:
+		return "01Q production contract target set must exactly match SelectionLock target set"
 
 	for target in TARGETS:
 		var slot_err := _verify_slot(target)

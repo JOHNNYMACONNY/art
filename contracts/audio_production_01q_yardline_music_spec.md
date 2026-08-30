@@ -1,7 +1,7 @@
 # Audio Production 01Q — Yardline Radio Music Track Pack
 
-**State:** SOURCES_SELECTED__PRODUCTION_INGESTION_NOT_YET_AUTHORIZED  
-**Baseline:** `main@9da2e880977f6ee49f1a2724add36532b8b769f7`
+**State:** PRODUCTION_MEDIA_INGESTED__LICENSED_FINAL_PROMOTED  
+**Baseline:** `main@4fa7029d2d0ec72581ac62f5630dd8346a4c9563`
 
 ## Intent
 
