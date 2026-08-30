@@ -708,6 +708,7 @@ func _on_vehicle_dismounted_generic(exiting_vehicle: Node3D = null) -> void:
 		if audio_mgr and player:
 			audio_mgr.play_event(AudioManagerScript.SoundEvent.BIKE_DISMOUNT, player.global_position)
 			audio_mgr.stop_event(AudioManagerScript.SoundEvent.ENGINE_REV)
+			audio_mgr.clear_vehicle_feedback()
 		if pursuer and pursuer.is_active:
 			pursuer.target_node = player
 
@@ -8035,7 +8036,6 @@ func _run_v8_m23_assertions() -> void:
 
 	courier_bike.current_speed = 0.0
 	_on_bike_dismounted()
-	audio_mgr.clear_vehicle_feedback()
 	await get_tree().process_frame
 	assert(audio_mgr.get_vehicle_feedback_snapshot().get("active", false) == false, "FAIL 11: Vehicle feedback cleared upon dismount")
 
