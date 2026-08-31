@@ -1,8 +1,6 @@
 {
   "schema_version": 1,
-  "request_id": "self-test-2026-08-31",
+  "request_id": "idle",
   "purpose": "Durable ChatGPT/Codex bridge for native Wayfinder issue relationships when the direct GitHub connector does not expose the required mutation. Update operations instead of creating bespoke one-shot workflows.",
-  "operations": [
-    {"op": "add_sub_issue", "parent": 101, "child": 114}
-  ]
+  "operations": []
 }
