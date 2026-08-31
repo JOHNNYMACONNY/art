@@ -1,0 +1,65 @@
+name: Wire Public Transit Wayfinder sub-issue (one-shot)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/wayfinder-wire-transit-once.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  wire:
+    if: github.repository == 'JOHNNYMACONNY/art'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      API_VERSION: '2026-03-10'
+    steps:
+      - name: Attach Public Transit Usability Contract to Wayfinder map
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          api() {
+            gh api \
+              -H 'Accept: application/vnd.github+json' \
+              -H "X-GitHub-Api-Version: ${API_VERSION}" \
+              "$@"
+          }
+
+          existing="$(api "/repos/${REPO}/issues/101/sub_issues?per_page=100" --jq '.[].number')"
+          if grep -qx '114' <<<"${existing}"; then
+            echo '#114 already a child of #101'
+          else
+            id="$(api "/repos/${REPO}/issues/114" --jq '.id')"
+            api --method POST \
+              "/repos/${REPO}/issues/101/sub_issues" \
+              -F "sub_issue_id=${id}" >/dev/null
+            echo 'Added #114 as child of #101'
+          fi
+
+      - name: Verify native relationship
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          api() {
+            gh api \
+              -H 'Accept: application/vnd.github+json' \
+              -H "X-GitHub-Api-Version: ${API_VERSION}" \
+              "$@"
+          }
+
+          parent="$(api "/repos/${REPO}/issues/114" --jq '.parent_issue_url')"
+          [[ "${parent}" == "https://api.github.com/repos/${REPO}/issues/101" ]] || {
+            echo "ERROR: unexpected #114 parent: ${parent}" >&2
+            exit 1
+          }
+
+          api "/repos/${REPO}/issues/101/sub_issues?per_page=100" --jq 'map(.number) | index(114) != null' | grep -qx true
+          echo 'Verified #114 is a native child of #101'
