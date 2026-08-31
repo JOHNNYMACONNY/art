@@ -1,18 +1,13 @@
-# Durable execution bridge for native Wayfinder issue relationships.
-#
-# When ChatGPT/Codex needs a sub-issue or blocked-by mutation that the direct
-# GitHub connector does not expose, update .github/wayfinder-graph-request.json.
-# Do not create a bespoke one-shot workflow for routine Wayfinder graph edits.
-# This workflow is deliberately limited to issue relationships and verifies
-# every requested delta after applying it.
+# Durable bridge for native Wayfinder issue relationships.
+# If the direct ChatGPT/Codex GitHub connector lacks a relationship mutation,
+# update .github/wayfinder-graph-request.json instead of creating a one-shot workflow.
 
 name: Wayfinder Graph Maintenance
 
 on:
   push:
     branches: [main]
-    paths:
-      - .github/wayfinder-graph-request.json
+    paths: [.github/wayfinder-graph-request.json]
   workflow_dispatch:
 
 permissions:
@@ -31,153 +26,77 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
-      API_VERSION: '2026-03-10'
       REQUEST_PATH: .github/wayfinder-graph-request.json
     steps:
-      - name: Apply and verify requested graph operations
+      - name: Apply and verify graph request
         shell: bash
         run: |
           set -euo pipefail
 
-          fail() {
-            echo "ERROR: $*" >&2
-            exit 1
+          fail() { echo "ERROR: $*" >&2; exit 1; }
+          valid_num() { [[ "$1" =~ ^[1-9][0-9]*$ ]] || fail "invalid issue number: $1"; }
+          parent_of() { gh issue view "$1" -R "${REPO}" --json parent --jq '.parent.number // 0'; }
+          blocked_by() {
+            gh issue view "$1" -R "${REPO}" --json blockedBy \
+              --jq "[.blockedBy[].number] | index($2) != null"
           }
 
-          api() {
-            gh api \
-              -H 'Accept: application/vnd.github+json' \
-              -H "X-GitHub-Api-Version: ${API_VERSION}" \
-              "$@"
-          }
+          request_b64="$(gh api "/repos/${REPO}/contents/${REQUEST_PATH}?ref=${GITHUB_SHA}" --jq '.content')"
+          request="$(printf '%s' "${request_b64}" | tr -d '\n' | base64 --decode)"
+          jq -e '.schema_version == 1 and (.request_id|type=="string" and length>0) and (.operations|type=="array")' \
+            <<<"${request}" >/dev/null || fail 'invalid request schema'
 
-          require_issue_number() {
-            [[ "$1" =~ ^[1-9][0-9]*$ ]] || fail "invalid issue number: $1"
-          }
+          request_id="$(jq -r '.request_id' <<<"${request}")"
+          echo "Wayfinder graph request: ${request_id}"
 
-          issue_id() {
-            api "/repos/${REPO}/issues/$1" --jq '.id'
-          }
-
-          issue_parent() {
-            api "/repos/${REPO}/issues/$1" --jq '.parent_issue_url // ""'
-          }
-
-          is_blocked_by() {
-            local issue="$1"
-            local blocker="$2"
-            api "/repos/${REPO}/issues/${issue}/dependencies/blocked_by?per_page=100" \
-              --jq "map(.number) | index(${blocker}) != null"
-          }
-
-          request_b64="$(api "/repos/${REPO}/contents/${REQUEST_PATH}?ref=${GITHUB_SHA}" --jq '.content')"
-          request_json="$(printf '%s' "${request_b64}" | tr -d '\n' | base64 --decode)"
-
-          jq -e '
-            .schema_version == 1 and
-            (.request_id | type == "string" and length > 0) and
-            (.operations | type == "array")
-          ' <<<"${request_json}" >/dev/null || fail 'invalid request schema'
-
-          request_id="$(jq -r '.request_id' <<<"${request_json}")"
-          op_count="$(jq '.operations | length' <<<"${request_json}")"
-          echo "Wayfinder graph request: ${request_id} (${op_count} operation(s))"
-
-          while IFS= read -r operation; do
-            op="$(jq -r '.op // ""' <<<"${operation}")"
+          while IFS= read -r item; do
+            op="$(jq -r '.op // ""' <<<"${item}")"
 
             case "${op}" in
-              add_sub_issue)
-                parent="$(jq -r '.parent' <<<"${operation}")"
-                child="$(jq -r '.child' <<<"${operation}")"
-                require_issue_number "${parent}"
-                require_issue_number "${child}"
+              add_sub_issue|remove_sub_issue)
+                parent="$(jq -r '.parent' <<<"${item}")"
+                child="$(jq -r '.child' <<<"${item}")"
+                valid_num "${parent}"; valid_num "${child}"
+                current="$(parent_of "${child}")"
 
-                desired="https://api.github.com/repos/${REPO}/issues/${parent}"
-                current="$(issue_parent "${child}")"
-                if [[ "${current}" == "${desired}" ]]; then
-                  echo "#${child} already a child of #${parent}"
-                elif [[ -n "${current}" ]]; then
-                  fail "#${child} already has a different parent: ${current}"
+                if [[ "${op}" == add_sub_issue ]]; then
+                  if [[ "${current}" == "${parent}" ]]; then
+                    echo "#${child} already child of #${parent}"
+                  elif [[ "${current}" != 0 ]]; then
+                    fail "#${child} already belongs to #${current}"
+                  else
+                    gh issue edit "${parent}" -R "${REPO}" --add-sub-issue "${child}"
+                  fi
+                  [[ "$(parent_of "${child}")" == "${parent}" ]] || fail "failed to attach #${child} to #${parent}"
                 else
-                  child_id="$(issue_id "${child}")"
-                  api --method POST \
-                    "/repos/${REPO}/issues/${parent}/sub_issues" \
-                    -F "sub_issue_id=${child_id}" >/dev/null
-                  echo "Added #${child} as child of #${parent}"
+                  if [[ "${current}" == 0 ]]; then
+                    echo "#${child} already has no parent"
+                  elif [[ "${current}" != "${parent}" ]]; then
+                    fail "refusing to detach #${child} from unexpected parent #${current}"
+                  else
+                    gh issue edit "${parent}" -R "${REPO}" --remove-sub-issue "${child}"
+                  fi
+                  [[ "$(parent_of "${child}")" == 0 ]] || fail "failed to detach #${child} from #${parent}"
                 fi
-
-                [[ "$(issue_parent "${child}")" == "${desired}" ]] || \
-                  fail "verification failed: #${child} is not a child of #${parent}"
                 ;;
 
-              remove_sub_issue)
-                parent="$(jq -r '.parent' <<<"${operation}")"
-                child="$(jq -r '.child' <<<"${operation}")"
-                require_issue_number "${parent}"
-                require_issue_number "${child}"
+              add_blocked_by|remove_blocked_by)
+                issue="$(jq -r '.issue' <<<"${item}")"
+                blocker="$(jq -r '.blocker' <<<"${item}")"
+                valid_num "${issue}"; valid_num "${blocker}"
+                current="$(blocked_by "${issue}" "${blocker}")"
 
-                desired="https://api.github.com/repos/${REPO}/issues/${parent}"
-                current="$(issue_parent "${child}")"
-                if [[ -z "${current}" ]]; then
-                  echo "#${child} already has no parent"
-                elif [[ "${current}" != "${desired}" ]]; then
-                  fail "refusing to detach #${child} from unexpected parent: ${current}"
+                if [[ "${op}" == add_blocked_by ]]; then
+                  [[ "${current}" == true ]] || gh issue edit "${issue}" -R "${REPO}" --add-blocked-by "${blocker}"
+                  [[ "$(blocked_by "${issue}" "${blocker}")" == true ]] || fail "failed to add #${issue} blocked by #${blocker}"
                 else
-                  child_id="$(issue_id "${child}")"
-                  api --method DELETE \
-                    "/repos/${REPO}/issues/${parent}/sub_issue" \
-                    -F "sub_issue_id=${child_id}" >/dev/null
-                  echo "Removed #${child} from #${parent}"
+                  [[ "${current}" != true ]] || gh issue edit "${issue}" -R "${REPO}" --remove-blocked-by "${blocker}"
+                  [[ "$(blocked_by "${issue}" "${blocker}")" != true ]] || fail "failed to remove #${issue} blocked by #${blocker}"
                 fi
-
-                [[ -z "$(issue_parent "${child}")" ]] || \
-                  fail "verification failed: #${child} still has a parent"
                 ;;
 
-              add_blocked_by)
-                issue="$(jq -r '.issue' <<<"${operation}")"
-                blocker="$(jq -r '.blocker' <<<"${operation}")"
-                require_issue_number "${issue}"
-                require_issue_number "${blocker}"
-
-                if [[ "$(is_blocked_by "${issue}" "${blocker}")" == 'true' ]]; then
-                  echo "#${issue} already blocked by #${blocker}"
-                else
-                  blocker_id="$(issue_id "${blocker}")"
-                  api --method POST \
-                    "/repos/${REPO}/issues/${issue}/dependencies/blocked_by" \
-                    -F "issue_id=${blocker_id}" >/dev/null
-                  echo "Added dependency: #${issue} blocked by #${blocker}"
-                fi
-
-                [[ "$(is_blocked_by "${issue}" "${blocker}")" == 'true' ]] || \
-                  fail "verification failed: #${issue} is not blocked by #${blocker}"
-                ;;
-
-              remove_blocked_by)
-                issue="$(jq -r '.issue' <<<"${operation}")"
-                blocker="$(jq -r '.blocker' <<<"${operation}")"
-                require_issue_number "${issue}"
-                require_issue_number "${blocker}"
-
-                if [[ "$(is_blocked_by "${issue}" "${blocker}")" != 'true' ]]; then
-                  echo "#${issue} is already not blocked by #${blocker}"
-                else
-                  blocker_id="$(issue_id "${blocker}")"
-                  api --method DELETE \
-                    "/repos/${REPO}/issues/${issue}/dependencies/blocked_by/${blocker_id}" >/dev/null
-                  echo "Removed dependency: #${issue} blocked by #${blocker}"
-                fi
-
-                [[ "$(is_blocked_by "${issue}" "${blocker}")" != 'true' ]] || \
-                  fail "verification failed: #${issue} is still blocked by #${blocker}"
-                ;;
-
-              *)
-                fail "unsupported operation: ${op}"
-                ;;
+              *) fail "unsupported operation: ${op}" ;;
             esac
-          done < <(jq -c '.operations[]' <<<"${request_json}")
+          done < <(jq -c '.operations[]' <<<"${request}")
 
           echo "Wayfinder graph request ${request_id} verified."
