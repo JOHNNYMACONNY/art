@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "request_id": "bootstrap",
+  "purpose": "Durable ChatGPT/Codex bridge for native Wayfinder issue relationships when the direct GitHub connector does not expose the required mutation. Update operations instead of creating bespoke one-shot workflows.",
+  "operations": []
+}
