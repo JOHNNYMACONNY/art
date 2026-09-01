@@ -57,6 +57,14 @@ func _run() -> void:
 	if float(access.get("interaction_radius")) > 2.5:
 		await _fail("Field Hacking access radius is too broad for a physical/local Access Path")
 		return
+	var access_label := access.get_node_or_null("StatusLabel") as Label3D
+	var alarm_label := alarm.get_node_or_null("StatusLabel") as Label3D
+	if access_label == null or alarm_label == null:
+		await _fail("Civic reporting infrastructure lacks local status labels")
+		return
+	if access_label.pixel_size < 0.01 or alarm_label.pixel_size < 0.01:
+		await _fail("Civic Field Hacking feedback is too small at the production camera distance")
+		return
 
 	# Access Is the Puzzle: physically reach the service point, then interference is immediate.
 	player.global_position = access.global_position + Vector3(0.8, 0.0, 0.0)
@@ -68,8 +76,7 @@ func _run() -> void:
 	if bool(alarm.get("report_enabled")):
 		await _fail("Successful Field Hacking did not suppress the local civic Report path")
 		return
-	var access_label := access.get_node_or_null("StatusLabel") as Label3D
-	if access_label == null or not access_label.text.contains("REPORT LINK JAMMED"):
+	if not access_label.text.contains("REPORT LINK JAMMED"):
 		await _fail("Compromised civic reporting state lacks readable local feedback")
 		return
 
@@ -89,8 +96,7 @@ func _run() -> void:
 	if not bool(alarm.get("report_enabled")):
 		await _fail("Replay did not restore civic reporting service")
 		return
-	var restored_label := access.get_node_or_null("StatusLabel") as Label3D
-	if restored_label == null or not restored_label.text.contains("SERVICE TAP"):
+	if not access_label.text.contains("SERVICE TAP"):
 		await _fail("Replay did not restore readable civic access state")
 		return
 
