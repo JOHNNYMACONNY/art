@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/interactions/civic_report_access.gd" id="1_access"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_access"]
+size = Vector3(0.42, 0.72, 0.18)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial_access"]
+albedo_color = Color(0.16, 0.22, 0.18, 1)
+metallic = 0.45
+roughness = 0.68
+
+[sub_resource type="BoxShape3D" id="BoxShape_access"]
+size = Vector3(0.48, 0.78, 0.24)
+
+[node name="CivicReportAccess" type="Area3D"]
+script = ExtResource("1_access")
+
+[node name="ServiceHousing" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_access")
+material_override = SubResource("StandardMaterial_access")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape_access")
+
+[node name="StatusLabel" type="Label3D" parent="."]
+position = Vector3(0, 0.68, 0)
+text = "SERVICE TAP"
+font_size = 28
+pixel_size = 0.012
+outline_size = 6
+billboard = 1
+no_depth_test = true

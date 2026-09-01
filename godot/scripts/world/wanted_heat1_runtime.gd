@@ -1,11 +1,13 @@
 extends Node
 
-## Burnside Production 01 / #119
+## Burnside Production 01 / #119 + Production 02 / #122
 ## Thin Heat-1 runtime adapter over the retained golden-slice player/pursuer/HUD seams.
-## It owns open-world authority knowledge, not mission pursuit and not a police director.
+## It owns open-world authority knowledge plus one bounded civic-report interference seam,
+## not mission pursuit, a police director, or a generalized hacking framework.
 
 const WantedAuthorityScript = preload("res://scripts/world/wanted_authority.gd")
 const CivicServiceAlarmScene = preload("res://scenes/interactions/civic_service_alarm.tscn")
+const CivicReportAccessScene = preload("res://scenes/interactions/civic_report_access.tscn")
 
 const LEGACY_PURSUIT_CALM := 0
 const CONTACT_LOSS_GRACE_SECONDS := 0.8
@@ -19,6 +21,7 @@ var _player: Node3D = null
 var _pursuer: Node3D = null
 var _touch_ui: Node = null
 var _alarm: CivicServiceAlarm = null
+var _report_access: CivicReportAccess = null
 var _wanted_label: Label = null
 var _contact_loss_timer: float = 0.0
 var _saved_intercept_distance: float = 1.5
@@ -71,19 +74,35 @@ func bind_to_scene(scene: Node) -> bool:
 		return false
 	_alarm.name = "CivicServiceAlarm"
 	_scene_controller.add_child(_alarm)
+
+	_report_access = CivicReportAccessScene.instantiate() as CivicReportAccess
+	if _report_access == null:
+		_unbind_scene()
+		return false
+	_report_access.name = "CivicReportAccess"
+	_scene_controller.add_child(_report_access)
+
 	var utility_plate := _scene_controller.get_node_or_null("GearsDistrictSlice01B/IndustrialFrontage/CivicUtilityPlate") as Node3D
 	if utility_plate != null:
 		_alarm.global_position = utility_plate.global_position + Vector3(0.0, -1.8, 0.35)
+		_report_access.global_position = utility_plate.global_position + Vector3(0.0, -1.8, 3.55)
 	else:
 		_alarm.global_position = Vector3(0.9, 1.0, -38.65)
+		_report_access.global_position = Vector3(0.9, 1.0, -35.45)
 
 	var interactables = _scene_controller.get("_interactables")
-	if interactables is Array and not interactables.has(_alarm):
-		interactables.append(_alarm)
+	if interactables is Array:
+		if not interactables.has(_alarm):
+			interactables.append(_alarm)
+		if not interactables.has(_report_access):
+			interactables.append(_report_access)
 
 	var report_callable := Callable(self, "_on_report_requested")
 	if not _alarm.report_requested.is_connected(report_callable):
 		_alarm.report_requested.connect(report_callable)
+	var interference_callable := Callable(self, "_on_report_interference_requested")
+	if not _report_access.report_interference_requested.is_connected(interference_callable):
+		_report_access.report_interference_requested.connect(interference_callable)
 
 	_wanted_label = Label.new()
 	_wanted_label.name = "WantedStatusLabel"
@@ -113,14 +132,17 @@ func bind_to_scene(scene: Node) -> bool:
 	return true
 
 func handle_action_pressed() -> bool:
-	if not _bound or _scene_controller == null or _alarm == null:
+	if not _bound or _scene_controller == null or _alarm == null or _report_access == null:
 		return false
 	var active_target = _scene_controller.get("_active_target")
-	if active_target != _alarm:
+	if active_target != _alarm and active_target != _report_access:
 		return false
 	var actor := _get_player_target()
 	if actor == null:
 		return false
+	if active_target == _report_access:
+		_report_access.update_player_distance(actor.global_position)
+		return _report_access.begin_interaction(actor.global_position)
 	_alarm.update_player_distance(actor.global_position)
 	return _alarm.begin_interaction(actor.global_position)
 
@@ -198,12 +220,16 @@ func reset_runtime() -> void:
 	wanted_authority.reset()
 	_contact_loss_timer = 0.0
 	_restore_open_world_interception()
-	if _alarm != null and is_instance_valid(_alarm):
-		_alarm.reset_alarm()
+	_restore_civic_reporting_service()
 	if had_open_world_response and _pursuer != null and is_instance_valid(_pursuer) and _legacy_pursuit_is_calm():
 		if _pursuer.has_method("reset_pursuer"):
 			_pursuer.call("reset_pursuer", RESPONSE_SPAWN)
 	_update_hud()
+
+func _on_report_interference_requested() -> void:
+	if _alarm == null or not is_instance_valid(_alarm):
+		return
+	_alarm.report_enabled = false
 
 func _on_report_requested(report_source: String, observed_position: Vector3, contact_source: String) -> void:
 	if not _bound or not _legacy_pursuit_is_calm():
@@ -224,14 +250,20 @@ func _on_report_requested(report_source: String, observed_position: Vector3, con
 		_pursuer.call("activate_pursuit", search_anchor)
 	_update_hud()
 
+func _restore_civic_reporting_service() -> void:
+	if _alarm != null and is_instance_valid(_alarm):
+		_alarm.report_enabled = true
+		_alarm.reset_alarm()
+	if _report_access != null and is_instance_valid(_report_access):
+		_report_access.reset_access()
+
 func _yield_to_legacy_pursuit() -> void:
 	wanted_authority.reset()
 	_contact_loss_timer = 0.0
 	_restore_open_world_interception()
 	if _pursuer != null and is_instance_valid(_pursuer) and _pursuer.has_method("reset_pursuer"):
 		_pursuer.call("reset_pursuer", RESPONSE_SPAWN)
-	if _alarm != null and is_instance_valid(_alarm):
-		_alarm.reset_alarm()
+	_restore_civic_reporting_service()
 	_update_hud()
 
 func _on_evasion() -> void:
@@ -303,12 +335,15 @@ func _unbind_scene() -> void:
 		if _touch_ui.replay_pressed.is_connected(replay_callable):
 			_touch_ui.replay_pressed.disconnect(replay_callable)
 
-	if _scene_controller != null and is_instance_valid(_scene_controller) and _alarm != null and is_instance_valid(_alarm):
+	if _scene_controller != null and is_instance_valid(_scene_controller):
 		var interactables = _scene_controller.get("_interactables")
 		if interactables is Array:
-			interactables.erase(_alarm)
+			if _alarm != null and is_instance_valid(_alarm):
+				interactables.erase(_alarm)
+			if _report_access != null and is_instance_valid(_report_access):
+				interactables.erase(_report_access)
 
-	for node in [_alarm, search_anchor, _wanted_label]:
+	for node in [_alarm, _report_access, search_anchor, _wanted_label]:
 		if node != null and is_instance_valid(node):
 			node.queue_free()
 
@@ -317,6 +352,7 @@ func _unbind_scene() -> void:
 	_pursuer = null
 	_touch_ui = null
 	_alarm = null
+	_report_access = null
 	search_anchor = null
 	_wanted_label = null
 	_bound = false
