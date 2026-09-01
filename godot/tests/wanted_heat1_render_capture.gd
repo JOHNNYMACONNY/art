@@ -126,11 +126,11 @@ func _run() -> void:
 func _capture(file_name: String, expected_state: String) -> String:
 	await process_frame
 	await process_frame
-	var image := get_viewport().get_texture().get_image()
+	var image: Image = root.get_texture().get_image()
 	if image == null or image.is_empty():
 		return "Rendered viewport is empty for %s" % file_name
 	var path := OUTPUT_DIR + "/" + file_name
-	var save_error := image.save_png(path)
+	var save_error: Error = image.save_png(path)
 	if save_error != OK:
 		return "Could not save %s: %s" % [file_name, save_error]
 	_captures.append({
