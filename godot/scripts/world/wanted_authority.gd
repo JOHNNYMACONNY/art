@@ -62,6 +62,25 @@ func submit_report(
 	_search_elapsed = 0.0
 	return true
 
+## Refresh Contact knowledge only when a concrete observer/source can justify it.
+## This is deliberately unavailable during Search so hidden player motion cannot
+## drag the authority's last-known position around through engine knowledge.
+func observe_contact(
+	source: String,
+	observed_position: Vector3,
+	travel_direction: Vector3
+) -> bool:
+	if _state != WantedState.CONTACT or _heat_level <= HEAT_CLEAR:
+		return false
+	if source.strip_edges().is_empty():
+		return false
+
+	_last_known_position = observed_position
+	_last_known_direction = _normalized_or_zero(travel_direction)
+	_last_reason = "observe:%s" % source
+	_search_elapsed = 0.0
+	return true
+
 func lose_contact(
 	last_observed_position: Vector3,
 	last_observed_direction: Vector3,
