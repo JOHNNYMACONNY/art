@@ -18,7 +18,10 @@ static func verify() -> String:
 		"get_wanted_state_name",
 		"get_tracking_position",
 		"get_last_reason",
+		"get_last_known_position",
+		"get_last_known_direction",
 		"submit_report",
+		"observe_contact",
 		"lose_contact",
 		"reacquire",
 		"advance_search",
@@ -57,6 +60,21 @@ static func verify() -> String:
 	if String(authority.call("get_last_reason")) != "report:gears_civic_alarm":
 		return "Report source was not retained as authority knowledge"
 
+	var observed_pos := Vector3(8.0, 0.0, 11.0)
+	var observed_dir := Vector3(1.0, 0.0, 0.5).normalized()
+	if not bool(authority.call("observe_contact", "pursuer_direct_observation", observed_pos, observed_dir)):
+		return "Concrete Contact observation refresh was rejected"
+	if (authority.call("get_last_known_position") as Vector3).distance_to(observed_pos) > 0.001:
+		return "Contact observation did not refresh last-known position"
+	if (authority.call("get_last_known_direction") as Vector3).distance_to(observed_dir) > 0.001:
+		return "Contact observation did not refresh last-known direction"
+	if String(authority.call("get_last_reason")) != "observe:pursuer_direct_observation":
+		return "Contact observation source was not retained"
+	if bool(authority.call("observe_contact", "", Vector3(99, 0, 99), Vector3.LEFT)):
+		return "Contact observation accepted an empty source"
+	if (authority.call("get_last_known_position") as Vector3).distance_to(observed_pos) > 0.001:
+		return "Invalid observation mutated last-known knowledge"
+
 	var last_known := Vector3(12.0, 0.0, 18.0)
 	var last_direction := Vector3(1.0, 0.0, 1.0).normalized()
 	var lost := bool(authority.call("lose_contact", last_known, last_direction, "observer_los_broken"))
@@ -76,6 +94,8 @@ static func verify() -> String:
 	var search_tracking_again: Vector3 = authority.call("get_tracking_position", second_hidden_position)
 	if search_tracking_again.distance_to(last_known) > 0.001:
 		return "Search knowledge moved when hidden player moved"
+	if bool(authority.call("observe_contact", "pursuer_direct_observation", second_hidden_position, Vector3.RIGHT)):
+		return "Search accepted a Contact-only observation refresh"
 
 	var invalid_reacquire := bool(authority.call("reacquire", "", second_hidden_position, Vector3.RIGHT))
 	if invalid_reacquire:
