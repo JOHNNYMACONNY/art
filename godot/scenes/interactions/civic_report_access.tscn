@@ -24,9 +24,10 @@ material_override = SubResource("StandardMaterial_access")
 shape = SubResource("BoxShape_access")
 
 [node name="StatusLabel" type="Label3D" parent="."]
-position = Vector3(0, 0.56, 0)
+position = Vector3(0, 0.68, 0)
 text = "SERVICE TAP"
-font_size = 22
-outline_size = 5
+font_size = 28
+pixel_size = 0.012
+outline_size = 6
 billboard = 1
 no_depth_test = true
