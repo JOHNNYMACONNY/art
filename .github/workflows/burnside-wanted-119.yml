@@ -4,17 +4,21 @@ on:
   push:
     branches:
       - "chatgpt/burnside-wanted-119"
+      - "chatgpt/burnside-field-hacking-122"
     paths:
       - "godot/project.godot"
       - "godot/scripts/world/wanted_authority.gd"
       - "godot/scripts/world/wanted_heat1_runtime.gd"
       - "godot/scripts/interactions/civic_service_alarm.gd"
       - "godot/scenes/interactions/civic_service_alarm.tscn"
+      - "godot/scripts/interactions/civic_report_access.gd"
+      - "godot/scenes/interactions/civic_report_access.tscn"
       - "godot/scripts/prototype/scrap_test_block.gd"
       - "godot/scenes/prototype/scrap_test_block.tscn"
       - "godot/tests/wanted_heat1_contract_test.gd"
       - "godot/tests/wanted_heat1_contract_runner.gd"
       - "godot/tests/wanted_heat1_scene_test.gd"
+      - "godot/tests/field_hacking_report_suppression_test.gd"
       - "godot/tests/wanted_heat1_render_capture.gd"
       - "godot/tests/wanted_hud_layout_test.gd"
       - ".github/workflows/burnside-wanted-119.yml"
@@ -25,11 +29,14 @@ on:
       - "godot/scripts/world/wanted_heat1_runtime.gd"
       - "godot/scripts/interactions/civic_service_alarm.gd"
       - "godot/scenes/interactions/civic_service_alarm.tscn"
+      - "godot/scripts/interactions/civic_report_access.gd"
+      - "godot/scenes/interactions/civic_report_access.tscn"
       - "godot/scripts/prototype/scrap_test_block.gd"
       - "godot/scenes/prototype/scrap_test_block.tscn"
       - "godot/tests/wanted_heat1_contract_test.gd"
       - "godot/tests/wanted_heat1_contract_runner.gd"
       - "godot/tests/wanted_heat1_scene_test.gd"
+      - "godot/tests/field_hacking_report_suppression_test.gd"
       - "godot/tests/wanted_heat1_render_capture.gd"
       - "godot/tests/wanted_hud_layout_test.gd"
       - ".github/workflows/burnside-wanted-119.yml"
@@ -95,6 +102,16 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/wanted_heat1_scene_test.gd
+
+      - name: Run Field Hacking report suppression tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/field_hacking_report_suppression_test.gd
 
       - name: Run Wanted HUD lane regression
         shell: bash
