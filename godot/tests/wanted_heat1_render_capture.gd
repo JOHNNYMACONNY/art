@@ -9,8 +9,11 @@ var _player: Node3D = null
 var _pursuer: Node3D = null
 var _camera: Camera3D = null
 var _alarm: Node = null
+var _report_access: Node = null
 var _touch_ui: Node = null
 var _label: Label = null
+var _access_label: Label3D = null
+var _alarm_label: Label3D = null
 var _authority = null
 var _captures: Array[Dictionary] = []
 
@@ -51,10 +54,13 @@ func _run() -> void:
 	_pursuer = _scene.get_node_or_null("PursuerPrototype") as Node3D
 	_camera = _scene.get_node_or_null("ChinatownCamera3D") as Camera3D
 	_alarm = _scene.get_node_or_null("CivicServiceAlarm")
+	_report_access = _scene.get_node_or_null("CivicReportAccess")
 	_touch_ui = _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
 	_label = _scene.get_node_or_null("CanvasLayer/WantedStatusLabel") as Label
+	_access_label = _report_access.get_node_or_null("StatusLabel") as Label3D if _report_access != null else null
+	_alarm_label = _alarm.get_node_or_null("StatusLabel") as Label3D if _alarm != null else null
 	_authority = _runtime.get("wanted_authority")
-	if _player == null or _pursuer == null or _camera == null or _alarm == null or _touch_ui == null or _label == null or _authority == null:
+	if _player == null or _pursuer == null or _camera == null or _alarm == null or _report_access == null or _touch_ui == null or _label == null or _access_label == null or _alarm_label == null or _authority == null:
 		_fail("Rendered proof is missing a production dependency")
 		return
 
@@ -100,13 +106,77 @@ func _run() -> void:
 		_fail(capture_error)
 		return
 
+	# FIELD HACKING: physically reach the local service tap through retained arbitration.
+	_runtime.call("reset_runtime")
+	_player.global_position = _report_access.global_position + Vector3(0.8, 0.0, 0.0)
+	_report_access.call("update_player_distance", _player.global_position)
+	_alarm.call("update_player_distance", _player.global_position)
+	_scene.call("_evaluate_target_selection")
+	if _scene.get("_active_target") != _report_access:
+		_fail("Physical civic service tap is not selectable through retained interaction arbitration")
+		return
+	_touch_ui.action_button_pressed.emit()
+	if bool(_alarm.get("report_enabled")) or not _access_label.text.contains("REPORT LINK JAMMED"):
+		_fail("Rendered Field Hacking setup did not compromise the local Report link")
+		return
+
+	# Trigger the same incident while compromised. The alarm faults locally and Wanted stays quiet.
+	_player.global_position = _alarm.global_position + Vector3(0.8, 0.0, 0.0)
+	_alarm.call("update_player_distance", _player.global_position)
+	_report_access.call("update_player_distance", _player.global_position)
+	_scene.call("_evaluate_target_selection")
+	if _scene.get("_active_target") != _alarm:
+		_fail("Compromised civic alarm is not selectable through retained interaction arbitration")
+		return
+	_touch_ui.action_button_pressed.emit()
+	if int(_authority.call("get_heat_level")) != 0 or String(_authority.call("get_wanted_state_name")) != "CLEAR" or _label.visible:
+		_fail("Compromised civic Report incorrectly created Wanted state")
+		return
+	if not _alarm_label.text.contains("ALARM FAULT"):
+		_fail("Compromised civic incident lacks readable local fault feedback")
+		return
+	_player.global_position = (_alarm.global_position + _report_access.global_position) * 0.5 + Vector3(0.8, 0.0, 0.0)
+	_camera.call("reset_camera_instant", _player)
+	capture_error = await _capture("04_field_hack_report_suppressed.png", "REPORT_SUPPRESSED")
+	if not capture_error.is_empty():
+		_fail(capture_error)
+		return
+
+	# RECOVERY: replay restores service and the same incident creates ordinary Heat 1 again.
+	_runtime.call("reset_runtime")
+	if not bool(_alarm.get("report_enabled")) or not _access_label.text.contains("SERVICE TAP"):
+		_fail("Rendered recovery did not restore civic reporting service")
+		return
+	_player.global_position = _alarm.global_position + Vector3(0.8, 0.0, 0.0)
+	_alarm.call("update_player_distance", _player.global_position)
+	_report_access.call("update_player_distance", _player.global_position)
+	_scene.call("_evaluate_target_selection")
+	if _scene.get("_active_target") != _alarm:
+		_fail("Restored civic alarm is not selectable through retained interaction arbitration")
+		return
+	_touch_ui.action_button_pressed.emit()
+	if int(_authority.call("get_heat_level")) != 1 or String(_authority.call("get_wanted_state_name")) != "CONTACT":
+		_fail("Restored civic Report path did not create Heat 1 + Contact")
+		return
+	_camera.call("reset_camera_instant", _player)
+	capture_error = await _capture("05_restored_report_contact.png", "CONTACT_RESTORED")
+	if not capture_error.is_empty():
+		_fail(capture_error)
+		return
+
+	_runtime.call("reset_runtime")
+	if int(_authority.call("get_heat_level")) != 0 or String(_authority.call("get_wanted_state_name")) != "CLEAR" or _label.visible:
+		_fail("Rendered proof cleanup did not restore quiet CLEAR state")
+		return
+
 	var report := {
-		"schema_version": 1,
+		"schema_version": 2,
 		"source_sha": OS.get_environment("SOURCE_SHA"),
 		"godot_version": Engine.get_version_info().get("string", "unknown"),
 		"display_server": DisplayServer.get_name(),
 		"renderer": RenderingServer.get_video_adapter_name(),
 		"real_playable_scene": true,
+		"field_hacking_access_path": "CivicReportAccess",
 		"captures": _captures,
 		"final_heat": int(_authority.call("get_heat_level")),
 		"final_state": String(_authority.call("get_wanted_state_name")),
@@ -139,6 +209,9 @@ func _capture(file_name: String, expected_state: String) -> String:
 		"heat": int(_authority.call("get_heat_level")),
 		"hud_visible": _label.visible,
 		"hud_text": _label.text,
+		"access_text": _access_label.text,
+		"alarm_text": _alarm_label.text,
+		"report_enabled": bool(_alarm.get("report_enabled")),
 		"player_position": [_player.global_position.x, _player.global_position.y, _player.global_position.z],
 		"pursuer_position": [_pursuer.global_position.x, _pursuer.global_position.y, _pursuer.global_position.z],
 	})
