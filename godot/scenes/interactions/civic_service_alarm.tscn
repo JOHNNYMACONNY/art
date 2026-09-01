@@ -24,9 +24,10 @@ material_override = SubResource("StandardMaterial_alarm")
 shape = SubResource("BoxShape_alarm")
 
 [node name="StatusLabel" type="Label3D" parent="."]
-position = Vector3(0, 0.62, 0)
+position = Vector3(0, 0.72, 0)
 text = "SERVICE ALARM"
-font_size = 24
-outline_size = 5
+font_size = 28
+pixel_size = 0.012
+outline_size = 6
 billboard = 1
 no_depth_test = true
