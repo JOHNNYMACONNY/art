@@ -5,21 +5,31 @@ on:
     branches:
       - "chatgpt/burnside-wanted-119"
     paths:
+      - "godot/project.godot"
       - "godot/scripts/world/wanted_authority.gd"
+      - "godot/scripts/world/wanted_heat1_runtime.gd"
+      - "godot/scripts/interactions/civic_service_alarm.gd"
+      - "godot/scenes/interactions/civic_service_alarm.tscn"
       - "godot/scripts/prototype/scrap_test_block.gd"
       - "godot/scenes/prototype/scrap_test_block.tscn"
       - "godot/tests/wanted_heat1_contract_test.gd"
       - "godot/tests/wanted_heat1_contract_runner.gd"
       - "godot/tests/wanted_heat1_scene_test.gd"
+      - "godot/tests/wanted_heat1_render_capture.gd"
       - ".github/workflows/burnside-wanted-119.yml"
   pull_request:
     paths:
+      - "godot/project.godot"
       - "godot/scripts/world/wanted_authority.gd"
+      - "godot/scripts/world/wanted_heat1_runtime.gd"
+      - "godot/scripts/interactions/civic_service_alarm.gd"
+      - "godot/scenes/interactions/civic_service_alarm.tscn"
       - "godot/scripts/prototype/scrap_test_block.gd"
       - "godot/scenes/prototype/scrap_test_block.tscn"
       - "godot/tests/wanted_heat1_contract_test.gd"
       - "godot/tests/wanted_heat1_contract_runner.gd"
       - "godot/tests/wanted_heat1_scene_test.gd"
+      - "godot/tests/wanted_heat1_render_capture.gd"
       - ".github/workflows/burnside-wanted-119.yml"
 
 permissions:
@@ -74,19 +84,15 @@ jobs:
             --path godot \
             --script res://tests/wanted_heat1_contract_runner.gd
 
-      - name: Run real-scene Heat-1 tracer when present
+      - name: Run real-scene Heat-1 tracer
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -f godot/tests/wanted_heat1_scene_test.gd ]]; then
-            "$GODOT_BIN" \
-              --headless \
-              --rendering-method gl_compatibility \
-              --path godot \
-              --script res://tests/wanted_heat1_scene_test.gd
-          else
-            echo "Scene tracer not added yet."
-          fi
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/wanted_heat1_scene_test.gd
 
       - name: Run retained desktop authority regression
         shell: bash
@@ -97,3 +103,25 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/desktop_vehicle_authority_test.gd
+
+      - name: Capture windowed rendered Heat-1 proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a \
+            "$GODOT_BIN" \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/wanted_heat1_render_capture.gd
+          test -s godot/verification/wanted/01_report_contact.png
+          test -s godot/verification/wanted/02_search_last_known.png
+          test -s godot/verification/wanted/03_evaded_clear.png
+          test -s godot/verification/wanted/render_report.json
+
+      - name: Upload rendered Heat-1 proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: wanted-heat1-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/wanted/
+          if-no-files-found: error
+          retention-days: 14
