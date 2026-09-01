@@ -87,10 +87,15 @@ func bind_to_scene(scene: Node) -> bool:
 
 	_wanted_label = Label.new()
 	_wanted_label.name = "WantedStatusLabel"
-	_wanted_label.offset_left = 16.0
-	_wanted_label.offset_top = 76.0
-	_wanted_label.offset_right = 280.0
-	_wanted_label.offset_bottom = 106.0
+	_wanted_label.anchor_left = 1.0
+	_wanted_label.anchor_right = 1.0
+	_wanted_label.anchor_top = 0.0
+	_wanted_label.anchor_bottom = 0.0
+	_wanted_label.offset_left = -280.0
+	_wanted_label.offset_top = 16.0
+	_wanted_label.offset_right = -16.0
+	_wanted_label.offset_bottom = 46.0
+	_wanted_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_wanted_label.visible = false
 	canvas.add_child(_wanted_label)
 
