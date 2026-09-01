@@ -1,0 +1,99 @@
+name: Burnside Wanted 119
+
+on:
+  push:
+    branches:
+      - "chatgpt/burnside-wanted-119"
+    paths:
+      - "godot/scripts/world/wanted_authority.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scenes/prototype/scrap_test_block.tscn"
+      - "godot/tests/wanted_heat1_contract_test.gd"
+      - "godot/tests/wanted_heat1_contract_runner.gd"
+      - "godot/tests/wanted_heat1_scene_test.gd"
+      - ".github/workflows/burnside-wanted-119.yml"
+  pull_request:
+    paths:
+      - "godot/scripts/world/wanted_authority.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scenes/prototype/scrap_test_block.tscn"
+      - "godot/tests/wanted_heat1_contract_test.gd"
+      - "godot/tests/wanted_heat1_contract_runner.gd"
+      - "godot/tests/wanted_heat1_scene_test.gd"
+      - ".github/workflows/burnside-wanted-119.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  wanted-heat1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Install Godot 4.7.1 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+
+      - name: Run Heat-1 knowledge contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/wanted_heat1_contract_runner.gd
+
+      - name: Run real-scene Heat-1 tracer when present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f godot/tests/wanted_heat1_scene_test.gd ]]; then
+            "$GODOT_BIN" \
+              --headless \
+              --rendering-method gl_compatibility \
+              --path godot \
+              --script res://tests/wanted_heat1_scene_test.gd
+          else
+            echo "Scene tracer not added yet."
+          fi
+
+      - name: Run retained desktop authority regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/desktop_vehicle_authority_test.gd
