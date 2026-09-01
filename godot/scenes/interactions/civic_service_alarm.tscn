@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/interactions/civic_service_alarm.gd" id="1_alarm"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_alarm"]
+size = Vector3(0.5, 0.8, 0.18)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial_alarm"]
+albedo_color = Color(0.22, 0.24, 0.22, 1)
+metallic = 0.35
+roughness = 0.7
+
+[sub_resource type="BoxShape3D" id="BoxShape_alarm"]
+size = Vector3(0.55, 0.85, 0.24)
+
+[node name="CivicServiceAlarm" type="Area3D"]
+script = ExtResource("1_alarm")
+
+[node name="AlarmHousing" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_alarm")
+material_override = SubResource("StandardMaterial_alarm")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape_alarm")
+
+[node name="StatusLabel" type="Label3D" parent="."]
+position = Vector3(0, 0.62, 0)
+text = "SERVICE ALARM"
+font_size = 24
+outline_size = 5
+billboard = 1
+no_depth_test = true
