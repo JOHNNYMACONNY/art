@@ -133,7 +133,7 @@ jobs:
             --path godot \
             --script res://tests/desktop_vehicle_authority_test.gd
 
-      - name: Capture windowed rendered Heat-1 proof
+      - name: Capture windowed rendered Heat-1 + Field Hacking proof
         shell: bash
         run: |
           set -euo pipefail
@@ -145,9 +145,11 @@ jobs:
           test -s godot/verification/wanted/01_report_contact.png
           test -s godot/verification/wanted/02_search_last_known.png
           test -s godot/verification/wanted/03_evaded_clear.png
+          test -s godot/verification/wanted/04_field_hack_report_suppressed.png
+          test -s godot/verification/wanted/05_restored_report_contact.png
           test -s godot/verification/wanted/render_report.json
 
-      - name: Upload rendered Heat-1 proof
+      - name: Upload rendered Heat-1 + Field Hacking proof
         uses: actions/upload-artifact@v4
         with:
           name: wanted-heat1-proof-${{ env.SOURCE_SHA }}
