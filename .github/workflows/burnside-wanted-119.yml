@@ -16,6 +16,7 @@ on:
       - "godot/tests/wanted_heat1_contract_runner.gd"
       - "godot/tests/wanted_heat1_scene_test.gd"
       - "godot/tests/wanted_heat1_render_capture.gd"
+      - "godot/tests/wanted_hud_layout_test.gd"
       - ".github/workflows/burnside-wanted-119.yml"
   pull_request:
     paths:
@@ -30,6 +31,7 @@ on:
       - "godot/tests/wanted_heat1_contract_runner.gd"
       - "godot/tests/wanted_heat1_scene_test.gd"
       - "godot/tests/wanted_heat1_render_capture.gd"
+      - "godot/tests/wanted_hud_layout_test.gd"
       - ".github/workflows/burnside-wanted-119.yml"
 
 permissions:
@@ -93,6 +95,16 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/wanted_heat1_scene_test.gd
+
+      - name: Run Wanted HUD lane regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/wanted_hud_layout_test.gd
 
       - name: Run retained desktop authority regression
         shell: bash
