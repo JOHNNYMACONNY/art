@@ -1,6 +1,10 @@
 {
   "schema_version": 1,
-  "request_id": "idle",
+  "request_id": "burnside-handoff-graduation-20260901-001",
   "purpose": "Durable ChatGPT/Codex bridge for native Wayfinder issue relationships when the direct GitHub connector does not expose the required mutation. Update operations instead of creating bespoke one-shot workflows.",
-  "operations": []
+  "operations": [
+    {"op": "add_sub_issue", "parent": 101, "child": 115},
+    {"op": "add_sub_issue", "parent": 101, "child": 116},
+    {"op": "add_sub_issue", "parent": 101, "child": 117}
+  ]
 }
