@@ -1,26 +1,28 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_PRODUCTION_01_02_03_04_MERGED_VERIFIED__POST_PRODUCTION_04_REEVALUATION`  
-**Verified production gameplay baseline:** `7605277d920b7877715d78687ccab16a69745b2f`  
+**Status:** `BURNSIDE_PRODUCTION_01_02_03_04_05_MERGED_VERIFIED__READY_FOR_POST_PRODUCTION_05_REEVALUATION`  
+**Verified production gameplay/public baseline:** `702678cb66ab7544b43644cfa29baf5361c68dc1`  
+**Final reviewed Production-05 head:** `e757a6fdfa492ba7cdf62f0a04c00adb829a8ca3`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
-> This file is continuity, not implementation authority. Refresh remote `main`, open PRs/issues and live CI before repo-sensitive work. A docs-only continuity merge may make repository HEAD newer than the verified gameplay baseline above without changing runnable gameplay.
+> This file is continuity, not implementation authority. Refresh remote `main`, open PRs/issues and live CI before repo-sensitive work. A docs-only continuity merge may make repository HEAD newer than the verified gameplay/public baseline above without changing runnable gameplay.
 
 ## Current product state
 
-The production Godot slice now combines the retained Chinatown-Wars-style Feel foundation, three authored missions, approved Gears visual direction, the qualified first Gears production block, one bounded FB-13 world event, Heat-1 Wanted / Contact-Search, local Field Hacking over civic reporting, Mission-02 composition of those city systems, and one bounded player-reactive Gears work-zone ambient situation.
+The production Godot slice now combines the retained Chinatown-Wars-style Feel foundation, three authored missions, approved Gears visual direction, the qualified first Gears production block, one bounded FB-13 world event, Heat-1 Wanted / Contact-Search, local Field Hacking over civic reporting, Mission-02 composition of those city systems, one bounded player-reactive Gears work-zone incident, and the first bounded physical-tool / street-combat contact tracer.
 
-Approved visual direction remains **Civic Salvage Palimpsest / Industrial Cel-Shaded Near Future**. Issue #118 remains the canonical downstream Burnside player-facing production contract. Issue #55 is the durable current product-direction anchor.
+Approved visual direction remains **Civic Salvage Palimpsest / Industrial Cel-Shaded Near Future**. Issue #118 remains the canonical downstream Burnside player-facing production contract. Issue #55 remains the durable product-direction anchor.
 
-Do **not** default to more acreage or generalized systems. Current value comes from adding high-impact missing player verbs to the existing Gears block and making already-proven systems collide.
+Do **not** default to more acreage or generalized frameworks. The current production block is valuable because multiple authored city systems now collide in the same geography.
 
 ## Production sequence — verified baselines
 
-- **Production 01** — #119 / PR #121 — Open-World Wanted / Contact-Search: complete. Signed merged production baseline `4e62e198508393821bf902da681daa776d1d8545`.
+- **Production 01** — #119 / PR #121 — Open-World Wanted / Contact-Search: complete. Verified gameplay baseline `4e62e198508393821bf902da681daa776d1d8545`.
 - **Production 02** — #122 / PR #123 — Field Hacking / Report Suppression: complete. Verified gameplay baseline `7a5c36598c6d950d832f71c42e41eaacfb7b75b2`.
 - **Production 03** — #124 / PR #125 — Civic Repossession / Wanted-Field-Hacking Composition: complete. Verified gameplay baseline `afd1db546b04221c7fb4b222b9f77311acd6d3ea`.
-- **Production 04** — #127 / PR #129 — Gears Work-Zone / Player-Reactive Ambient Incident: gameplay merged, exact-main verified, public verified. Exact gameplay baseline `7605277d920b7877715d78687ccab16a69745b2f`.
+- **Production 04** — #127 / PR #129 — Gears Work-Zone / Player-Reactive Ambient Incident: complete. Verified gameplay/public baseline `7605277d920b7877715d78687ccab16a69745b2f`.
+- **Production 05** — #131 / PR #132 — Gears Scrapper Tool / Street-Combat Contact Tracer: complete. Verified gameplay/public baseline `702678cb66ab7544b43644cfa29baf5361c68dc1`.
 
 ## Retained systemic baseline
 
@@ -44,19 +46,11 @@ Mission 02 prepared path:
 
 Mission 01 and Mission 03 retain their historical authored pursuit behavior. Mission completion does not silently clear valid Wanted knowledge.
 
-## Burnside Production 04 — verified player-facing result
+## Burnside Production 04 — retained player-facing result
 
-Issue #127 / PR #129: **GAMEPLAY MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED**.
+Issue #127 / PR #129: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED**.
 
-Original frozen gameplay candidate:
-
-`21d18bb3f260b35c91e8283a8bb42efff0c05002`
-
-Final reviewed PR head:
-
-`9efc52a1a506e872cc7976adb10156a2d2ee87da`
-
-Exact merge / verified production gameplay baseline:
+Exact gameplay/public baseline:
 
 `7605277d920b7877715d78687ccab16a69745b2f`
 
@@ -72,82 +66,116 @@ Prepared Field Hacking:
 
 `JAM REPORT LINK -> SAME CLOSE CALL -> LOCAL ALARM / RETREAT -> REPORT SUPPRESSED -> NO NEW WANTED`
 
-### Production truths
+Production truths retained:
 
-- retained yard `ScrapWorker1`, `ScrapWorker2`, and `UtilityCrawler` remain present;
-- one separate Gears worker/crawler pair lives in the authored industrial crossing;
-- `GearsDistrictSlice01B.get_production_contract().owns_no_gameplay_authority == true` remains preserved;
-- the incident runtime is a root-level sibling spatially anchored to `GearsDistrictSlice01B/IndustrialIntersection`;
-- ordinary proximity/yielding does not create Wanted;
-- reportable disruption requires a vehicle, horizontal speed >= 8.0 m/s, the bounded crossing corridor, <= 1.25 m actor clearance, and incident state `ROUTINE`;
-- local actor alarm happens independently of whether the city successfully receives a Report;
+- local actor alarm remains distinct from city knowledge;
 - civic consequence goes only through existing `BurnsideWantedRuntime.request_civic_report()`;
-- pre-existing Wanted survives and prevents a redundant second Report request;
+- pre-existing Wanted survives and blocks redundant replacement authority;
 - local incident recovery never clears Heat / Contact / Search / Recognition;
 - Replay resets incident-local state without creating a second authority system;
-- no generalized population, ambient scheduler, witness/crime architecture, traffic simulation, Heat 2–5, combat, save-schema, PR #44 camera work, or unrelated Audio Production scope entered Production 04.
+- Mission 02 remains non-stranding when the shared civic alarm was previously consumed/faulted while jammed;
+- no generalized population, witness/crime architecture, traffic simulation, Heat 2–5, save-schema, PR #44 camera work, or unrelated Audio Production scope entered Production 04.
 
-### Mission-02 ordering compatibility
+## Burnside Production 05 — verified player-facing result
 
-Production 04 can consume the same one-shot civic alarm used by Mission 02. The retained regression proves:
+Issue #131 / PR #132: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CLOSED**.
 
-`JAM REPORT LINK -> WORK-ZONE SUPPRESSED REPORT -> LATER MISSION-02 HAULER THEFT -> CLEAN TAKE -> DELIVERY`
+Final reviewed PR head:
 
-Mission 02 does not strand in ESCAPE after the shared alarm is consumed/faulted while jammed.
+`e757a6fdfa492ba7cdf62f0a04c00adb829a8ca3`
+
+Exact merge / verified gameplay/public baseline:
+
+`702678cb66ab7544b43644cfa29baf5361c68dc1`
+
+Primary authored chain:
+
+`TAKE SCRAPPER TOOL -> FORCE JAMMED SERVICE ACCESS -> LOCAL WORK-ZONE REACTS -> EXISTING CIVIC REPORT ATTEMPT -> HEAT 1 + CONTACT -> PHYSICAL PURSUER CLOSES -> SCRAPPER IMPACT CREATES BRIEF SPACE -> USE SERVICE CUT / BREAK CONTACT`
+
+Prepared Field-Hacking chain:
+
+`JAM REPORT LINK -> TAKE SCRAPPER TOOL -> FORCE SAME SERVICE ACCESS -> LOCAL WORK-ZONE STILL REACTS -> REPORT SUPPRESSED -> NO NEW WANTED -> SERVICE CUT REMAINS USABLE`
+
+Existing-Wanted composition:
+
+`VALID HEAT 1 ALREADY ACTIVE -> SCRAPPER CANNOT CLEAR HEAT / RECOGNITION / SEARCH KNOWLEDGE -> TOOL MAY ONLY ALTER PURSUER IMMEDIATE MOTION -> AUTHORITY REMAINS AUTHORITATIVE`
+
+### Production truths
+
+- one locally authored Scrapper Tool is physically acquired without an inventory framework;
+- Tool Action is a dedicated touch + desktop input seam and does not synthesize the shared Action contract;
+- Tool Action is unavailable while driving and now yields to retained gesture/input locks;
+- the tool swing is committed, directional and range-bounded rather than an arbitrary proximity trigger;
+- one authored ServiceAlley access is physically jammed and becomes materially traversable only after a valid tool force;
+- forcing the access composes through the existing Production-04 local reaction and civic Report seam;
+- local worker/crawler reaction remains visible even when Field Hacking suppresses the future civic Report;
+- ordinary CLEAR reporting produces the existing Heat 1 + Contact authority path;
+- a jammed Report produces no new Wanted;
+- pre-existing Wanted survives tool/environment interaction;
+- a legitimate close-range Scrapper contact gives the active pursuer only a brief physical stagger/displacement window;
+- Scrapper contact does not deactivate the pursuer, clear Heat, clear Contact/Search/Recognition, create Health/damage/death semantics, or permanently disable pursuit;
+- Replay restores tool possession/availability, jammed access, local incident state, pursuer stagger state, tool cooldown/input ownership, and the existing authority reset baseline;
+- Mission-02 shared civic-report ordering remains non-stranding;
+- no generalized combat framework, Player Health/Armor, firearms, weapon roster, ammo, hostile NPC combat AI, NPC death, generic damage interface, inventory/loot/RPG stats, generalized witnesses/crime/event bus, Heat 2–5, vehicle claiming/condition, generalized map discovery, new acreage, transit, PR #44 camera work, companion framework, save work, or unrelated Audio Production entered Production 05.
 
 ### Review repair
 
-A fresh PR #129 review found one concrete CI-contract defect after the original freeze: the Production-04 workflow path filters omitted four directly depended-on scene files.
+The frozen Standards/#131 review found one real contract defect after the initial Task-7 candidate: the new Tool Action could still fire while a retained gesture/input lock owned interaction.
 
-The repair at `9efc52a1a506e872cc7976adb10156a2d2ee87da` changed only `.github/workflows/burnside-production-04.yml`, adding these scene dependencies to both push and pull-request filters:
+A focused RED tracer reproduced the exact failure. The repair added one shared Tool-action availability predicate at the input surface plus a fail-closed runtime check. Final candidate `e757a6fdfa492ba7cdf62f0a04c00adb829a8ca3` proves:
 
-- `godot/scenes/prototype/scrap_test_block.tscn`;
-- `godot/scenes/world/gears_district_slice_01b.tscn`;
-- `godot/scenes/entities/scrap_worker.tscn`;
-- `godot/scenes/entities/utility_crawler.tscn`.
+- touch Tool affordance hides/disables under the retained gesture lock;
+- touch Tool signal does not emit while locked;
+- desktop `F` Tool signal does not emit while locked;
+- direct Scrapper runtime calls fail closed while locked;
+- releasing the retained lock restores exactly one dedicated Tool signal without synthesizing generic Action.
 
-Delta from original frozen gameplay candidate to final reviewed PR head: exactly **1 commit / 1 file / +8/-0**. No gameplay/runtime code changed. Fresh exact-head verification passed after the repair and the review thread was resolved.
+No locomotion, mission, Wanted, camera, audio, save, or generalized combat authority changed in that repair.
 
-## Production 04 verification truth
+## Production 05 verification truth
 
 ### Final exact PR head
 
-At `9efc52a1a506e872cc7976adb10156a2d2ee87da`:
+At `e757a6fdfa492ba7cdf62f0a04c00adb829a8ca3`:
 
-- Production-04 Gears work-zone tracer: **PASS**;
-- Production-04 Mission-02 ordering regression: **PASS**;
-- retained Production-03 pre-triggered suppression regression: **PASS**;
-- retained Production-03 mission/Wanted composition: **PASS**;
+- Production-05 dedicated input tracer: **PASS**;
+- Production-05 retained input-lock tracer: **PASS**;
+- Production-05 environment/service-access tracer: **PASS**;
+- Production-05 pursuer stagger tracer: **PASS**;
+- Production-05 Mission-02 ordering tracer: **PASS**;
+- retained Production-04 work-zone + Mission-02 regressions: **PASS**;
+- retained Production-03 suppression + Mission/Wanted composition: **PASS**;
 - retained Production-02 Field-Hacking suppression: **PASS**;
 - retained Production-01 Heat-1 tracer: **PASS**;
-- windowed Gears work-zone proof + artifact upload: **PASS**;
-- literal-head Web export/playtest: **PASS**;
-- synthetic-merge Web export/playtest: **PASS**;
+- six-frame windowed Production-05 rendered proof: **PASS / visually reviewed**;
+- proof artifact `9869502734`, digest `sha256:a6c9aea3baa0776b13a4487fc8a5092767b17782443c1dbaa3e66a3d9ff47b29`;
+- literal-head Web export + static-hosting smoke: **PASS**;
+- synthetic-merge Web export + static-hosting smoke: **PASS**;
 - mobile touch routing / desktop controls / alias ownership / vehicle authority / interaction cancel: **PASS**;
 - current camera contracts: **PASS**;
-- canonical 29-suite compatibility matrix: **PASS**;
-- static hosting smoke: **PASS**;
-- Frozen Standards + #127 exact-head review: **PASS** with no unresolved blocking threads.
+- canonical **29/29** exact-head compatibility commands: **PASS**;
+- frozen Standards + #131 review: **PASS after repair**.
 
 ### Exact-main evidence
 
 Merge commit / gameplay baseline:
 
-`7605277d920b7877715d78687ccab16a69745b2f`
+`702678cb66ab7544b43644cfa29baf5361c68dc1`
 
-Burnside Production 04 main push run `33605897520` on that exact SHA:
+Burnside Production 05 main push run `33693702457` on that exact SHA:
 
 - exact source checkout: **PASS**;
-- Gears work-zone tracer: **PASS**;
-- Mission-02 ordering regression: **PASS**;
-- retained Production-03 pre-triggered suppression: **PASS**;
-- retained Production-03 mission/Wanted composition: **PASS**;
-- retained Production-02 Field-Hacking tracer: **PASS**;
-- retained Production-01 Heat-1 tracer: **PASS**;
-- windowed Gears work-zone proof: **PASS**;
-- rendered proof artifact upload: **PASS**.
+- P05 dedicated input tracer: **PASS**;
+- P05 retained input-lock tracer: **PASS**;
+- P05 environment/service-access tracer: **PASS**;
+- P05 pursuer tracer: **PASS**;
+- P05 Mission-02 ordering tracer: **PASS**;
+- retained Production 01-04 focused regressions: **PASS**;
+- Production-05 GREEN requirement: **PASS**;
+- windowed rendered proof capture: **PASS**;
+- proof artifact upload: **PASS**.
 
-Godot Web Playtest main push run `33605897717` on that exact SHA:
+Godot Web Playtest main push run `33693702455` on that exact SHA:
 
 - exact source checkout: **PASS**;
 - mobile touch routing: **PASS**;
@@ -161,37 +189,27 @@ Godot Web Playtest main push run `33605897717` on that exact SHA:
 - source revision stamp verification: **PASS**;
 - public `playtest-web` publication: **PASS**.
 
-The canonical 29-suite matrix is intentionally PR-only on this workflow and was skipped on the main push after passing on the exact reviewed PR head.
+The canonical compatibility matrix is intentionally PR-only in the Web workflow and was skipped on the main push after passing 29/29 on the exact reviewed PR head.
 
 Public branch source stamp:
 
-`playtest-web/PLAYTEST_BUILD.txt = 7605277d920b7877715d78687ccab16a69745b2f`
+`playtest-web/PLAYTEST_BUILD.txt = 702678cb66ab7544b43644cfa29baf5361c68dc1`
 
-## Post-Production-04 product re-evaluation
+## Post-Production-05 re-evaluation state
 
-Production 04 closes the previous leading gap: the qualified Gears block now has a bounded local ambient situation that notices the player and composes with ordinary civic reporting, Wanted, and Field Hacking.
+Production 05 closes the previous highest-value gap: the existing Gears geography now supports a grounded physical city tool that can change traversal, provoke local consequence, compose with Field Hacking/Wanted, and buy tactical space against the existing Heat-1 physical pursuer.
 
-Fresh exact-main implementation sampling after the merge shows:
+The next production increment is **not selected yet**. Do not manufacture Production 06 from numbering momentum.
 
-- `godot/scripts/player/` contains the retained `runner.gd` locomotion/mounting runtime; no production Health / Armor / weapon / physical-tool combat layer is currently represented there;
-- the top-level Godot runtime has no dedicated combat script family;
-- `godot/scripts/vehicles/` currently contains Courier Bike and Scrap Hauler runtimes, while the broader #118 Claimed Vehicle / condition / identity loop remains thin;
-- Wanted + Field Hacking + Mission Sandbox + one player-reactive Ambient Incident are now materially represented, so another variant of those proofs has lower marginal player value.
+Fresh next-session re-evaluation should compare at minimum:
 
-### Leading investigation frontier
+1. **vehicle identity / condition / claiming** — two differentiated drivable vehicles already exist, but ownership/condition/identity remains thin and could make the sandbox feel more lived-in if bounded without save/schema sprawl;
+2. **learned traversal / Service Network / map knowledge** — Production 05 made the ServiceAlley route materially actionable, increasing the potential value of authored discovery/knowledge without requiring more acreage;
+3. **next bounded Street-Combat depth** — Production 05 proves physical contact and tactical displacement, but there is still no Player Health/Armor, hostile pedestrian combat AI, weapon framework, or generalized damage system; any next combat increment must earn its added complexity through player feel rather than framework momentum;
+4. **relationship / Standing / consequence** — only if a small authored change can become materially player-visible without creating another broad authority framework;
+5. later Heat escalation, witnesses/surveillance, transit, broader geography, or generalized systems only when their player value clearly beats smaller authored alternatives.
 
-**Combat + physical-tool improvisation inside the existing Gears city consequence loop** is the current leading investigation frontier.
-
-This is **not authorized Production 05 scope**. Before opening an implementation ticket, refresh live repo/runtime and compare the smallest credible combat/tool slice against vehicle identity/condition and learned traversal alternatives. The desired next increment should add a genuinely new player verb, remain bounded, and collide with already-proven city systems rather than require a generalized combat framework.
-
-Other credible candidate families:
-
-- vehicle identity / condition / claiming using existing Courier Bike + Scrap Hauler + Garage seams;
-- learned traversal / Service Network / map-knowledge payoff on existing Gears geography;
-- bounded relationship/Standing or world-state consequence if it can become materially player-visible cheaply;
-- later Heat escalation, witnesses/surveillance, transit, broader geography, or generalized systems only when their player value clearly beats bounded alternatives.
-
-Do not create Production 05 from numbering momentum.
+Before selecting anything, refresh exact `main`, current open PRs/issues, runnable behavior, and any concurrent Audio/shared-scene work. Small experiments are allowed; architecture is not locked permanently.
 
 ## Retained production foundations
 
@@ -204,11 +222,11 @@ Do not recreate these because older roadmaps describe them historically:
 - Open World Expansion 01A–01D / PRs #63–#66;
 - World Event 01 / PR #68 — bounded FB-13 infrastructure thrum;
 - Issue #89 / Open World Expansion 01E — `VISUAL_PERF_CHECKPOINT_PASS`;
-- Productions 01–04.
+- Productions 01–05.
 
-The yard connects into one real Gears production block with primary industrial routing, alternate service alley/rejoin, commercial/industrial frontage, Mayor Burn's garage, Silent Core access, and the Production-04 industrial-crossing work zone.
+The yard connects into one real Gears production block with primary industrial routing, alternate service alley/rejoin, commercial/industrial frontage, Mayor Burn's garage, Silent Core access, the Production-04 industrial-crossing work zone, and the Production-05 forced ServiceAlley access/tool loop.
 
-FB-13 / HS-7 remain authored persistent companions in canon; World Event 01 is not precedent for a generalized companion framework.
+FB-13 / HS-7 remain authored persistent companions in canon; nothing in Production 05 creates a generalized companion framework.
 
 ## Verification / human-gate debt
 
@@ -248,10 +266,10 @@ The next production session should:
 1. refresh exact `main`, open PRs/issues, CI and public-playtest state;
 2. read `START_HERE.md`, issue #55 and canonical production contract #118;
 3. verify local repo/branch/HEAD/upstream/dirty state before local code mutation;
-4. re-check the leading combat/physical-tool frontier against exact runnable implementation and concurrent Audio/shared-scene work;
-5. compare it with vehicle identity/condition and learned traversal alternatives on player value / cost / risk;
+4. re-evaluate the post-Production-05 gaps against exact runnable behavior rather than roadmap momentum;
+5. rank vehicle identity/condition, learned traversal/Service Network, bounded Street-Combat depth and other credible alternatives by player value / cost / risk;
 6. create exactly one just-in-time implementation ticket only after one bounded increment is selected;
-7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen Standards+Spec REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY`;
+7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen Standards+Spec REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
 8. update continuity only after verified changes land.
 
 Create a new Wayfinder only if production exposes a genuinely new, foggy, multi-session cross-system design problem. Ordinary production remains downstream.
