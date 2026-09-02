@@ -14,6 +14,7 @@ on:
       - "godot/scripts/entities/scrap_worker.gd"
       - "godot/scripts/entities/utility_crawler.gd"
       - "godot/tests/gears_work_zone_incident_test.gd"
+      - "godot/tests/gears_work_zone_mission_ordering_test.gd"
       - "godot/tests/civic_repossession_pretriggered_suppression_test.gd"
       - "godot/tests/civic_repossession_wanted_composition_test.gd"
       - "godot/tests/field_hacking_report_suppression_test.gd"
@@ -29,6 +30,7 @@ on:
       - "godot/scripts/entities/scrap_worker.gd"
       - "godot/scripts/entities/utility_crawler.gd"
       - "godot/tests/gears_work_zone_incident_test.gd"
+      - "godot/tests/gears_work_zone_mission_ordering_test.gd"
       - "godot/tests/civic_repossession_pretriggered_suppression_test.gd"
       - "godot/tests/civic_repossession_wanted_composition_test.gd"
       - "godot/tests/field_hacking_report_suppression_test.gd"
@@ -86,6 +88,13 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/gears_work_zone_incident_test.gd
+
+      - name: Run Production 04 Mission 02 ordering regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_work_zone_mission_ordering_test.gd
 
       - name: Run retained Production 03 pre-triggered suppression regression
         shell: bash
