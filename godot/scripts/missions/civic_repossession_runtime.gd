@@ -82,9 +82,12 @@ func _try_bind_runtime() -> void:
 	if _mission_one_runtime == null or _scrap_hauler == null or _signal_gate == null or mission_hud == null:
 		return
 	if _wanted_runtime == null \
+	or not _wanted_runtime.has_method("bind_to_scene") \
 	or not _wanted_runtime.has_method("request_civic_report") \
 	or not _wanted_runtime.has_method("get_heat_level") \
 	or not _wanted_runtime.has_method("get_wanted_state_name"):
+		return
+	if not bool(_wanted_runtime.call("bind_to_scene", _root_controller)):
 		return
 
 	_mission_title = mission_hud.find_child("MissionTitle", true, false) as Label
@@ -108,10 +111,12 @@ func _on_hauler_mounted(_player) -> void:
 
 	# The theft creates one bounded civic Report attempt through the same local
 	# service path used by free roam. Field Hacking can suppress this future Report;
-	# the mission never creates or clears authority knowledge itself.
-	var report_attempted := bool(_wanted_runtime.call("request_civic_report", _scrap_hauler.global_position))
+	# the mission never creates or clears authority knowledge itself. A bound civic
+	# path that remains CLEAR after the attempt is a clean take even if the one-shot
+	# alarm was already faulted by earlier sandbox play.
+	_wanted_runtime.call("request_civic_report", _scrap_hauler.global_position)
 	if _wanted_is_clear():
-		if report_attempted and mission.on_clean_take():
+		if mission.on_clean_take():
 			_set_return_zone_visible(true)
 			_refresh_hud()
 		return
