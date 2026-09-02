@@ -15,7 +15,7 @@ var _district: Node3D = null
 var _touch_ui: Node = null
 var _player: Node3D = null
 var _pickup: ScrapperToolPickup = null
-var _held_visual: MeshInstance3D = null
+var _held_visual: Node3D = null
 var _held: bool = false
 var _configured: bool = false
 
@@ -82,18 +82,40 @@ func configure(root_controller: Node, district: Node3D) -> bool:
 	_configured = true
 	return true
 
+func _scrapper_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.78, 0.32, 0.12, 1.0)
+	material.metallic = 0.55
+	material.roughness = 0.52
+	return material
+
 func _ensure_held_visual() -> void:
 	if _held_visual != null or _player == null:
 		return
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(0.12, 0.12, 0.82)
-	_held_visual = MeshInstance3D.new()
+	_held_visual = Node3D.new()
 	_held_visual.name = "HeldScrapperTool"
-	_held_visual.mesh = mesh
-	_held_visual.position = Vector3(0.34, 0.58, -0.38)
-	_held_visual.rotation = Vector3(0.15, 0.0, 0.55)
+	_held_visual.position = Vector3(0.38, 0.62, -0.42)
+	_held_visual.rotation = Vector3(0.12, -0.32, 0.42)
 	_held_visual.visible = false
 	_player.add_child(_held_visual)
+
+	var material := _scrapper_material()
+	var handle_mesh := BoxMesh.new()
+	handle_mesh.size = Vector3(0.13, 0.13, 1.0)
+	var handle := MeshInstance3D.new()
+	handle.name = "Handle"
+	handle.mesh = handle_mesh
+	handle.material_override = material
+	_held_visual.add_child(handle)
+
+	var head_mesh := BoxMesh.new()
+	head_mesh.size = Vector3(0.40, 0.18, 0.18)
+	var head := MeshInstance3D.new()
+	head.name = "PryHead"
+	head.position = Vector3(0.0, 0.02, -0.43)
+	head.mesh = head_mesh
+	head.material_override = material
+	_held_visual.add_child(head)
 
 func _ensure_access_barrier(socket: Marker3D) -> void:
 	if _access_barrier != null:
