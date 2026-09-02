@@ -170,6 +170,8 @@ func handle_tool_action_pressed() -> bool:
 		return false
 	if int(_touch_ui.get("current_mode")) != int(TouchControlsUI.UIMode.FOOT_TRAVERSAL):
 		return false
+	if _touch_ui.has_method("is_interaction_input_locked") and bool(_touch_ui.call("is_interaction_input_locked")):
+		return false
 	var facing: Vector3 = _player.call("get_facing_direction")
 	facing.y = 0.0
 	if facing.length_squared() <= 0.001:

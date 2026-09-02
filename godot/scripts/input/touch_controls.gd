@@ -316,8 +316,20 @@ func _on_viewport_size_changed() -> void:
 func _on_action_button_clicked() -> void:
 	action_button_pressed.emit()
 
+func is_interaction_input_locked() -> bool:
+	return gesture_panel != null and gesture_panel.visible
+
+func _tool_action_can_emit() -> bool:
+	return _tool_action_available and current_mode == UIMode.FOOT_TRAVERSAL and not is_interaction_input_locked()
+
+func _refresh_tool_action_button() -> void:
+	if tool_action_button:
+		var available_now := _tool_action_can_emit()
+		tool_action_button.disabled = not available_now
+		tool_action_button.visible = available_now
+
 func _on_tool_action_button_clicked() -> void:
-	if current_mode == UIMode.FOOT_TRAVERSAL and _tool_action_available:
+	if _tool_action_can_emit():
 		tool_action_pressed.emit()
 
 func _on_dismount_button_clicked() -> void:
@@ -346,9 +358,7 @@ func trigger_tool_action() -> void:
 
 func set_tool_action_available(available: bool) -> void:
 	_tool_action_available = available
-	if tool_action_button:
-		tool_action_button.disabled = not available
-		tool_action_button.visible = available and current_mode == UIMode.FOOT_TRAVERSAL
+	_refresh_tool_action_button()
 
 func update_radio_button_state(is_enabled: bool, _station_id: String = "radio.yardline") -> void:
 	if radio_button:
@@ -478,17 +488,16 @@ func set_mode(mode: UIMode) -> void:
 	reset_driving_inputs()
 	if mode == UIMode.FOOT_TRAVERSAL:
 		if action_button: action_button.visible = true
-		if tool_action_button: tool_action_button.visible = _tool_action_available
 		if driving_panel: driving_panel.visible = false
 	elif mode == UIMode.VEHICLE_DRIVING:
 		if action_button: action_button.visible = false
-		if tool_action_button: tool_action_button.visible = false
 		if driving_panel: driving_panel.visible = true
 		close_interaction_overlay()
 		_sync_keyboard_driving_inputs_from_input()
 		_emit_net_throttle()
 		_emit_net_steer()
 		_emit_net_handbrake()
+	_refresh_tool_action_button()
 
 var _is_rejection_flashing: bool = false
 var _toast_timer_count: int = 0
@@ -584,6 +593,7 @@ func show_gesture_overlay(gesture_type: String) -> void:
 	_tuning_accum_px = 0.0
 	if gesture_panel:
 		gesture_panel.visible = true
+	_refresh_tool_action_button()
 	if core_tap_button: core_tap_button.visible = (gesture_type == "EXPOSE_CORE")
 	if gesture_hint_label:
 		match gesture_type:
@@ -607,6 +617,7 @@ func close_interaction_overlay() -> void:
 	_interaction_touch_index = -1
 	_current_gesture_type = ""
 	_peel_accumulated_y = 0.0
+	_refresh_tool_action_button()
 
 func _is_key(event: InputEventKey, first: Key, second: Key = KEY_NONE) -> bool:
 	return (
@@ -703,9 +714,8 @@ func _input(event: InputEvent) -> void:
 					action_button_pressed.emit()
 				elif current_mode == UIMode.VEHICLE_DRIVING:
 					dismount_pressed.emit()
-			elif _is_key(key_ev, KEY_F) and current_mode == UIMode.FOOT_TRAVERSAL:
-				if _tool_action_available:
-					tool_action_pressed.emit()
+			elif _is_key(key_ev, KEY_F) and _tool_action_can_emit():
+				tool_action_pressed.emit()
 			elif _is_key(key_ev, KEY_SPACE) and current_mode == UIMode.FOOT_TRAVERSAL:
 				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
 					core_tap_pressed.emit()
