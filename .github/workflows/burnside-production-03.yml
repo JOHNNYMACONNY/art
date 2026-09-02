@@ -3,6 +3,7 @@ name: Burnside Production 03
 on:
   push:
     branches:
+      - "main"
       - "chatgpt/burnside-production-03-mission-wanted-composition"
     paths:
       - "godot/scripts/world/wanted_heat1_runtime.gd"
