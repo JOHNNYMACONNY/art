@@ -44,3 +44,23 @@ jobs:
           set -euo pipefail
           "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
             --script res://tests/gears_scrapper_tool_input_lock_test.gd
+      - name: Run complete Production 05 and retained P01-P04 matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          tests=(
+            gears_scrapper_tool_input_test.gd
+            gears_scrapper_tool_environment_test.gd
+            gears_scrapper_tool_pursuer_test.gd
+            gears_scrapper_tool_mission_ordering_test.gd
+            gears_work_zone_incident_test.gd
+            gears_work_zone_mission_ordering_test.gd
+            civic_repossession_pretriggered_suppression_test.gd
+            civic_repossession_wanted_composition_test.gd
+            field_hacking_report_suppression_test.gd
+            wanted_heat1_scene_test.gd
+          )
+          for test_file in "${tests[@]}"; do
+            "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+              --script "res://tests/${test_file}"
+          done
