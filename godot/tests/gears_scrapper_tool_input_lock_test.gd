@@ -45,7 +45,7 @@ func _run() -> void:
 		await _fail("Production input/player/Scrapper fixture is incomplete")
 		return
 	var tool_button := touch_ui.get_node_or_null("SafeAreaRoot/RightTouchArea/ToolActionButton") as Button
-	var gesture_panel := touch_ui.get_node_or_null("SafeAreaRoot/GestureOverlayPanel") as Control
+	var gesture_panel := touch_ui.get_node_or_null("GestureOverlayPanel") as Control
 	if tool_button == null or gesture_panel == null:
 		await _fail("Retained Tool/gesture UI fixture is incomplete")
 		return
