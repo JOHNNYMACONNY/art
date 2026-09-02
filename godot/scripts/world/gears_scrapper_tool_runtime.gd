@@ -216,6 +216,9 @@ func _force_access_open() -> bool:
 	if _access_mesh != null:
 		_access_mesh.position.y = -0.9
 		_access_mesh.rotation.z = 0.42
+	var incident := _root_controller.get_node_or_null("GearsWorkZoneIncident") if _root_controller != null else null
+	if incident != null and incident.has_method("trigger_service_access_disruption"):
+		incident.call("trigger_service_access_disruption", _access_barrier.global_position)
 	return true
 
 func has_tool() -> bool:
