@@ -105,8 +105,6 @@ func _run() -> void:
 		await _fail("Wanted runtime did not bind to the production scene")
 		return
 
-	# RED frontier: retained yard life exists, but no consequence-bearing Gears
-	# work-zone sibling currently exists in the qualified production scene.
 	_incident = _scene.get_node_or_null("GearsWorkZoneIncident")
 	if _incident == null:
 		await _fail("Production root has no GearsWorkZoneIncident anchored to the Gears crossing")
@@ -255,8 +253,13 @@ func _run() -> void:
 		await _fail("Mission 02 clean take after work-zone suppression fabricated Wanted")
 		return
 
-	# Replay-style reset restores incident-local deterministic state.
-	_scene.call("reset_slice")
+	# Exercise the actual player Replay signal. Root reset and incident-local reset
+	# remain independently owned subscribers to the same control.
+	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
+	if touch_ui == null or not touch_ui.has_signal("replay_pressed"):
+		await _fail("Replay control signal is unavailable")
+		return
+	touch_ui.emit_signal("replay_pressed")
 	await process_frame
 	if String(_incident.call("get_incident_state_name")) != "ROUTINE" or int(_incident.call("get_report_attempt_count")) != 0:
 		await _fail("Replay reset left stale work-zone incident state")
