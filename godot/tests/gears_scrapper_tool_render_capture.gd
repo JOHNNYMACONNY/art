@@ -2,6 +2,7 @@ extends SceneTree
 
 const OUTPUT_DIR := "res://verification/production05"
 const SCENE_PATH := "res://scenes/prototype/scrap_test_block.tscn"
+const WIDE_PROOF_FOV := 42.0
 
 var _runtime: Node = null
 var _scene: Node = null
@@ -46,6 +47,7 @@ func _frame_node(scene: Node, focus: Node3D) -> Camera3D:
 	var player := scene.get_node_or_null("Runner") as Node3D
 	if camera == null or player == null or focus == null:
 		return null
+	camera.set_process(true)
 	camera.call("reset_camera_instant", player)
 	camera.call("set_interaction_mode", true, focus)
 	await process_frame
@@ -64,6 +66,31 @@ func _frame_midpoint(scene: Node, a: Node3D, b: Node3D, name: String) -> Diction
 	if camera == null:
 		marker.queue_free()
 		return {}
+	return {"camera": camera, "marker": marker}
+
+func _frame_nodes_wide(scene: Node, nodes: Array[Node3D], name: String) -> Dictionary:
+	if nodes.is_empty():
+		return {}
+	var center := Vector3.ZERO
+	for node in nodes:
+		if node == null:
+			return {}
+		center += node.global_position
+	center /= float(nodes.size())
+	var marker := Marker3D.new()
+	marker.name = name
+	scene.add_child(marker)
+	marker.global_position = center
+	var camera := _camera(scene)
+	if camera == null:
+		marker.queue_free()
+		return {}
+	camera.set_process(true)
+	camera.call("reset_camera_instant", marker)
+	camera.fov = WIDE_PROOF_FOV
+	camera.set_process(false)
+	await process_frame
+	await process_frame
 	return {"camera": camera, "marker": marker}
 
 func _screen_point(camera: Camera3D, world_pos: Vector3) -> Vector2:
@@ -96,6 +123,7 @@ func _capture(file_name: String, scene: Node, camera: Camera3D, outcome: String,
 	var entry := {
 		"file": file_name,
 		"outcome": outcome,
+		"camera_fov": camera.fov if camera != null else 0.0,
 		"heat": int(_runtime.call("get_heat_level")),
 		"wanted_state": String(_runtime.call("get_wanted_state_name")),
 		"wanted_visible": wanted_label.visible if wanted_label != null else false,
@@ -230,7 +258,7 @@ func _run() -> void:
 		_fail(capture_error)
 		return
 
-	# 3. Live Report composition: forced barrier + local ALARMED reaction + Heat 1 Contact.
+	# 3. Live Report composition: forced barrier + both local actors + REPORT SENT + Heat 1 Contact.
 	var live_scene := await _fresh_scene()
 	if live_scene == null:
 		_fail("Could not load live-report production scene")
@@ -248,8 +276,9 @@ func _run() -> void:
 	var live_incident := live_scene.get_node_or_null("GearsWorkZoneIncident")
 	var live_worker := live_incident.get_node_or_null("GearsWorker") as Node3D if live_incident != null else null
 	var live_crawler := live_incident.get_node_or_null("GearsCrawler") as Node3D if live_incident != null else null
-	var live_alarm := live_scene.get_node_or_null("CivicServiceAlarm")
-	if live_incident == null or live_worker == null or live_crawler == null or live_alarm == null:
+	var live_alarm := live_scene.get_node_or_null("CivicServiceAlarm") as Node3D
+	var live_access := live_scene.get_node_or_null("CivicReportAccess") as Node3D
+	if live_incident == null or live_worker == null or live_crawler == null or live_alarm == null or live_access == null:
 		_fail("Live-report render fixture is incomplete")
 		return
 	if String(live_incident.call("get_incident_state_name")) != "ALARMED" or int(_runtime.call("get_heat_level")) != 1 or String(_runtime.call("get_wanted_state_name")) != "CONTACT":
@@ -259,20 +288,21 @@ func _run() -> void:
 	if live_alarm_label == null or not live_alarm_label.text.contains("REPORT SENT"):
 		_fail("Live forced-access Report feedback is not REPORT SENT")
 		return
-	var live_frame := await _frame_midpoint(live_scene, live_barrier, live_worker, "P05LiveProofFocus")
+	var live_frame := await _frame_nodes_wide(live_scene, [live_barrier, live_worker, live_crawler, live_alarm, live_access], "P05LiveProofFocus")
 	if live_frame.is_empty():
 		_fail("Could not frame live forced-access proof")
 		return
 	var live_camera := live_frame["camera"] as Camera3D
-	if not _in_view(live_camera, live_barrier) or not _in_view(live_camera, live_worker):
-		_fail("Forced barrier/local reaction are not jointly readable in live proof")
-		return
-	capture_error = await _capture("03_service_access_forced_report_sent.png", live_scene, live_camera, "FORCED_ACCESS_LOCAL_ALARM_REPORT_SENT_CONTACT", {"barrier": live_barrier, "worker": live_worker, "crawler": live_crawler, "alarm": live_alarm})
+	for node in [live_barrier, live_worker, live_crawler, live_alarm, live_access]:
+		if not _in_view(live_camera, node):
+			_fail("Live proof does not jointly show barrier, local actors, and civic Report feedback")
+			return
+	capture_error = await _capture("03_service_access_forced_report_sent.png", live_scene, live_camera, "FORCED_ACCESS_LOCAL_ALARM_REPORT_SENT_CONTACT", {"barrier": live_barrier, "worker": live_worker, "crawler": live_crawler, "alarm": live_alarm, "access": live_access})
 	if not capture_error.is_empty():
 		_fail(capture_error)
 		return
 
-	# 4. Jammed Report composition: same physical/local consequence, city remains CLEAR.
+	# 4. Jammed Report composition: same physical/local consequence, REPORT LINK JAMMED + ALARM FAULT, city remains CLEAR.
 	var quiet_scene := await _fresh_scene()
 	if quiet_scene == null:
 		_fail("Could not load suppressed-report production scene")
@@ -294,26 +324,29 @@ func _run() -> void:
 	var quiet_incident := quiet_scene.get_node_or_null("GearsWorkZoneIncident")
 	var quiet_worker := quiet_incident.get_node_or_null("GearsWorker") as Node3D if quiet_incident != null else null
 	var quiet_crawler := quiet_incident.get_node_or_null("GearsCrawler") as Node3D if quiet_incident != null else null
-	var quiet_alarm := quiet_scene.get_node_or_null("CivicServiceAlarm")
-	if quiet_incident == null or quiet_worker == null or quiet_crawler == null or quiet_alarm == null:
+	var quiet_alarm := quiet_scene.get_node_or_null("CivicServiceAlarm") as Node3D
+	var quiet_access := quiet_scene.get_node_or_null("CivicReportAccess") as Node3D
+	if quiet_incident == null or quiet_worker == null or quiet_crawler == null or quiet_alarm == null or quiet_access == null:
 		_fail("Suppressed-report render fixture is incomplete")
 		return
 	var quiet_alarm_label := quiet_alarm.get_node_or_null("StatusLabel") as Label3D
+	var quiet_access_label := quiet_access.get_node_or_null("StatusLabel") as Label3D
 	if String(quiet_incident.call("get_incident_state_name")) != "ALARMED" or int(_runtime.call("get_heat_level")) != 0 or String(_runtime.call("get_wanted_state_name")) != "CLEAR":
 		_fail("Forced-access suppressed Report did not preserve local ALARMED + CLEAR authority")
 		return
-	if quiet_alarm_label == null or not quiet_alarm_label.text.contains("ALARM FAULT"):
-		_fail("Suppressed forced-access feedback is not ALARM FAULT")
+	if quiet_alarm_label == null or not quiet_alarm_label.text.contains("ALARM FAULT") or quiet_access_label == null or not quiet_access_label.text.contains("REPORT LINK JAMMED"):
+		_fail("Suppressed forced-access civic feedback is not readable in runtime state")
 		return
-	var quiet_frame := await _frame_midpoint(quiet_scene, quiet_barrier, quiet_worker, "P05QuietProofFocus")
+	var quiet_frame := await _frame_nodes_wide(quiet_scene, [quiet_barrier, quiet_worker, quiet_crawler, quiet_alarm, quiet_access], "P05QuietProofFocus")
 	if quiet_frame.is_empty():
 		_fail("Could not frame suppressed forced-access proof")
 		return
 	var quiet_camera := quiet_frame["camera"] as Camera3D
-	if not _in_view(quiet_camera, quiet_barrier) or not _in_view(quiet_camera, quiet_worker):
-		_fail("Forced barrier/local reaction are not jointly readable in suppressed proof")
-		return
-	capture_error = await _capture("04_service_access_forced_report_suppressed.png", quiet_scene, quiet_camera, "FORCED_ACCESS_LOCAL_ALARM_REPORT_SUPPRESSED_CLEAR", {"barrier": quiet_barrier, "worker": quiet_worker, "crawler": quiet_crawler, "alarm": quiet_alarm})
+	for node in [quiet_barrier, quiet_worker, quiet_crawler, quiet_alarm, quiet_access]:
+		if not _in_view(quiet_camera, node):
+			_fail("Suppressed proof does not jointly show barrier, local actors, and civic feedback")
+			return
+	capture_error = await _capture("04_service_access_forced_report_suppressed.png", quiet_scene, quiet_camera, "FORCED_ACCESS_LOCAL_ALARM_REPORT_SUPPRESSED_CLEAR", {"barrier": quiet_barrier, "worker": quiet_worker, "crawler": quiet_crawler, "alarm": quiet_alarm, "access": quiet_access})
 	if not capture_error.is_empty():
 		_fail(capture_error)
 		return
@@ -381,6 +414,7 @@ func _run() -> void:
 		"display_server": DisplayServer.get_name(),
 		"renderer": RenderingServer.get_video_adapter_name(),
 		"real_playable_scene": true,
+		"wide_proof_fov": WIDE_PROOF_FOV,
 		"tool_reach_m": 1.8,
 		"swing_total_sec": 0.60,
 		"pursuer_stagger_sec": 0.30,
