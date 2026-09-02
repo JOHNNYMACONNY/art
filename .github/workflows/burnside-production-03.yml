@@ -12,6 +12,7 @@ on:
       - "godot/tests/civic_repossession_mission_contract_test.gd"
       - "godot/tests/civic_repossession_mission_contract_runner.gd"
       - "godot/tests/civic_repossession_wanted_composition_test.gd"
+      - "godot/tests/civic_repossession_render_capture.gd"
       - ".github/workflows/burnside-production-03.yml"
   pull_request:
     paths:
@@ -22,6 +23,7 @@ on:
       - "godot/tests/civic_repossession_mission_contract_test.gd"
       - "godot/tests/civic_repossession_mission_contract_runner.gd"
       - "godot/tests/civic_repossession_wanted_composition_test.gd"
+      - "godot/tests/civic_repossession_render_capture.gd"
       - ".github/workflows/burnside-production-03.yml"
 
 permissions:
@@ -105,3 +107,24 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/wanted_heat1_scene_test.gd
+
+      - name: Capture windowed Mission 02 composition proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a \
+            "$GODOT_BIN" \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/civic_repossession_render_capture.gd
+          test -s godot/verification/production03/01_mission02_report_sent_contact.png
+          test -s godot/verification/production03/02_mission02_report_suppressed_clean_take.png
+          test -s godot/verification/production03/render_report.json
+
+      - name: Upload rendered Mission 02 composition proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production03-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production03/
+          if-no-files-found: error
+          retention-days: 14
