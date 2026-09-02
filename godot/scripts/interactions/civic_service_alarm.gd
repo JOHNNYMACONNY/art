@@ -26,12 +26,16 @@ func can_interact(player_pos: Vector3) -> bool:
 func begin_interaction(player_pos: Vector3) -> bool:
 	if not can_interact(player_pos):
 		return false
+	return trigger_report(player_pos)
 
+func trigger_report(observed_position: Vector3) -> bool:
+	if is_triggered:
+		return false
 	is_triggered = true
 	_update_label()
 	state_changed.emit("TRIGGERED")
 	if report_enabled:
-		report_requested.emit(report_source, player_pos, contact_source)
+		report_requested.emit(report_source, observed_position, contact_source)
 	interaction_completed.emit()
 	return true
 

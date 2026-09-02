@@ -75,6 +75,17 @@ func _run() -> void:
 		await _fail("Main scene is missing TouchControlsUI or Runner")
 		return
 
+	var wanted_runtime := root.get_node_or_null("BurnsideWantedRuntime")
+	if wanted_runtime == null \
+	or not wanted_runtime.has_method("bind_to_scene") \
+	or not wanted_runtime.has_method("get_heat_level") \
+	or not wanted_runtime.has_method("get_wanted_state_name"):
+		await _fail("BurnsideWantedRuntime Mission 02 composition seam is unavailable")
+		return
+	if not bool(wanted_runtime.call("bind_to_scene", _scene_under_test)):
+		await _fail("BurnsideWantedRuntime did not bind to the retained production scene")
+		return
+
 	var runtime := _scene_under_test.get_node_or_null("MissionScrapJobRuntime")
 	if runtime == null or not bool(runtime.get("_bound")):
 		await _fail("Mission/Narrative 01 runtime did not bind to retained gameplay systems")
@@ -270,27 +281,37 @@ func _run() -> void:
 	if civic_runtime.mission.phase != CivicMissionScript.Phase.ESCAPE:
 		await _fail("Real Scrap Hauler mounted signal did not start Civic Repossession escape")
 		return
-	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT):
-		await _fail("Hauler theft did not enter the retained disturbance/pursuit authority")
+	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.CALM):
+		await _fail("Mission 02 Hauler theft started the retired legacy pursuit path")
 		return
-
-	_stage = "mission2_intercept"
-	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.INTERCEPTED)
-	await process_frame
-	if civic_runtime.mission.phase != CivicMissionScript.Phase.FAILED or "RETRY PURSUIT" not in objective.text:
-		await _fail("Controller-authoritative interception did not fail Civic Repossession")
-		return
-	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE)
-	await process_frame
-	if civic_runtime.mission.phase != CivicMissionScript.Phase.ESCAPE:
-		await _fail("Controller-authoritative fast retry did not resume Civic Repossession escape")
+	if int(wanted_runtime.call("get_heat_level")) != 1 \
+	or String(wanted_runtime.call("get_wanted_state_name")) != "CONTACT":
+		await _fail("Live Civic Repossession theft did not produce Heat 1 + CONTACT")
 		return
 
 	_stage = "mission2_evasion"
-	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.EVADED)
+	var wanted_authority = wanted_runtime.get("wanted_authority")
+	if wanted_authority == null:
+		await _fail("Civic Repossession could not read the retained Wanted authority fixture")
+		return
+	if not bool(wanted_authority.call(
+		"lose_contact",
+		wanted_authority.call("get_last_known_position"),
+		wanted_authority.call("get_last_known_direction"),
+		"mobile_touch_mission2_contact_break"
+	)):
+		await _fail("Mission 02 live-report path could not enter Search through legitimate Contact loss")
+		return
+	if String(wanted_runtime.call("get_wanted_state_name")) != "SEARCH":
+		await _fail("Mission 02 Contact loss did not enter Search")
+		return
+	var search_seconds := float(wanted_authority.get("search_evasion_seconds"))
+	if not bool(wanted_authority.call("advance_search", search_seconds + 0.1)):
+		await _fail("Mission 02 Search did not produce legitimate Evasion")
+		return
 	await process_frame
 	if civic_runtime.mission.phase != CivicMissionScript.Phase.DELIVERY:
-		await _fail("Controller-authoritative evasion did not advance Civic Repossession to delivery")
+		await _fail("Open-world Wanted Evasion did not advance Civic Repossession to delivery")
 		return
 	if not return_zone.visible:
 		await _fail("Civic Repossession return zone did not become visible for delivery")
@@ -364,15 +385,8 @@ func _run() -> void:
 	if city_runtime.mission.phase != CityMissionScript.Phase.ESCAPE:
 		await _fail("Authored HS-7 Echo completion did not start Mission 03 escape")
 		return
-	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.EVADED):
-		await _fail("Mission 03 mutated or consumed stale Mission 02 evasion before retained de-escalation")
-		return
-	# Model the retained pursuer's authoritative de-escalation-completed transition.
-	# Only after CALM may Mission 03 ask the root controller for its fresh chase.
-	_scene_under_test.set("current_pursuit_state", ScrapTestBlockScript.PursuitState.CALM)
-	await process_frame
 	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT):
-		await _fail("Mission 03 did not start a fresh retained pursuit after prior de-escalation reached CALM")
+		await _fail("Mission 03 did not start its retained pursuit from the post-Mission-02 CALM authority")
 		return
 
 	_stage = "mission3_intercept"
@@ -401,6 +415,7 @@ func _run() -> void:
 		return
 
 	_stage = "full_replay"
+	wanted_runtime.call("reset_runtime")
 	_scene_under_test.call("reset_slice")
 	await process_frame
 	await process_frame
@@ -415,6 +430,10 @@ func _run() -> void:
 		return
 	if return_zone.visible:
 		await _fail("Full replay left the Civic Repossession return zone visible")
+		return
+	if int(wanted_runtime.call("get_heat_level")) != 0 \
+	or String(wanted_runtime.call("get_wanted_state_name")) != "CLEAR":
+		await _fail("Full replay did not restore the open-world Wanted baseline")
 		return
 	if title.text != "SCRAP JOB 01 // CITY PROPERTY" or "COURIER BIKE" not in objective.text:
 		await _fail("Full replay did not restore Mission 01 shared HUD ownership")
@@ -453,8 +472,12 @@ func _run() -> void:
 	if civic_runtime.mission.phase != CivicMissionScript.Phase.ESCAPE:
 		await _fail("Civic Repossession stranded after Mission 01 completed with the Hauler already occupied")
 		return
-	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT):
-		await _fail("Pre-mounted Hauler reconciliation did not enter retained pursuit authority")
+	if int(_scene_under_test.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.CALM):
+		await _fail("Pre-mounted Hauler reconciliation incorrectly started the retired legacy pursuit")
+		return
+	if int(wanted_runtime.call("get_heat_level")) != 1 \
+	or String(wanted_runtime.call("get_wanted_state_name")) != "CONTACT":
+		await _fail("Pre-mounted Hauler reconciliation did not create the civic Heat 1 + CONTACT report")
 		return
 	if city_runtime.mission.phase != CityMissionScript.Phase.LOCKED:
 		await _fail("Mission 03 unlocked during Civic Repossession pre-mounted recovery")
