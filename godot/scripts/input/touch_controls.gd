@@ -7,6 +7,7 @@ extends Control
 
 signal joystick_vector_updated(vec: Vector2)
 signal action_button_pressed
+signal tool_action_pressed
 signal peel_gesture_dragged(progress: float)
 signal peel_gesture_released
 signal tuner_dragged(accum_px: float)
@@ -36,6 +37,7 @@ enum UIMode {
 @export_range(1.0, 2.5, 0.05) var vehicle_steer_response_power: float = 1.5
 
 var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
+var _tool_action_available: bool = false
 
 # SafeAreaRoot hierarchy references (with automatic fallback to direct child if not nested)
 @onready var safe_area_root: Control = _find_or_self("SafeAreaRoot")
@@ -44,6 +46,7 @@ var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 @onready var joystick_base: Control = _find_node_recursive("JoystickBase")
 @onready var joystick_handle: Control = _find_node_recursive("JoystickKnob")
 @onready var action_button: Button = _find_node_recursive("ActionButton")
+@onready var tool_action_button: Button = _find_node_recursive("ToolActionButton")
 
 @onready var driving_panel: Control = _find_node_recursive("DrivingOverlayPanel")
 @onready var gas_button: Button = _find_node_recursive("ThrottleButton")
@@ -313,6 +316,10 @@ func _on_viewport_size_changed() -> void:
 func _on_action_button_clicked() -> void:
 	action_button_pressed.emit()
 
+func _on_tool_action_button_clicked() -> void:
+	if current_mode == UIMode.FOOT_TRAVERSAL and _tool_action_available:
+		tool_action_pressed.emit()
+
 func _on_dismount_button_clicked() -> void:
 	dismount_pressed.emit()
 
@@ -333,6 +340,15 @@ func trigger_radio_toggle() -> void:
 
 func trigger_action() -> void:
 	_on_action_button_clicked()
+
+func trigger_tool_action() -> void:
+	_on_tool_action_button_clicked()
+
+func set_tool_action_available(available: bool) -> void:
+	_tool_action_available = available
+	if tool_action_button:
+		tool_action_button.disabled = not available
+		tool_action_button.visible = available and current_mode == UIMode.FOOT_TRAVERSAL
 
 func update_radio_button_state(is_enabled: bool, _station_id: String = "radio.yardline") -> void:
 	if radio_button:
@@ -371,6 +387,8 @@ func _ready() -> void:
 		
 	if action_button:
 		action_button.pressed.connect(_on_action_button_clicked)
+	if tool_action_button:
+		tool_action_button.pressed.connect(_on_tool_action_button_clicked)
 	if dismount_button:
 		dismount_button.pressed.connect(_on_dismount_button_clicked)
 	if radio_button:
@@ -389,6 +407,7 @@ func _ready() -> void:
 	close_interaction_overlay()
 	hide_tension_hud()
 	set_route_switch_button_visible(false)
+	set_tool_action_available(false)
 	update_radio_button_state(true)
 
 	# Continuous driving controls use ScreenTouch directly. Avoid Button mouse
@@ -459,9 +478,11 @@ func set_mode(mode: UIMode) -> void:
 	reset_driving_inputs()
 	if mode == UIMode.FOOT_TRAVERSAL:
 		if action_button: action_button.visible = true
+		if tool_action_button: tool_action_button.visible = _tool_action_available
 		if driving_panel: driving_panel.visible = false
 	elif mode == UIMode.VEHICLE_DRIVING:
 		if action_button: action_button.visible = false
+		if tool_action_button: tool_action_button.visible = false
 		if driving_panel: driving_panel.visible = true
 		close_interaction_overlay()
 		_sync_keyboard_driving_inputs_from_input()
@@ -682,6 +703,9 @@ func _input(event: InputEvent) -> void:
 					action_button_pressed.emit()
 				elif current_mode == UIMode.VEHICLE_DRIVING:
 					dismount_pressed.emit()
+			elif _is_key(key_ev, KEY_F) and current_mode == UIMode.FOOT_TRAVERSAL:
+				if _tool_action_available:
+					tool_action_pressed.emit()
 			elif _is_key(key_ev, KEY_SPACE) and current_mode == UIMode.FOOT_TRAVERSAL:
 				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
 					core_tap_pressed.emit()
