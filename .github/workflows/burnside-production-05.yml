@@ -20,6 +20,7 @@ on:
       - "godot/tests/gears_scrapper_tool_environment_test.gd"
       - "godot/tests/gears_scrapper_tool_pursuer_test.gd"
       - "godot/tests/gears_scrapper_tool_mission_ordering_test.gd"
+      - "godot/tests/gears_scrapper_tool_render_capture.gd"
       - "godot/tests/gears_work_zone_incident_test.gd"
       - "godot/tests/gears_work_zone_mission_ordering_test.gd"
       - "godot/tests/civic_repossession_pretriggered_suppression_test.gd"
@@ -43,6 +44,7 @@ on:
       - "godot/tests/gears_scrapper_tool_environment_test.gd"
       - "godot/tests/gears_scrapper_tool_pursuer_test.gd"
       - "godot/tests/gears_scrapper_tool_mission_ordering_test.gd"
+      - "godot/tests/gears_scrapper_tool_render_capture.gd"
       - "godot/tests/gears_work_zone_incident_test.gd"
       - "godot/tests/gears_work_zone_mission_ordering_test.gd"
       - "godot/tests/civic_repossession_pretriggered_suppression_test.gd"
@@ -184,3 +186,27 @@ jobs:
           test "${{ steps.p05_environment.outcome }}" = "success"
           test "${{ steps.p05_pursuer.outcome }}" = "success"
           test "${{ steps.p05_mission_ordering.outcome }}" = "success"
+
+      - name: Capture windowed Production 05 proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a "$GODOT_BIN" \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/gears_scrapper_tool_render_capture.gd
+          test -s godot/verification/production05/01_scrapper_pickup_ready.png
+          test -s godot/verification/production05/02_scrapper_held.png
+          test -s godot/verification/production05/03_service_access_forced_report_sent.png
+          test -s godot/verification/production05/04_service_access_forced_report_suppressed.png
+          test -s godot/verification/production05/05_pursuer_scrapper_impact.png
+          test -s godot/verification/production05/06_pursuer_recovered.png
+          test -s godot/verification/production05/render_report.json
+
+      - name: Upload Production 05 proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production05-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production05/
+          if-no-files-found: error
+          retention-days: 14
