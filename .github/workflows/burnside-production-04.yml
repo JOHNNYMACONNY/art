@@ -15,6 +15,7 @@ on:
       - "godot/scripts/entities/utility_crawler.gd"
       - "godot/tests/gears_work_zone_incident_test.gd"
       - "godot/tests/gears_work_zone_mission_ordering_test.gd"
+      - "godot/tests/gears_work_zone_render_capture.gd"
       - "godot/tests/civic_repossession_pretriggered_suppression_test.gd"
       - "godot/tests/civic_repossession_wanted_composition_test.gd"
       - "godot/tests/field_hacking_report_suppression_test.gd"
@@ -31,6 +32,7 @@ on:
       - "godot/scripts/entities/utility_crawler.gd"
       - "godot/tests/gears_work_zone_incident_test.gd"
       - "godot/tests/gears_work_zone_mission_ordering_test.gd"
+      - "godot/tests/gears_work_zone_render_capture.gd"
       - "godot/tests/civic_repossession_pretriggered_suppression_test.gd"
       - "godot/tests/civic_repossession_wanted_composition_test.gd"
       - "godot/tests/field_hacking_report_suppression_test.gd"
@@ -123,3 +125,25 @@ jobs:
           set -euo pipefail
           "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
             --script res://tests/wanted_heat1_scene_test.gd
+
+      - name: Capture windowed Gears work-zone proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a \
+            "$GODOT_BIN" \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/gears_work_zone_render_capture.gd
+          test -s godot/verification/production04/01_gears_work_zone_routine.png
+          test -s godot/verification/production04/02_gears_work_zone_report_sent.png
+          test -s godot/verification/production04/03_gears_work_zone_report_suppressed.png
+          test -s godot/verification/production04/render_report.json
+
+      - name: Upload rendered Gears work-zone proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production04-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production04/
+          if-no-files-found: error
+          retention-days: 14
