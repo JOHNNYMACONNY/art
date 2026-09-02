@@ -17,9 +17,11 @@ The playable root already instantiates two `ScrapWorker` actors and one `Utility
 
 Production 04 does **not** replace or relabel that behavior. It adds a separate authored Gears street work-zone pair and composes only that pair with ordinary civic Report authority.
 
+`GearsDistrictSlice01B` also carries a retained compatibility contract that its geometry node owns no gameplay authority. Production 04 must preserve that truth: the new runtime is a **sibling** of the district, spatially anchored to the district's `IndustrialIntersection`, not a scripted gameplay child counted inside the 01B geometry contract.
+
 ## Authored location
 
-Anchor one `GearsWorkZoneIncident` under `GearsDistrictSlice01B` at the existing `IndustrialIntersection` / `CivicCrossingBand` seam.
+Create one root-level `GearsWorkZoneIncident` sibling and anchor it to the existing `GearsDistrictSlice01B/IndustrialIntersection` / `CivicCrossingBand` seam.
 
 Required local actors:
 
@@ -96,13 +98,16 @@ Civic reporting service recovery remains owned by `BurnsideWantedRuntime`.
 
 ## Integration shape
 
-Prefer one small `GearsWorkZoneIncident` runtime node under `GearsDistrictSlice01B`.
+Use one small root-level `GearsWorkZoneIncident` runtime sibling spatially anchored to `GearsDistrictSlice01B/IndustrialIntersection`.
 
-`ScrapTestBlock` may:
+The existing district composition seam may mount that sibling without taking ownership of its gameplay state. The 01B district's existing declarative geometry and `owns_no_gameplay_authority` contract must remain true.
 
-- instantiate/configure that node during `_ready()`;
-- pass the current active entity + whether it is a mounted vehicle during `_process()`;
-- call `reset_incident()` from the existing replay reset.
+The incident runtime may:
+
+- resolve the current active vehicle/player from the playable root each frame;
+- own only its two work-zone actors and incident-local timers/flags;
+- connect to the existing Replay control to call `reset_incident()`;
+- request Reports only through `BurnsideWantedRuntime`.
 
 Do not add an autoload, event bus, population manager, ambient scheduler, or generalized incident manager.
 
@@ -110,17 +115,18 @@ Do not add an autoload, event bus, population manager, ambient scheduler, or gen
 
 The focused tracer must prove:
 
-1. `GearsDistrictSlice01B/GearsWorkZoneIncident` exists in live production and `GearsStyleProof` remains hidden;
-2. retained root `ScrapWorker1`, `ScrapWorker2`, and `UtilityCrawler` remain present;
-3. work-zone actor pair starts in routine/ambient state;
-4. slow/ordinary passage can produce yielding without Heat;
-5. high-speed close-call escalation alarms both work-zone actors;
-6. live civic reporting produces Heat 1 + Contact from CLEAR;
-7. jammed reporting leaves authority CLEAR while local actors still alarm;
-8. pre-existing Wanted survives without a second report/reset;
-9. local recovery does not clear authority state;
-10. jammed work-zone report consumption followed by Mission 02 cannot strand Mission 02;
-11. replay/reset restores incident-local deterministic state.
+1. root `GearsWorkZoneIncident` exists in live production, is anchored to the Gears industrial crossing, and `GearsStyleProof` remains hidden;
+2. `GearsDistrictSlice01B.get_production_contract().owns_no_gameplay_authority` remains true;
+3. retained root `ScrapWorker1`, `ScrapWorker2`, and `UtilityCrawler` remain present;
+4. work-zone actor pair starts in routine/ambient state;
+5. slow/ordinary passage can produce yielding without Heat;
+6. high-speed close-call escalation alarms both work-zone actors;
+7. live civic reporting produces Heat 1 + Contact from CLEAR;
+8. jammed reporting leaves authority CLEAR while local actors still alarm;
+9. pre-existing Wanted survives without a second report/reset;
+10. local recovery does not clear authority state;
+11. jammed work-zone report consumption followed by Mission 02 cannot strand Mission 02;
+12. replay/reset restores incident-local deterministic state.
 
 ## Scope exclusions
 
