@@ -8,6 +8,7 @@ on:
     paths:
       - "contracts/burnside_production_04_gears_work_zone_spec.md"
       - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
       - "godot/scripts/world/gears_work_zone_incident.gd"
       - "godot/scripts/world/wanted_heat1_runtime.gd"
       - "godot/scripts/entities/scrap_worker.gd"
@@ -22,6 +23,7 @@ on:
     paths:
       - "contracts/burnside_production_04_gears_work_zone_spec.md"
       - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
       - "godot/scripts/world/gears_work_zone_incident.gd"
       - "godot/scripts/world/wanted_heat1_runtime.gd"
       - "godot/scripts/entities/scrap_worker.gd"
