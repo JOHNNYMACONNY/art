@@ -7,6 +7,7 @@ extends Control
 
 signal joystick_vector_updated(vec: Vector2)
 signal action_button_pressed
+signal tool_action_pressed
 signal peel_gesture_dragged(progress: float)
 signal peel_gesture_released
 signal tuner_dragged(accum_px: float)
@@ -36,6 +37,7 @@ enum UIMode {
 @export_range(1.0, 2.5, 0.05) var vehicle_steer_response_power: float = 1.5
 
 var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
+var _tool_action_available: bool = false
 
 # SafeAreaRoot hierarchy references (with automatic fallback to direct child if not nested)
 @onready var safe_area_root: Control = _find_or_self("SafeAreaRoot")
@@ -44,6 +46,7 @@ var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 @onready var joystick_base: Control = _find_node_recursive("JoystickBase")
 @onready var joystick_handle: Control = _find_node_recursive("JoystickKnob")
 @onready var action_button: Button = _find_node_recursive("ActionButton")
+@onready var tool_action_button: Button = _find_node_recursive("ToolActionButton")
 
 @onready var driving_panel: Control = _find_node_recursive("DrivingOverlayPanel")
 @onready var gas_button: Button = _find_node_recursive("ThrottleButton")
@@ -313,6 +316,22 @@ func _on_viewport_size_changed() -> void:
 func _on_action_button_clicked() -> void:
 	action_button_pressed.emit()
 
+func is_interaction_input_locked() -> bool:
+	return gesture_panel != null and gesture_panel.visible
+
+func _tool_action_can_emit() -> bool:
+	return _tool_action_available and current_mode == UIMode.FOOT_TRAVERSAL and not is_interaction_input_locked()
+
+func _refresh_tool_action_button() -> void:
+	if tool_action_button:
+		var available_now := _tool_action_can_emit()
+		tool_action_button.disabled = not available_now
+		tool_action_button.visible = available_now
+
+func _on_tool_action_button_clicked() -> void:
+	if _tool_action_can_emit():
+		tool_action_pressed.emit()
+
 func _on_dismount_button_clicked() -> void:
 	dismount_pressed.emit()
 
@@ -333,6 +352,13 @@ func trigger_radio_toggle() -> void:
 
 func trigger_action() -> void:
 	_on_action_button_clicked()
+
+func trigger_tool_action() -> void:
+	_on_tool_action_button_clicked()
+
+func set_tool_action_available(available: bool) -> void:
+	_tool_action_available = available
+	_refresh_tool_action_button()
 
 func update_radio_button_state(is_enabled: bool, _station_id: String = "radio.yardline") -> void:
 	if radio_button:
@@ -371,6 +397,8 @@ func _ready() -> void:
 		
 	if action_button:
 		action_button.pressed.connect(_on_action_button_clicked)
+	if tool_action_button:
+		tool_action_button.pressed.connect(_on_tool_action_button_clicked)
 	if dismount_button:
 		dismount_button.pressed.connect(_on_dismount_button_clicked)
 	if radio_button:
@@ -389,6 +417,7 @@ func _ready() -> void:
 	close_interaction_overlay()
 	hide_tension_hud()
 	set_route_switch_button_visible(false)
+	set_tool_action_available(false)
 	update_radio_button_state(true)
 
 	# Continuous driving controls use ScreenTouch directly. Avoid Button mouse
@@ -468,6 +497,7 @@ func set_mode(mode: UIMode) -> void:
 		_emit_net_throttle()
 		_emit_net_steer()
 		_emit_net_handbrake()
+	_refresh_tool_action_button()
 
 var _is_rejection_flashing: bool = false
 var _toast_timer_count: int = 0
@@ -563,6 +593,7 @@ func show_gesture_overlay(gesture_type: String) -> void:
 	_tuning_accum_px = 0.0
 	if gesture_panel:
 		gesture_panel.visible = true
+	_refresh_tool_action_button()
 	if core_tap_button: core_tap_button.visible = (gesture_type == "EXPOSE_CORE")
 	if gesture_hint_label:
 		match gesture_type:
@@ -586,6 +617,7 @@ func close_interaction_overlay() -> void:
 	_interaction_touch_index = -1
 	_current_gesture_type = ""
 	_peel_accumulated_y = 0.0
+	_refresh_tool_action_button()
 
 func _is_key(event: InputEventKey, first: Key, second: Key = KEY_NONE) -> bool:
 	return (
@@ -682,6 +714,8 @@ func _input(event: InputEvent) -> void:
 					action_button_pressed.emit()
 				elif current_mode == UIMode.VEHICLE_DRIVING:
 					dismount_pressed.emit()
+			elif _is_key(key_ev, KEY_F) and _tool_action_can_emit():
+				tool_action_pressed.emit()
 			elif _is_key(key_ev, KEY_SPACE) and current_mode == UIMode.FOOT_TRAVERSAL:
 				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
 					core_tap_pressed.emit()
