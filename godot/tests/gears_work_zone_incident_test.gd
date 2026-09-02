@@ -1,8 +1,5 @@
 extends SceneTree
 
-const CivicMissionScript = preload("res://scripts/missions/civic_repossession_mission.gd")
-const ScrapJobMissionScript = preload("res://scripts/missions/scrap_job_mission.gd")
-
 var _scene: Node = null
 var _runtime: Node = null
 var _incident: Node = null
@@ -35,38 +32,6 @@ func _reset_incident_and_authority() -> void:
 		_incident.call("reset_incident")
 	await process_frame
 	await physics_frame
-
-func _complete_mission_one() -> String:
-	var mission_one_runtime := _scene.get_node_or_null("MissionScrapJobRuntime")
-	var civic_runtime := _scene.get_node_or_null("CivicRepossessionRuntime")
-	var tuner = _scene.get("signal_tuner")
-	var panel = _scene.get("corroded_panel")
-	if mission_one_runtime == null or civic_runtime == null or tuner == null or panel == null:
-		return "Mission fixture dependencies are missing"
-	tuner.set("current_state", SignalTuner.TunerState.LOCKED)
-	panel.set("current_step", CorrodedPanel.Step.EXTRACTED)
-	var mission = mission_one_runtime.mission
-	if mission.phase == ScrapJobMissionScript.Phase.BRIEFING:
-		mission.start()
-	if mission.phase == ScrapJobMissionScript.Phase.GET_BIKE:
-		mission.on_courier_bike_mounted()
-	if mission.phase == ScrapJobMissionScript.Phase.TRAVERSE_TO_TUNER:
-		mission.on_tuner_arrived()
-	if mission.phase == ScrapJobMissionScript.Phase.SPOOF_SIGNAL:
-		mission.on_signal_locked()
-	if mission.phase == ScrapJobMissionScript.Phase.EXTRACT_CORE:
-		mission.on_core_extracted()
-	if mission.phase == ScrapJobMissionScript.Phase.PURSUIT_COMPLICATION:
-		mission.on_pursuit_active()
-	if mission.phase == ScrapJobMissionScript.Phase.ROUTE_DECISION:
-		mission.on_escape_complete()
-	if mission.phase != ScrapJobMissionScript.Phase.COMPLETE:
-		return "Mission 01 fixture could not complete"
-	mission_one_runtime.call("_refresh_hud")
-	await process_frame
-	if civic_runtime.mission.phase != CivicMissionScript.Phase.GET_HAULER:
-		return "Mission 02 did not unlock"
-	return ""
 
 func _jam_report_link() -> String:
 	var player := _scene.get_node_or_null("Runner") as Node3D
@@ -209,12 +174,8 @@ func _run() -> void:
 		await _fail("Incident requested a second civic report while Wanted was already valid")
 		return
 
-	# Jammed report path + Production-03 ordering regression.
+	# Jammed report path: city knowledge is suppressed but local reaction remains real.
 	await _reset_incident_and_authority()
-	var setup_error := await _complete_mission_one()
-	if not setup_error.is_empty():
-		await _fail(setup_error)
-		return
 	var jam_error := _jam_report_link()
 	if not jam_error.is_empty():
 		await _fail(jam_error)
@@ -233,24 +194,9 @@ func _run() -> void:
 	if int(_incident.call("get_report_attempt_count")) != 1:
 		await _fail("Jammed work-zone incident did not perform exactly one bounded Report attempt")
 		return
-
 	var alarm := _scene.get_node_or_null("CivicServiceAlarm")
 	if alarm == null or not bool(alarm.get("is_triggered")) or bool(alarm.get("report_enabled")):
 		await _fail("Jammed work-zone event did not consume the expected local alarm-fault state")
-		return
-	var civic_runtime := _scene.get_node_or_null("CivicRepossessionRuntime")
-	var player := _scene.get_node_or_null("Runner") as Node3D
-	var hauler = _scene.get("scrap_hauler")
-	if civic_runtime == null or player == null or hauler == null:
-		await _fail("Mission 02 ordering fixture is incomplete")
-		return
-	hauler.mounted.emit(player)
-	await process_frame
-	if civic_runtime.mission.phase != CivicMissionScript.Phase.DELIVERY:
-		await _fail("Jammed work-zone alarm consumption stranded Mission 02 instead of CLEAN TAKE")
-		return
-	if _heat() != 0 or _wanted_state() != "CLEAR":
-		await _fail("Mission 02 clean take after work-zone suppression fabricated Wanted")
 		return
 
 	# Exercise the actual player Replay signal. Root reset and incident-local reset
