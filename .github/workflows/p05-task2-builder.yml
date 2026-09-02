@@ -21,13 +21,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 3
 
       - name: Reapply exact staged Task 2 patch
         shell: bash
         run: |
           set -euo pipefail
-          git show HEAD^:.github/workflows/p05-task2-builder.yml > /tmp/p05-task2-original.yml
+          git show HEAD^^:.github/workflows/p05-task2-builder.yml > /tmp/p05-task2-original.yml
           python3 - <<'PY'
           from pathlib import Path
           text = Path('/tmp/p05-task2-original.yml').read_text()
@@ -36,9 +36,7 @@ jobs:
           run_at = text.index('        run: |\n', start) + len('        run: |\n')
           end = text.index('\n      - name: Install Godot 4.7.1 editor', run_at)
           block = text[run_at:end]
-          lines = []
-          for line in block.splitlines():
-              lines.append(line[10:] if line.startswith('          ') else line)
+          lines = [line[10:] if line.startswith('          ') else line for line in block.splitlines()]
           Path('/tmp/p05-task2-patch.sh').write_text('\n'.join(lines) + '\n')
           PY
           bash /tmp/p05-task2-patch.sh
@@ -47,8 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --location --retry 3 \
-            --output godot.zip \
+          curl --fail --location --retry 3 --output godot.zip \
             https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
           echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
           mkdir -p .godot-bin
@@ -64,25 +61,14 @@ jobs:
       - name: Run retained input compatibility
         run: |
           set -euo pipefail
-          for test in \
-            touch_controls_event_routing_test.gd \
-            desktop_controls_event_routing_test.gd \
-            desktop_control_alias_ownership_test.gd \
-            desktop_vehicle_authority_test.gd \
-            desktop_interaction_cancel_test.gd; do
+          for test in touch_controls_event_routing_test.gd desktop_controls_event_routing_test.gd desktop_control_alias_ownership_test.gd desktop_vehicle_authority_test.gd desktop_interaction_cancel_test.gd; do
             "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test"
           done
 
       - name: Run retained P01-P04 regressions
         run: |
           set -euo pipefail
-          for test in \
-            gears_work_zone_incident_test.gd \
-            gears_work_zone_mission_ordering_test.gd \
-            civic_repossession_pretriggered_suppression_test.gd \
-            civic_repossession_wanted_composition_test.gd \
-            field_hacking_report_suppression_test.gd \
-            wanted_heat1_scene_test.gd; do
+          for test in gears_work_zone_incident_test.gd gears_work_zone_mission_ordering_test.gd civic_repossession_pretriggered_suppression_test.gd civic_repossession_wanted_composition_test.gd field_hacking_report_suppression_test.gd wanted_heat1_scene_test.gd; do
             "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test"
           done
 
@@ -90,9 +76,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git restore .github/workflows/p05-task2-builder.yml
+          git add \
+            godot/scripts/interactions/scrapper_tool_pickup.gd \
+            godot/scenes/interactions/scrapper_tool_pickup.tscn \
+            godot/scripts/world/gears_scrapper_tool_runtime.gd \
+            godot/scripts/input/touch_controls.gd \
+            godot/scenes/prototype/scrap_test_block.tscn \
+            godot/scripts/visual/gears_district_slice_01b.gd \
+            godot/tests/gears_scrapper_tool_input_test.gd
+          git restore --worktree -- .
+          git clean -fdx
           git status --short
+          test "$(git diff --cached --name-only | wc -l)" -eq 7
+          git diff --cached --name-only
           git config user.name "Johnny Maconny"
           git config user.email "58898456+JOHNNYMACONNY@users.noreply.github.com"
-          git add -A
           git commit -m "build: produce Production 05 Task 2 candidate"
           git push origin HEAD:automation/p05-task2-build
