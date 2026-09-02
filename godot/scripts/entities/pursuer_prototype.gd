@@ -67,7 +67,7 @@ func activate_pursuit(target: Node3D) -> void:
 	current_speed = 0.0
 	_intercept_timer = 0.0
 	_de_escalate_timer = 0.0
-	_clear_scrapper_stagger()
+	clear_scrapper_stagger()
 	detour_waypoints.clear()
 	current_detour_index = -1
 	set_physics_process(true)
@@ -80,7 +80,7 @@ func start_de_escalation() -> void:
 	if not is_active or current_state == PursuerState.INACTIVE:
 		return
 
-	_clear_scrapper_stagger()
+	clear_scrapper_stagger()
 	current_state = PursuerState.DE_ESCALATING
 	_de_escalate_timer = 0.0
 	target_node = null
@@ -111,7 +111,7 @@ func reset_pursuer(spawn_pos: Vector3 = Vector3(0, 0.6, -10.0)) -> void:
 	current_detour_index = -1
 	_intercept_timer = 0.0
 	_de_escalate_timer = 0.0
-	_clear_scrapper_stagger()
+	clear_scrapper_stagger()
 	global_position = spawn_pos
 	set_physics_process(false)
 	if siren_light:
@@ -142,9 +142,11 @@ func get_scrapper_stagger_remaining() -> float:
 func get_scrapper_stagger_velocity() -> Vector3:
 	return _scrapper_stagger_velocity
 
-func _clear_scrapper_stagger() -> void:
+func clear_scrapper_stagger() -> void:
 	_scrapper_stagger_remaining = 0.0
 	_scrapper_stagger_velocity = Vector3.ZERO
+	if current_state == PursuerState.CHASING or current_state == PursuerState.DETOURING:
+		velocity = Vector3.ZERO
 
 func set_detour_path(waypoints: Array[Vector3]) -> void:
 	if current_state == PursuerState.DE_ESCALATING or current_state == PursuerState.EVADED_DISENGAGED:
