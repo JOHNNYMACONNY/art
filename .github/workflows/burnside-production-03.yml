@@ -10,6 +10,7 @@ on:
       - "godot/scripts/missions/civic_repossession_mission.gd"
       - "godot/scripts/missions/civic_repossession_runtime.gd"
       - "godot/tests/civic_repossession_mission_contract_test.gd"
+      - "godot/tests/civic_repossession_mission_contract_runner.gd"
       - "godot/tests/civic_repossession_wanted_composition_test.gd"
       - ".github/workflows/burnside-production-03.yml"
   pull_request:
@@ -19,6 +20,7 @@ on:
       - "godot/scripts/missions/civic_repossession_mission.gd"
       - "godot/scripts/missions/civic_repossession_runtime.gd"
       - "godot/tests/civic_repossession_mission_contract_test.gd"
+      - "godot/tests/civic_repossession_mission_contract_runner.gd"
       - "godot/tests/civic_repossession_wanted_composition_test.gd"
       - ".github/workflows/burnside-production-03.yml"
 
@@ -63,6 +65,16 @@ jobs:
         run: |
           set -euo pipefail
           "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+
+      - name: Run Mission 02 model contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/civic_repossession_mission_contract_runner.gd
 
       - name: Run Production 03 mission/Wanted composition tracer
         shell: bash
