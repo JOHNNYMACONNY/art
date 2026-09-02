@@ -1,0 +1,66 @@
+name: P05 Task 5 Verify
+
+on:
+  push:
+    branches:
+      - "automation/p05-task5-build"
+    paths:
+      - ".github/workflows/p05-task5-verify.yml"
+      - "godot/scripts/entities/pursuer_prototype.gd"
+      - "godot/scripts/world/gears_scrapper_tool_runtime.gd"
+      - "godot/tests/gears_scrapper_tool_pursuer_test.gd"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-task5:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Install and prime Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+
+      - name: Run Task 5 pursuer tracer
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/gears_scrapper_tool_pursuer_test.gd
+
+      - name: Run Production 05 completed tracers and retained P01-P04 regressions
+        run: |
+          set -euo pipefail
+          for test in \
+            gears_scrapper_tool_input_test.gd \
+            gears_scrapper_tool_environment_test.gd \
+            gears_scrapper_tool_mission_ordering_test.gd \
+            gears_work_zone_incident_test.gd \
+            gears_work_zone_mission_ordering_test.gd \
+            civic_repossession_pretriggered_suppression_test.gd \
+            civic_repossession_wanted_composition_test.gd \
+            field_hacking_report_suppression_test.gd \
+            wanted_heat1_scene_test.gd; do
+            "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test"
+          done
