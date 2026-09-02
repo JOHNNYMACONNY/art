@@ -177,6 +177,12 @@ func _escalate(observed_position: Vector3) -> void:
 	_report_attempt_count += 1
 	_wanted_runtime.call("request_civic_report", observed_position)
 
+func trigger_service_access_disruption(observed_position: Vector3) -> bool:
+	if current_state != IncidentState.ROUTINE:
+		return false
+	_escalate(observed_position)
+	return true
+
 func reset_incident() -> void:
 	current_state = IncidentState.ROUTINE
 	_recovery_elapsed = 0.0
