@@ -112,6 +112,13 @@ func _physics_process(delta: float) -> void:
 func set_joystick_input(vec: Vector2) -> void:
 	joystick_vector = vec
 
+func get_facing_direction() -> Vector3:
+	var facing_basis := mesh_pivot.global_transform.basis if mesh_pivot != null else global_transform.basis
+	var facing := Vector3(-facing_basis.z.x, 0.0, -facing_basis.z.z)
+	if facing.length_squared() <= 0.001:
+		return Vector3.FORWARD
+	return facing.normalized()
+
 func set_mounted_posture(mounted: bool) -> void:
 	is_mounted = mounted
 	if not mesh_pivot:
