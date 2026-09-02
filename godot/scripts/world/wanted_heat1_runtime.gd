@@ -146,6 +146,17 @@ func handle_action_pressed() -> bool:
 	_alarm.update_player_distance(actor.global_position)
 	return _alarm.begin_interaction(actor.global_position)
 
+func request_civic_report(observed_position: Vector3) -> bool:
+	if not _bound or _alarm == null or not is_instance_valid(_alarm):
+		return false
+	return _alarm.trigger_report(observed_position)
+
+func get_heat_level() -> int:
+	return wanted_authority.get_heat_level() if wanted_authority != null else 0
+
+func get_wanted_state_name() -> String:
+	return wanted_authority.get_wanted_state_name() if wanted_authority != null else "CLEAR"
+
 func process_wanted(delta: float) -> void:
 	if not _bound or _scene_controller == null or _pursuer == null:
 		return
