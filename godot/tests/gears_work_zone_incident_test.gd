@@ -105,14 +105,23 @@ func _run() -> void:
 		await _fail("Wanted runtime did not bind to the production scene")
 		return
 
-	# RED frontier: the retained yard actors are already real, but no consequence-bearing
-	# work-zone incident currently exists under the production Gears street block.
-	_incident = _scene.get_node_or_null("GearsDistrictSlice01B/GearsWorkZoneIncident")
+	# RED frontier: retained yard life exists, but no consequence-bearing Gears
+	# work-zone sibling currently exists in the qualified production scene.
+	_incident = _scene.get_node_or_null("GearsWorkZoneIncident")
 	if _incident == null:
-		await _fail("Production Gears street block has no GearsWorkZoneIncident")
+		await _fail("Production root has no GearsWorkZoneIncident anchored to the Gears crossing")
 		return
 	if not _incident.has_method("get_incident_contract") or not _incident.has_method("process_player_sample") or not _incident.has_method("reset_incident"):
 		await _fail("Gears work-zone incident lacks its bounded production contract/runtime seam")
+		return
+
+	var district := _scene.get_node_or_null("GearsDistrictSlice01B")
+	if district == null or not district.has_method("get_production_contract"):
+		await _fail("Retained Gears district production contract is missing")
+		return
+	var district_contract: Dictionary = district.call("get_production_contract")
+	if not bool(district_contract.get("owns_no_gameplay_authority", false)):
+		await _fail("Production 04 violated the declarative Gears district authority boundary")
 		return
 
 	var proof := _scene.get_node_or_null("GearsStyleProof") as Node3D
@@ -134,6 +143,9 @@ func _run() -> void:
 	var contract: Dictionary = _incident.call("get_incident_contract")
 	if float(contract.get("material_speed_mps", 0.0)) != 8.0 or float(contract.get("material_actor_distance_m", 0.0)) != 1.25:
 		await _fail("Material disruption thresholds drifted from #127 spec")
+		return
+	if not bool(contract.get("anchored_to_gears_industrial_intersection", false)):
+		await _fail("Work-zone incident is not anchored to the authored Gears industrial crossing")
 		return
 	if String(_incident.call("get_incident_state_name")) != "ROUTINE":
 		await _fail("Work-zone incident did not start in ROUTINE")
