@@ -1,0 +1,186 @@
+name: Burnside Production 05
+
+on:
+  push:
+    branches:
+      - "main"
+      - "feat/burnside-production-05-scrapper-tool"
+    paths:
+      - "contracts/burnside_production_05_scrapper_tool_spec.md"
+      - "godot/scripts/input/touch_controls.gd"
+      - "godot/scripts/player/runner.gd"
+      - "godot/scripts/entities/pursuer_prototype.gd"
+      - "godot/scripts/world/gears_work_zone_incident.gd"
+      - "godot/scripts/world/gears_scrapper_tool_runtime.gd"
+      - "godot/scripts/interactions/scrapper_tool_pickup.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scenes/prototype/scrap_test_block.tscn"
+      - "godot/scenes/interactions/scrapper_tool_pickup.tscn"
+      - "godot/tests/gears_scrapper_tool_input_test.gd"
+      - "godot/tests/gears_scrapper_tool_environment_test.gd"
+      - "godot/tests/gears_scrapper_tool_pursuer_test.gd"
+      - "godot/tests/gears_scrapper_tool_mission_ordering_test.gd"
+      - "godot/tests/gears_work_zone_incident_test.gd"
+      - "godot/tests/gears_work_zone_mission_ordering_test.gd"
+      - "godot/tests/civic_repossession_pretriggered_suppression_test.gd"
+      - "godot/tests/civic_repossession_wanted_composition_test.gd"
+      - "godot/tests/field_hacking_report_suppression_test.gd"
+      - "godot/tests/wanted_heat1_scene_test.gd"
+      - ".github/workflows/burnside-production-05.yml"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_05_scrapper_tool_spec.md"
+      - "godot/scripts/input/touch_controls.gd"
+      - "godot/scripts/player/runner.gd"
+      - "godot/scripts/entities/pursuer_prototype.gd"
+      - "godot/scripts/world/gears_work_zone_incident.gd"
+      - "godot/scripts/world/gears_scrapper_tool_runtime.gd"
+      - "godot/scripts/interactions/scrapper_tool_pickup.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scenes/prototype/scrap_test_block.tscn"
+      - "godot/scenes/interactions/scrapper_tool_pickup.tscn"
+      - "godot/tests/gears_scrapper_tool_input_test.gd"
+      - "godot/tests/gears_scrapper_tool_environment_test.gd"
+      - "godot/tests/gears_scrapper_tool_pursuer_test.gd"
+      - "godot/tests/gears_scrapper_tool_mission_ordering_test.gd"
+      - "godot/tests/gears_work_zone_incident_test.gd"
+      - "godot/tests/gears_work_zone_mission_ordering_test.gd"
+      - "godot/tests/civic_repossession_pretriggered_suppression_test.gd"
+      - "godot/tests/civic_repossession_wanted_composition_test.gd"
+      - "godot/tests/field_hacking_report_suppression_test.gd"
+      - "godot/tests/wanted_heat1_scene_test.gd"
+      - ".github/workflows/burnside-production-05.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  gears-scrapper-tool:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Install Godot 4.7.1 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+
+      - name: Run Production 05 input tracer
+        id: p05_input
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_input_test.gd
+
+      - name: Run Production 05 environment tracer
+        id: p05_environment
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_environment_test.gd
+
+      - name: Run Production 05 pursuer tracer
+        id: p05_pursuer
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_pursuer_test.gd
+
+      - name: Run Production 05 Mission 02 ordering tracer
+        id: p05_mission_ordering
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_mission_ordering_test.gd
+
+      - name: Run retained Production 04 Gears work-zone tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_work_zone_incident_test.gd
+
+      - name: Run retained Production 04 Mission 02 ordering regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_work_zone_mission_ordering_test.gd
+
+      - name: Run retained Production 03 pre-triggered suppression regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/civic_repossession_pretriggered_suppression_test.gd
+
+      - name: Run retained Production 03 mission/Wanted composition tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/civic_repossession_wanted_composition_test.gd
+
+      - name: Run retained Production 02 Field-Hacking tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/field_hacking_report_suppression_test.gd
+
+      - name: Run retained Production 01 Heat-1 tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/wanted_heat1_scene_test.gd
+
+      - name: Require Production 05 GREEN
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "input=${{ steps.p05_input.outcome }}"
+          echo "environment=${{ steps.p05_environment.outcome }}"
+          echo "pursuer=${{ steps.p05_pursuer.outcome }}"
+          echo "mission_ordering=${{ steps.p05_mission_ordering.outcome }}"
+          test "${{ steps.p05_input.outcome }}" = "success"
+          test "${{ steps.p05_environment.outcome }}" = "success"
+          test "${{ steps.p05_pursuer.outcome }}" = "success"
+          test "${{ steps.p05_mission_ordering.outcome }}" = "success"
