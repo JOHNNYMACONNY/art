@@ -70,14 +70,8 @@ jobs:
           test "$code" -eq 1
           grep -F "Production 05 apply_scrapper_stagger capability is absent" <<<"$output"
 
-      - name: Require Mission 02 RED remains capability-specific
-        shell: bash
+      - name: Run Production 05 Mission 02 progression tracer
         run: |
           set -euo pipefail
-          set +e
-          output=$("$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/gears_scrapper_tool_mission_ordering_test.gd 2>&1)
-          code=$?
-          set -e
-          printf '%s\n' "$output"
-          test "$code" -eq 1
-          grep -F "Production 05 forced-access suppressed-report capability is absent" <<<"$output"
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_mission_ordering_test.gd
