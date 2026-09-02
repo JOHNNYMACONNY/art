@@ -269,5 +269,8 @@ func reset_runtime() -> void:
 	if _access_mesh != null and is_instance_valid(_access_mesh):
 		_access_mesh.position = Vector3.ZERO
 		_access_mesh.rotation = Vector3.ZERO
+	var pursuer := _root_controller.get_node_or_null("PursuerPrototype") if _root_controller != null else null
+	if pursuer != null and pursuer.has_method("clear_scrapper_stagger"):
+		pursuer.call("clear_scrapper_stagger")
 	if _touch_ui != null and is_instance_valid(_touch_ui):
 		_touch_ui.call("set_tool_action_available", false)
