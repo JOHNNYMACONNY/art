@@ -83,8 +83,11 @@ func _spawn_actors() -> void:
 		return
 
 	gears_worker.name = "GearsWorker"
-	var worker_start := global_position + Vector3(-3.5, 0.0, -1.8)
-	gears_worker.global_position = worker_start
+	var worker_local := Vector3(-3.5, 0.0, -1.8)
+	var worker_start := global_position + worker_local
+	# Set local transform before parenting so the retained actor captures the
+	# correct authored global start in its _ready() reset contract.
+	gears_worker.position = worker_local
 	gears_worker.set("patrol_waypoints", [
 		worker_start,
 		global_position + Vector3(3.5, 0.0, -1.8),
@@ -95,8 +98,9 @@ func _spawn_actors() -> void:
 	add_child(gears_worker)
 
 	gears_crawler.name = "GearsCrawler"
-	var crawler_start := global_position + Vector3(2.6, 0.0, 0.8)
-	gears_crawler.global_position = crawler_start
+	var crawler_local := Vector3(2.6, 0.0, 0.8)
+	var crawler_start := global_position + crawler_local
+	gears_crawler.position = crawler_local
 	gears_crawler.set("patrol_waypoints", [
 		crawler_start,
 		global_position + Vector3(-1.6, 0.0, 0.8),
