@@ -183,6 +183,12 @@ func _candidate_distance(target_position: Vector3) -> float:
 		return INF
 	return distance
 
+func _pursuer_can_receive_stagger(pursuer: Node3D) -> bool:
+	if pursuer == null or not bool(pursuer.get("is_active")) or not pursuer.has_method("apply_scrapper_stagger"):
+		return false
+	var state := int(pursuer.get("current_state"))
+	return state == int(PursuerPrototype.PursuerState.CHASING) or state == int(PursuerPrototype.PursuerState.DETOURING)
+
 func _evaluate_contact_once() -> void:
 	_contact_evaluation_count += 1
 	var best_distance := INF
@@ -195,7 +201,7 @@ func _evaluate_contact_once() -> void:
 			best_kind = "SERVICE_ACCESS"
 
 	var pursuer := _root_controller.get_node_or_null("PursuerPrototype") as Node3D
-	if pursuer != null and bool(pursuer.get("is_active")):
+	if _pursuer_can_receive_stagger(pursuer):
 		var pursuer_distance := _candidate_distance(pursuer.global_position)
 		if pursuer_distance < best_distance:
 			best_distance = pursuer_distance
@@ -204,8 +210,9 @@ func _evaluate_contact_once() -> void:
 	_last_contact = best_kind
 	if best_kind == "SERVICE_ACCESS":
 		_force_access_open()
-	elif best_kind == "PURSUER" and pursuer != null and pursuer.has_method("apply_scrapper_stagger"):
-		pursuer.call("apply_scrapper_stagger", _swing_facing)
+	elif best_kind == "PURSUER" and pursuer != null:
+		if not bool(pursuer.call("apply_scrapper_stagger", _swing_facing)):
+			_last_contact = "MISS"
 
 func _force_access_open() -> bool:
 	if _access_state != AccessState.JAMMED:
