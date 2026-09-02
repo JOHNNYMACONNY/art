@@ -93,7 +93,7 @@ func _run() -> void:
 	var alarm := _scene.get_node_or_null("CivicServiceAlarm")
 	var hauler = _scene.get("scrap_hauler")
 	var worker := incident.get_node_or_null("GearsWorker")
-	var crawler := incident.get_node_or_null("UtilityCrawler")
+	var crawler := incident.get_node_or_null("GearsCrawler")
 	if player == null or access == null or alarm == null or hauler == null or worker == null or crawler == null:
 		await _fail("Mission 02 Production-05 ordering fixture is incomplete")
 		return
@@ -146,7 +146,7 @@ func _run() -> void:
 	if int(incident.call("get_report_attempt_count")) != 1:
 		await _fail("Forced access did not perform exactly one bounded Report attempt")
 		return
-	if String(worker.call("get_reaction_state_name")) != "ALARMED" or String(crawler.call("get_reaction_state_name")) != "ALARMED":
+	if int(worker.get("current_state")) != int(ScrapWorker.WorkerState.ALARMED) or int(crawler.get("current_state")) != int(UtilityCrawler.CrawlerState.ALARMED):
 		await _fail("Forced access did not visibly propagate the local ALARMED reaction")
 		return
 	if int(_wanted_runtime.call("get_heat_level")) != 0 or String(_wanted_runtime.call("get_wanted_state_name")) != "CLEAR":
