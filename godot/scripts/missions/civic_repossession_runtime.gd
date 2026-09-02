@@ -1,11 +1,10 @@
 extends Node
 
 ## Thin authored adapter for Mission/Narrative 02. Existing production systems
-## retain authority over vehicles, pursuit, Signal Gate, camera, radio and replay.
+## retain authority over vehicles, Wanted, Signal Gate, camera, radio and replay.
 
 const MissionScript = preload("res://scripts/missions/civic_repossession_mission.gd")
 const ScrapJobMissionScript = preload("res://scripts/missions/scrap_job_mission.gd")
-const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
 const LEGACY_RETURN_ZONE_POSITION := Vector3(7.0, 0.08, 8.0)
 const DISTRICT_RETURN_ZONE_SOCKET_PATH := "GearsDistrictSlice01B/MissionDestinationSocket"
 const RETURN_ZONE_RADIUS := 2.6
@@ -15,6 +14,8 @@ var _root_controller: Node = null
 var _mission_one_runtime = null
 var _scrap_hauler = null
 var _signal_gate = null
+var _wanted_runtime: Node = null
+var _awaiting_wanted_clear: bool = false
 var _bound: bool = false
 
 var _return_zone: MeshInstance3D = null
@@ -49,18 +50,13 @@ func _process(_delta: float) -> void:
 	and _scrap_hauler.get("occupant") != null:
 		_on_hauler_mounted(_scrap_hauler.get("occupant"))
 
-	var root_pursuit_state := int(_root_controller.get("current_pursuit_state"))
 	var changed := false
 	if mission.phase == MissionScript.Phase.ESCAPE \
-	and root_pursuit_state == int(ScrapTestBlockScript.PursuitState.INTERCEPTED):
-		changed = mission.on_intercepted() or changed
-	elif mission.phase == MissionScript.Phase.FAILED \
-	and root_pursuit_state == int(ScrapTestBlockScript.PursuitState.PURSUIT_ACTIVE):
-		changed = mission.on_retry_started() or changed
-	elif mission.phase == MissionScript.Phase.ESCAPE \
-	and root_pursuit_state == int(ScrapTestBlockScript.PursuitState.EVADED):
+	and _awaiting_wanted_clear \
+	and _wanted_is_clear():
 		if mission.on_evasion_complete():
 			changed = true
+			_awaiting_wanted_clear = false
 			_set_return_zone_visible(true)
 
 	if mission.phase == MissionScript.Phase.DELIVERY \
@@ -81,8 +77,14 @@ func _try_bind_runtime() -> void:
 	_mission_one_runtime = _root_controller.get_node_or_null("MissionScrapJobRuntime")
 	_scrap_hauler = _root_controller.get("scrap_hauler")
 	_signal_gate = _root_controller.get("signal_gate")
+	_wanted_runtime = get_node_or_null("/root/BurnsideWantedRuntime")
 	var mission_hud := _root_controller.get_node_or_null("CanvasLayer/TouchControlsUI/SafeAreaRoot/MissionHUD")
 	if _mission_one_runtime == null or _scrap_hauler == null or _signal_gate == null or mission_hud == null:
+		return
+	if _wanted_runtime == null \
+	or not _wanted_runtime.has_method("request_civic_report") \
+	or not _wanted_runtime.has_method("get_heat_level") \
+	or not _wanted_runtime.has_method("get_wanted_state_name"):
 		return
 
 	_mission_title = mission_hud.find_child("MissionTitle", true, false) as Label
@@ -95,7 +97,7 @@ func _try_bind_runtime() -> void:
 	_signal_gate.gate_triggered.connect(_on_signal_gate_triggered)
 	_create_return_zone()
 	_bound = true
-	print("[MISSION_NARRATIVE_02] Runtime bound to retained Scrap Hauler/pursuit systems")
+	print("[MISSION_NARRATIVE_02] Runtime bound to retained Scrap Hauler/open-world Wanted systems")
 
 func _on_hauler_mounted(_player) -> void:
 	if not _bound:
@@ -103,10 +105,24 @@ func _on_hauler_mounted(_player) -> void:
 	if not mission.on_vehicle_mounted(_scrap_hauler.name):
 		return
 	_refresh_hud()
-	# Pursuit remains controller-owned. This only asks the existing disturbance
-	# authority to begin from its canonical CALM state.
-	if _root_controller.has_method("trigger_disturbance_alert"):
-		_root_controller.call("trigger_disturbance_alert")
+
+	# The theft creates one bounded civic Report attempt through the same local
+	# service path used by free roam. Field Hacking can suppress this future Report;
+	# the mission never creates or clears authority knowledge itself.
+	var report_attempted := bool(_wanted_runtime.call("request_civic_report", _scrap_hauler.global_position))
+	if _wanted_is_clear():
+		if report_attempted and mission.on_clean_take():
+			_set_return_zone_visible(true)
+			_refresh_hud()
+		return
+
+	_awaiting_wanted_clear = true
+
+func _wanted_is_clear() -> bool:
+	if _wanted_runtime == null:
+		return false
+	return int(_wanted_runtime.call("get_heat_level")) == 0 \
+	and String(_wanted_runtime.call("get_wanted_state_name")) == "CLEAR"
 
 func _on_signal_gate_triggered() -> void:
 	if mission.on_gate_triggered():
@@ -198,6 +214,7 @@ func _restore_mission_one_hud() -> void:
 
 func _reset_for_full_replay() -> void:
 	mission = MissionScript.new()
+	_awaiting_wanted_clear = false
 	_set_return_zone_visible(false)
 	_restore_mission_one_hud()
 	print("[MISSION_NARRATIVE_02] Full replay detected; Civic Repossession relocked")
