@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/interactions/scrapper_tool_pickup.gd" id="1_pickup"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_tool"]
+size = Vector3(0.16, 0.16, 0.95)
+
+[sub_resource type="BoxShape3D" id="BoxShape_tool"]
+size = Vector3(0.22, 0.22, 1.05)
+
+[node name="ScrapperToolPickup" type="Area3D"]
+script = ExtResource("1_pickup")
+interaction_radius = 2.2
+interaction_priority = 1.4
+
+[node name="ToolMesh" type="MeshInstance3D" parent="."]
+rotation = Vector3(0.0, 0.0, 0.35)
+mesh = SubResource("BoxMesh_tool")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape_tool")
