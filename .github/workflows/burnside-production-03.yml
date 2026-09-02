@@ -1,0 +1,95 @@
+name: Burnside Production 03
+
+on:
+  push:
+    branches:
+      - "chatgpt/burnside-production-03-mission-wanted-composition"
+    paths:
+      - "godot/scripts/world/wanted_heat1_runtime.gd"
+      - "godot/scripts/interactions/civic_service_alarm.gd"
+      - "godot/scripts/missions/civic_repossession_mission.gd"
+      - "godot/scripts/missions/civic_repossession_runtime.gd"
+      - "godot/tests/civic_repossession_mission_contract_test.gd"
+      - "godot/tests/civic_repossession_wanted_composition_test.gd"
+      - ".github/workflows/burnside-production-03.yml"
+  pull_request:
+    paths:
+      - "godot/scripts/world/wanted_heat1_runtime.gd"
+      - "godot/scripts/interactions/civic_service_alarm.gd"
+      - "godot/scripts/missions/civic_repossession_mission.gd"
+      - "godot/scripts/missions/civic_repossession_runtime.gd"
+      - "godot/tests/civic_repossession_mission_contract_test.gd"
+      - "godot/tests/civic_repossession_wanted_composition_test.gd"
+      - ".github/workflows/burnside-production-03.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  mission-wanted-composition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Install Godot 4.7.1 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+
+      - name: Run Production 03 mission/Wanted composition tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/civic_repossession_wanted_composition_test.gd
+
+      - name: Run retained Field Hacking report suppression tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/field_hacking_report_suppression_test.gd
+
+      - name: Run retained real-scene Heat-1 tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/wanted_heat1_scene_test.gd
