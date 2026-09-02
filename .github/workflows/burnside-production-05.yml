@@ -17,6 +17,7 @@ on:
       - "godot/scenes/prototype/scrap_test_block.tscn"
       - "godot/scenes/interactions/scrapper_tool_pickup.tscn"
       - "godot/tests/gears_scrapper_tool_input_test.gd"
+      - "godot/tests/gears_scrapper_tool_input_lock_test.gd"
       - "godot/tests/gears_scrapper_tool_environment_test.gd"
       - "godot/tests/gears_scrapper_tool_pursuer_test.gd"
       - "godot/tests/gears_scrapper_tool_mission_ordering_test.gd"
@@ -41,6 +42,7 @@ on:
       - "godot/scenes/prototype/scrap_test_block.tscn"
       - "godot/scenes/interactions/scrapper_tool_pickup.tscn"
       - "godot/tests/gears_scrapper_tool_input_test.gd"
+      - "godot/tests/gears_scrapper_tool_input_lock_test.gd"
       - "godot/tests/gears_scrapper_tool_environment_test.gd"
       - "godot/tests/gears_scrapper_tool_pursuer_test.gd"
       - "godot/tests/gears_scrapper_tool_mission_ordering_test.gd"
@@ -103,6 +105,15 @@ jobs:
           set -euo pipefail
           "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
             --script res://tests/gears_scrapper_tool_input_test.gd
+
+      - name: Run Production 05 retained input-lock tracer
+        id: p05_input_lock
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_input_lock_test.gd
 
       - name: Run Production 05 environment tracer
         id: p05_environment
@@ -179,10 +190,12 @@ jobs:
         run: |
           set -euo pipefail
           echo "input=${{ steps.p05_input.outcome }}"
+          echo "input_lock=${{ steps.p05_input_lock.outcome }}"
           echo "environment=${{ steps.p05_environment.outcome }}"
           echo "pursuer=${{ steps.p05_pursuer.outcome }}"
           echo "mission_ordering=${{ steps.p05_mission_ordering.outcome }}"
           test "${{ steps.p05_input.outcome }}" = "success"
+          test "${{ steps.p05_input_lock.outcome }}" = "success"
           test "${{ steps.p05_environment.outcome }}" = "success"
           test "${{ steps.p05_pursuer.outcome }}" = "success"
           test "${{ steps.p05_mission_ordering.outcome }}" = "success"
