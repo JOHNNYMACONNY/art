@@ -1,0 +1,86 @@
+name: P05 Input Lock Apply Fix
+
+on:
+  push:
+    branches:
+      - "automation/p05-input-lock-fix"
+    paths:
+      - ".github/workflows/p05-input-lock-apply-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: automation/p05-input-lock-fix
+          fetch-depth: 1
+      - name: Apply bounded retained input-lock fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          touch_path = Path("godot/scripts/input/touch_controls.gd")
+          text = touch_path.read_text()
+
+          old = '''func _on_action_button_clicked() -> void:\n\taction_button_pressed.emit()\n\nfunc _on_tool_action_button_clicked() -> void:\n\tif current_mode == UIMode.FOOT_TRAVERSAL and _tool_action_available:\n\t\ttool_action_pressed.emit()\n'''
+          new = '''func _on_action_button_clicked() -> void:\n\taction_button_pressed.emit()\n\nfunc is_interaction_input_locked() -> bool:\n\treturn gesture_panel != null and gesture_panel.visible\n\nfunc _tool_action_can_emit() -> bool:\n\treturn _tool_action_available and current_mode == UIMode.FOOT_TRAVERSAL and not is_interaction_input_locked()\n\nfunc _refresh_tool_action_button() -> void:\n\tif tool_action_button:\n\t\tvar available_now := _tool_action_can_emit()\n\t\ttool_action_button.disabled = not available_now\n\t\ttool_action_button.visible = available_now\n\nfunc _on_tool_action_button_clicked() -> void:\n\tif _tool_action_can_emit():\n\t\ttool_action_pressed.emit()\n'''
+          if text.count(old) != 1:
+              raise SystemExit("touch action block did not match exactly once")
+          text = text.replace(old, new, 1)
+
+          old = '''func set_tool_action_available(available: bool) -> void:\n\t_tool_action_available = available\n\tif tool_action_button:\n\t\ttool_action_button.disabled = not available\n\t\ttool_action_button.visible = available and current_mode == UIMode.FOOT_TRAVERSAL\n'''
+          new = '''func set_tool_action_available(available: bool) -> void:\n\t_tool_action_available = available\n\t_refresh_tool_action_button()\n'''
+          if text.count(old) != 1:
+              raise SystemExit("tool availability block did not match exactly once")
+          text = text.replace(old, new, 1)
+
+          old = '''\tif mode == UIMode.FOOT_TRAVERSAL:\n\t\tif action_button: action_button.visible = true\n\t\tif tool_action_button: tool_action_button.visible = _tool_action_available\n\t\tif driving_panel: driving_panel.visible = false\n\telif mode == UIMode.VEHICLE_DRIVING:\n\t\tif action_button: action_button.visible = false\n\t\tif tool_action_button: tool_action_button.visible = false\n\t\tif driving_panel: driving_panel.visible = true\n\t\tclose_interaction_overlay()\n\t\t_sync_keyboard_driving_inputs_from_input()\n\t\t_emit_net_throttle()\n\t\t_emit_net_steer()\n\t\t_emit_net_handbrake()\n'''
+          new = '''\tif mode == UIMode.FOOT_TRAVERSAL:\n\t\tif action_button: action_button.visible = true\n\t\tif driving_panel: driving_panel.visible = false\n\telif mode == UIMode.VEHICLE_DRIVING:\n\t\tif action_button: action_button.visible = false\n\t\tif driving_panel: driving_panel.visible = true\n\t\tclose_interaction_overlay()\n\t\t_sync_keyboard_driving_inputs_from_input()\n\t\t_emit_net_throttle()\n\t\t_emit_net_steer()\n\t\t_emit_net_handbrake()\n\t_refresh_tool_action_button()\n'''
+          if text.count(old) != 1:
+              raise SystemExit("set_mode block did not match exactly once")
+          text = text.replace(old, new, 1)
+
+          old = '''\tif gesture_panel:\n\t\tgesture_panel.visible = true\n\tif core_tap_button: core_tap_button.visible = (gesture_type == "EXPOSE_CORE")\n'''
+          new = '''\tif gesture_panel:\n\t\tgesture_panel.visible = true\n\t_refresh_tool_action_button()\n\tif core_tap_button: core_tap_button.visible = (gesture_type == "EXPOSE_CORE")\n'''
+          if text.count(old) != 1:
+              raise SystemExit("show_gesture_overlay block did not match exactly once")
+          text = text.replace(old, new, 1)
+
+          old = '''\t_interaction_touch_index = -1\n\t_current_gesture_type = ""\n\t_peel_accumulated_y = 0.0\n\nfunc _is_key'''
+          new = '''\t_interaction_touch_index = -1\n\t_current_gesture_type = ""\n\t_peel_accumulated_y = 0.0\n\t_refresh_tool_action_button()\n\nfunc _is_key'''
+          if text.count(old) != 1:
+              raise SystemExit("close_interaction_overlay block did not match exactly once")
+          text = text.replace(old, new, 1)
+
+          old = '''\t\t\telif _is_key(key_ev, KEY_F) and current_mode == UIMode.FOOT_TRAVERSAL:\n\t\t\t\tif _tool_action_available:\n\t\t\t\t\ttool_action_pressed.emit()\n'''
+          new = '''\t\t\telif _is_key(key_ev, KEY_F) and _tool_action_can_emit():\n\t\t\t\ttool_action_pressed.emit()\n'''
+          if text.count(old) != 1:
+              raise SystemExit("desktop F block did not match exactly once")
+          text = text.replace(old, new, 1)
+          touch_path.write_text(text)
+
+          runtime_path = Path("godot/scripts/world/gears_scrapper_tool_runtime.gd")
+          runtime = runtime_path.read_text()
+          old = '''\tif int(_touch_ui.get("current_mode")) != int(TouchControlsUI.UIMode.FOOT_TRAVERSAL):\n\t\treturn false\n\tvar facing: Vector3 = _player.call("get_facing_direction")\n'''
+          new = '''\tif int(_touch_ui.get("current_mode")) != int(TouchControlsUI.UIMode.FOOT_TRAVERSAL):\n\t\treturn false\n\tif _touch_ui.has_method("is_interaction_input_locked") and bool(_touch_ui.call("is_interaction_input_locked")):\n\t\treturn false\n\tvar facing: Vector3 = _player.call("get_facing_direction")\n'''
+          if runtime.count(old) != 1:
+              raise SystemExit("runtime Tool Action block did not match exactly once")
+          runtime = runtime.replace(old, new, 1)
+          runtime_path.write_text(runtime)
+          PY
+
+          git diff --check
+          changed="$(git diff --name-only)"
+          printf '%s\n' "$changed"
+          test "$changed" = $'godot/scripts/input/touch_controls.gd\ngodot/scripts/world/gears_scrapper_tool_runtime.gd'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add godot/scripts/input/touch_controls.gd godot/scripts/world/gears_scrapper_tool_runtime.gd
+          git commit -m "fix: yield Scrapper Tool Action to retained input locks"
+          git push origin HEAD:automation/p05-input-lock-fix
