@@ -166,6 +166,39 @@ func _run() -> void:
 		await _fail("Legitimate open-world Evasion did not advance Civic Repossession to DELIVERY")
 		return
 
+	_stage = "preexisting_wanted"
+	var preexisting_scene := await _fresh_scene()
+	if preexisting_scene == null:
+		await _fail("Could not reload production scene for pre-existing Wanted path")
+		return
+	setup_error = await _complete_mission_one(preexisting_scene)
+	if not setup_error.is_empty():
+		await _fail(setup_error)
+		return
+	var preexisting_civic := preexisting_scene.get_node_or_null("CivicRepossessionRuntime")
+	var preexisting_hauler = preexisting_scene.get("scrap_hauler")
+	var preexisting_player := preexisting_scene.get_node_or_null("Runner") as Node3D
+	if preexisting_civic == null or preexisting_hauler == null or preexisting_player == null:
+		await _fail("Pre-existing Wanted fixture is missing Mission 02, Hauler, or player")
+		return
+	if not bool(_runtime.call("request_civic_report", preexisting_player.global_position)):
+		await _fail("Pre-existing Wanted fixture could not create a valid civic Report")
+		return
+	if _heat() != 1 or _state() != "CONTACT":
+		await _fail("Pre-existing Wanted fixture did not begin at Heat 1 + Contact")
+		return
+	preexisting_hauler.mounted.emit(preexisting_player)
+	await process_frame
+	if int(preexisting_scene.get("current_pursuit_state")) != int(ScrapTestBlockScript.PursuitState.CALM):
+		await _fail("Mission 02 with pre-existing Wanted started the retired legacy pursuit")
+		return
+	if _heat() != 1 or _state() != "CONTACT":
+		await _fail("Mission 02 start/mount erased or replaced pre-existing Wanted knowledge")
+		return
+	if preexisting_civic.mission.phase != CivicMissionScript.Phase.ESCAPE:
+		await _fail("Mission 02 with pre-existing Wanted did not remain in ESCAPE")
+		return
+
 	_stage = "jammed_report"
 	var jam_scene := await _fresh_scene()
 	if jam_scene == null:
