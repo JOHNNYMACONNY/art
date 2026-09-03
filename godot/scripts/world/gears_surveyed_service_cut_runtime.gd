@@ -5,6 +5,8 @@ const SurveyedRouteProgressStoreScript = preload("res://scripts/progress/surveye
 const GearsLocalRouteSheetScript = preload("res://scripts/ui/gears_local_route_sheet.gd")
 
 const ROUTE_ID := "gears.service_alley_north_connector"
+const DISCOVERY_TEXT := "SERVICE CUT SURVEYED · ADDED TO GEARS ROUTE SHEET"
+const DISCOVERY_FEEDBACK_SECONDS := 2.5
 const MAX_SAMPLE_JUMP_M := 3.0
 const MIN_TRAVERSAL_DISTANCE_M := 12.0
 const ENTRY_RADIUS_M := 2.5
@@ -32,7 +34,9 @@ var _progress_store = null
 var _map_button: Button = null
 var _map_modal: ColorRect = null
 var _route_sheet: Control = null
+var _discovery_feedback: Label = null
 var _map_open := false
+var _discovery_feedback_generation := 0
 
 var _configured := false
 var _armed_side := TraversalSide.NONE
@@ -87,8 +91,9 @@ func configure(root_controller: Node, district: Node3D, progress_store = null) -
 	return true
 
 func _build_map_ui() -> bool:
+	var safe_area_root := _touch_ui.get_node_or_null("SafeAreaRoot") as Control
 	var right_touch := _touch_ui.get_node_or_null("SafeAreaRoot/RightTouchArea") as Control
-	if right_touch == null:
+	if safe_area_root == null or right_touch == null:
 		return false
 
 	_map_button = right_touch.get_node_or_null("MapButton") as Button
@@ -109,6 +114,28 @@ func _build_map_ui() -> bool:
 		right_touch.add_child(_map_button)
 	if not _map_button.pressed.is_connected(_on_map_button_pressed):
 		_map_button.pressed.connect(_on_map_button_pressed)
+
+	_discovery_feedback = safe_area_root.get_node_or_null("GearsRouteSurveyFeedback") as Label
+	if _discovery_feedback == null:
+		_discovery_feedback = Label.new()
+		_discovery_feedback.name = "GearsRouteSurveyFeedback"
+		_discovery_feedback.anchor_left = 0.5
+		_discovery_feedback.anchor_top = 0.0
+		_discovery_feedback.anchor_right = 0.5
+		_discovery_feedback.anchor_bottom = 0.0
+		_discovery_feedback.offset_left = -260.0
+		_discovery_feedback.offset_top = 92.0
+		_discovery_feedback.offset_right = 260.0
+		_discovery_feedback.offset_bottom = 126.0
+		_discovery_feedback.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_discovery_feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_discovery_feedback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_discovery_feedback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_discovery_feedback.z_index = 190
+		_discovery_feedback.text = DISCOVERY_TEXT
+		_discovery_feedback.add_theme_color_override("font_color", Color(0.64, 0.94, 0.88, 1.0))
+		safe_area_root.add_child(_discovery_feedback)
+	_discovery_feedback.visible = false
 
 	_map_modal = _touch_ui.get_node_or_null("GearsRouteSheetModal") as ColorRect
 	if _map_modal == null:
@@ -234,8 +261,26 @@ func sample_player_position(position: Vector3) -> void:
 
 	if bool(_progress_store.call("mark_surveyed", ROUTE_ID)):
 		_survey_record_count += 1
+		_show_discovery_feedback()
 	reset_transient_state()
 	refresh_map_presentation()
+
+func _show_discovery_feedback() -> void:
+	if _discovery_feedback == null:
+		return
+	_discovery_feedback_generation += 1
+	var generation := _discovery_feedback_generation
+	_discovery_feedback.text = DISCOVERY_TEXT
+	_discovery_feedback.visible = true
+	get_tree().create_timer(DISCOVERY_FEEDBACK_SECONDS).timeout.connect(func():
+		if generation == _discovery_feedback_generation and _discovery_feedback != null:
+			_discovery_feedback.visible = false
+	)
+
+func _hide_discovery_feedback() -> void:
+	_discovery_feedback_generation += 1
+	if _discovery_feedback != null:
+		_discovery_feedback.visible = false
 
 func _on_map_button_pressed() -> void:
 	if _touch_ui != null:
@@ -310,10 +355,12 @@ func reset_transient_state() -> void:
 func _on_replay_pressed() -> void:
 	if _map_open:
 		_close_map()
+	_hide_discovery_feedback()
 	reset_transient_state()
 	refresh_map_presentation()
 
 func _exit_tree() -> void:
+	_hide_discovery_feedback()
 	if _map_open:
 		_close_map()
 
@@ -337,6 +384,12 @@ func get_route_sheet() -> Control:
 
 func is_map_open() -> bool:
 	return _map_open
+
+func is_discovery_feedback_visible() -> bool:
+	return _discovery_feedback != null and _discovery_feedback.visible
+
+func get_discovery_feedback_text() -> String:
+	return _discovery_feedback.text if _discovery_feedback != null else ""
 
 func get_transient_state_name() -> String:
 	match _armed_side:
