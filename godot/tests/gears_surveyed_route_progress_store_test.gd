@@ -5,6 +5,10 @@ const ROUTE_ID := "gears.service_alley_north_connector"
 const TEST_PATH := "user://tests/p06_progress_store_contract.json"
 const MALFORMED_PATH := "user://tests/p06_progress_store_malformed.json"
 const NEWER_PATH := "user://tests/p06_progress_store_newer.json"
+const ATOMIC_DIR := "user://tests/p06_progress_store_atomic_guard"
+const ATOMIC_PATH := ATOMIC_DIR + "/mapped.json"
+const OWNER_RWX := 448
+const OWNER_RX := 320
 
 func _init() -> void:
 	call_deferred("_run")
@@ -15,20 +19,27 @@ func _fail(message: String) -> void:
 	quit(1)
 
 func _cleanup() -> void:
+	var atomic_dir_abs := ProjectSettings.globalize_path(ATOMIC_DIR)
+	if DirAccess.dir_exists_absolute(atomic_dir_abs):
+		FileAccess.set_unix_permissions(atomic_dir_abs, OWNER_RWX)
+		for atomic_file in [ATOMIC_PATH, ATOMIC_PATH + ".tmp"]:
+			if FileAccess.file_exists(atomic_file):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(atomic_file))
+		DirAccess.remove_absolute(atomic_dir_abs)
 	for path in [TEST_PATH, MALFORMED_PATH, NEWER_PATH]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 func _write_raw(path: String, text: String) -> bool:
-	var dir_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://tests"))
+	var dir_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
 	if dir_error != OK and dir_error != ERR_ALREADY_EXISTS:
 		return false
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		return false
-	file.store_string(text)
+	var wrote := file.store_string(text)
 	file.close()
-	return true
+	return wrote
 
 func _read_raw(path: String) -> String:
 	var file := FileAccess.open(path, FileAccess.READ)
@@ -113,6 +124,35 @@ func _run() -> void:
 	if _read_raw(NEWER_PATH) != newer_raw:
 		_fail("Unsupported newer progress bytes were silently destroyed")
 		return
+
+	# Linux CI can make the parent directory non-writable while keeping the existing
+	# progress file writable. Direct in-place truncation would still succeed there;
+	# a durable staging+replace write must fail without touching the known-good bytes.
+	if OS.get_name() == "Linux":
+		var original_atomic_raw := "{\"version\":1,\"surveyed_routes\":[]}\n"
+		if not _write_raw(ATOMIC_PATH, original_atomic_raw):
+			_fail("Could not create atomic-write preservation fixture")
+			return
+		var atomic_store = store_script.new()
+		atomic_store.call("configure", ATOMIC_PATH)
+		if String(atomic_store.call("get_load_status")) != "LOADED":
+			_fail("Atomic-write fixture did not load as supported progress")
+			return
+		var atomic_dir_abs := ProjectSettings.globalize_path(ATOMIC_DIR)
+		if FileAccess.set_unix_permissions(atomic_dir_abs, OWNER_RX) != OK:
+			_fail("Could not make atomic-write fixture directory non-writable")
+			return
+		var accepted_failed_replace := bool(atomic_store.call("mark_surveyed", ROUTE_ID))
+		FileAccess.set_unix_permissions(atomic_dir_abs, OWNER_RWX)
+		if accepted_failed_replace:
+			_fail("Progress write mutated the live file instead of failing safely when atomic replacement was unavailable")
+			return
+		if bool(atomic_store.call("is_surveyed", ROUTE_ID)) or int(atomic_store.call("get_write_count")) != 0:
+			_fail("Failed durable write leaked surveyed state or write accounting")
+			return
+		if _read_raw(ATOMIC_PATH) != original_atomic_raw:
+			_fail("Failed durable write changed previously valid progress bytes")
+			return
 
 	print("[GEARS_SURVEYED_ROUTE_PROGRESS] PASS")
 	_cleanup()
