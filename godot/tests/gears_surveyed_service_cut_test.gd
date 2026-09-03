@@ -28,9 +28,10 @@ func _fail(message: String) -> void:
 	push_error("[GEARS_SURVEYED_SERVICE_CUT] %s" % message)
 	await _finish(1)
 
-func _sample_path(survey: Node, positions: Array[Vector3]) -> void:
+func _sample_path(survey: Node, positions: Array) -> void:
 	for position in positions:
-		survey.call("sample_player_position", position)
+		if position is Vector3:
+			survey.call("sample_player_position", position)
 
 func _run() -> void:
 	_remove_test_progress()
