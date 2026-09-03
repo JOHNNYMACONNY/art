@@ -398,36 +398,97 @@ jobs:
           import json
           import os
           from pathlib import Path
+          from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
           from playwright.sync_api import sync_playwright
 
           expected_route = "gears.service_alley_north_connector"
           expected_storage = "user://p06_web_reload_probe.json"
           url = "http://127.0.0.1:8096/"
           profile = Path(os.environ["RUNNER_TEMP"]) / "p06-chromium-profile"
+          verification_dir = Path("godot/verification/production06")
 
-          def observe(p, expected_title):
+          def write_diagnostic(page, label, console_messages, page_errors, request_failures):
+              try:
+                  state = page.evaluate("window.P06_WEB_PROBE || null")
+              except Exception as exc:
+                  state = {"evaluation_error": str(exc)}
+              try:
+                  body_text = page.locator("body").inner_text(timeout=5_000)
+              except Exception as exc:
+                  body_text = "<body read failed: %s>" % exc
+              try:
+                  title = page.title()
+              except Exception as exc:
+                  title = "<title read failed: %s>" % exc
+              try:
+                  user_agent = page.evaluate("navigator.userAgent")
+              except Exception as exc:
+                  user_agent = "<user agent read failed: %s>" % exc
+              diagnostic = {
+                  "label": label,
+                  "source_sha": os.environ["SOURCE_SHA"],
+                  "verification_target": os.environ.get("P06_MATRIX_SOURCE", "head"),
+                  "url": page.url,
+                  "title": title,
+                  "state": state,
+                  "body_text": body_text[:4000],
+                  "browser_user_agent": user_agent,
+                  "console": console_messages[-200:],
+                  "page_errors": page_errors[-100:],
+                  "request_failures": request_failures[-100:],
+              }
+              path = verification_dir / ("web_%s_diagnostic.json" % label)
+              path.write_text(json.dumps(diagnostic, indent=2, sort_keys=True) + "\n")
+              try:
+                  page.screenshot(path=str(verification_dir / ("web_%s.png" % label)), full_page=True)
+              except Exception as exc:
+                  diagnostic["screenshot_error"] = str(exc)
+                  path.write_text(json.dumps(diagnostic, indent=2, sort_keys=True) + "\n")
+              print("P06_BROWSER_DIAGNOSTIC %s" % json.dumps(diagnostic, sort_keys=True))
+              return diagnostic
+
+          def observe(p, expected_title, label):
               context = p.chromium.launch_persistent_context(
                   str(profile),
                   headless=True,
                   args=["--disable-dev-shm-usage"],
               )
+              console_messages = []
+              page_errors = []
+              request_failures = []
               try:
                   page = context.pages[0] if context.pages else context.new_page()
-                  page.goto(url, wait_until="domcontentloaded", timeout=60_000)
-                  page.wait_for_function(
-                      "expected => document.title === expected",
-                      arg=expected_title,
-                      timeout=60_000,
+                  page.on("console", lambda msg: console_messages.append({"type": msg.type, "text": msg.text}))
+                  page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+                  page.on(
+                      "requestfailed",
+                      lambda request: request_failures.append({
+                          "url": request.url,
+                          "failure": request.failure,
+                      }),
                   )
-                  state = page.evaluate("window.P06_WEB_PROBE")
-                  user_agent = page.evaluate("navigator.userAgent")
-                  observed_url = page.url
+                  page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+                  try:
+                      page.wait_for_function(
+                          "expected => document.title === expected || document.title === 'P06_FAIL'",
+                          arg=expected_title,
+                          timeout=60_000,
+                      )
+                  except PlaywrightTimeoutError:
+                      write_diagnostic(page, label, console_messages, page_errors, request_failures)
+                      raise
+                  diagnostic = write_diagnostic(page, label, console_messages, page_errors, request_failures)
+                  if diagnostic["title"] == "P06_FAIL":
+                      raise AssertionError("Probe reported P06_FAIL: %s" % diagnostic["state"])
+                  state = diagnostic["state"]
+                  user_agent = diagnostic["browser_user_agent"]
+                  observed_url = diagnostic["url"]
                   return state, user_agent, observed_url
               finally:
                   context.close()
 
           with sync_playwright() as p:
-              pass_a, user_agent_a, observed_url_a = observe(p, "P06_WRITE_OK")
+              pass_a, user_agent_a, observed_url_a = observe(p, "P06_WRITE_OK", "pass_a")
               assert pass_a["status"] == "P06_WRITE_OK", pass_a
               assert pass_a["route_id"] == expected_route, pass_a
               assert pass_a["storage_path"] == expected_storage, pass_a
@@ -436,7 +497,7 @@ jobs:
               assert pass_a["write_count"] == 1, pass_a
               assert pass_a["write_blocked"] is False, pass_a
 
-              pass_b, user_agent_b, observed_url_b = observe(p, "P06_RELOAD_OK")
+              pass_b, user_agent_b, observed_url_b = observe(p, "P06_RELOAD_OK", "pass_b")
               assert pass_b["status"] == "P06_RELOAD_OK", pass_b
               assert pass_b["route_id"] == expected_route, pass_b
               assert pass_b["storage_path"] == expected_storage, pass_b
@@ -458,17 +519,34 @@ jobs:
                   "manual_persistence_mutation": False,
                   "storage_backend_under_test": "Godot user:// Web filesystem",
               }
-              output = Path("godot/verification/production06/web_persistence_report.json")
+              output = verification_dir / "web_persistence_report.json"
               output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
               print(json.dumps(report, indent=2, sort_keys=True))
           PY
         env:
           P06_MATRIX_SOURCE: ${{ matrix.source }}
 
+      - name: Print Web persistence failure diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          echo "=== p06 web server log ==="
+          cat p06-web-server.log
+          echo "=== p06 browser diagnostics ==="
+          for file in godot/verification/production06/web_*_diagnostic.json; do
+            test -f "$file" && { echo "--- $file"; cat "$file"; }
+          done
+
       - name: Upload Web persistence proof
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: burnside-production06-web-persistence-${{ matrix.source }}-${{ env.SOURCE_SHA }}
-          path: godot/verification/production06/web_persistence_report.json
+          path: |
+            godot/verification/production06/web_persistence_report.json
+            godot/verification/production06/web_*_diagnostic.json
+            godot/verification/production06/web_*.png
+            p06-web-server.log
           if-no-files-found: error
           retention-days: 14
