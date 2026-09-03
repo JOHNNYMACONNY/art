@@ -92,7 +92,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+          timeout --signal=TERM 20s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
             --script res://tests/gears_surveyed_route_progress_store_test.gd
 
       - name: Run Production 06 service-cut survey tracer
@@ -101,7 +101,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+          timeout --signal=TERM 20s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
             --script res://tests/gears_surveyed_service_cut_test.gd
 
       - name: Run Production 06 Map input/modal tracer
@@ -110,7 +110,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+          timeout --signal=TERM 20s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
             --script res://tests/gears_surveyed_service_cut_input_test.gd
 
       - name: Run retained Production 05 input tracer
