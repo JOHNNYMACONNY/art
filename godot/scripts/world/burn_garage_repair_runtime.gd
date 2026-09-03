@@ -96,7 +96,7 @@ func _process(_delta: float) -> void:
 
 	_repair_interactable.is_powered = true
 	_repair_interactable.update_player_distance(vehicle.global_position)
-	var distance := vehicle.global_position.distance_to(_repair_socket.global_position)
+	var distance: float = (vehicle as Node3D).global_position.distance_to(_repair_socket.global_position)
 	if distance > AFFORDANCE_RADIUS_M:
 		_set_affordance("", false)
 		return
