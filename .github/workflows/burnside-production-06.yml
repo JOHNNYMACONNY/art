@@ -1,0 +1,203 @@
+name: Burnside Production 06
+
+on:
+  push:
+    branches:
+      - "main"
+      - "feat/burnside-production-06-surveyed-service-cut"
+    paths:
+      - "contracts/burnside_production_06_surveyed_service_cut_spec.md"
+      - "docs/superpowers/plans/2026-09-02-burnside-production-06-surveyed-service-cut.md"
+      - "godot/scripts/progress/surveyed_route_progress_store.gd"
+      - "godot/scripts/world/gears_surveyed_service_cut_runtime.gd"
+      - "godot/scripts/ui/gears_local_route_sheet.gd"
+      - "godot/scripts/input/touch_controls.gd"
+      - "godot/scripts/world/gears_scrapper_tool_runtime.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scenes/prototype/scrap_test_block.tscn"
+      - "godot/scenes/world/gears_district_slice_01b.tscn"
+      - "godot/tests/gears_surveyed_route_progress_store_test.gd"
+      - "godot/tests/gears_surveyed_service_cut_test.gd"
+      - "godot/tests/gears_surveyed_service_cut_input_test.gd"
+      - "godot/tests/gears_surveyed_service_cut_render_capture.gd"
+      - "godot/tests/gears_surveyed_route_web_probe.gd"
+      - "godot/tests/gears_surveyed_route_web_probe.tscn"
+      - ".github/workflows/burnside-production-06.yml"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_06_surveyed_service_cut_spec.md"
+      - "docs/superpowers/plans/2026-09-02-burnside-production-06-surveyed-service-cut.md"
+      - "godot/scripts/progress/surveyed_route_progress_store.gd"
+      - "godot/scripts/world/gears_surveyed_service_cut_runtime.gd"
+      - "godot/scripts/ui/gears_local_route_sheet.gd"
+      - "godot/scripts/input/touch_controls.gd"
+      - "godot/scripts/world/gears_scrapper_tool_runtime.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scenes/prototype/scrap_test_block.tscn"
+      - "godot/scenes/world/gears_district_slice_01b.tscn"
+      - "godot/tests/gears_surveyed_route_progress_store_test.gd"
+      - "godot/tests/gears_surveyed_service_cut_test.gd"
+      - "godot/tests/gears_surveyed_service_cut_input_test.gd"
+      - "godot/tests/gears_surveyed_service_cut_render_capture.gd"
+      - "godot/tests/gears_surveyed_route_web_probe.gd"
+      - "godot/tests/gears_surveyed_route_web_probe.tscn"
+      - ".github/workflows/burnside-production-06.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  surveyed-service-cut:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Install Godot 4.7.1 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: Run Production 06 mapped-knowledge persistence tracer
+        id: p06_progress
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_surveyed_route_progress_store_test.gd
+
+      - name: Run Production 06 service-cut survey tracer
+        id: p06_survey
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_surveyed_service_cut_test.gd
+
+      - name: Run Production 06 Map input/modal tracer
+        id: p06_input
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_surveyed_service_cut_input_test.gd
+
+      - name: Run retained Production 05 input tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_input_test.gd
+
+      - name: Run retained Production 05 input-lock tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_input_lock_test.gd
+
+      - name: Run retained Production 05 environment tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_environment_test.gd
+
+      - name: Run retained Production 05 pursuer tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_pursuer_test.gd
+
+      - name: Run retained Production 05 Mission 02 ordering tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_scrapper_tool_mission_ordering_test.gd
+
+      - name: Run retained Production 04 Gears work-zone tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_work_zone_incident_test.gd
+
+      - name: Run retained Production 04 Mission 02 ordering regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_work_zone_mission_ordering_test.gd
+
+      - name: Run retained Production 03 pre-triggered suppression regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/civic_repossession_pretriggered_suppression_test.gd
+
+      - name: Run retained Production 03 mission/Wanted composition tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/civic_repossession_wanted_composition_test.gd
+
+      - name: Run retained Production 02 Field-Hacking tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/field_hacking_report_suppression_test.gd
+
+      - name: Run retained Production 01 Heat-1 tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/wanted_heat1_scene_test.gd
+
+      - name: Require Production 06 GREEN
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "progress=${{ steps.p06_progress.outcome }}"
+          echo "survey=${{ steps.p06_survey.outcome }}"
+          echo "input=${{ steps.p06_input.outcome }}"
+          test "${{ steps.p06_progress.outcome }}" = "success"
+          test "${{ steps.p06_survey.outcome }}" = "success"
+          test "${{ steps.p06_input.outcome }}" = "success"
