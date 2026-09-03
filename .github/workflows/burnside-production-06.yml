@@ -236,3 +236,239 @@ jobs:
           path: godot/verification/production06/
           if-no-files-found: error
           retention-days: 14
+
+  web-persistence:
+    name: Web persistence (${{ matrix.source }})
+    needs: surveyed-service-cut
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        source: ${{ fromJSON(github.event_name == 'pull_request' && '["merge","head"]' || '["head"]') }}
+    env:
+      GODOT_VERSION: "4.7.1"
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      WEB_PROJECT: "${{ github.workspace }}/.godot-p06-web-project"
+      SOURCE_SHA: ${{ matrix.source == 'head' && github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout verified source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          printf 'verification target: %s\n' "${{ matrix.source }}"
+          printf 'expected source SHA: %s\n' "$SOURCE_SHA"
+          printf 'checked out SHA: %s\n' "$actual_sha"
+          test "$actual_sha" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor and export templates
+        id: godot-cache-web
+        uses: actions/cache@v4
+        with:
+          path: |
+            .godot-bin
+            ~/.local/share/godot/export_templates/4.7.1.stable
+          key: godot-4.7.1-linux-web-templates-v1
+
+      - name: Install Godot 4.7.1 editor
+        if: steps.godot-cache-web.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Install Godot 4.7.1 export templates
+        if: steps.godot-cache-web.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output export_templates.tpz \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz
+          template_dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          rm -rf "$template_dir"
+          mkdir -p "$template_dir" "${RUNNER_TEMP}/godot-export-templates"
+          unzip -q export_templates.tpz -d "${RUNNER_TEMP}/godot-export-templates"
+          cp -R "${RUNNER_TEMP}/godot-export-templates/templates/." "$template_dir/"
+          test -s "$template_dir/web_release.zip"
+
+      - name: Verify Godot install
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$GODOT_BIN"
+          "$GODOT_BIN" --version
+          test -s "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/web_release.zip"
+
+      - name: Prepare isolated Web persistence project
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$WEB_PROJECT"
+          cp -a godot "$WEB_PROJECT"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          project = Path(os.environ["WEB_PROJECT"]) / "project.godot"
+          text = project.read_text()
+          feature = 'config/features=PackedStringArray("4.7", "Forward Plus")'
+          if feature not in text:
+              raise SystemExit("Expected Forward Plus project feature was not found")
+          text = text.replace(feature, 'config/features=PackedStringArray("4.7", "GL Compatibility")', 1)
+
+          main_scene = 'run/main_scene="res://scenes/prototype/scrap_test_block.tscn"'
+          if main_scene not in text:
+              raise SystemExit("Expected production main scene was not found")
+          text = text.replace(main_scene, 'run/main_scene="res://tests/gears_surveyed_route_web_probe.tscn"', 1)
+
+          rendering = "[rendering]\n"
+          if rendering not in text:
+              raise SystemExit("[rendering] section not found")
+          text = text.replace(
+              rendering,
+              rendering
+              + 'renderer/rendering_method="gl_compatibility"\n'
+              + 'renderer/rendering_method.mobile="gl_compatibility"\n'
+              + 'textures/vram_compression/import_etc2_astc=true\n',
+              1,
+          )
+          project.write_text(text)
+          PY
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path "$WEB_PROJECT" --quit
+          test -s "$WEB_PROJECT/.godot/global_script_class_cache.cfg"
+
+      - name: Export isolated Web persistence probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf build/p06-web
+          mkdir -p build/p06-web
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path "$WEB_PROJECT" \
+            --export-release "Web Playtest" \
+            "$GITHUB_WORKSPACE/build/p06-web/index.html"
+          test -s build/p06-web/index.html
+          test -s build/p06-web/index.js
+          test -s build/p06-web/index.wasm
+          test -s build/p06-web/index.pck
+
+      - name: Install Chromium automation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check playwright==1.55.0
+          python3 -m playwright install --with-deps chromium
+
+      - name: Prove same-origin browser relaunch persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8096 --directory build/p06-web >p06-web-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for _ in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8096/index.html >/dev/null; then
+              break
+            fi
+            sleep 0.5
+          done
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8096/index.html
+
+          rm -rf "${RUNNER_TEMP}/p06-chromium-profile"
+          mkdir -p godot/verification/production06
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+
+          expected_route = "gears.service_alley_north_connector"
+          expected_storage = "user://p06_web_reload_probe.json"
+          url = "http://127.0.0.1:8096/"
+          profile = Path(os.environ["RUNNER_TEMP"]) / "p06-chromium-profile"
+
+          def observe(p, expected_title):
+              context = p.chromium.launch_persistent_context(
+                  str(profile),
+                  headless=True,
+                  args=["--disable-dev-shm-usage"],
+              )
+              try:
+                  page = context.pages[0] if context.pages else context.new_page()
+                  page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+                  page.wait_for_function(
+                      "expected => document.title === expected",
+                      arg=expected_title,
+                      timeout=60_000,
+                  )
+                  state = page.evaluate("window.P06_WEB_PROBE")
+                  user_agent = page.evaluate("navigator.userAgent")
+                  observed_url = page.url
+                  return state, user_agent, observed_url
+              finally:
+                  context.close()
+
+          with sync_playwright() as p:
+              pass_a, user_agent_a, observed_url_a = observe(p, "P06_WRITE_OK")
+              assert pass_a["status"] == "P06_WRITE_OK", pass_a
+              assert pass_a["route_id"] == expected_route, pass_a
+              assert pass_a["storage_path"] == expected_storage, pass_a
+              assert pass_a["load_status"] == "CLEAN", pass_a
+              assert pass_a["surveyed"] is True, pass_a
+              assert pass_a["write_count"] == 1, pass_a
+              assert pass_a["write_blocked"] is False, pass_a
+
+              pass_b, user_agent_b, observed_url_b = observe(p, "P06_RELOAD_OK")
+              assert pass_b["status"] == "P06_RELOAD_OK", pass_b
+              assert pass_b["route_id"] == expected_route, pass_b
+              assert pass_b["storage_path"] == expected_storage, pass_b
+              assert pass_b["load_status"] == "LOADED", pass_b
+              assert pass_b["surveyed"] is True, pass_b
+              assert pass_b["write_count"] == 0, pass_b
+              assert pass_b["write_blocked"] is False, pass_b
+              assert observed_url_a == observed_url_b == url, (observed_url_a, observed_url_b)
+
+              report = {
+                  "source_sha": os.environ["SOURCE_SHA"],
+                  "verification_target": os.environ.get("P06_MATRIX_SOURCE", "head"),
+                  "origin": url,
+                  "browser_user_agent_pass_a": user_agent_a,
+                  "browser_user_agent_pass_b": user_agent_b,
+                  "pass_a": pass_a,
+                  "pass_b": pass_b,
+                  "same_persistent_profile_relaunched": True,
+                  "manual_persistence_mutation": False,
+                  "storage_backend_under_test": "Godot user:// Web filesystem",
+              }
+              output = Path("godot/verification/production06/web_persistence_report.json")
+              output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+              print(json.dumps(report, indent=2, sort_keys=True))
+          PY
+        env:
+          P06_MATRIX_SOURCE: ${{ matrix.source }}
+
+      - name: Upload Web persistence proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production06-web-persistence-${{ matrix.source }}-${{ env.SOURCE_SHA }}
+          path: godot/verification/production06/web_persistence_report.json
+          if-no-files-found: error
+          retention-days: 14
