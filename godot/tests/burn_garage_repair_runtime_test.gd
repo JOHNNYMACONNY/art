@@ -175,10 +175,29 @@ func _run() -> void:
 	if interactable == null:
 		await _fail("Garage repair interactable is missing")
 		return
+	var root_interactables = _scene.get("_interactables")
+	if not (root_interactables is Array) or not root_interactables.has(interactable):
+		await _fail("Garage repair interactable is not registered in the retained root interaction list")
+		return
+	if _scene.call("_get_active_vehicle") != hauler:
+		await _fail("Retained generic active-vehicle seam does not resolve the Scrap Hauler")
+		return
+	if not bool(interactable.get("is_powered")):
+		await _fail("Garage repair interactable is registered but unpowered; affordance=%s success_until=%d now=%d" % [String(runtime.call("get_affordance_text")), int(runtime.get("_success_until_msec")), Time.get_ticks_msec()])
+		return
 	interactable.call("update_player_distance", hauler.global_position)
+	if not bool(interactable.get("is_player_in_range")):
+		await _fail("Garage repair interactable is powered but out of range; target=%s vehicle=%s" % [str(interactable.global_position), str(hauler.global_position)])
+		return
 	_scene.call("_evaluate_target_selection")
 	if _scene.get("_active_target") != interactable:
-		await _fail("Damaged Scrap Hauler cannot own the Burn Garage Action target")
+		var selected = _scene.get("_active_target")
+		var selected_name := String(selected.name) if selected != null else "<none>"
+		var selected_score := -9999.0
+		if selected != null:
+			selected_score = float(selected.call("get_interaction_priority")) * 10.0 - selected.global_position.distance_to(hauler.global_position)
+		var repair_score := float(interactable.call("get_interaction_priority")) * 10.0 - interactable.global_position.distance_to(hauler.global_position)
+		await _fail("Garage target lost retained selector despite registration/range; selected=%s selected_score=%.3f repair_score=%.3f" % [selected_name, selected_score, repair_score])
 		return
 	if String(runtime.call("get_affordance_text")).is_empty():
 		await _fail("Damaged vehicle near Garage has no clear repair affordance")
