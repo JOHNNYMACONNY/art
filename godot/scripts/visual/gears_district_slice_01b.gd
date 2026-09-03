@@ -6,6 +6,7 @@ extends Node3D
 
 const GearsWorkZoneIncidentScript = preload("res://scripts/world/gears_work_zone_incident.gd")
 const GearsScrapperToolRuntimeScript = preload("res://scripts/world/gears_scrapper_tool_runtime.gd")
+const GearsSurveyedServiceCutRuntimeScript = preload("res://scripts/world/gears_surveyed_service_cut_runtime.gd")
 const RETAINED_NORTH_EDGE_Z := -20.0
 const APPROVED_TOON_SHADER_PATH := "res://materials/gears_toon.gdshader"
 const ADDITIVE_EXTENSION_PATHS := [
@@ -16,6 +17,7 @@ const ADDITIVE_EXTENSION_PATHS := [
 func _ready() -> void:
 	call_deferred("_mount_production_04_work_zone")
 	call_deferred("_mount_production_05_scrapper_tool")
+	call_deferred("_mount_production_06_surveyed_service_cut")
 
 func _mount_production_04_work_zone() -> void:
 	var scene_root := get_parent()
@@ -45,6 +47,22 @@ func _mount_production_05_scrapper_tool() -> void:
 	if runtime == null:
 		return
 	runtime.name = "GearsScrapperToolRuntime"
+	scene_root.add_child(runtime)
+	if not bool(runtime.call("configure", scene_root, self)):
+		runtime.queue_free()
+
+func _mount_production_06_surveyed_service_cut() -> void:
+	var scene_root := get_parent()
+	if scene_root == null or not (scene_root is Node3D):
+		return
+	if scene_root.get_node_or_null("GearsSurveyedServiceCutRuntime") != null:
+		return
+	if scene_root.get_node_or_null("GearsScrapperToolRuntime") == null:
+		return
+	var runtime := GearsSurveyedServiceCutRuntimeScript.new() as Node3D
+	if runtime == null:
+		return
+	runtime.name = "GearsSurveyedServiceCutRuntime"
 	scene_root.add_child(runtime)
 	if not bool(runtime.call("configure", scene_root, self)):
 		runtime.queue_free()
