@@ -26,7 +26,7 @@ func configure(district: Node3D) -> bool:
 	_surface_bounds.clear()
 	for body_name in CONTEXT_SURFACES + SURVEYED_SURFACES:
 		var bounds := _read_box_surface_bounds(String(body_name))
-		if bounds.is_empty():
+		if not bounds.has_area():
 			return false
 		_surface_bounds[String(body_name)] = bounds
 	_world_bounds = _combined_world_bounds()
