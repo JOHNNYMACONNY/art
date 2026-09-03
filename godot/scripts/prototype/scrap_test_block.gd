@@ -612,7 +612,8 @@ func _evaluate_target_selection() -> void:
 		
 	var best_target: InteractableBase = null
 	var best_score: float = -9999.0
-	var active_pos: Vector3 = courier_bike.global_position if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player.global_position
+	var active_veh := _get_active_vehicle()
+	var active_pos: Vector3 = active_veh.global_position if active_veh else player.global_position
 	
 	for item in _interactables:
 		if item and item.can_interact(active_pos):
@@ -635,7 +636,8 @@ func _on_action_pressed() -> void:
 	if not _active_target or not player:
 		return
 		
-	var active_pos: Vector3 = courier_bike.global_position if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player.global_position
+	var active_veh := _get_active_vehicle()
+	var active_pos: Vector3 = active_veh.global_position if active_veh else player.global_position
 		
 	if _active_target is MountInteractable:
 		(_active_target as MountInteractable).set_player_reference(player)
@@ -746,6 +748,10 @@ func reset_slice() -> void:
 		courier_bike.force_dismount()
 	if scrap_hauler and scrap_hauler.occupant != null:
 		scrap_hauler.force_dismount()
+	if courier_bike and courier_bike.has_method("reset_condition"):
+		courier_bike.reset_condition()
+	if scrap_hauler and scrap_hauler.has_method("reset_condition"):
+		scrap_hauler.reset_condition()
 	active_vehicle = null
 		
 	current_world_state = WorldLoopState.START
