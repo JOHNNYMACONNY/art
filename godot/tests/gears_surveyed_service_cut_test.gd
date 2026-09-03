@@ -130,6 +130,12 @@ func _run() -> void:
 	if int(survey.call("get_survey_record_count")) != 1 or int(store.call("get_write_count")) != 1:
 		await _fail("First legitimate traversal was not recorded exactly once")
 		return
+	if not survey.has_method("is_discovery_feedback_visible") or not survey.has_method("get_discovery_feedback_text"):
+		await _fail("First survey has no bounded player-facing discovery feedback seam")
+		return
+	if not bool(survey.call("is_discovery_feedback_visible")) or not String(survey.call("get_discovery_feedback_text")).contains("SERVICE CUT SURVEYED"):
+		await _fail("First legitimate traversal did not present readable learned-route confirmation")
+		return
 
 	# Repeated traversal cannot duplicate progression.
 	var reverse := continuous.duplicate()
