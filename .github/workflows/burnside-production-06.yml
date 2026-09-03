@@ -12,6 +12,7 @@ on:
       - "godot/scripts/world/gears_surveyed_service_cut_runtime.gd"
       - "godot/scripts/ui/gears_local_route_sheet.gd"
       - "godot/scripts/input/touch_controls.gd"
+      - "godot/scripts/input/gears_surveyed_route_touch_controls.gd"
       - "godot/scripts/world/gears_scrapper_tool_runtime.gd"
       - "godot/scripts/visual/gears_district_slice_01b.gd"
       - "godot/scenes/prototype/scrap_test_block.tscn"
@@ -31,6 +32,7 @@ on:
       - "godot/scripts/world/gears_surveyed_service_cut_runtime.gd"
       - "godot/scripts/ui/gears_local_route_sheet.gd"
       - "godot/scripts/input/touch_controls.gd"
+      - "godot/scripts/input/gears_surveyed_route_touch_controls.gd"
       - "godot/scripts/world/gears_scrapper_tool_runtime.gd"
       - "godot/scripts/visual/gears_district_slice_01b.gd"
       - "godot/scenes/prototype/scrap_test_block.tscn"
@@ -201,3 +203,36 @@ jobs:
           test "${{ steps.p06_progress.outcome }}" = "success"
           test "${{ steps.p06_survey.outcome }}" = "success"
           test "${{ steps.p06_input.outcome }}" = "success"
+
+      - name: Capture windowed Production 06 proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$SOURCE_SHA" timeout 120s xvfb-run -a "$GODOT_BIN" \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/gears_surveyed_service_cut_render_capture.gd
+          test -s godot/verification/production06/01_pre_survey_route_sheet.png
+          test -s godot/verification/production06/02_open_unsurveyed_service_cut.png
+          test -s godot/verification/production06/03_first_crossing_learned.png
+          test -s godot/verification/production06/04_post_survey_route_sheet.png
+          test -s godot/verification/production06/05_replay_known_jammed.png
+          test -s godot/verification/production06/06_reopened_known_route.png
+          test -s godot/verification/production06/render_report.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = json.loads(Path("godot/verification/production06/render_report.json").read_text())
+          assert report["source_sha"] == os.environ["SOURCE_SHA"]
+          assert report["real_playable_scene"] is True
+          assert report["route_id"] == "gears.service_alley_north_connector"
+          assert len(report["captures"]) == 6
+          PY
+
+      - name: Upload Production 06 rendered proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production06-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production06/
+          if-no-files-found: error
+          retention-days: 14
