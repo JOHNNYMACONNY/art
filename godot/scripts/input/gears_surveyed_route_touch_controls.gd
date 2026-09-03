@@ -5,11 +5,16 @@ signal map_action_pressed
 signal ui_mode_changed(mode: int)
 
 var _map_modal_active := false
+var _action_disabled_before_map := false
 
 func set_map_modal_active(active: bool) -> void:
+	if active == _map_modal_active:
+		return
+	if active:
+		_action_disabled_before_map = action_button != null and action_button.disabled
 	_map_modal_active = active
 	if action_button:
-		action_button.disabled = active
+		action_button.disabled = true if active else _action_disabled_before_map
 	_refresh_tool_action_button()
 
 func is_map_modal_active() -> bool:

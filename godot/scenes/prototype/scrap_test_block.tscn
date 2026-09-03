@@ -8,7 +8,7 @@
 
 [ext_resource type="PackedScene" uid="uid://c_corroded_panel_001" path="res://scenes/interactions/corroded_panel.tscn" id="4_panel"]
 
-[ext_resource type="Script" path="res://scripts/input/touch_controls.gd" id="5_ui"]
+[ext_resource type="Script" path="res://scripts/input/gears_surveyed_route_touch_controls.gd" id="5_ui"]
 
 [ext_resource type="Script" path="res://scripts/audio/audio_manager.gd" id="6_audio"]
 
