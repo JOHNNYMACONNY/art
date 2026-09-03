@@ -5,6 +5,7 @@ signal map_action_pressed
 signal ui_mode_changed(mode: int)
 
 var _map_modal_active := false
+var _map_action_available := true
 var _action_disabled_before_map := false
 
 func set_map_modal_active(active: bool) -> void:
@@ -20,8 +21,11 @@ func set_map_modal_active(active: bool) -> void:
 func is_map_modal_active() -> bool:
 	return _map_modal_active
 
+func set_map_action_available(available: bool) -> void:
+	_map_action_available = available
+
 func _map_action_can_emit() -> bool:
-	return current_mode == UIMode.FOOT_TRAVERSAL and not is_interaction_input_locked()
+	return _map_action_available and current_mode == UIMode.FOOT_TRAVERSAL and not is_interaction_input_locked()
 
 func trigger_map_action() -> void:
 	if _map_action_can_emit():

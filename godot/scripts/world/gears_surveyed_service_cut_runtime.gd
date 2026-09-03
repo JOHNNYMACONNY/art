@@ -63,7 +63,10 @@ func configure(root_controller: Node, district: Node3D, progress_store = null) -
 		return false
 	if not _scrapper_runtime.has_method("get_access_state_name"):
 		return false
-	if not _touch_ui.has_signal("map_action_pressed") or not _touch_ui.has_method("trigger_map_action") or not _touch_ui.has_method("set_map_modal_active"):
+	if not _touch_ui.has_signal("map_action_pressed") \
+		or not _touch_ui.has_method("trigger_map_action") \
+		or not _touch_ui.has_method("set_map_modal_active") \
+		or not _touch_ui.has_method("set_map_action_available"):
 		return false
 
 	_progress_store = progress_store
@@ -206,9 +209,15 @@ func _is_access_open() -> bool:
 	return _scrapper_runtime != null and String(_scrapper_runtime.call("get_access_state_name")) == "FORCED_OPEN"
 
 func _side_for_position(position: Vector3) -> int:
-	if _entry_socket != null and _horizontal_distance(position, _entry_socket.global_position) <= ENTRY_RADIUS_M:
+	var in_alley := _point_in_bounds(position, _service_alley_bounds, 0.0)
+	var in_connector := _point_in_bounds(position, _connector_bounds, 0.0)
+	if in_alley and not in_connector \
+		and _entry_socket != null \
+		and _horizontal_distance(position, _entry_socket.global_position) <= ENTRY_RADIUS_M:
 		return TraversalSide.ALLEY
-	if _connector != null and _horizontal_distance(position, _connector.global_position) <= CONNECTOR_RADIUS_M:
+	if in_connector and not in_alley \
+		and _connector != null \
+		and _horizontal_distance(position, _connector.global_position) <= CONNECTOR_RADIUS_M:
 		return TraversalSide.CONNECTOR
 	return TraversalSide.NONE
 
@@ -338,7 +347,10 @@ func _refresh_map_button_visibility() -> void:
 		return
 	var on_foot := int(_touch_ui.get("current_mode")) == FOOT_TRAVERSAL_MODE
 	var gesture_locked := bool(_touch_ui.call("is_interaction_input_locked"))
-	_map_button.visible = on_foot and (_map_open or not gesture_locked)
+	var player_locked := _player != null and bool(_player.get("is_input_locked"))
+	var map_available := _map_open or not player_locked
+	_touch_ui.call("set_map_action_available", map_available)
+	_map_button.visible = on_foot and (_map_open or (map_available and not gesture_locked))
 
 func refresh_map_presentation() -> void:
 	if _route_sheet == null:
