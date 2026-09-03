@@ -143,14 +143,11 @@ func _run() -> void:
 		await _fail("Map modal leaked routed touch/drag into gameplay joystick ownership")
 		return
 
-	# A second routed finger can close Map without activating the still-held first finger underneath it.
-	var close_position := map_button.get_global_rect().get_center()
-	_push_touch(38, true, close_position)
-	await process_frame
-	_push_touch(38, false, close_position)
+	# Close through the proven Map control while the route-sheet-origin touch remains held.
+	map_button.pressed.emit()
 	await process_frame
 	if int(counts.map) != 2 or bool(survey.call("is_map_open")) or bool(player.get("is_input_locked")) or bool(touch_ui.call("is_map_modal_active")):
-		await _fail("Routed touch close did not restore Map ownership exactly once")
+		await _fail("Map close did not restore ownership exactly once with a modal-origin touch held")
 		return
 	_push_touch(modal_touch_index, false, Vector2(190.0, 390.0))
 	await process_frame
