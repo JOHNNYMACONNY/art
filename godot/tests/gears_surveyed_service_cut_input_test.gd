@@ -47,6 +47,20 @@ func _acquire_tool(scene: Node, player: Node3D, scrapper: Node) -> bool:
 func _rect_contains_rect(outer: Rect2, inner: Rect2) -> bool:
 	return outer.has_point(inner.position) and outer.has_point(inner.position + inner.size)
 
+func _push_touch(index: int, pressed: bool, position: Vector2) -> void:
+	var event := InputEventScreenTouch.new()
+	event.index = index
+	event.pressed = pressed
+	event.position = position
+	root.push_input(event, true)
+
+func _push_drag(index: int, position: Vector2, relative: Vector2) -> void:
+	var event := InputEventScreenDrag.new()
+	event.index = index
+	event.position = position
+	event.relative = relative
+	root.push_input(event, true)
+
 func _run() -> void:
 	_remove_test_progress()
 	_wanted_runtime = root.get_node_or_null("BurnsideWantedRuntime")
@@ -79,6 +93,9 @@ func _run() -> void:
 		return
 	if not touch_ui.has_signal("map_action_pressed") or not touch_ui.has_method("trigger_map_action") or not touch_ui.has_method("set_map_modal_active"):
 		await _fail("Production 06 dedicated Map input seam is absent")
+		return
+	if not touch_ui.has_method("set_map_action_available"):
+		await _fail("Production 06 Map availability seam is absent")
 		return
 
 	var map_button := survey.call("get_map_button") as Button
@@ -115,6 +132,40 @@ func _run() -> void:
 		await _fail("Pre-survey route sheet exposed unearned service-cut knowledge")
 		return
 
+	# Actual Viewport GUI routing must keep route-sheet touches out of gameplay joystick ownership.
+	var modal_touch_index := 37
+	_push_touch(modal_touch_index, true, Vector2(140.0, 390.0))
+	await process_frame
+	_push_drag(modal_touch_index, Vector2(190.0, 390.0), Vector2(50.0, 0.0))
+	await process_frame
+	var modal_joystick: Vector2 = player.get("joystick_vector")
+	if modal_joystick.length() > 0.001 or bool(touch_ui.call("is_pointer_index_claimed", modal_touch_index)):
+		await _fail("Map modal leaked routed touch/drag into gameplay joystick ownership")
+		return
+
+	# A second routed finger can close Map without activating the still-held first finger underneath it.
+	var close_position := map_button.get_global_rect().get_center()
+	_push_touch(38, true, close_position)
+	await process_frame
+	_push_touch(38, false, close_position)
+	await process_frame
+	if int(counts.map) != 2 or bool(survey.call("is_map_open")) or bool(player.get("is_input_locked")) or bool(touch_ui.call("is_map_modal_active")):
+		await _fail("Routed touch close did not restore Map ownership exactly once")
+		return
+	_push_touch(modal_touch_index, false, Vector2(190.0, 390.0))
+	await process_frame
+	var released_modal_joystick: Vector2 = player.get("joystick_vector")
+	if released_modal_joystick.length() > 0.001:
+		await _fail("Map close exposed stale joystick input from a touch that began on the modal")
+		return
+
+	# Reopen for method-level Action/Tool suppression checks.
+	map_button.pressed.emit()
+	await process_frame
+	if int(counts.map) != 3 or not bool(survey.call("is_map_open")):
+		await _fail("Map did not reopen after routed touch ownership proof")
+		return
+
 	# Programmatic and UI-equivalent Action/Tool paths are suppressed while the modal owns input.
 	touch_ui.call("trigger_action")
 	touch_ui.call("trigger_tool_action")
@@ -128,7 +179,7 @@ func _run() -> void:
 
 	map_button.pressed.emit()
 	await process_frame
-	if int(counts.map) != 2 or bool(survey.call("is_map_open")) or bool(player.get("is_input_locked")) or bool(touch_ui.call("is_map_modal_active")):
+	if int(counts.map) != 4 or bool(survey.call("is_map_open")) or bool(player.get("is_input_locked")) or bool(touch_ui.call("is_map_modal_active")):
 		await _fail("Touch Map close did not restore prior input ownership exactly once")
 		return
 	if not tool_button.visible:
@@ -151,14 +202,20 @@ func _run() -> void:
 		return
 	touch_ui.call("close_interaction_overlay")
 
-	# A pre-existing player input lock cannot be stolen by Map.
+	# A pre-existing player input lock makes Map unavailable rather than merely rejecting it downstream.
 	player.set("is_input_locked", true)
+	await process_frame
+	var map_before_player_lock := int(counts.map)
 	touch_ui.call("trigger_map_action")
 	await process_frame
-	if bool(survey.call("is_map_open")):
-		await _fail("Map opened while another runtime owned player input")
+	if bool(survey.call("is_map_open")) or int(counts.map) != map_before_player_lock or map_button.visible:
+		await _fail("Map remained available while another runtime owned player input")
 		return
 	player.set("is_input_locked", false)
+	await process_frame
+	if not map_button.visible:
+		await _fail("Map did not become available again after external player input ownership cleared")
+		return
 
 	# Vehicle mode suppresses both desktop/touch Map availability.
 	touch_ui.call("set_mode", TouchControlsUI.UIMode.VEHICLE_DRIVING)
@@ -170,6 +227,7 @@ func _run() -> void:
 		await _fail("Driving mode accepted or exposed Map")
 		return
 	touch_ui.call("set_mode", TouchControlsUI.UIMode.FOOT_TRAVERSAL)
+	await process_frame
 
 	# Desktop M toggles exactly once per non-echo press; echo cannot double-fire.
 	var map_before_desktop := int(counts.map)

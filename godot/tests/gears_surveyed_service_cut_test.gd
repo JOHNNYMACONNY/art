@@ -109,9 +109,9 @@ func _run() -> void:
 		await _fail("Discontinuous teleport/test placement surveyed the route")
 		return
 
-	# Continuous legitimate travel through the authored alley qualifies exactly once.
+	# Continuous travel reaching only the overlapping authored join is not yet the opposite exclusive side.
 	survey.call("reset_transient_state")
-	var continuous := [
+	var continuous_to_overlap := [
 		entry,
 		Vector3(-10.0, player.global_position.y, -28.5),
 		Vector3(-10.0, player.global_position.y, -31.0),
@@ -121,9 +121,16 @@ func _run() -> void:
 		Vector3(-10.0, player.global_position.y, -41.0),
 		Vector3(-10.0, player.global_position.y, -43.3),
 		Vector3(-9.2, player.global_position.y, -44.5),
-		connector_end,
 	]
-	_sample_path(survey, continuous)
+	_sample_path(survey, continuous_to_overlap)
+	if bool(survey.call("is_route_surveyed")):
+		await _fail("Overlapping ServiceAlley/NorthConnector join counted as the opposite exclusive side")
+		return
+
+	# Reaching the real opposite exclusive connector side completes the legitimate traversal exactly once.
+	survey.call("sample_player_position", connector_end)
+	var continuous := continuous_to_overlap.duplicate()
+	continuous.append(connector_end)
 	if not bool(survey.call("is_route_surveyed")):
 		await _fail("Legitimate continuous traversal did not survey the route")
 		return
@@ -168,6 +175,28 @@ func _run() -> void:
 		return
 	if not bool(survey.call("is_route_surveyed")) or int(store.call("get_write_count")) != writes_before_reopen:
 		await _fail("Reopening known access rewrote or lost mapped knowledge")
+		return
+
+	# Re-arm clean progress and prove the production _physics_process sampling path, not just the deterministic seam.
+	_remove_test_progress()
+	store.call("configure", AUTO_TEST_PATH)
+	survey.call("reset_transient_state")
+	touch_ui.replay_pressed.emit()
+	await process_frame
+	await physics_frame
+	if String(scrapper.call("get_access_state_name")) != "JAMMED" or bool(survey.call("is_route_surveyed")):
+		await _fail("Could not establish clean live-physics traversal fixture")
+		return
+	if not bool(scrapper.call("_force_access_open")):
+		await _fail("Could not open live-physics traversal fixture")
+		return
+	survey.set_physics_process(true)
+	for position in continuous:
+		player.global_position = position
+		await physics_frame
+	survey.set_physics_process(false)
+	if not bool(survey.call("is_route_surveyed")) or int(store.call("get_write_count")) != 1:
+		await _fail("Production physics sampling did not record a real Runner traversal")
 		return
 
 	print("[GEARS_SURVEYED_SERVICE_CUT] PASS")
