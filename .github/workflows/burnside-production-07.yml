@@ -116,3 +116,5 @@ jobs:
         run: |
           set -euo pipefail
           "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/vehicle_condition_runtime_collision_test.gd
+
+# Exact-head verification refresh after guarded GREEN application.
