@@ -1,0 +1,118 @@
+name: Burnside Production 07
+
+on:
+  push:
+    branches:
+      - feat/burnside-production-07-vehicle-condition
+    paths:
+      - "contracts/burnside_production_07_vehicle_condition_spec.md"
+      - "docs/superpowers/plans/2026-09-03-burnside-production-07-vehicle-condition.md"
+      - ".github/workflows/burnside-production-07.yml"
+      - "godot/scripts/vehicles/courier_bike.gd"
+      - "godot/scripts/vehicles/scrap_hauler.gd"
+      - "godot/scripts/world/burn_garage_repair_runtime.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scripts/missions/civic_repossession_runtime.gd"
+      - "godot/tests/vehicle_condition_semantics_test.gd"
+      - "godot/tests/burn_garage_repair_runtime_test.gd"
+      - "godot/tests/burn_garage_mission02_composition_test.gd"
+      - "godot/tests/vehicle_condition_runtime_collision_test.gd"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_07_vehicle_condition_spec.md"
+      - "docs/superpowers/plans/2026-09-03-burnside-production-07-vehicle-condition.md"
+      - ".github/workflows/burnside-production-07.yml"
+      - "godot/scripts/vehicles/courier_bike.gd"
+      - "godot/scripts/vehicles/scrap_hauler.gd"
+      - "godot/scripts/world/burn_garage_repair_runtime.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scripts/missions/civic_repossession_runtime.gd"
+      - "godot/tests/vehicle_condition_semantics_test.gd"
+      - "godot/tests/burn_garage_repair_runtime_test.gd"
+      - "godot/tests/burn_garage_mission02_composition_test.gd"
+      - "godot/tests/vehicle_condition_runtime_collision_test.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused-p07:
+    name: Exact-source P07 semantics/runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GODOT_VERSION: "4.7.1"
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          echo "expected: $SOURCE_SHA"
+          echo "actual:   $actual_sha"
+          test "$actual_sha" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: Vehicle condition semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/vehicle_condition_semantics_test.gd
+
+      - name: Burn Garage repair runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burn_garage_repair_runtime_test.gd
+
+      - name: Mission 02 composition
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burn_garage_mission02_composition_test.gd
+
+      - name: Real collision runtime tracer
+        if: ${{ hashFiles('godot/tests/vehicle_condition_runtime_collision_test.gd') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/vehicle_condition_runtime_collision_test.gd
