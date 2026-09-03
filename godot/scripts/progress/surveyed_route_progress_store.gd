@@ -4,6 +4,7 @@ extends RefCounted
 const SCHEMA_VERSION := 1
 const PRODUCTION_PATH := "user://burnside_mapped_knowledge.json"
 const TEST_DIRECTORY := "user://tests"
+const STAGING_SUFFIX := ".tmp"
 
 var _storage_path: String = ""
 var _surveyed_routes: Dictionary = {}
@@ -83,18 +84,41 @@ func _ensure_parent_directory() -> bool:
 	var error := DirAccess.make_dir_recursive_absolute(absolute_dir)
 	return error == OK or error == ERR_ALREADY_EXISTS
 
+func _cleanup_staging_file(staging_path: String) -> void:
+	if staging_path.is_empty() or not FileAccess.file_exists(staging_path):
+		return
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(staging_path))
+
 func _persist_supported_document() -> bool:
 	if _write_blocked or _storage_path.is_empty() or not _ensure_parent_directory():
 		return false
-	var file := FileAccess.open(_storage_path, FileAccess.WRITE)
-	if file == null:
-		return false
+
 	var payload := {
 		"version": SCHEMA_VERSION,
 		"surveyed_routes": Array(get_surveyed_routes()),
 	}
-	file.store_string(JSON.stringify(payload) + "\n")
+	var staging_path := _storage_path + STAGING_SUFFIX
+	_cleanup_staging_file(staging_path)
+
+	var file := FileAccess.open(staging_path, FileAccess.WRITE)
+	if file == null:
+		return false
+	var wrote := file.store_string(JSON.stringify(payload) + "\n")
+	file.flush()
+	var write_error := file.get_error()
 	file.close()
+	if not wrote or write_error != OK:
+		_cleanup_staging_file(staging_path)
+		return false
+
+	var rename_error := DirAccess.rename_absolute(
+		ProjectSettings.globalize_path(staging_path),
+		ProjectSettings.globalize_path(_storage_path)
+	)
+	if rename_error != OK:
+		_cleanup_staging_file(staging_path)
+		return false
+
 	_write_count += 1
 	return true
 
