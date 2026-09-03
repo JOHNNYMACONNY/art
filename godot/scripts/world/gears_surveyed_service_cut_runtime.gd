@@ -124,9 +124,9 @@ func _build_map_ui() -> bool:
 		_discovery_feedback.anchor_right = 0.5
 		_discovery_feedback.anchor_bottom = 0.0
 		_discovery_feedback.offset_left = -260.0
-		_discovery_feedback.offset_top = 92.0
+		_discovery_feedback.offset_top = 142.0
 		_discovery_feedback.offset_right = 260.0
-		_discovery_feedback.offset_bottom = 126.0
+		_discovery_feedback.offset_bottom = 178.0
 		_discovery_feedback.grow_horizontal = Control.GROW_DIRECTION_BOTH
 		_discovery_feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_discovery_feedback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -134,6 +134,8 @@ func _build_map_ui() -> bool:
 		_discovery_feedback.z_index = 190
 		_discovery_feedback.text = DISCOVERY_TEXT
 		_discovery_feedback.add_theme_color_override("font_color", Color(0.64, 0.94, 0.88, 1.0))
+		_discovery_feedback.add_theme_color_override("font_outline_color", Color(0.01, 0.02, 0.02, 0.96))
+		_discovery_feedback.add_theme_constant_override("outline_size", 5)
 		safe_area_root.add_child(_discovery_feedback)
 	_discovery_feedback.visible = false
 
