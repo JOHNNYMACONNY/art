@@ -1,0 +1,60 @@
+name: P07 Guarded GREEN Apply
+
+on:
+  push:
+    branches:
+      - feat/burnside-production-07-vehicle-condition
+    paths:
+      - ".github/workflows/p07-green-apply.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          ref: feat/burnside-production-07-vehicle-condition
+          fetch-depth: 0
+
+      - name: Verify expected staged applicator
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .scratch/p07_apply_green.py
+          test ! -f godot/scripts/world/burn_garage_repair_runtime.gd
+          git status --short
+
+      - name: Apply guarded production patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .scratch/p07_apply_green.py
+          git diff --check
+          git diff --stat
+
+      - name: Remove transient applicator surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .scratch/p07_apply_green.py .github/workflows/p07-green-apply.yml
+
+      - name: Commit and push GREEN candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Johnny Maconny"
+          git config user.email "58898456+JOHNNYMACONNY@users.noreply.github.com"
+          git add godot/scripts/vehicles/courier_bike.gd \
+                  godot/scripts/vehicles/scrap_hauler.gd \
+                  godot/scripts/world/burn_garage_repair_runtime.gd \
+                  godot/scripts/visual/gears_district_slice_01b.gd \
+                  godot/scripts/prototype/scrap_test_block.gd
+          git diff --cached --check
+          git commit -m "feat: add Production 07 vehicle condition and Garage repair"
+          git push origin HEAD:feat/burnside-production-07-vehicle-condition
