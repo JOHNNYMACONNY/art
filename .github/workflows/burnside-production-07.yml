@@ -1,0 +1,245 @@
+name: Burnside Production 07
+
+on:
+  push:
+    branches:
+      - feat/burnside-production-07-vehicle-condition
+    paths:
+      - "contracts/burnside_production_07_vehicle_condition_spec.md"
+      - "docs/superpowers/plans/2026-09-03-burnside-production-07-vehicle-condition.md"
+      - ".github/workflows/burnside-production-07.yml"
+      - "godot/scripts/vehicles/courier_bike.gd"
+      - "godot/scripts/vehicles/scrap_hauler.gd"
+      - "godot/scripts/world/burn_garage_repair_runtime.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scripts/missions/civic_repossession_runtime.gd"
+      - "godot/tests/vehicle_condition_semantics_test.gd"
+      - "godot/tests/burn_garage_repair_runtime_test.gd"
+      - "godot/tests/burn_garage_mission02_composition_test.gd"
+      - "godot/tests/vehicle_condition_runtime_collision_test.gd"
+      - "godot/tests/gears_vehicle_condition_render_capture.gd"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_07_vehicle_condition_spec.md"
+      - "docs/superpowers/plans/2026-09-03-burnside-production-07-vehicle-condition.md"
+      - ".github/workflows/burnside-production-07.yml"
+      - "godot/scripts/vehicles/courier_bike.gd"
+      - "godot/scripts/vehicles/scrap_hauler.gd"
+      - "godot/scripts/world/burn_garage_repair_runtime.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scripts/missions/civic_repossession_runtime.gd"
+      - "godot/tests/vehicle_condition_semantics_test.gd"
+      - "godot/tests/burn_garage_repair_runtime_test.gd"
+      - "godot/tests/burn_garage_mission02_composition_test.gd"
+      - "godot/tests/vehicle_condition_runtime_collision_test.gd"
+      - "godot/tests/gears_vehicle_condition_render_capture.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_RELEASE: "4.7.1-stable"
+  GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+
+jobs:
+  focused-p07:
+    name: Exact-source P07 semantics/runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+      - name: Vehicle condition semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/vehicle_condition_semantics_test.gd
+      - name: Burn Garage repair runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burn_garage_repair_runtime_test.gd
+      - name: Mission 02 composition
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burn_garage_mission02_composition_test.gd
+      - name: Real collision runtime tracer
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/vehicle_condition_runtime_collision_test.gd
+
+  retained-regressions:
+    name: Exact-source retained P01-P06 regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+      - name: Run retained production regression matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          tests=(
+            gears_surveyed_route_progress_store_test.gd
+            gears_surveyed_service_cut_test.gd
+            gears_surveyed_service_cut_input_test.gd
+            gears_scrapper_tool_input_test.gd
+            gears_scrapper_tool_input_lock_test.gd
+            gears_scrapper_tool_environment_test.gd
+            gears_scrapper_tool_pursuer_test.gd
+            gears_scrapper_tool_mission_ordering_test.gd
+            gears_work_zone_incident_test.gd
+            gears_work_zone_mission_ordering_test.gd
+            civic_repossession_pretriggered_suppression_test.gd
+            civic_repossession_wanted_composition_test.gd
+            field_hacking_report_suppression_test.gd
+            wanted_heat1_scene_test.gd
+          )
+          for test_file in "${tests[@]}"; do
+            echo "::group::$test_file"
+            timeout --signal=TERM 30s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+              --script "res://tests/$test_file"
+            echo "::endgroup::"
+          done
+
+  rendered-proof:
+    name: Windowed P07 player-facing proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+      - name: Capture Production 07 rendered proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$SOURCE_SHA" timeout --signal=TERM 120s xvfb-run -a "$GODOT_BIN" \
+            --rendering-method gl_compatibility --path godot \
+            --script res://tests/gears_vehicle_condition_render_capture.gd
+          for image in \
+            01_roadworthy_bike.png \
+            02_battered_after_impact.png \
+            03_critical_limp_bike.png \
+            04_critical_bike_known_service_cut.png \
+            05_battered_scrap_hauler.png \
+            06_garage_wanted_rejected.png \
+            07_garage_clear_repair_action.png \
+            08_repaired_roadworthy_leaving.png \
+            09_replay_roadworthy_route_known.png; do
+            test -s "godot/verification/production07/$image"
+          done
+          test -s godot/verification/production07/render_report.json
+      - name: Upload Production 07 rendered proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production07-rendered-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production07
+          if-no-files-found: error
+          retention-days: 14
+
+# PR Web/export and frozen-review gates follow only after these exact-head jobs are green.
