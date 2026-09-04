@@ -16,8 +16,17 @@ extends Camera3D
 @export var foot_yaw_rate: float = 1.5 # s⁻¹
 @export var max_yaw_speed: float = 2.5 # rad/s max slew
 
+# Camera readability (#13): explicit, visual-only cutaway for tagged occluders.
+# The dedicated physics layer is detection-only; gameplay collision remains untouched.
+@export var occlusion_enabled: bool = true
+@export_flags_3d_physics var occlusion_collision_mask: int = 1 << 30
+@export_range(1, 8, 1) var max_occluders: int = 3
+@export_range(0.0, 1.0, 0.01) var occluder_restore_delay: float = 0.25
+
 const RIG_GROUND_RADIUS: float = 16.9705627 # sqrt(12^2 + 12^2)
 const RIG_ELEVATION_HEIGHT: float = 18.0
+const CAMERA_OCCLUDER_GROUP: StringName = &"camera_occluder"
+const MAX_OCCLUSION_SCAN_HITS: int = 8
 
 var _current_yaw_rad: float = PI / 4.0
 var _interaction_target: Node3D = null
@@ -29,6 +38,9 @@ var _smoothed_focus_pos: Vector3 = Vector3.ZERO
 var _smoothed_look_ahead: Vector3 = Vector3.ZERO
 var _is_initialized: bool = false
 
+# #13 cutaway state: instance id -> root, cached visuals/original visibility, clear timer.
+var _active_occluders: Dictionary = {}
+
 # Telemetry
 var last_follow_error: float = 0.0
 
@@ -36,6 +48,9 @@ func _ready() -> void:
 	fov = default_fov
 	if target_node:
 		reset_camera_instant(target_node)
+
+func _exit_tree() -> void:
+	_restore_all_occluders()
 
 func set_target(new_target: Node3D) -> void:
 	target_node = new_target
@@ -46,7 +61,11 @@ func set_interaction_mode(active: bool, focus_node: Node3D = null) -> void:
 	_is_interaction_mode = active
 	_interaction_target = focus_node
 
+func get_active_occluder_count() -> int:
+	return _active_occluders.size()
+
 func reset_camera_instant(target: Node3D) -> void:
+	_restore_all_occluders()
 	target_node = target
 	_is_interaction_mode = false
 	_interaction_target = null
@@ -154,6 +173,11 @@ func _process(delta: float) -> void:
 	look_at(framing_center + _focus_height_offset)
 
 	# -------------------------------------------------------------------------
+	# STAGE 5: Explicit bounded occlusion cutaway (visual state only)
+	# -------------------------------------------------------------------------
+	_update_occlusion_cutaway(framing_center + _focus_height_offset, delta)
+
+	# -------------------------------------------------------------------------
 	# FOV: Contextual & Speed Breathing
 	# -------------------------------------------------------------------------
 	var target_fov: float = default_fov
@@ -167,3 +191,122 @@ func _process(delta: float) -> void:
 
 	var fov_factor: float = 1.0 - exp(-fov_rate * delta)
 	fov = lerpf(fov, target_fov, fov_factor)
+
+func _update_occlusion_cutaway(focus_point: Vector3, delta: float) -> void:
+	if not occlusion_enabled or not is_inside_tree():
+		_restore_all_occluders()
+		return
+
+	var world: World3D = get_world_3d()
+	if world == null:
+		return
+
+	var seen: Dictionary = {}
+	var excluded: Array[RID] = []
+	var accepted: int = 0
+	var space_state: PhysicsDirectSpaceState3D = world.direct_space_state
+
+	for _scan_index in range(MAX_OCCLUSION_SCAN_HITS):
+		if accepted >= max_occluders:
+			break
+
+		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+			global_position,
+			focus_point,
+			occlusion_collision_mask,
+			excluded
+		)
+		query.collide_with_areas = true
+		query.collide_with_bodies = false
+		var hit: Dictionary = space_state.intersect_ray(query)
+		if hit.is_empty():
+			break
+
+		var collider: Object = hit.get("collider") as Object
+		if collider is CollisionObject3D:
+			excluded.append((collider as CollisionObject3D).get_rid())
+		else:
+			break
+
+		var occluder_root: Node3D = _find_occluder_root(collider as Node)
+		if occluder_root == null:
+			continue
+
+		var instance_id: int = occluder_root.get_instance_id()
+		if seen.has(instance_id):
+			continue
+		seen[instance_id] = true
+		accepted += 1
+		_cutaway_occluder(occluder_root)
+
+	for instance_id in _active_occluders.keys():
+		var entry: Dictionary = _active_occluders[instance_id]
+		var occluder_root: Node = entry.get("root") as Node
+		if not is_instance_valid(occluder_root):
+			_active_occluders.erase(instance_id)
+			continue
+
+		if seen.has(instance_id):
+			entry["clear_elapsed"] = 0.0
+			_active_occluders[instance_id] = entry
+			continue
+
+		var clear_elapsed: float = float(entry.get("clear_elapsed", 0.0)) + delta
+		if clear_elapsed + 0.0001 >= occluder_restore_delay:
+			_restore_occluder(int(instance_id))
+		else:
+			entry["clear_elapsed"] = clear_elapsed
+			_active_occluders[instance_id] = entry
+
+func _find_occluder_root(collider: Node) -> Node3D:
+	var cursor: Node = collider
+	while cursor != null:
+		if cursor.is_in_group(CAMERA_OCCLUDER_GROUP) and cursor is Node3D:
+			return cursor as Node3D
+		cursor = cursor.get_parent()
+	return null
+
+func _cutaway_occluder(occluder_root: Node3D) -> void:
+	var instance_id: int = occluder_root.get_instance_id()
+	if _active_occluders.has(instance_id):
+		var existing: Dictionary = _active_occluders[instance_id]
+		existing["clear_elapsed"] = 0.0
+		_active_occluders[instance_id] = existing
+		return
+
+	var visuals: Array[GeometryInstance3D] = []
+	_collect_occluder_visuals(occluder_root, visuals)
+	var original_visibility: Array[bool] = []
+	for visual in visuals:
+		original_visibility.append(visual.visible)
+		visual.visible = false
+
+	_active_occluders[instance_id] = {
+		"root": occluder_root,
+		"visuals": visuals,
+		"original_visibility": original_visibility,
+		"clear_elapsed": 0.0,
+	}
+
+func _collect_occluder_visuals(node: Node, output: Array[GeometryInstance3D]) -> void:
+	if node is GeometryInstance3D:
+		output.append(node as GeometryInstance3D)
+	for child in node.get_children():
+		_collect_occluder_visuals(child, output)
+
+func _restore_occluder(instance_id: int) -> void:
+	if not _active_occluders.has(instance_id):
+		return
+	var entry: Dictionary = _active_occluders[instance_id]
+	var visuals: Array = entry.get("visuals", [])
+	var original_visibility: Array = entry.get("original_visibility", [])
+	for i in range(mini(visuals.size(), original_visibility.size())):
+		var visual: GeometryInstance3D = visuals[i] as GeometryInstance3D
+		if is_instance_valid(visual):
+			visual.visible = bool(original_visibility[i])
+	_active_occluders.erase(instance_id)
+
+func _restore_all_occluders() -> void:
+	for instance_id in _active_occluders.keys():
+		_restore_occluder(int(instance_id))
+	_active_occluders.clear()
