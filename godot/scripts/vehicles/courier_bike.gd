@@ -520,6 +520,8 @@ func _ensure_condition_presentation() -> void:
 		_condition_tag.font_size = 22
 		_condition_tag.outline_size = 7
 		_condition_tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_condition_tag.no_depth_test = true
+		_condition_tag.fixed_size = true
 		_condition_tag.modulate = Color(0.92, 0.78, 0.38, 0.95)
 		_condition_tag.outline_modulate = Color(0.08, 0.08, 0.07, 0.95)
 		_condition_tag.visible = false
