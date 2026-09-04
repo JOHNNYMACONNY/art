@@ -55,7 +55,7 @@ func configure(root_controller: Node, district: Node3D, wanted_runtime: Node) ->
 
 	_affordance_label = Label3D.new()
 	_affordance_label.name = "BurnGarageRepairAffordance"
-	_affordance_label.font_size = 6
+	_affordance_label.font_size = 5
 	_affordance_label.outline_size = 2
 	_affordance_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_affordance_label.no_depth_test = true
