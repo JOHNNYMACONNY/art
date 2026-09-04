@@ -128,7 +128,7 @@ func _prove_critical_limp(vehicle: Node, label: String) -> String:
 	for _frame in range(120):
 		vehicle.call("set_drive_inputs", 1.0, 0.28, PHYSICS_DT, false)
 		await physics_frame
-	var forward_distance := vehicle.global_position.distance_to(start_pos)
+	var forward_distance: float = vehicle.global_position.distance_to(start_pos)
 	var forward_speed := float(vehicle.get("current_speed"))
 	if forward_distance < 2.0:
 		return "%s CRITICAL vehicle did not physically limp forward (distance=%.3f)" % [label, forward_distance]
