@@ -1,20 +1,20 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_PRODUCTION_01_02_03_04_05_06_MERGED_VERIFIED__READY_FOR_POST_PRODUCTION_06_REEVALUATION`  
-**Verified production gameplay/public baseline:** `cfe82d2580a7300e3ebb2bf3257d08a4300bf2a4`  
-**Final reviewed Production-06 head:** `1b5c3dfc89e9e95d66ec24a935926ad534ef2e51`  
+**Status:** `BURNSIDE_PRODUCTION_01_02_03_04_05_06_07_MERGED_VERIFIED__READY_FOR_POST_PRODUCTION_07_REEVALUATION`  
+**Verified production gameplay/public baseline:** `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`  
+**Final frozen Production-07 feature head:** `b98f7e00a0865f5f9e6902cdf7dba2d66d9dec8f`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
-> Continuity only. For repo-sensitive work refresh remote `main`, open PRs/issues, CI, public-playtest state, and any concurrent Audio/shared-scene work. A docs-only continuity merge may make repository HEAD newer than the verified gameplay/public baseline without changing runnable gameplay.
+> Continuity only. Refresh remote `main`, open PRs/issues, CI, public-playtest state, and any concurrent Audio/shared-scene work before repo-sensitive claims. A later docs-only continuity merge may make repository HEAD newer than the exact verified gameplay/public baseline above without changing runnable gameplay.
 
 ## Current product state
 
-Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, and the first durable mapped-knowledge tracer compose in the same geography.
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, durable mapped route knowledge, coarse vehicle condition, and one bounded Burn Garage repair loop compose in the same geography.
 
 Approved visual direction remains **Civic Salvage Palimpsest / Industrial Cel-Shaded Near Future**. Issue #118 remains the canonical downstream Burnside player-facing production contract. Issue #55 remains the durable product-direction anchor.
 
-Do not default to more acreage or generalized frameworks. Favor player-facing systemic density, feel, clarity, and authored consequence.
+Do not default to more acreage or generalized frameworks. Favor player-facing systemic density, feel, clarity, cohesion, and authored consequence.
 
 ## Production sequence — verified baselines
 
@@ -24,6 +24,7 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 04** — #127 / PR #129 — Gears Work-Zone / Player-Reactive Ambient Incident — `7605277d920b7877715d78687ccab16a69745b2f`.
 - **Production 05** — #131 / PR #132 — Gears Scrapper Tool / Street-Combat Contact Tracer — `702678cb66ab7544b43644cfa29baf5361c68dc1`.
 - **Production 06** — #134 / PR #135 — Gears Surveyed Service Cut / Durable Map-Knowledge Tracer — `cfe82d2580a7300e3ebb2bf3257d08a4300bf2a4`.
+- **Production 07** — #137 / PR #138 — Gears Vehicle Condition / Burn Garage Repair Tracer — `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`.
 
 ## Retained authority truths
 
@@ -35,9 +36,9 @@ Field Hacking remains local and situational:
 
 `DISCOVER LOCAL SERVICE ACCESS -> JAM REPORT LINK -> CIVIC INCIDENT -> ALARM FAULT -> REPORT SUPPRESSED -> NO NEW WANTED`
 
-Mission completion, Scrapper use, route surveying, map viewing, local incident recovery, and Replay do not silently clear valid Heat / Contact / Search / Recognition authority.
+Mission completion, Scrapper use, route surveying, map viewing, local incident recovery, vehicle repair, and Replay do not silently clear valid Heat / Contact / Search / Recognition authority.
 
-Mission 01 and Mission 03 retain their historical authored pursuit behavior. Mission 02 remains composed with ordinary open-world Wanted + Field Hacking and must not strand when the shared civic alarm/report seam has already been consumed or faulted while jammed.
+Mission 01 and Mission 03 retain their historical authored pursuit behavior. Mission 02 remains composed with ordinary open-world Wanted + Field Hacking and the existing Burn Garage delivery socket.
 
 ## Production 05 retained result
 
@@ -50,19 +51,15 @@ Primary chain:
 Key boundaries retained:
 
 - Tool Action is dedicated touch + desktop input and yields to retained gesture/input ownership.
-- Forcing the authored ServiceAlley access changes physical traversal only through the existing P04/P05 seams.
+- Forcing the authored ServiceAlley access changes physical traversal only through retained P04/P05 seams.
 - Scrapper contact only creates a brief pursuer stagger/displacement window.
-- No Player Health/Armor, firearms, weapon roster, generic damage, NPC death, generalized hostile combat AI, inventory/loot/RPG stats, Heat 2–5, generalized witness/crime framework, or unrelated Audio scope exists from P05.
+- No Player Health/Armor, firearms, weapon roster, generic NPC damage/death, generalized hostile combat AI, inventory/loot/RPG stats, Heat 2–5, generalized witness/crime framework, or unrelated Audio scope exists from P05.
 
-## Production 06 — verified player-facing result
+## Production 06 retained result
 
 Issue #134 / PR #135: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED**.
 
-Final reviewed PR head:
-
-`1b5c3dfc89e9e95d66ec24a935926ad534ef2e51`
-
-Exact merge / verified gameplay/public baseline:
+Exact gameplay/public baseline:
 
 `cfe82d2580a7300e3ebb2bf3257d08a4300bf2a4`
 
@@ -70,112 +67,145 @@ Player-facing contract:
 
 `LEGITIMATELY TRAVERSE SERVICEALLEY <-> NORTHCONNECTOR -> RECORD SURVEYED ROUTE ONCE -> REPLAY/RELAUNCH RETAINS LEARNED GEOGRAPHY -> PHYSICAL ACCESS MAY RESET TO JAMMED INDEPENDENTLY`
 
+Retained truths:
+
+- only the authored `ServiceAlley <-> NorthConnector` cut is surveyable;
+- learned map knowledge and current physical accessibility are independent truths;
+- Replay can restore the barrier to `JAMMED` while surveyed route knowledge remains known;
+- the route sheet is bounded and on-demand, not a generalized GPS/minimap/navigation system;
+- durable P06 knowledge remains isolated in its narrow versioned `surveyed_routes` store;
+- P07 does not modify `user://burnside_mapped_knowledge.json` or its schema.
+
+## Production 07 — verified player-facing result
+
+Issue #137 / PR #138: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED** pending only this docs continuity merge and issue closure.
+
+Frozen feature head:
+
+`b98f7e00a0865f5f9e6902cdf7dba2d66d9dec8f`
+
+Exact gameplay merge / verified public baseline:
+
+`3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`
+
+Player loop:
+
+`DRIVE -> SIGNIFICANT IMPACTS -> BATTERED -> CRITICAL / LIMPING -> ABANDON, SWAP, OR REACH BURN'S GARAGE -> REPAIR -> ROADWORTHY`
+
 Production truths:
 
-- only the retained `ServiceAlley <-> NorthConnector` service cut is surveyable;
-- merely seeing the route or forcing the jammed access does not grant mapped knowledge;
-- survey completion requires an actual bounded traversal between exclusive authored endpoint sides with distance/jump/corridor validation;
-- the route is awarded once and later crossings do not duplicate progress;
-- the Gears route sheet is on-demand and bounded, not a generalized minimap/GPS/pathfinding system;
-- desktop Map uses the dedicated `M` seam and touch uses one safe-area-aware Map action;
-- Map is unavailable while driving or while another retained interaction/input lock owns the Runner;
-- the modal suppresses gameplay/tool interaction and routed touch/drag cannot claim the gameplay joystick;
-- learned map knowledge and physical route accessibility are independent truths;
-- Replay may restore the P05 barrier to `JAMMED` while the route remains visibly learned;
-- reopening the access updates current access presentation without rewriting learned knowledge;
-- mapped knowledge persists through a narrow versioned `surveyed_routes` boundary only;
-- persistence uses checked staging + replacement and rolls back the in-memory award on write failure, preserving the previous valid document;
-- malformed/unsupported persisted data fails safely rather than silently overwriting unknown/newer state;
-- no mission saves, inventory saves, vehicle ownership saves, checkpoint/save-slot/cloud-save system, citywide Service Network graph, broad fog of war, turn-by-turn navigation, racing line, companion navigation, new acreage, Street-Combat expansion, Heat escalation, PR #44 camera work, or unrelated Audio Production entered P06.
+- scope is exactly the retained `CourierBike` and `ScrapHauler`;
+- player-readable condition states are exactly `ROADWORTHY`, `BATTERED`, and `CRITICAL`;
+- no visible numeric HP exists;
+- condition derives from each vehicle's real collision telemetry and uses bounded deterministic accumulation plus a 0.50-second accepted-contact cooldown;
+- trivial hits are ignored and sustained wall contact cannot melt condition frame-by-frame;
+- BATTERED is presentation-first;
+- CRITICAL changes only usable forward maximum speed, using the approved `0.52` multiplier;
+- steering, reverse, acceleration, braking, grip, mount/dismount, collision response, and retained handling authority remain intact;
+- no vehicle explosion or destruction exists;
+- Mayor Burn's existing `GearsDistrictSlice01B/MissionDestinationSocket` is the sole P07 repair point;
+- repair requires a damaged active supported vehicle, inside the 2.6 m Garage radius, effectively stopped, with authoritative Wanted heat `0` and state `CLEAR`;
+- CONTACT, SEARCH, or any other active Wanted state rejects repair;
+- repair never clears, resets, or otherwise mutates Wanted authority;
+- Garage repair uses the retained Action route only; no repair menu, economy, or generalized interaction/service framework was created;
+- Mission 02 remains authoritative for delivery and a CRITICAL Hauler can still complete legal Garage delivery;
+- Mission completion and repair affect only their own state and do not double-fire;
+- full Replay resets both supported vehicle conditions to ROADWORTHY while P06 surveyed route knowledge remains durable;
+- no ownership/claiming, generalized damage framework, generalized vehicle framework, generalized save framework, Garage network, economy, navigation expansion, canon change, or Audio change entered P07.
 
-### Review repairs
+### Render/readability repair
 
-Frozen-candidate review produced two real fixes and one disproven concern:
+The first fixed-size world-label repair made the old typography values visually enormous. Automation alone was not accepted as proof.
 
-1. **Survey endpoint ambiguity:** overlapping Alley/Connector join could qualify too early. Repaired by requiring arrival on the opposite exclusive authored surface.
-2. **Map external-lock availability:** the Map action needed a single availability gate reflecting existing Runner input ownership. Repaired at the input/runtime surface.
-3. **Modal touch leak:** deeper routed-event testing disproved the suspected leak. Retained `_gui_input()` ownership plus the full-screen GUI modal correctly prevents joystick acquisition; regression coverage now locks that behavior.
+The final presentation contract keeps `fixed_size = true` and `no_depth_test = true`, but bounds the world labels to small screen-space typography. Final values are:
 
-The durable-progress write path was also hardened before merge with atomic staging/replacement and a forced-failure preservation test.
+- CourierBike condition tag: font 6 / outline 2;
+- ScrapHauler condition tag: font 6 / outline 2;
+- Burn Garage affordance: font 5 / outline 2.
 
-## Production 06 verification truth
+The frozen nine-shot proof was directly inspected after tuning. Vehicle condition tags and Garage `WANTED // SERVICE LOCKED`, `REPAIR // ACTION`, and `ROADWORTHY` states remain readable without dominating or clipping the frame.
 
-### Final exact PR head
+## Production 07 verification truth
 
-At `1b5c3dfc89e9e95d66ec24a935926ad534ef2e51`:
+### Frozen feature head
 
-- focused mapped-knowledge persistence tracer: **PASS**;
-- service-cut survey semantics including exclusive-endpoint traversal: **PASS**;
-- Map input/modal and real Viewport-routed touch ownership: **PASS**;
-- actual production `_physics_process -> Runner.global_position` traversal path: **PASS**;
-- forced atomic-write failure preserves prior valid bytes: **PASS**;
-- retained Production 01–05 focused regressions: **PASS**;
-- six-state rendered P06 proof: **PASS**;
-- literal-head + synthetic-merge Web export/static-host smoke: **PASS**;
-- literal-head + synthetic-merge same-origin browser relaunch persistence: **PASS**;
-- current camera contracts: **PASS**;
-- canonical 29/29 exact-head compatibility matrix: **PASS**;
-- independent senior review: **APPROVE after repair**.
+At `b98f7e00a0865f5f9e6902cdf7dba2d66d9dec8f`:
 
-### Exact-main / public evidence
+- exact-source P07 semantics/runtime: **PASS**;
+- real `move_and_slide()` collision -> BATTERED/CRITICAL tracer: **PASS**;
+- sustained-contact debounce: **PASS**;
+- CRITICAL forward limp, steering, and reverse runtime behavior: **PASS**;
+- Burn Garage outside/moving/CONTACT/SEARCH rejection + CLEAR repair: **PASS**;
+- Mission 02 composition: **PASS**;
+- retained P01–P06 focused regressions: **PASS**;
+- nine-state rendered proof: **PASS and directly inspected**;
+- literal-head Web export/static-host smoke: **PASS**;
+- synthetic-merge Web export/static-host smoke: **PASS**;
+- literal-head + merge Web persistence: **PASS**;
+- current camera contracts + canonical 29-suite compatibility matrix: **PASS**.
 
-Gameplay/public merge baseline:
+Independent frozen review was attempted through both ChatGPT Codex code review and GitHub Copilot review. Both were unavailable because their review quotas were exhausted. A fresh exact-diff senior review in the coordinating ChatGPT session found no concrete blocker but was explicitly non-independent. The owner then explicitly waived the independent-review requirement. Treat this as an **OWNER-WAIVED GATE**, not as an independent approval.
 
-`cfe82d2580a7300e3ebb2bf3257d08a4300bf2a4`
+### Exact-main verification
 
-Burnside Production 06 main push run `33780522078`:
+Exact gameplay merge:
 
-- exact source checkout: **PASS**;
-- P06 mapped-knowledge persistence: **PASS**;
-- P06 survey tracer: **PASS**;
-- P06 Map/input/modal tracer: **PASS**;
-- retained P01–P05 focused regressions: **PASS**;
-- Production-06 GREEN requirement: **PASS**;
-- rendered proof capture/upload: **PASS**;
-- same-origin browser relaunch persistence: **PASS**;
-- rendered proof artifact `9903378705`, digest `sha256:29ff688fb027928b26b20e28694366766e0360289b8ad6ebe466cd51c59d1d8d`;
-- Web persistence artifact `9903424756`, digest `sha256:b53a3025d4343e44e1313efee0d1f38bc171d2546b6eef3985b699d1918643a5`.
+`3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`
 
-Godot Web Playtest main push run `33780522064`:
+Verification-only PR #139 was opened against the pre-P07 base solely to force the P07 pull-request workflow to execute literal head `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`; it was closed unmerged after verification.
+
+Production-07 exact-main run `33833338289`:
+
+- exact source checkout at `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`: **PASS**;
+- P07 vehicle semantics: **PASS**;
+- Burn Garage repair runtime: **PASS**;
+- Mission 02 composition: **PASS**;
+- real collision runtime tracer: **PASS**;
+- retained P01–P06 matrix: **PASS**;
+- exact-main rendered proof capture/upload: **PASS**;
+- artifact `9922447864`, digest `sha256:c63b4096b5aeb2e72be7e47b38b40400c7e884837ad3611c7c61c3d89d91d518`.
+
+Production-06 exact-main retained run `33833186967` additionally proved P06 persistence/survey/input plus retained P01–P05 regressions and same-origin browser relaunch persistence at the same gameplay SHA.
+
+Godot Web Playtest main push run `33833186949`:
 
 - exact source checkout: **PASS**;
 - mobile touch routing: **PASS**;
 - desktop controls / alias ownership / vehicle authority / interaction cancel: **PASS**;
 - Web export: **PASS**;
-- static-hosting smoke: **PASS**;
-- browser artifact upload: **PASS**;
+- static-host smoke: **PASS**;
 - source revision stamp verification: **PASS**;
 - public `playtest-web` publication: **PASS**.
 
 Public source stamp:
 
-`playtest-web/PLAYTEST_BUILD.txt = cfe82d2580a7300e3ebb2bf3257d08a4300bf2a4`
+`playtest-web/PLAYTEST_BUILD.txt = 3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`
 
-The canonical compatibility matrix remains intentionally PR-only in the Web workflow; it passed 29/29 on the exact reviewed P06 head before merge.
+## Post-Production-07 re-evaluation state
 
-## Post-Production-06 re-evaluation state
+Production 07 closes the immediate vehicle-consequence gap without bootstrapping ownership, maintenance, damage, or Garage networks. The player can now materially batter either retained vehicle, feel one bounded limp consequence, decide whether to ditch/swap/continue, and recover at one authored Garage while Wanted and Mission authority remain trustworthy.
 
-Production 06 closes the immediate learned-traversal gap. The player can now discover one real shortcut, have that knowledge persist across Replay/relaunch, and still receive truthful current-access state when the physical cut is jammed again.
-
-**Production 07 is not selected yet.** Re-evaluate from exact runnable behavior rather than numbering momentum.
+**Production 08 is not selected yet.** Re-evaluate from exact runnable behavior rather than numbering momentum.
 
 Leading credible next gaps to compare:
 
-1. **vehicle identity / condition / claiming** — existing Bike + Hauler are differentiated mechanically but still thin as owned/used city objects; pursue only if a bounded player-facing identity loop beats persistence/schema complexity;
-2. **next bounded Street-Combat depth** — P05 proves committed physical contact and tactical displacement, but no health/damage/death framework exists; any increment must improve fight/escape feel rather than bootstrap a combat framework;
-3. **relationship / Standing / authored consequence** — only if a small local outcome can visibly change later interactions without creating a broad reputation authority system;
-4. **deeper authored city mastery** — a second learned route/Old Cut may become valuable later, but do not generalize P06 into a Service Network or GPS system without evidence;
-5. Heat escalation, witnesses/surveillance, transit, broader geography, generalized persistence, or companion navigation remain later candidates unless current play proves they outrank smaller authored gains.
+1. **moment-to-moment vehicle feel / authored escape pressure** — P07 gives condition meaning, but the highest-value next gain may be a small handling/encounter pressure improvement rather than ownership systems;
+2. **next bounded Street-Combat depth** — P05 proves committed physical counterplay, but any increment must improve immediate fight/escape feel without creating a generic health/damage/death framework by default;
+3. **authored relationship / Standing consequence** — only if one small local outcome visibly changes later interactions without a broad reputation authority system;
+4. **deeper authored city mastery** — another deliberately authored shortcut/knowledge payoff only if it adds a distinct decision rather than generalizing P06 into a Service Network or GPS layer;
+5. **vehicle identity / claiming** — reconsider only if current play proves ownership meaning outranks its persistence/schema/UX complexity.
+
+Heat escalation, generalized witnesses/surveillance, transit, broader geography, generalized persistence, Garage networks, economy, companion navigation, and generalized vehicle/damage architecture remain later candidates unless current play proves they outrank smaller authored gains.
 
 ## Retained foundations / deferred lanes
 
-Do not recreate retained Feel tickets #12–#16, Missions 01–03, Open World Expansion 01A–01D, World Event 01 / PR #68, or Productions 01–06 because older roadmaps describe them historically.
+Do not recreate retained Feel tickets #12–#16, Missions 01–03, Open World Expansion 01A–01D, World Event 01 / PR #68, or Productions 01–07 because older roadmaps describe them historically.
 
-FB-13 / HS-7 remain authored persistent companions in canon. P06 does not create a generalized companion/navigation framework.
+FB-13 / HS-7 remain authored persistent companions in canon. P07 does not create a generalized companion/navigation framework.
 
 Audio Production remains a first-class parallel lane. Refresh live Audio branches/PRs before shared-scene/audio mutation. Actual perceptual audio claims require playback evidence.
 
-PR #44 — CTW Feel 03 camera occlusion readability — remains **DEFERRED** and must not be absorbed by momentum.
+PR #44 — CTW Feel 03 camera occlusion readability — remains **DEFERRED** unless fresh evidence materially changes priority.
 
 ## Verification / human-gate debt
 
@@ -191,9 +221,11 @@ Small reversible production increments may continue when they do not depend on t
 
 ## Local worktree truth
 
-This continuity update was executed through isolated GitHub branch/PR operations. No local checkout was established by this ChatGPT execution path.
+This continuity update was executed through isolated GitHub branch/PR operations. No local checkout was established by this ChatGPT execution path; an attempted isolated container clone failed before checkout because the container could not resolve GitHub DNS and produced no verification evidence.
 
 Until a local executor proves otherwise, local branch / HEAD / upstream / dirty state are **UNKNOWN**. Verify them before local mutation and preserve unrelated user/concurrent work.
+
+A temporary branch `verify/p07-exact-main-base` was created only to support exact-main PR verification. The available GitHub mutation surface could close PR #139 but could not delete that branch. It is inert, points at pre-P07 `f04aeadebf208e1ba0f3cba0090638c67d468838`, and is not implementation or continuity authority.
 
 ## Next-state rule
 
@@ -202,10 +234,10 @@ Next production session:
 1. refresh exact `main`, open PRs/issues, CI, public playtest, and concurrent Audio/shared-scene state;
 2. read `START_HERE.md`, issue #55, issue #118, and this continuity file;
 3. verify local repo/branch/HEAD/upstream/dirty state before local code mutation;
-4. re-evaluate post-P06 player-facing gaps by **fun / feel / clarity / cohesion / value / cost / risk**;
+4. re-evaluate post-P07 player-facing gaps by **fun / feel / clarity / cohesion / value / cost / risk**;
 5. select exactly one bounded next production increment only after evidence supports it;
 6. create the JIT ticket/spec for that increment;
-7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen independent REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
+7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW (independent when available, or explicitly owner-waived if the owner changes the gate) -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
 8. update continuity only after verified changes land.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
