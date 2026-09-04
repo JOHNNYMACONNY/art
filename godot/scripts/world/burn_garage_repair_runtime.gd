@@ -58,6 +58,8 @@ func configure(root_controller: Node, district: Node3D, wanted_runtime: Node) ->
 	_affordance_label.font_size = 22
 	_affordance_label.outline_size = 8
 	_affordance_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_affordance_label.no_depth_test = true
+	_affordance_label.fixed_size = true
 	_affordance_label.modulate = Color(0.95, 0.79, 0.30, 0.96)
 	_affordance_label.outline_modulate = Color(0.08, 0.08, 0.07, 0.96)
 	_affordance_label.visible = false
