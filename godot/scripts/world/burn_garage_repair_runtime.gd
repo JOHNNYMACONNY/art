@@ -55,7 +55,6 @@ func configure(root_controller: Node, district: Node3D, wanted_runtime: Node) ->
 
 	_affordance_label = Label3D.new()
 	_affordance_label.name = "BurnGarageRepairAffordance"
-	_affordance_label.global_position = _repair_socket.global_position + Vector3(0.0, 1.15, 0.0)
 	_affordance_label.font_size = 22
 	_affordance_label.outline_size = 8
 	_affordance_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -63,6 +62,7 @@ func configure(root_controller: Node, district: Node3D, wanted_runtime: Node) ->
 	_affordance_label.outline_modulate = Color(0.08, 0.08, 0.07, 0.96)
 	_affordance_label.visible = false
 	add_child(_affordance_label)
+	_affordance_label.global_position = _repair_socket.global_position + Vector3(0.0, 1.15, 0.0)
 
 	var action_callable := Callable(self, "handle_action_pressed")
 	if not touch_ui.action_button_pressed.is_connected(action_callable):
