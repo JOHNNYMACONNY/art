@@ -373,8 +373,8 @@ func _ensure_condition_presentation() -> void:
 		_condition_tag = Label3D.new()
 		_condition_tag.name = "VehicleConditionTag"
 		_condition_tag.position = Vector3(0.0, 1.85, 0.15)
-		_condition_tag.font_size = 22
-		_condition_tag.outline_size = 7
+		_condition_tag.font_size = 6
+		_condition_tag.outline_size = 2
 		_condition_tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		_condition_tag.no_depth_test = true
 		_condition_tag.fixed_size = true
