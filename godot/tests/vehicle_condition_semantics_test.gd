@@ -84,6 +84,11 @@ func _assert_vehicle_contract(vehicle: Node, label: String) -> String:
 		return "%s condition presentation snapshot is not a Dictionary" % label
 	if not bool(battered_presentation.get("damage_tag_visible", false)) or not bool(battered_presentation.get("smoke_emitting", false)):
 		return "%s BATTERED state is not visibly represented" % label
+	var condition_tag := vehicle.get_node_or_null("VehicleConditionTag") as Label3D
+	if condition_tag == null:
+		return "%s damage tag node is missing" % label
+	if not condition_tag.no_depth_test or not condition_tag.fixed_size:
+		return "%s damage tag can be occluded or shrink below readable production-camera size" % label
 
 	vehicle.call("reset_condition")
 	vehicle.set("_condition_contact_cooldown", 0.0)
