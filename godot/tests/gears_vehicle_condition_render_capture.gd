@@ -245,7 +245,7 @@ func _run() -> void:
 	if not await _open_map():
 		_fail("Could not open retained P06 route sheet after Replay")
 		return
-	var route_sheet := _survey.call("get_route_sheet")
+	var route_sheet: Control = _survey.call("get_route_sheet") as Control
 	if route_sheet == null or not bool(route_sheet.call("is_service_cut_visible")):
 		_fail("Retained mapped service cut is not visible after Replay")
 		return
