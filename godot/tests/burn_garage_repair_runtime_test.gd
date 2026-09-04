@@ -61,6 +61,13 @@ func _run() -> void:
 		if not runtime.has_method(method_name):
 			await _fail("BurnGarageRepairRuntime is missing %s" % method_name)
 			return
+	var repair_label := runtime.get_node_or_null("BurnGarageRepairAffordance") as Label3D
+	if repair_label == null:
+		await _fail("Burn Garage repair affordance label is missing")
+		return
+	if not repair_label.no_depth_test or not repair_label.fixed_size:
+		await _fail("Burn Garage repair affordance can be occluded or shrink below readable production-camera size")
+		return
 
 	var bike = _scene.get("courier_bike")
 	var hauler = _scene.get("scrap_hauler")
