@@ -89,6 +89,8 @@ func _assert_vehicle_contract(vehicle: Node, label: String) -> String:
 		return "%s damage tag node is missing" % label
 	if not condition_tag.no_depth_test or not condition_tag.fixed_size:
 		return "%s damage tag can be occluded or shrink below readable production-camera size" % label
+	if condition_tag.font_size < 5 or condition_tag.font_size > 8 or condition_tag.outline_size > 3:
+		return "%s fixed-size damage tag exceeds bounded readable screen footprint" % label
 
 	vehicle.call("reset_condition")
 	vehicle.set("_condition_contact_cooldown", 0.0)
