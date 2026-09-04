@@ -162,6 +162,9 @@ func _run() -> void:
 		await _fail("Successful repair mutated Wanted authority")
 		return
 
+	# Isolate a fresh active-vehicle fixture from the previous repair's short confirmation window.
+	runtime.set("_success_until_msec", 0)
+
 	# The retained interaction target must use the generic active vehicle, not Bike-only position logic.
 	if not _damage_once(hauler):
 		await _fail("Could not establish damaged Hauler fixture")
@@ -202,8 +205,16 @@ func _run() -> void:
 	if String(runtime.call("get_affordance_text")).is_empty():
 		await _fail("Damaged vehicle near Garage has no clear repair affordance")
 		return
-	if not bool(runtime.call("attempt_repair", hauler)) or String(hauler.call("get_condition_name")) != "ROADWORTHY":
-		await _fail("Eligible Scrap Hauler did not repair")
+
+	# Route the successful Hauler repair through the actual retained Action signal.
+	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
+	if touch_ui == null:
+		await _fail("Retained TouchControlsUI is missing")
+		return
+	touch_ui.action_button_pressed.emit()
+	await process_frame
+	if String(hauler.call("get_condition_name")) != "ROADWORTHY":
+		await _fail("Eligible Scrap Hauler did not repair through retained Action routing")
 		return
 
 	print("[P07_BURN_GARAGE_REPAIR] PASS")
