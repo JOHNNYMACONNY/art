@@ -15,6 +15,7 @@ var _garage: Node = null
 var _scrapper: Node = null
 var _survey: Node = null
 var _touch_ui: Node = null
+var _wanted_label: Label = null
 var _socket: Marker3D = null
 var _captures: Array[Dictionary] = []
 
@@ -124,8 +125,9 @@ func _run() -> void:
 	_scrapper = _scene.get_node_or_null("GearsScrapperToolRuntime")
 	_survey = _scene.get_node_or_null("GearsSurveyedServiceCutRuntime")
 	_touch_ui = _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
+	_wanted_label = _scene.get_node_or_null("CanvasLayer/WantedStatusLabel") as Label
 	_socket = _district.get_node_or_null("MissionDestinationSocket") as Marker3D if _district != null else null
-	if _district == null or _player == null or _camera == null or _bike == null or _hauler == null or _garage == null or _scrapper == null or _survey == null or _touch_ui == null or _socket == null:
+	if _district == null or _player == null or _camera == null or _bike == null or _hauler == null or _garage == null or _scrapper == null or _survey == null or _touch_ui == null or _wanted_label == null or _socket == null:
 		_fail("Rendered proof is missing a production dependency")
 		return
 
@@ -195,20 +197,27 @@ func _run() -> void:
 	if authority == null or not bool(authority.call("submit_report", "p07_render", _bike.global_position, Vector3.FORWARD, "p07_render_observer")):
 		_fail("Could not establish authoritative CONTACT fixture")
 		return
+	_wanted_runtime.call("_update_hud")
 	_garage.call("_process", 0.0)
 	if String(_wanted_runtime.call("get_wanted_state_name")) != "CONTACT" or String(_garage.call("get_affordance_text")) != "WANTED // SERVICE LOCKED":
 		_fail("Garage did not visibly reject repair during CONTACT")
+		return
+	if not _wanted_label.visible or not _wanted_label.text.contains("CONTACT"):
+		_fail("Rendered CONTACT fixture does not expose truthful Wanted HUD")
 		return
 	capture_error = await _capture("06_garage_wanted_rejected.png", "GARAGE_WANTED_REJECTED")
 	if not capture_error.is_empty():
 		_fail(capture_error)
 		return
 
-	authority.call("reset")
+	_wanted_runtime.call("reset_runtime")
 	_garage.call("_process", 0.0)
 	_scene.call("_evaluate_target_selection")
 	if String(_wanted_runtime.call("get_wanted_state_name")) != "CLEAR" or String(_garage.call("get_affordance_text")) != "REPAIR // ACTION":
 		_fail("Eligible Garage repair affordance is not readable")
+		return
+	if _wanted_label.visible:
+		_fail("Rendered CLEAR Garage fixture still exposes stale Wanted HUD")
 		return
 	if _scene.get("_active_target") != _garage.call("get_repair_interactable"):
 		_fail("Retained interaction selector did not own the Garage repair Action")
