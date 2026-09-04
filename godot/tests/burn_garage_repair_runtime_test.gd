@@ -193,10 +193,10 @@ func _run() -> void:
 	if _scene.get("_active_target") != interactable:
 		var selected = _scene.get("_active_target")
 		var selected_name := String(selected.name) if selected != null else "<none>"
-		var selected_score := -9999.0
+		var selected_score: float = -9999.0
 		if selected != null:
 			selected_score = float(selected.call("get_interaction_priority")) * 10.0 - selected.global_position.distance_to(hauler.global_position)
-		var repair_score := float(interactable.call("get_interaction_priority")) * 10.0 - interactable.global_position.distance_to(hauler.global_position)
+		var repair_score: float = float(interactable.call("get_interaction_priority")) * 10.0 - interactable.global_position.distance_to(hauler.global_position)
 		await _fail("Garage target lost retained selector despite registration/range; selected=%s selected_score=%.3f repair_score=%.3f" % [selected_name, selected_score, repair_score])
 		return
 	if String(runtime.call("get_affordance_text")).is_empty():
