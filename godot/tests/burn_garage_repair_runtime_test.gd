@@ -68,6 +68,9 @@ func _run() -> void:
 	if not repair_label.no_depth_test or not repair_label.fixed_size:
 		await _fail("Burn Garage repair affordance can be occluded or shrink below readable production-camera size")
 		return
+	if repair_label.font_size < 5 or repair_label.font_size > 8 or repair_label.outline_size > 3:
+		await _fail("Burn Garage fixed-size repair affordance exceeds bounded readable screen footprint")
+		return
 
 	var bike = _scene.get("courier_bike")
 	var hauler = _scene.get("scrap_hauler")
@@ -88,7 +91,6 @@ func _run() -> void:
 		await _fail("P07 repair point is not mounted at the authored MissionDestinationSocket")
 		return
 
-	# Outside Garage: damaged Bike must not repair.
 	if not _damage_once(bike) or String(bike.call("get_condition_name")) != "BATTERED":
 		await _fail("Could not establish damaged Bike fixture")
 		return
@@ -99,7 +101,6 @@ func _run() -> void:
 		await _fail("Repair succeeded outside Burn Garage radius")
 		return
 
-	# Moving inside Garage: still rejected.
 	bike.global_position = socket.global_position
 	bike.set("current_speed", 1.0)
 	if not bool(runtime.call("is_vehicle_in_repair_radius", bike)):
@@ -115,7 +116,6 @@ func _run() -> void:
 		return
 	bike.set("current_speed", 0.0)
 
-	# CONTACT must reject without Wanted or condition mutation.
 	if not bool(authority.call("submit_report", "p07_test", bike.global_position, Vector3.FORWARD, "p07_test_observer")):
 		await _fail("Could not establish authoritative CONTACT fixture")
 		return
@@ -135,7 +135,6 @@ func _run() -> void:
 		await _fail("Rejected CONTACT repair mutated vehicle condition")
 		return
 
-	# SEARCH must also reject.
 	if not bool(authority.call("lose_contact", bike.global_position, Vector3.FORWARD, "p07_test_loss")):
 		await _fail("Could not establish authoritative SEARCH fixture")
 		return
@@ -149,7 +148,6 @@ func _run() -> void:
 		await _fail("SEARCH rejection changed condition")
 		return
 
-	# CLEAR + stopped + authored Garage succeeds exactly once and never mutates Wanted.
 	authority.call("reset")
 	var before_clear_heat := int(_wanted_runtime.call("get_heat_level"))
 	var before_clear_state := String(_wanted_runtime.call("get_wanted_state_name"))
@@ -169,10 +167,8 @@ func _run() -> void:
 		await _fail("Successful repair mutated Wanted authority")
 		return
 
-	# Isolate a fresh active-vehicle fixture from the previous repair's short confirmation window.
 	runtime.set("_success_until_msec", 0)
 
-	# The retained interaction target must use the generic active vehicle, not Bike-only position logic.
 	if not _damage_once(hauler):
 		await _fail("Could not establish damaged Hauler fixture")
 		return
@@ -213,7 +209,6 @@ func _run() -> void:
 		await _fail("Damaged vehicle near Garage has no clear repair affordance")
 		return
 
-	# Route the successful Hauler repair through the actual retained Action signal.
 	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
 	if touch_ui == null:
 		await _fail("Retained TouchControlsUI is missing")
