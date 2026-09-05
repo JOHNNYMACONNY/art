@@ -92,15 +92,19 @@ A hard authored catch-up is permitted only as a recovery mechanism when FB-13 ha
 
 Rejoin contract:
 
-- local follow remains authoritative while FB-13 is within the supported local-follow range;
-- hard rejoin becomes eligible only after separation exceeds the bounded recovery threshold used by the implementation;
-- FB-13 must not hard-rejoin while visibly on-screen;
-- both the current FB-13 position and the selected destination must be outside the active camera viewport at the instant of the hard rejoin;
-- the destination must be a normal authored follow-side location near Runner, not directly in front of the camera or inside blocking geometry;
-- hard rejoin must not mutate Runner, vehicle, mission, Wanted, map, or persistence state;
-- repeated visible teleporting is a merge blocker.
+1. Normal local follow remains authoritative until FB-13 is at least `18.0 m` from Runner.
+2. Hard rejoin becomes eligible only if that separation persists for at least `0.75 s` and FB-13's current body position is outside the active camera viewport.
+3. Recovery evaluates at most four deterministic staging candidates on a `16.0 m` ring around Runner, derived from the active camera's horizontal forward/right basis.
+4. A staging candidate is valid only if it is outside the active camera viewport and passes the same bounded local static-geometry clearance used by ordinary follow behavior.
+5. If no staging candidate is valid, no hard rejoin occurs; FB-13 remains where it is and eligibility is checked again later.
+6. If a staging candidate is valid, FB-13 may snap only from its already-off-screen source position to that already-off-screen staging position.
+7. After that snap, FB-13 enters `REJOINING` and physically moves from the staging point toward the normal authored follow offset using a bounded catch-up speed. It may become visible during this physical return; the teleport portion itself must never be visible.
+8. `REJOINING` ends when FB-13 returns within `5.0 m` of Runner, at which point normal `FOLLOWING` resumes.
+9. Vehicle mounting overrides `REJOINING` and transitions into the appropriate vehicle dock state.
+10. Hard rejoin must not mutate Runner, vehicle, mission, Wanted, map, persistence, or Audio state.
+11. Any directly visible teleport or repeated pop-in is a merge blocker.
 
-The exact numerical threshold may be tuned during implementation, but the final value must be deterministic, test-covered, and recorded in the implementation contract before freeze.
+Normal follow speed, acceleration, side-offset dimensions, and the bounded `REJOINING` catch-up speed are implementation tuning values. They may be tuned under rendered proof, but the final frozen values must be deterministic, test-covered, and recorded in the implementation contract before freeze.
 
 ## 6. Vehicle mount / dock contract
 
@@ -116,7 +120,7 @@ Add one explicit `FB13DockSocket` using the existing cargo-bed area.
 
 Vehicle transition behavior:
 
-1. When the supported vehicle enters its retained mount transition, FB-13 leaves local follow mode.
+1. When the supported vehicle enters its retained mount transition, FB-13 leaves local follow/rejoin mode.
 2. FB-13 moves/blends into that vehicle's authored dock socket during the retained mount transition rather than disappearing from an exposed world position.
 3. While driving, FB-13 stays docked to the active vehicle.
 4. HS-7 remains attached to Runner and therefore moves with Runner's retained mounted posture/RiderSocket behavior.
@@ -164,7 +168,7 @@ Recommended production structure:
 
 - `godot/scenes/entities/fb13_companion_body.tscn`
 - `godot/scripts/entities/fb13_companion_body.gd`
-  - owns FB-13 local movement, local static-geometry clearance, dock interpolation, visibility state, and visual Thrum reaction only.
+  - owns FB-13 local movement, local static-geometry clearance, dock interpolation, viewport visibility/rejoin staging, and visual Thrum reaction only.
 
 - one small HS-7 carried visual scene or bounded Runner child composition;
 - `HS7CarrySocket` on Runner;
@@ -191,16 +195,15 @@ The P08 runtime needs only enough state to represent current physical presence.
 FB-13 externally testable presence states:
 
 - `FOLLOWING`
+- `REJOINING`
 - `DOCKING_BIKE`
 - `DOCKED_BIKE`
 - `DOCKING_HAULER`
 - `DOCKED_HAULER`
 
-A local catch-up/rejoin may be represented internally but must not become durable game state.
-
 HS-7 state in P08 is always `CARRIED` during ordinary playable runtime.
 
-No state is written to disk.
+No P08 companion state is written to disk.
 
 ## 10. Replay / reset
 
@@ -230,6 +233,7 @@ Rendered proof must establish that:
 - FB-13 does not repeatedly cross the camera/Runner line in a distracting way;
 - Bike and Hauler dock positions remain visually believable from retained driving framing;
 - FB-13 does not obscure vehicle-condition tags, mission HUD, Garage affordances, or interaction targets;
+- off-camera rejoin staging does not produce visible teleport/pop-in;
 - mobile viewport framing remains usable;
 - any implementation scale/presentation tuning is bounded to companion visuals and sockets rather than camera changes.
 
@@ -242,6 +246,7 @@ Allowed recurring work:
 - one local desired-offset update for FB-13;
 - a small bounded set of local geometry clearance queries;
 - active camera visibility checks needed for recovery;
+- at most four fixed recovery-candidate checks when hard rejoin is eligible;
 - simple interpolation and presentation animation.
 
 Not allowed without new measured evidence:
@@ -257,7 +262,7 @@ Not allowed without new measured evidence:
 
 Audio remains outside P08.
 
-The retained FB-13 Thrum Audio behavior must remain byte-for-behavior equivalent unless a separately authorized Audio change is proven necessary.
+The retained FB-13 Thrum Audio behavior must remain behaviorally unchanged unless a separately authorized Audio change is proven necessary.
 
 P08 may modify shared Runner / CourierBike / ScrapHauler scene structure only to add the approved named companion sockets/visual attachment seam. It must not mutate retained Audio resources, event IDs, mix behavior, radio behavior, vehicle feedback Audio, or Audio registries.
 
@@ -273,20 +278,21 @@ Focused P08 verification must cover at minimum:
 2. FB-13 follows Runner while preserving the authored side/trailing relationship;
 3. blocked preferred offset uses only the bounded alternate local behavior;
 4. local obstruction does not invoke navmesh/pathfinding;
-5. excessive separation cannot hard-rejoin while FB-13 or the destination is visible on-screen;
-6. eligible off-camera separation recovery returns FB-13 to valid local presence;
+5. hard rejoin remains ineligible below `18.0 m`, before `0.75 s`, while FB-13 is visible, or when all four deterministic staging candidates are visible/blocked;
+6. eligible recovery snaps only between off-screen source/staging positions, then enters `REJOINING` and physically returns before resuming `FOLLOWING` within `5.0 m`;
 7. CourierBike mount transitions FB-13 into the Bike dock and retains HS-7 with Runner;
 8. CourierBike dismount releases FB-13 physically from the Bike location;
 9. ScrapHauler mount/dismount satisfies the equivalent contract;
 10. rejected dismount does not corrupt companion state;
-11. retained FB-13 Thrum triggers exactly once under its old rules while the body performs only its visual reaction;
-12. Mission 03 / HS-7 Memory Echo ordering and authored payload remain unchanged;
-13. Replay restores canonical P08 state and does not modify durable P06 mapped knowledge;
-14. retained P07 vehicle condition/repair behavior remains unchanged;
-15. retained P01-P07 focused regression suites remain green;
-16. current camera contracts remain green;
-17. literal-head Web export/static-host smoke passes;
-18. exact-head rendered evidence proves on-foot, Bike-docked, Hauler-docked, Thrum reaction, dismount/rejoin, and mobile-readable states.
+11. mounting during `REJOINING` cleanly transfers FB-13 into the correct dock state;
+12. retained FB-13 Thrum triggers exactly once under its old rules while the body performs only its visual reaction;
+13. Mission 03 / HS-7 Memory Echo ordering and authored payload remain unchanged;
+14. Replay restores canonical P08 state and does not modify durable P06 mapped knowledge;
+15. retained P07 vehicle condition/repair behavior remains unchanged;
+16. retained P01-P07 focused regression suites remain green;
+17. current camera contracts remain green;
+18. literal-head Web export/static-host smoke passes;
+19. exact-head rendered evidence proves on-foot, Bike-docked, Hauler-docked, Thrum reaction, physical dismount/release, off-camera recovery return, and mobile-readable states.
 
 The final frozen candidate must be reviewed against this design/spec and the eventual implementation plan before merge.
 
