@@ -1,6 +1,8 @@
 class_name BurnsideCompanionPresenceRuntime
 extends Node
 
+const HS7_SCENE := preload("res://scenes/entities/hs7_carried_module.tscn")
+
 var _runner: PlayerRunner = null
 var _camera: Camera3D = null
 var _fb13: FB13CompanionBody = null
@@ -35,38 +37,28 @@ func configure(
 		_fb13.configure(_runner, _camera)
 
 	if _courier_bike and _courier_bike.has_signal("state_changed"):
-		var cb_bike := Callable(self, "_on_bike_state_changed")
-		if not _courier_bike.state_changed.is_connected(cb_bike):
-			_courier_bike.state_changed.connect(cb_bike)
+		if not _courier_bike.state_changed.is_connected(_on_bike_state_changed):
+			_courier_bike.state_changed.connect(_on_bike_state_changed)
 
 	if _scrap_hauler and _scrap_hauler.has_signal("state_changed"):
-		var cb_hauler := Callable(self, "_on_hauler_state_changed")
-		if not _scrap_hauler.state_changed.is_connected(cb_hauler):
-			_scrap_hauler.state_changed.connect(cb_hauler)
+		if not _scrap_hauler.state_changed.is_connected(_on_hauler_state_changed):
+			_scrap_hauler.state_changed.connect(_on_hauler_state_changed)
 
 	if _thrum_event and _thrum_event.has_signal("thrum_triggered"):
-		var cb_thrum := Callable(self, "_on_fb13_thrum_triggered")
-		if not _thrum_event.thrum_triggered.is_connected(cb_thrum):
-			_thrum_event.thrum_triggered.connect(cb_thrum)
+		if not _thrum_event.thrum_triggered.is_connected(_on_fb13_thrum_triggered):
+			_thrum_event.thrum_triggered.connect(_on_fb13_thrum_triggered)
 
 	_is_configured = true
 
 func reset_presence() -> void:
-	_active_dock_socket = null
+	_release_fb13_from_dock()
 	if _fb13 and is_instance_valid(_fb13):
-		var target_parent: Node = get_parent()
-		if target_parent != null and _fb13.get_parent() != target_parent:
-			_fb13.reparent(target_parent, true)
-		if _fb13.has_method("set_active_vehicle"):
-			_fb13.call("set_active_vehicle", null)
 		_fb13.reset_to_follow_position()
 
 	var hs7_sock := get_hs7_socket()
 	if hs7_sock != null and hs7_sock.get_child_count() == 0:
-		var hs7_scene := load("res://scenes/entities/hs7_carried_module.tscn") as PackedScene
-		if hs7_scene:
-			var hs7_inst := hs7_scene.instantiate()
-			hs7_sock.add_child(hs7_inst)
+		var hs7_inst := HS7_SCENE.instantiate()
+		hs7_sock.add_child(hs7_inst)
 
 func get_fb13() -> FB13CompanionBody:
 	return _fb13
@@ -121,11 +113,13 @@ func _handle_vehicle_state_changed(
 			if vehicle:
 				socket = vehicle.get_node_or_null("FB13DockSocket") as Node3D
 			_active_dock_socket = socket
-			if _fb13.has_method("set_active_vehicle"):
-				_fb13.call("set_active_vehicle", vehicle)
+			_fb13.set_active_vehicle(vehicle)
 			_fb13.begin_dock(socket, docking_state, docked_state)
 		"DISMOUNTING":
 			_release_fb13_from_dock()
+		"PARKED":
+			if _fb13.current_state == docking_state or _fb13.current_state == docked_state:
+				_release_fb13_from_dock()
 
 func _release_fb13_from_dock() -> void:
 	if _fb13 == null or not is_instance_valid(_fb13):
@@ -137,8 +131,7 @@ func _release_fb13_from_dock() -> void:
 	var target_parent: Node = get_parent()
 	if target_parent != null and _fb13.get_parent() != target_parent:
 		_fb13.reparent(target_parent, true)
-	if _fb13.has_method("set_active_vehicle"):
-		_fb13.call("set_active_vehicle", null)
+	_fb13.set_active_vehicle(null)
 	_fb13.release_from_dock(origin)
 
 func _on_fb13_thrum_triggered(payload: Dictionary) -> void:

@@ -62,7 +62,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	if _eye_mesh:
-		var mat = _eye_mesh.get_surface_override_material(0)
+		var mat: Material = _eye_mesh.get_surface_override_material(0)
 		if mat == null and _eye_mesh.mesh and _eye_mesh.mesh.material:
 			mat = _eye_mesh.mesh.material
 		if mat is StandardMaterial3D:
@@ -255,20 +255,20 @@ func _get_runner_forward() -> Vector3:
 	if _runner == null or not is_instance_valid(_runner):
 		return Vector3(0, 0, -1)
 	var pivot := _runner.get_node_or_null("MeshPivot") as Node3D
-	var b := pivot.global_transform.basis if pivot else _runner.global_transform.basis
-	var fwd := Vector3(-b.z.x, 0.0, -b.z.z)
-	if fwd.length_squared() > 0.001:
-		return fwd.normalized()
+	var runner_basis: Basis = pivot.global_transform.basis if pivot else _runner.global_transform.basis
+	var fwd_dir := Vector3(-runner_basis.z.x, 0.0, -runner_basis.z.z)
+	if fwd_dir.length_squared() > 0.001:
+		return fwd_dir.normalized()
 	return Vector3(0, 0, -1)
 
 func _get_runner_right() -> Vector3:
 	if _runner == null or not is_instance_valid(_runner):
 		return Vector3(1, 0, 0)
 	var pivot := _runner.get_node_or_null("MeshPivot") as Node3D
-	var b := pivot.global_transform.basis if pivot else _runner.global_transform.basis
-	var r := Vector3(b.x.x, 0.0, b.x.z)
-	if r.length_squared() > 0.001:
-		return r.normalized()
+	var runner_basis: Basis = pivot.global_transform.basis if pivot else _runner.global_transform.basis
+	var right_dir := Vector3(runner_basis.x.x, 0.0, runner_basis.x.z)
+	if right_dir.length_squared() > 0.001:
+		return right_dir.normalized()
 	return Vector3(1, 0, 0)
 
 func _get_collision_exclusions() -> Array[RID]:
@@ -278,6 +278,14 @@ func _get_collision_exclusions() -> Array[RID]:
 	if _active_vehicle is CollisionObject3D:
 		exclude.append((_active_vehicle as CollisionObject3D).get_rid())
 	return exclude
+
+func _is_spatial_point_vacant(space_state: PhysicsDirectSpaceState3D, pos: Vector3, exclusions: Array[RID]) -> bool:
+	if _shape_query == null:
+		return true
+	_shape_query.transform = Transform3D(Basis.IDENTITY, pos)
+	_shape_query.exclude = exclusions
+	var shape_hits := space_state.intersect_shape(_shape_query, 1)
+	return shape_hits.is_empty()
 
 func _is_candidate_clear(target_pos: Vector3) -> bool:
 	if not is_inside_tree():
@@ -299,14 +307,7 @@ func _is_candidate_clear(target_pos: Vector3) -> bool:
 	if not ray_hit.is_empty():
 		return false
 
-	if _shape_query != null:
-		_shape_query.transform = Transform3D(Basis.IDENTITY, target_pos)
-		_shape_query.exclude = exclusions
-		var shape_hits := space_state.intersect_shape(_shape_query, 1)
-		if not shape_hits.is_empty():
-			return false
-
-	return true
+	return _is_spatial_point_vacant(space_state, target_pos, exclusions)
 
 func _is_staging_candidate_clear(candidate_pos: Vector3) -> bool:
 	if not is_inside_tree():
@@ -319,26 +320,7 @@ func _is_staging_candidate_clear(candidate_pos: Vector3) -> bool:
 		return true
 
 	var exclusions := _get_collision_exclusions()
-	if _runner != null:
-		var ray := PhysicsRayQueryParameters3D.create(
-			_runner.global_position + Vector3.UP * FOLLOW_HEIGHT_M,
-			candidate_pos
-		)
-		ray.collide_with_areas = false
-		ray.collide_with_bodies = true
-		ray.exclude = exclusions
-		var ray_hit := space_state.intersect_ray(ray)
-		if not ray_hit.is_empty():
-			return false
-
-	if _shape_query != null:
-		_shape_query.transform = Transform3D(Basis.IDENTITY, candidate_pos)
-		_shape_query.exclude = exclusions
-		var shape_hits := space_state.intersect_shape(_shape_query, 1)
-		if not shape_hits.is_empty():
-			return false
-
-	return true
+	return _is_spatial_point_vacant(space_state, candidate_pos, exclusions)
 
 func _is_point_off_screen(world_pos: Vector3) -> bool:
 	if _camera == null or not is_instance_valid(_camera):
@@ -350,7 +332,7 @@ func _is_point_off_screen(world_pos: Vector3) -> bool:
 		return false
 	var screen_pos: Vector2 = _camera.unproject_position(world_pos)
 	var vp_rect: Rect2 = viewport.get_visible_rect()
-	return not vp_rect.has_point(screen_pos)
+	return not vp_rect.grow(32.0).has_point(screen_pos)
 
 func _try_hard_rejoin() -> bool:
 	if _camera == null or not is_instance_valid(_camera):
