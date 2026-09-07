@@ -45,12 +45,12 @@ var _dock_timer: float = 0.0
 
 var _sphere_shape: SphereShape3D = null
 var _shape_query: PhysicsShapeQueryParameters3D = null
+var _dock_start_transform: Transform3D = Transform3D.IDENTITY
+var _eye_mat: StandardMaterial3D = null
+var _default_emission_energy: float = 2.0
 
 @onready var _visual_root: Node3D = get_node_or_null("VisualRoot")
 @onready var _eye_mesh: MeshInstance3D = get_node_or_null("VisualRoot/Eye")
-
-var _eye_mat: StandardMaterial3D = null
-var _default_emission_energy: float = 2.0
 
 func _init() -> void:
 	_sphere_shape = SphereShape3D.new()
@@ -62,7 +62,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	if _eye_mesh:
-		var mat = _eye_mesh.get_surface_override_material(0)
+		var mat: Material = _eye_mesh.get_surface_override_material(0)
 		if mat == null and _eye_mesh.mesh and _eye_mesh.mesh.material:
 			mat = _eye_mesh.mesh.material
 		if mat is StandardMaterial3D:
@@ -124,6 +124,7 @@ func begin_dock(socket: Node3D, docking_state: PresenceState, docked_state: Pres
 	_velocity = Vector3.ZERO
 	if socket != null:
 		reparent(socket, true)
+	_dock_start_transform = transform
 
 func release_from_dock(world_origin: Vector3) -> void:
 	_dock_socket = null
@@ -131,14 +132,7 @@ func release_from_dock(world_origin: Vector3) -> void:
 	global_position = world_origin
 	_velocity = Vector3.ZERO
 	_separation_timer = 0.0
-	if _runner and is_instance_valid(_runner):
-		var dist := global_position.distance_to(_runner.global_position)
-		if dist >= REJOIN_COMPLETE_DISTANCE_M:
-			current_state = PresenceState.REJOINING
-		else:
-			current_state = PresenceState.FOLLOWING
-	else:
-		current_state = PresenceState.FOLLOWING
+	current_state = PresenceState.FOLLOWING
 
 func tick_presence(delta: float) -> void:
 	_update_thrum_reaction(delta)
@@ -156,7 +150,7 @@ func tick_presence(delta: float) -> void:
 func _tick_docking(delta: float) -> void:
 	_dock_timer += delta
 	var t := clampf(_dock_timer / DOCK_INTERPOLATION_DURATION, 0.0, 1.0)
-	transform = transform.interpolate_with(Transform3D.IDENTITY, t)
+	transform = _dock_start_transform.interpolate_with(Transform3D.IDENTITY, t)
 	if t >= 1.0:
 		transform = Transform3D.IDENTITY
 		current_state = _dock_target_state
@@ -174,6 +168,8 @@ func _tick_following(delta: float) -> void:
 		if _separation_timer >= REJOIN_DELAY_SEC:
 			if _try_hard_rejoin():
 				return
+			_velocity = Vector3.ZERO
+			return
 	else:
 		_separation_timer = 0.0
 
@@ -213,13 +209,16 @@ func _move_towards(target_pos: Vector3, max_speed: float, accel: float, delta: f
 		var target_rot_y := atan2(-look_dir.x, -look_dir.z)
 		rotation.y = lerp_angle(rotation.y, target_rot_y, 10.0 * delta)
 
-func _clamp_movement_by_clearance(step: Vector3) -> Vector3:
+func _get_space_state() -> PhysicsDirectSpaceState3D:
 	if not is_inside_tree():
-		return step
+		return null
 	var world := get_world_3d()
 	if world == null:
-		return step
-	var space_state := world.direct_space_state
+		return null
+	return world.direct_space_state
+
+func _clamp_movement_by_clearance(step: Vector3) -> Vector3:
+	var space_state := _get_space_state()
 	if space_state == null:
 		return step
 
@@ -246,34 +245,37 @@ func _select_follow_target() -> Vector3:
 
 	return global_position
 
-func _compute_preferred_follow_target() -> Vector3:
+func _compute_follow_target(lateral_sign: float = 1.0) -> Vector3:
+	if _runner == null or not is_instance_valid(_runner):
+		return global_position
 	var fwd := _get_runner_forward()
 	var right := _get_runner_right()
-	return _runner.global_position - fwd * FOLLOW_TRAIL_M + right * FOLLOW_SIDE_M + Vector3.UP * FOLLOW_HEIGHT_M
+	return _runner.global_position - fwd * FOLLOW_TRAIL_M + right * (FOLLOW_SIDE_M * lateral_sign) + Vector3.UP * FOLLOW_HEIGHT_M
+
+func _compute_preferred_follow_target() -> Vector3:
+	return _compute_follow_target(1.0)
 
 func _compute_alternate_follow_target() -> Vector3:
-	var fwd := _get_runner_forward()
-	var right := _get_runner_right()
-	return _runner.global_position - fwd * FOLLOW_TRAIL_M - right * FOLLOW_SIDE_M + Vector3.UP * FOLLOW_HEIGHT_M
+	return _compute_follow_target(-1.0)
 
 func _get_runner_forward() -> Vector3:
 	if _runner == null or not is_instance_valid(_runner):
 		return Vector3(0, 0, -1)
 	var pivot := _runner.get_node_or_null("MeshPivot") as Node3D
-	var b := pivot.global_transform.basis if pivot else _runner.global_transform.basis
-	var fwd := Vector3(-b.z.x, 0.0, -b.z.z)
-	if fwd.length_squared() > 0.001:
-		return fwd.normalized()
+	var runner_basis: Basis = pivot.global_transform.basis if pivot else _runner.global_transform.basis
+	var fwd_dir := Vector3(-runner_basis.z.x, 0.0, -runner_basis.z.z)
+	if fwd_dir.length_squared() > 0.001:
+		return fwd_dir.normalized()
 	return Vector3(0, 0, -1)
 
 func _get_runner_right() -> Vector3:
 	if _runner == null or not is_instance_valid(_runner):
 		return Vector3(1, 0, 0)
 	var pivot := _runner.get_node_or_null("MeshPivot") as Node3D
-	var b := pivot.global_transform.basis if pivot else _runner.global_transform.basis
-	var r := Vector3(b.x.x, 0.0, b.x.z)
-	if r.length_squared() > 0.001:
-		return r.normalized()
+	var runner_basis: Basis = pivot.global_transform.basis if pivot else _runner.global_transform.basis
+	var right_dir := Vector3(runner_basis.x.x, 0.0, runner_basis.x.z)
+	if right_dir.length_squared() > 0.001:
+		return right_dir.normalized()
 	return Vector3(1, 0, 0)
 
 func _get_collision_exclusions() -> Array[RID]:
@@ -284,13 +286,16 @@ func _get_collision_exclusions() -> Array[RID]:
 		exclude.append((_active_vehicle as CollisionObject3D).get_rid())
 	return exclude
 
+func _is_spatial_point_vacant(space_state: PhysicsDirectSpaceState3D, pos: Vector3, exclusions: Array[RID]) -> bool:
+	if _shape_query == null:
+		return true
+	_shape_query.transform = Transform3D(Basis.IDENTITY, pos)
+	_shape_query.exclude = exclusions
+	var shape_hits := space_state.intersect_shape(_shape_query, 1)
+	return shape_hits.is_empty()
+
 func _is_candidate_clear(target_pos: Vector3) -> bool:
-	if not is_inside_tree():
-		return true
-	var world := get_world_3d()
-	if world == null:
-		return true
-	var space_state := world.direct_space_state
+	var space_state := _get_space_state()
 	if space_state == null:
 		return true
 
@@ -304,34 +309,15 @@ func _is_candidate_clear(target_pos: Vector3) -> bool:
 	if not ray_hit.is_empty():
 		return false
 
-	if _shape_query != null:
-		_shape_query.transform = Transform3D(Basis.IDENTITY, target_pos)
-		_shape_query.exclude = exclusions
-		var shape_hits := space_state.intersect_shape(_shape_query, 1)
-		if not shape_hits.is_empty():
-			return false
-
-	return true
+	return _is_spatial_point_vacant(space_state, target_pos, exclusions)
 
 func _is_staging_candidate_clear(candidate_pos: Vector3) -> bool:
-	if not is_inside_tree():
-		return true
-	var world := get_world_3d()
-	if world == null:
-		return true
-	var space_state := world.direct_space_state
+	var space_state := _get_space_state()
 	if space_state == null:
 		return true
 
 	var exclusions := _get_collision_exclusions()
-	if _shape_query != null:
-		_shape_query.transform = Transform3D(Basis.IDENTITY, candidate_pos)
-		_shape_query.exclude = exclusions
-		var shape_hits := space_state.intersect_shape(_shape_query, 1)
-		if not shape_hits.is_empty():
-			return false
-
-	return true
+	return _is_spatial_point_vacant(space_state, candidate_pos, exclusions)
 
 func _is_point_off_screen(world_pos: Vector3) -> bool:
 	if _camera == null or not is_instance_valid(_camera):
@@ -343,16 +329,11 @@ func _is_point_off_screen(world_pos: Vector3) -> bool:
 		return false
 	var screen_pos: Vector2 = _camera.unproject_position(world_pos)
 	var vp_rect: Rect2 = viewport.get_visible_rect()
-	var margin := 8.0
-	var safe_rect := Rect2(
-		vp_rect.position.x + margin,
-		vp_rect.position.y + margin,
-		vp_rect.size.x - margin * 2.0,
-		vp_rect.size.y - margin * 2.0
-	)
-	return not safe_rect.has_point(screen_pos)
+	return not vp_rect.grow(32.0).has_point(screen_pos)
 
 func _try_hard_rejoin() -> bool:
+	if _runner == null or not is_instance_valid(_runner):
+		return false
 	if _camera == null or not is_instance_valid(_camera):
 		return false
 	if not _is_point_off_screen(global_position):

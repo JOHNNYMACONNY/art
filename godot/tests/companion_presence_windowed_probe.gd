@@ -206,6 +206,22 @@ func _run() -> void:
 			await _fail(cap_err)
 			return
 
+	# --- 7. Constrained Mobile Viewport Framing Proof ---
+	var orig_size: Vector2i = root.size
+	root.size = Vector2i(400, 700)
+	for _i in range(15):
+		await process_frame
+		await physics_frame
+
+	cap_err = await _capture("07_mobile_viewport_framing.png", "FB-13 and HS-7 companion framing under constrained mobile viewport (400x700)")
+	if not cap_err.is_empty():
+		await _fail(cap_err)
+		return
+	root.size = orig_size
+	for _i in range(5):
+		await process_frame
+		await physics_frame
+
 	# Write summary report
 	var report := {
 		"schema_version": 1,

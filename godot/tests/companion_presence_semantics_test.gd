@@ -143,6 +143,24 @@ func _run() -> void:
 	if dist_to_obs < 0.6:
 		await _fail("FB-13 penetrated obstacle (dist=%.2f)" % dist_to_obs)
 		return
+	obs.queue_free()
+
+	# Test alternate follow offset when preferred offset is blocked (Spec line 279)
+	fb13.call("reset_to_follow_position")
+	var pref_pos: Vector3 = fb13.call("_compute_preferred_follow_target")
+	var alt_pos: Vector3 = fb13.call("_compute_alternate_follow_target")
+	fb13.global_position = runner.global_position - Vector3(0, 0, 1.0) + Vector3.UP * 1.2
+	var pref_obs := _create_obstacle(pref_pos, Vector3(1.5, 1.5, 1.5))
+	await physics_frame
+	await physics_frame
+	for _i in range(120):
+		fb13.call("tick_presence", 1.0 / 60.0)
+	var dist_to_alt: float = fb13.global_position.distance_to(alt_pos)
+	if dist_to_alt > 1.2:
+		await _fail("FB-13 did not select alternate follow target when preferred blocked (dist to alt: %.2f)" % dist_to_alt)
+		return
+	pref_obs.queue_free()
+	await physics_frame
 
 	# Separation and rejoin checks
 	# 1. 17.9m for > 0.75s -> NO hard rejoin
@@ -178,6 +196,39 @@ func _run() -> void:
 	if int(fb13.call("get_hard_rejoin_count")) != initial_rejoin_count:
 		await _fail("Hard rejoin triggered while FB-13 source position was visible in frustum")
 		return
+
+	# 3b. When all staging candidates are blocked, hard rejoin is suppressed (Spec line 281)
+	fb13.call("reset_to_follow_position")
+	camera.global_position = Vector3(0, 2, 5)
+	camera.look_at(Vector3(0, 0, -10), Vector3.UP)
+	fb13.global_position = Vector3(0, 0, 25) # off-screen
+	runner.global_position = Vector3(0, 0, 0)
+	var staging_obstacles: Array[Node] = []
+	var cam_fwd := Vector3(0, 0, -1)
+	var cam_right := Vector3(1, 0, 0)
+	var candidate_offsets: Array[Vector3] = [
+		-cam_fwd,
+		(-cam_fwd + cam_right).normalized(),
+		(-cam_fwd - cam_right).normalized(),
+		cam_right
+	]
+	for d in candidate_offsets:
+		var cpos: Vector3 = runner.global_position + d * 16.0
+		cpos.y = runner.global_position.y + 1.15
+		staging_obstacles.append(_create_obstacle(cpos, Vector3(4.0, 4.0, 4.0)))
+
+	await physics_frame
+	await physics_frame
+
+	var blocked_rejoin_count: int = int(fb13.call("get_hard_rejoin_count"))
+	for _i in range(60): # 1.0s > 0.75s
+		fb13.call("tick_presence", 1.0 / 60.0)
+	if int(fb13.call("get_hard_rejoin_count")) != blocked_rejoin_count:
+		await _fail("Hard rejoin triggered when all staging candidates were blocked")
+		return
+	for staging_obs in staging_obstacles:
+		staging_obs.queue_free()
+	await physics_frame
 
 	# 4. Source off-screen and valid off-screen staging candidate -> exactly one hard rejoin
 	fb13.call("reset_to_follow_position")

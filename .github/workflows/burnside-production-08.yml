@@ -117,7 +117,8 @@ jobs:
             03_bike_dismount_release.png \
             04_scrap_hauler_docked.png \
             05_hard_rejoin_physical_return.png \
-            06_thrum_body_reaction.png; do
+            06_thrum_body_reaction.png \
+            07_mobile_viewport_framing.png; do
             test -s "godot/verification/production08/$image"
           done
           test -s godot/verification/production08/companion_presence_report.json
@@ -193,6 +194,8 @@ jobs:
             civic_repossession_wanted_composition_test.gd
             field_hacking_report_suppression_test.gd
             wanted_heat1_scene_test.gd
+            camera_mount_transition_test.gd
+            dynamic_camera_follow_test.gd
           )
           for test_file in "${tests[@]}"; do
             echo "::group::$test_file"
