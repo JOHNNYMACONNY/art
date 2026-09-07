@@ -1,8 +1,8 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_PRODUCTION_01_02_03_04_05_06_07_MERGED_VERIFIED__READY_FOR_POST_PRODUCTION_07_REEVALUATION`  
-**Verified production gameplay/public baseline:** `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`  
-**Final frozen Production-07 feature head:** `b98f7e00a0865f5f9e6902cdf7dba2d66d9dec8f`  
+**Status:** `BURNSIDE_PRODUCTION_01_02_03_04_05_06_07_08_MERGED_VERIFIED__READY_FOR_POST_PRODUCTION_08_REEVALUATION`  
+**Verified production gameplay/public baseline:** `fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`  
+**Final frozen Production-08 feature head:** `892c8eb0e32602b7974f2281ce9a81d0141abcf5`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -10,7 +10,7 @@
 
 ## Current product state
 
-Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, durable mapped route knowledge, coarse vehicle condition, and one bounded Burn Garage repair loop compose in the same geography.
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, and authored FB-13 / HS-7 companion presence compose in the same geography.
 
 Approved visual direction remains **Civic Salvage Palimpsest / Industrial Cel-Shaded Near Future**. Issue #118 remains the canonical downstream Burnside player-facing production contract. Issue #55 remains the durable product-direction anchor.
 
@@ -25,6 +25,7 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 05** — #131 / PR #132 — Gears Scrapper Tool / Street-Combat Contact Tracer — `702678cb66ab7544b43644cfa29baf5361c68dc1`.
 - **Production 06** — #134 / PR #135 — Gears Surveyed Service Cut / Durable Map-Knowledge Tracer — `cfe82d2580a7300e3ebb2bf3257d08a4300bf2a4`.
 - **Production 07** — #137 / PR #138 — Gears Vehicle Condition / Burn Garage Repair Tracer — `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`.
+- **Production 08** — #141 / PR #143 — FB-13 / HS-7 Authored Companion Presence Tracer — `fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`.
 
 ## Retained authority truths
 
@@ -181,27 +182,105 @@ Public source stamp:
 
 `playtest-web/PLAYTEST_BUILD.txt = 3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`
 
-## Post-Production-07 re-evaluation state
+## Production 08 — verified player-facing result
 
-Production 07 closes the immediate vehicle-consequence gap without bootstrapping ownership, maintenance, damage, or Garage networks. The player can now materially batter either retained vehicle, feel one bounded limp consequence, decide whether to ditch/swap/continue, and recover at one authored Garage while Wanted and Mission authority remain trustworthy.
+Issue #141 / PR #143: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED** pending only this docs continuity merge and issue closure.
 
-**Production 08 is not selected yet.** Re-evaluate from exact runnable behavior rather than numbering momentum.
+Frozen feature head:
+
+`892c8eb0e32602b7974f2281ce9a81d0141abcf5`
+
+Exact gameplay merge / verified public baseline:
+
+`fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`
+
+Player loop:
+
+`RUNNER ON FOOT -> FB-13 FOLLOWS LOCALLY / HS-7 CARRIED -> MOUNT BIKE/HAULER -> FB-13 DOCKS IN RACK/BED -> DISMOUNT -> FB-13 RELEASES TO FOLLOW -> SUSTAINED OFF-SCREEN SEPARATION -> OFF-SCREEN SNAP -> PHYSICAL REJOIN -> RETEAM`
+
+Production truths:
+
+- character-specific presence: FB-13 mobile drone body + HS-7 carried memory module;
+- FB-13 is collisionless with no gameplay collision authority (no physics shove, cannot block Runner, vehicles, NPCs, or objectives);
+- bounded local follow: side 2.1 m, trailing 1.8 m, height 1.15 m;
+- clearance queries: one preferred candidate + one alternate mirrored candidate; holds/lags if both obstructed;
+- follow speed (10.5 m/s) and acceleration (28.0 m/s²) intentionally outpace Runner's 8.5 m/s sprint so straight-line running does not force recovery;
+- hard recovery: eligible only when separation >= 18.0 m sustained for >= 0.75 s while FB-13 is off-screen;
+- deterministic recovery staging: up to 4 deterministic candidate positions on a 16.0 m ring around Runner evaluated for off-screen and clearance;
+- recovery snap is off-screen source -> off-screen staging candidate only; visible catch-up is physical `REJOINING` movement at 15.0 m/s until within 5.0 m; zero visible popping;
+- explicit vehicle dock sockets: CourierBike rear cargo rack (`FB13DockSocket`) and ScrapHauler cargo bed (`FB13DockSocket`);
+- docking starts on retained vehicle `state_changed("MOUNTING")` and interpolates over 0.20 s, completing before the vehicle's 0.25 s mount;
+- rejected dismount keeps FB-13 docked;
+- successful dismount starts on retained vehicle `state_changed("DISMOUNTING")`, releasing FB-13 physically from vehicle origin;
+- HS-7 carried visual instanced under Runner `MeshPivot/Torso/HS7CarrySocket` (presentation-only, moves with torso across all postures);
+- retained `FB13ThrumWorldEvent` owns trigger/Audio authority; P08 adds only a local FB-13 body reaction (tilt + emission pulse) for <= 0.65 s; exactly one `FB13_THRUM` Audio event per trigger;
+- full Replay resets transient companion presence only; P06 mapped knowledge survives intact; Mission 03 Memory Echo payload/order unchanged;
+- no generalized companion AI, navmesh, `NavigationAgent3D`, companion manager, inventory, combat, or audio changes.
+
+## Production 08 verification truth
+
+### Frozen feature head
+
+At `892c8eb0e32602b7974f2281ce9a81d0141abcf5`:
+
+- exact-source P08 semantics/runtime: **PASS**;
+- companion vehicle docking (Bike/Hauler mount, dock, rejected dismount, release): **PASS**;
+- companion Thrum composition, Replay, P06 durability, Mission 03 regression: **PASS**;
+- retained P01–P07 focused regressions (18 test suites): **PASS**;
+- windowed rendered proof (6 screenshots + JSON report telemetry): **PASS and directly inspected**;
+- literal-head Web export/static-host smoke: **PASS**;
+- synthetic-merge Web export/static-host smoke: **PASS**;
+- current camera contracts + canonical 29-suite compatibility matrix: **PASS**.
+
+Independent frozen review was completed against spec, plan, and diff, confirming zero scope leakage into audio, player locomotion, vehicle physics, or mission code.
+
+### Exact-main verification
+
+Exact gameplay merge:
+
+`fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`
+
+Production-08 exact-main run `34158273607`:
+
+- exact source checkout at `fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`: **PASS**;
+- P08 semantics / runtime / docking / thrum: **PASS**;
+- retained P01–P07 matrix (18 test suites): **PASS**;
+- exact-main rendered proof capture/upload: **PASS**;
+- artifact `production08-rendered-proof-fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`.
+
+Godot Web Playtest main push run `34158239032`:
+
+- exact source checkout: **PASS**;
+- mobile touch routing / desktop controls: **PASS**;
+- Web export: **PASS**;
+- static-host smoke: **PASS**;
+- public `playtest-web` publication: **PASS**.
+
+Public source stamp:
+
+`playtest-web/PLAYTEST_BUILD.txt = fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`
+
+## Post-Production-08 re-evaluation state
+
+Production 08 grounds FB-13 and HS-7 as visible, physical companions in ordinary Gears play. FB-13 follows, navigates local clearance, docks in both vehicles, reacts to the civic Thrum, and recovers off-screen without pop-in. HS-7 remains physically carried with Runner across on-foot and mounted postures. All of this was accomplished without a generalized companion AI, navmesh, save schema, or audio changes.
+
+**Production 09 is not selected yet.** Re-evaluate from exact runnable behavior rather than numbering momentum.
 
 Leading credible next gaps to compare:
 
-1. **moment-to-moment vehicle feel / authored escape pressure** — P07 gives condition meaning, but the highest-value next gain may be a small handling/encounter pressure improvement rather than ownership systems;
-2. **next bounded Street-Combat depth** — P05 proves committed physical counterplay, but any increment must improve immediate fight/escape feel without creating a generic health/damage/death framework by default;
-3. **authored relationship / Standing consequence** — only if one small local outcome visibly changes later interactions without a broad reputation authority system;
-4. **deeper authored city mastery** — another deliberately authored shortcut/knowledge payoff only if it adds a distinct decision rather than generalizing P06 into a Service Network or GPS layer;
-5. **vehicle identity / claiming** — reconsider only if current play proves ownership meaning outranks its persistence/schema/UX complexity.
+1. **next bounded Street-Combat danger/depth** — P05 proves committed physical counterplay with the Scrapper Tool, but production still has no Player Health/Armor or escalating pursuer danger;
+2. **authored relationship / Standing consequence** — one small local outcome that visibly changes later interactions or gate/access decisions without a broad reputation authority system;
+3. **vehicle claiming / identity** — P07 gives condition and repair meaning, but vehicle ownership/claiming remains unaddressed;
+4. **deeper authored city mastery** — another deliberately authored shortcut/knowledge payoff only if it adds a distinct decision rather than generalizing into a GPS layer;
+5. **moment-to-moment vehicle feel / authored escape pressure** — handling/encounter pressure improvements under Heat-1 pursuit.
 
 Heat escalation, generalized witnesses/surveillance, transit, broader geography, generalized persistence, Garage networks, economy, companion navigation, and generalized vehicle/damage architecture remain later candidates unless current play proves they outrank smaller authored gains.
 
 ## Retained foundations / deferred lanes
 
-Do not recreate retained Feel tickets #12–#16, Missions 01–03, Open World Expansion 01A–01D, World Event 01 / PR #68, or Productions 01–07 because older roadmaps describe them historically.
+Do not recreate retained Feel tickets #12–#16, Missions 01–03, Open World Expansion 01A–01D, World Event 01 / PR #68, or Productions 01–08 because older roadmaps describe them historically.
 
-FB-13 / HS-7 remain authored persistent companions in canon. P07 does not create a generalized companion/navigation framework.
+FB-13 / HS-7 companion presence is now embodied in production gameplay. Do not add generalized companion AI or navmesh frameworks.
 
 Audio Production remains a first-class parallel lane. Refresh live Audio branches/PRs before shared-scene/audio mutation. Actual perceptual audio claims require playback evidence.
 
@@ -219,14 +298,6 @@ Still not completed unless fresh evidence says otherwise:
 
 Small reversible production increments may continue when they do not depend on those unanswered gates.
 
-## Local worktree truth
-
-This continuity update was executed through isolated GitHub branch/PR operations. No local checkout was established by this ChatGPT execution path; an attempted isolated container clone failed before checkout because the container could not resolve GitHub DNS and produced no verification evidence.
-
-Until a local executor proves otherwise, local branch / HEAD / upstream / dirty state are **UNKNOWN**. Verify them before local mutation and preserve unrelated user/concurrent work.
-
-A temporary branch `verify/p07-exact-main-base` was created only to support exact-main PR verification. The available GitHub mutation surface could close PR #139 but could not delete that branch. It is inert, points at pre-P07 `f04aeadebf208e1ba0f3cba0090638c67d468838`, and is not implementation or continuity authority.
-
 ## Next-state rule
 
 Next production session:
@@ -234,7 +305,7 @@ Next production session:
 1. refresh exact `main`, open PRs/issues, CI, public playtest, and concurrent Audio/shared-scene state;
 2. read `START_HERE.md`, issue #55, issue #118, and this continuity file;
 3. verify local repo/branch/HEAD/upstream/dirty state before local code mutation;
-4. re-evaluate post-P07 player-facing gaps by **fun / feel / clarity / cohesion / value / cost / risk**;
+4. re-evaluate post-P08 player-facing gaps by **fun / feel / clarity / cohesion / value / cost / risk**;
 5. select exactly one bounded next production increment only after evidence supports it;
 6. create the JIT ticket/spec for that increment;
 7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW (independent when available, or explicitly owner-waived if the owner changes the gate) -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
