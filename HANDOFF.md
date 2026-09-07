@@ -1,8 +1,9 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_PRODUCTION_01_02_03_04_05_06_07_08_MERGED_VERIFIED__READY_FOR_POST_PRODUCTION_08_REEVALUATION`  
-**Verified production gameplay/public baseline:** `fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`  
+**Status:** `BURNSIDE_PRODUCTION_01_02_03_04_05_06_07_08_MERGED_VERIFIED__TWO_AXIS_REVIEW_POLISHED__READY_FOR_POST_PRODUCTION_08_REEVALUATION`  
+**Verified production gameplay/public baseline:** `37c130b10db057ba923d5a9a6738081fa91e6fdf`  
 **Final frozen Production-08 feature head:** `892c8eb0e32602b7974f2281ce9a81d0141abcf5`  
+**Review polish feature head:** `39082b1c676d54cf535c366ff40cfbfe3b75c873`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -25,7 +26,7 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 05** — #131 / PR #132 — Gears Scrapper Tool / Street-Combat Contact Tracer — `702678cb66ab7544b43644cfa29baf5361c68dc1`.
 - **Production 06** — #134 / PR #135 — Gears Surveyed Service Cut / Durable Map-Knowledge Tracer — `cfe82d2580a7300e3ebb2bf3257d08a4300bf2a4`.
 - **Production 07** — #137 / PR #138 — Gears Vehicle Condition / Burn Garage Repair Tracer — `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`.
-- **Production 08** — #141 / PR #143 — FB-13 / HS-7 Authored Companion Presence Tracer — `fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`.
+- **Production 08** — #141 / PR #143 / PR #145 (review polish) — FB-13 / HS-7 Authored Companion Presence Tracer — `37c130b10db057ba923d5a9a6738081fa91e6fdf`.
 
 ## Retained authority truths
 
@@ -232,33 +233,34 @@ At `892c8eb0e32602b7974f2281ce9a81d0141abcf5`:
 - synthetic-merge Web export/static-host smoke: **PASS**;
 - current camera contracts + canonical 29-suite compatibility matrix: **PASS**.
 
-Independent frozen review was completed against spec, plan, and diff, confirming zero scope leakage into audio, player locomotion, vehicle physics, or mission code.
+Independent two-axis review (Standards + Spec) was completed on the feature diff and followed by a dedicated review-polish cycle (PR #145), resolving:
+- **Standards Axis**: Godot 4 typed signals (`node.signal_name.connect(...)`), variable declaration ordering (`@onready` after regular variables), vector math deduplication for follow target offsets, space state extraction helper `_get_space_state()`, and defensive null guards on Runner dereferences.
+- **Spec Axis**: Linear dock interpolation via cached `_dock_start_transform`; outward 32px viewport boundary expansion (`vp_rect.grow(32.0)`) eliminating visual pop-in / mesh boundary edge clipping; Spec line 99 remain-in-place on failed hard rejoin; strict alignment of dock release to vehicle dismount; modeled `hs7_state: "CARRIED"` in runtime snapshot; full test coverage for Spec lines 279 (alternate follow target selection) and 281 (hard rejoin suppression under full staging ring occlusion); mobile viewport framing capture (`07_mobile_viewport_framing.png` at 400x700).
 
 ### Exact-main verification
 
-Exact gameplay merge:
+Initial gameplay merge: `fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`  
+Post-review polished gameplay merge (PR #145): `37c130b10db057ba923d5a9a6738081fa91e6fdf`
 
-`fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`
+Production-08 exact-main run `34160830753`:
 
-Production-08 exact-main run `34158273607`:
-
-- exact source checkout at `fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`: **PASS**;
+- exact source checkout at `37c130b10db057ba923d5a9a6738081fa91e6fdf`: **PASS**;
 - P08 semantics / runtime / docking / thrum: **PASS**;
-- retained P01–P07 matrix (18 test suites): **PASS**;
-- exact-main rendered proof capture/upload: **PASS**;
-- artifact `production08-rendered-proof-fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`.
+- retained P01–P07 matrix (including camera mount transition and dynamic camera follow): **PASS**;
+- exact-main rendered proof capture/upload (7 screenshots including mobile viewport framing): **PASS**;
+- artifact `production08-rendered-proof-37c130b10db057ba923d5a9a6738081fa91e6fdf`.
 
-Godot Web Playtest main push run `34158239032`:
+Godot Web Playtest main push run `34160816224`:
 
 - exact source checkout: **PASS**;
-- mobile touch routing / desktop controls: **PASS**;
+- mobile touch routing / desktop controls / vehicle authority / interaction cancel: **PASS**;
 - Web export: **PASS**;
 - static-host smoke: **PASS**;
 - public `playtest-web` publication: **PASS**.
 
 Public source stamp:
 
-`playtest-web/PLAYTEST_BUILD.txt = fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`
+`playtest-web/PLAYTEST_BUILD.txt = 37c130b10db057ba923d5a9a6738081fa91e6fdf`
 
 ## Post-Production-08 re-evaluation state
 
