@@ -1,0 +1,110 @@
+name: Camera Occlusion 13
+
+on:
+  push:
+    branches:
+      - "chatgpt/camera-occlusion-13"
+  pull_request:
+    paths:
+      - "godot/scripts/camera/**"
+      - "godot/scenes/props/**"
+      - "godot/tests/camera_occlusion_readability_test.gd"
+      - "godot/tests/camera_occluder_authoring_test.gd"
+      - "godot/tests/camera_occlusion_render_evidence.gd"
+      - ".github/workflows/camera-occlusion-13.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  occlusion-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1 editor
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+
+      - name: Run camera occlusion behavior contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/camera_occlusion_readability_test.gd
+
+      - name: Run camera occluder authoring contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/camera_occluder_authoring_test.gd
+
+      - name: Capture rendered occlusion evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v xvfb-run
+          rm -rf godot/verification/feel/camera_occlusion_13_runtime
+          xvfb-run -a "$GODOT_BIN" \
+            --audio-driver Dummy \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/camera_occlusion_render_evidence.gd
+          test -s godot/verification/feel/camera_occlusion_13_runtime/01_clear_baseline.png
+          test -s godot/verification/feel/camera_occlusion_13_runtime/02_occluded_without_cutaway.png
+          test -s godot/verification/feel/camera_occlusion_13_runtime/03_cutaway_enabled.png
+          test -s godot/verification/feel/camera_occlusion_13_runtime/04_restored_after_clear.png
+          test -s godot/verification/feel/camera_occlusion_13_runtime/metrics.json
+
+      - name: Upload rendered occlusion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: camera-occlusion-13-evidence-${{ env.SOURCE_SHA }}
+          path: godot/verification/feel/camera_occlusion_13_runtime
+          if-no-files-found: warn
+          retention-days: 14

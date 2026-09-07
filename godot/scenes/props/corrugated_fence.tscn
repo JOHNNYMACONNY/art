@@ -15,7 +15,10 @@ size = Vector3(3.0, 1.8, 0.06)
 material = ExtResource("2_rust")
 size = Vector3(3.1, 0.1, 0.1)
 
-[node name="CorrugatedFence" type="Node3D"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_camera_occlusion"]
+size = Vector3(3.2, 2.2, 0.3)
+
+[node name="CorrugatedFence" type="Node3D" groups=["camera_occluder"]]
 
 [node name="PostL" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 1.1, 0)
@@ -32,3 +35,13 @@ mesh = SubResource("BoxMesh_sheet")
 [node name="TopCap" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.95, 0)
 mesh = SubResource("BoxMesh_top_bar")
+
+[node name="CameraOcclusionProxy" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+collision_layer = 1073741824
+collision_mask = 0
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CameraOcclusionProxy"]
+shape = SubResource("BoxShape3D_camera_occlusion")

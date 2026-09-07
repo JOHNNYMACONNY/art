@@ -15,7 +15,10 @@ size = Vector3(2.5, 2.3, 0.25)
 material = ExtResource("2_rust")
 size = Vector3(0.2, 0.2, 4.8)
 
-[node name="SalvageContainer" type="Node3D"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_camera_occlusion"]
+size = Vector3(2.5, 2.4, 4.9)
+
+[node name="SalvageContainer" type="Node3D" groups=["camera_occluder"]]
 
 [node name="ContainerBody" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
@@ -36,3 +39,13 @@ mesh = SubResource("BoxMesh_roof_rail")
 [node name="RoofRailR" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.15, 2.2, 0)
 mesh = SubResource("BoxMesh_roof_rail")
+
+[node name="CameraOcclusionProxy" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
+collision_layer = 1073741824
+collision_mask = 0
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CameraOcclusionProxy"]
+shape = SubResource("BoxShape3D_camera_occlusion")
