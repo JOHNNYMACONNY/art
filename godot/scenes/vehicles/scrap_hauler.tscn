@@ -164,6 +164,9 @@ mesh = SubResource("Mesh_Battery")
 [node name="RiderSocket" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, -0.15)
 
+[node name="FB13DockSocket" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 1.25)
+
 [node name="MountInteractable" type="Area3D" parent="."]
 script = ExtResource("2_mount")
 interaction_priority = 2.0

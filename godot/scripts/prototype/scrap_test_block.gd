@@ -44,6 +44,8 @@ enum PursuitState {
 @onready var status_label: Label = $CanvasLayer/StatusLabel
 @onready var world_env: WorldEnvironment = $WorldEnvironment
 @onready var power_conduit: MeshInstance3D = $PowerConduit
+@onready var companion_presence_runtime: BurnsideCompanionPresenceRuntime = get_node_or_null("BurnsideCompanionPresenceRuntime")
+@onready var fb13_companion_body: FB13CompanionBody = get_node_or_null("FB13CompanionBody")
 
 var signal_tuner: SignalTuner = null
 var courier_bike: CourierBike = null
@@ -132,6 +134,16 @@ func _ready() -> void:
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
+			
+	if companion_presence_runtime and fb13_companion_body:
+		companion_presence_runtime.configure(
+			player,
+			camera,
+			fb13_companion_body,
+			courier_bike,
+			scrap_hauler as ScrapHauler,
+			get_node_or_null("FB13ThrumWorldEvent")
+		)
 			
 	var pursuer_scene: PackedScene = load("res://scenes/entities/pursuer_prototype.tscn")
 	if pursuer_scene:
@@ -753,6 +765,8 @@ func reset_slice() -> void:
 	if scrap_hauler and scrap_hauler.has_method("reset_condition"):
 		scrap_hauler.reset_condition()
 	active_vehicle = null
+	if companion_presence_runtime:
+		companion_presence_runtime.reset_presence()
 		
 	current_world_state = WorldLoopState.START
 	current_pursuit_state = PursuitState.CALM
