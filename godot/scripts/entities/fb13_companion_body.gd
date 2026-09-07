@@ -168,6 +168,8 @@ func _tick_following(delta: float) -> void:
 		if _separation_timer >= REJOIN_DELAY_SEC:
 			if _try_hard_rejoin():
 				return
+			_velocity = Vector3.ZERO
+			return
 	else:
 		_separation_timer = 0.0
 
@@ -207,13 +209,16 @@ func _move_towards(target_pos: Vector3, max_speed: float, accel: float, delta: f
 		var target_rot_y := atan2(-look_dir.x, -look_dir.z)
 		rotation.y = lerp_angle(rotation.y, target_rot_y, 10.0 * delta)
 
-func _clamp_movement_by_clearance(step: Vector3) -> Vector3:
+func _get_space_state() -> PhysicsDirectSpaceState3D:
 	if not is_inside_tree():
-		return step
+		return null
 	var world := get_world_3d()
 	if world == null:
-		return step
-	var space_state := world.direct_space_state
+		return null
+	return world.direct_space_state
+
+func _clamp_movement_by_clearance(step: Vector3) -> Vector3:
+	var space_state := _get_space_state()
 	if space_state == null:
 		return step
 
@@ -241,6 +246,8 @@ func _select_follow_target() -> Vector3:
 	return global_position
 
 func _compute_follow_target(lateral_sign: float = 1.0) -> Vector3:
+	if _runner == null or not is_instance_valid(_runner):
+		return global_position
 	var fwd := _get_runner_forward()
 	var right := _get_runner_right()
 	return _runner.global_position - fwd * FOLLOW_TRAIL_M + right * (FOLLOW_SIDE_M * lateral_sign) + Vector3.UP * FOLLOW_HEIGHT_M
@@ -288,12 +295,7 @@ func _is_spatial_point_vacant(space_state: PhysicsDirectSpaceState3D, pos: Vecto
 	return shape_hits.is_empty()
 
 func _is_candidate_clear(target_pos: Vector3) -> bool:
-	if not is_inside_tree():
-		return true
-	var world := get_world_3d()
-	if world == null:
-		return true
-	var space_state := world.direct_space_state
+	var space_state := _get_space_state()
 	if space_state == null:
 		return true
 
@@ -310,12 +312,7 @@ func _is_candidate_clear(target_pos: Vector3) -> bool:
 	return _is_spatial_point_vacant(space_state, target_pos, exclusions)
 
 func _is_staging_candidate_clear(candidate_pos: Vector3) -> bool:
-	if not is_inside_tree():
-		return true
-	var world := get_world_3d()
-	if world == null:
-		return true
-	var space_state := world.direct_space_state
+	var space_state := _get_space_state()
 	if space_state == null:
 		return true
 
@@ -335,6 +332,8 @@ func _is_point_off_screen(world_pos: Vector3) -> bool:
 	return not vp_rect.grow(32.0).has_point(screen_pos)
 
 func _try_hard_rejoin() -> bool:
+	if _runner == null or not is_instance_valid(_runner):
+		return false
 	if _camera == null or not is_instance_valid(_camera):
 		return false
 	if not _is_point_off_screen(global_position):

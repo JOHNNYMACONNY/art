@@ -72,11 +72,14 @@ func get_active_dock_socket() -> Node3D:
 	return _active_dock_socket
 
 func get_runtime_snapshot() -> Dictionary:
+	var hs7_sock := get_hs7_socket()
+	var hs7_state := "CARRIED" if hs7_sock != null and hs7_sock.get_child_count() > 0 else "ABSENT"
 	return {
 		"is_configured": _is_configured,
 		"has_runner": _runner != null,
 		"has_fb13": _fb13 != null,
 		"fb13_state": _fb13.get_presence_state() if _fb13 else -1,
+		"hs7_state": hs7_state,
 		"active_dock": _active_dock_socket.name if _active_dock_socket else "",
 		"follow_distance": _fb13.get_follow_distance() if _fb13 else 0.0,
 		"hard_rejoin_count": _fb13.get_hard_rejoin_count() if _fb13 else 0,
@@ -117,9 +120,6 @@ func _handle_vehicle_state_changed(
 			_fb13.begin_dock(socket, docking_state, docked_state)
 		"DISMOUNTING":
 			_release_fb13_from_dock()
-		"PARKED":
-			if _fb13.current_state == docking_state or _fb13.current_state == docked_state:
-				_release_fb13_from_dock()
 
 func _release_fb13_from_dock() -> void:
 	if _fb13 == null or not is_instance_valid(_fb13):
