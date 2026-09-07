@@ -313,6 +313,26 @@ func _is_candidate_clear(target_pos: Vector3) -> bool:
 
 	return true
 
+func _is_staging_candidate_clear(candidate_pos: Vector3) -> bool:
+	if not is_inside_tree():
+		return true
+	var world := get_world_3d()
+	if world == null:
+		return true
+	var space_state := world.direct_space_state
+	if space_state == null:
+		return true
+
+	var exclusions := _get_collision_exclusions()
+	if _shape_query != null:
+		_shape_query.transform = Transform3D(Basis.IDENTITY, candidate_pos)
+		_shape_query.exclude = exclusions
+		var shape_hits := space_state.intersect_shape(_shape_query, 1)
+		if not shape_hits.is_empty():
+			return false
+
+	return true
+
 func _is_point_off_screen(world_pos: Vector3) -> bool:
 	if _camera == null or not is_instance_valid(_camera):
 		return false
@@ -366,7 +386,7 @@ func _try_hard_rejoin() -> bool:
 		candidate_pos.y = _runner.global_position.y + FOLLOW_HEIGHT_M
 		if not _is_point_off_screen(candidate_pos):
 			continue
-		if not _is_candidate_clear(candidate_pos):
+		if not _is_staging_candidate_clear(candidate_pos):
 			continue
 
 		global_position = candidate_pos

@@ -104,6 +104,31 @@ jobs:
         run: |
           set -euo pipefail
           "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/companion_thrum_replay_mission03_test.gd
+      - name: Companion presence rendered proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$SOURCE_SHA" timeout --signal=TERM 120s xvfb-run -a "$GODOT_BIN" \
+            --rendering-method gl_compatibility --path godot \
+            --script res://tests/companion_presence_windowed_probe.gd
+          for image in \
+            01_on_foot_follow.png \
+            02_courier_bike_docked.png \
+            03_bike_dismount_release.png \
+            04_scrap_hauler_docked.png \
+            05_hard_rejoin_physical_return.png \
+            06_thrum_body_reaction.png; do
+            test -s "godot/verification/production08/$image"
+          done
+          test -s godot/verification/production08/companion_presence_report.json
+      - name: Upload Companion Presence rendered proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production08-rendered-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production08
+          if-no-files-found: error
+          retention-days: 14
 
   retained-regressions:
     name: Exact-source retained P01-P07 regressions
