@@ -45,12 +45,12 @@ var _dock_timer: float = 0.0
 
 var _sphere_shape: SphereShape3D = null
 var _shape_query: PhysicsShapeQueryParameters3D = null
+var _dock_start_transform: Transform3D = Transform3D.IDENTITY
+var _eye_mat: StandardMaterial3D = null
+var _default_emission_energy: float = 2.0
 
 @onready var _visual_root: Node3D = get_node_or_null("VisualRoot")
 @onready var _eye_mesh: MeshInstance3D = get_node_or_null("VisualRoot/Eye")
-
-var _eye_mat: StandardMaterial3D = null
-var _default_emission_energy: float = 2.0
 
 func _init() -> void:
 	_sphere_shape = SphereShape3D.new()
@@ -124,6 +124,7 @@ func begin_dock(socket: Node3D, docking_state: PresenceState, docked_state: Pres
 	_velocity = Vector3.ZERO
 	if socket != null:
 		reparent(socket, true)
+	_dock_start_transform = transform
 
 func release_from_dock(world_origin: Vector3) -> void:
 	_dock_socket = null
@@ -131,14 +132,7 @@ func release_from_dock(world_origin: Vector3) -> void:
 	global_position = world_origin
 	_velocity = Vector3.ZERO
 	_separation_timer = 0.0
-	if _runner and is_instance_valid(_runner):
-		var dist := global_position.distance_to(_runner.global_position)
-		if dist >= REJOIN_COMPLETE_DISTANCE_M:
-			current_state = PresenceState.REJOINING
-		else:
-			current_state = PresenceState.FOLLOWING
-	else:
-		current_state = PresenceState.FOLLOWING
+	current_state = PresenceState.FOLLOWING
 
 func tick_presence(delta: float) -> void:
 	_update_thrum_reaction(delta)
@@ -156,7 +150,7 @@ func tick_presence(delta: float) -> void:
 func _tick_docking(delta: float) -> void:
 	_dock_timer += delta
 	var t := clampf(_dock_timer / DOCK_INTERPOLATION_DURATION, 0.0, 1.0)
-	transform = transform.interpolate_with(Transform3D.IDENTITY, t)
+	transform = _dock_start_transform.interpolate_with(Transform3D.IDENTITY, t)
 	if t >= 1.0:
 		transform = Transform3D.IDENTITY
 		current_state = _dock_target_state
@@ -246,15 +240,16 @@ func _select_follow_target() -> Vector3:
 
 	return global_position
 
-func _compute_preferred_follow_target() -> Vector3:
+func _compute_follow_target(lateral_sign: float = 1.0) -> Vector3:
 	var fwd := _get_runner_forward()
 	var right := _get_runner_right()
-	return _runner.global_position - fwd * FOLLOW_TRAIL_M + right * FOLLOW_SIDE_M + Vector3.UP * FOLLOW_HEIGHT_M
+	return _runner.global_position - fwd * FOLLOW_TRAIL_M + right * (FOLLOW_SIDE_M * lateral_sign) + Vector3.UP * FOLLOW_HEIGHT_M
+
+func _compute_preferred_follow_target() -> Vector3:
+	return _compute_follow_target(1.0)
 
 func _compute_alternate_follow_target() -> Vector3:
-	var fwd := _get_runner_forward()
-	var right := _get_runner_right()
-	return _runner.global_position - fwd * FOLLOW_TRAIL_M - right * FOLLOW_SIDE_M + Vector3.UP * FOLLOW_HEIGHT_M
+	return _compute_follow_target(-1.0)
 
 func _get_runner_forward() -> Vector3:
 	if _runner == null or not is_instance_valid(_runner):
@@ -324,6 +319,18 @@ func _is_staging_candidate_clear(candidate_pos: Vector3) -> bool:
 		return true
 
 	var exclusions := _get_collision_exclusions()
+	if _runner != null:
+		var ray := PhysicsRayQueryParameters3D.create(
+			_runner.global_position + Vector3.UP * FOLLOW_HEIGHT_M,
+			candidate_pos
+		)
+		ray.collide_with_areas = false
+		ray.collide_with_bodies = true
+		ray.exclude = exclusions
+		var ray_hit := space_state.intersect_ray(ray)
+		if not ray_hit.is_empty():
+			return false
+
 	if _shape_query != null:
 		_shape_query.transform = Transform3D(Basis.IDENTITY, candidate_pos)
 		_shape_query.exclude = exclusions
@@ -343,14 +350,7 @@ func _is_point_off_screen(world_pos: Vector3) -> bool:
 		return false
 	var screen_pos: Vector2 = _camera.unproject_position(world_pos)
 	var vp_rect: Rect2 = viewport.get_visible_rect()
-	var margin := 8.0
-	var safe_rect := Rect2(
-		vp_rect.position.x + margin,
-		vp_rect.position.y + margin,
-		vp_rect.size.x - margin * 2.0,
-		vp_rect.size.y - margin * 2.0
-	)
-	return not safe_rect.has_point(screen_pos)
+	return not vp_rect.has_point(screen_pos)
 
 func _try_hard_rejoin() -> bool:
 	if _camera == null or not is_instance_valid(_camera):
