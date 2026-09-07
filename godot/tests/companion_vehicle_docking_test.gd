@@ -77,6 +77,8 @@ func _run() -> void:
 
 	# 6. Test CourierBike mount / dock lifecycle
 	runner.global_position = bike.global_position + Vector3(0.5, 0.0, 0.5)
+	if bike.get("mount_interactable"):
+		bike.mount_interactable.call("update_player_distance", runner.global_position)
 	var bike_mounted: bool = bike.call("request_mount", runner)
 	if not bike_mounted:
 		await _fail("CourierBike request_mount failed")
@@ -125,6 +127,8 @@ func _run() -> void:
 	# 7. Test ScrapHauler mount / dock lifecycle with REJOINING override
 	fb13.set("current_state", 1) # Force REJOINING
 	runner.global_position = hauler.global_position + Vector3(0.5, 0.0, 0.5)
+	if hauler.get("mount_interactable"):
+		hauler.mount_interactable.call("update_player_distance", runner.global_position)
 	var hauler_mounted: bool = hauler.call("request_mount", runner)
 	if not hauler_mounted:
 		await _fail("ScrapHauler request_mount failed")

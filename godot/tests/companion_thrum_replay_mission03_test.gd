@@ -2,6 +2,7 @@ extends SceneTree
 
 const SCENE_PATH := "res://scenes/prototype/scrap_test_block.tscn"
 const STORE_SCRIPT_PATH := "res://scripts/progress/surveyed_route_progress_store.gd"
+const AUDIO_MANAGER_SCRIPT_PATH := "res://scripts/audio/audio_manager.gd"
 const ROUTE_ID := "gears.service_alley_north_connector"
 
 var _scene: Node = null
@@ -61,7 +62,9 @@ func _run() -> void:
 	var contract_before: Dictionary = thrum_event.call("get_world_event_contract")
 	var before_trigger_count: int = int(thrum_event.get("trigger_count"))
 	var audio_counts: Dictionary = audio_mgr.get("event_counts")
-	var before_audio_count: int = int(audio_counts.get(14, 0)) # 14 = SoundEvent.FB13_THRUM
+	var audio_script = load(AUDIO_MANAGER_SCRIPT_PATH)
+	var thrum_event_id: int = audio_script.SoundEvent.FB13_THRUM if audio_script else 26
+	var before_audio_count: int = int(audio_counts.get(thrum_event_id, 0))
 	var before_reaction_count: int = int(fb13.call("get_thrum_reaction_count"))
 
 	# Move runner to primary resonance point
@@ -81,7 +84,7 @@ func _run() -> void:
 		return
 
 	audio_counts = audio_mgr.get("event_counts")
-	var after_audio_count: int = int(audio_counts.get(14, 0))
+	var after_audio_count: int = int(audio_counts.get(thrum_event_id, 0))
 	if after_audio_count != before_audio_count + 1:
 		await _fail("AudioManager FB13_THRUM count did not increment by exactly 1 (before=%d, after=%d)" % [before_audio_count, after_audio_count])
 		return
