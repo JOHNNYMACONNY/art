@@ -1,6 +1,7 @@
-[gd_scene load_steps=19 format=3 uid="uid://c_player_runner_001"]
+[gd_scene load_steps=20 format=3 uid="uid://c_player_runner_001"]
 
 [ext_resource type="Script" path="res://scripts/player/runner.gd" id="1_runner"]
+[ext_resource type="PackedScene" uid="uid://hs7carriedmod001" path="res://scenes/entities/hs7_carried_module.tscn" id="2_hs7"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
@@ -103,6 +104,11 @@ mesh = SubResource("Mesh_ChestRig")
 [node name="Satchel" type="MeshInstance3D" parent="MeshPivot/Torso"]
 transform = Transform3D(0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 0, 0, 1, 0.22, -0.15, 0.08)
 mesh = SubResource("Mesh_Satchel")
+
+[node name="HS7CarrySocket" type="Node3D" parent="MeshPivot/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.22, -0.15, 0.08)
+
+[node name="HS7CarriedModule" parent="MeshPivot/Torso/HS7CarrySocket" instance=ExtResource("2_hs7")]
 
 [node name="Head" type="Node3D" parent="MeshPivot"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, 0)

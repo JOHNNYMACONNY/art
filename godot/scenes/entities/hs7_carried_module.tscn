@@ -1,0 +1,43 @@
+[gd_scene load_steps=7 format=3 uid="uid://hs7carriedmod001"]
+
+[sub_resource type="StandardMaterial3D" id="Material_HS7Case"]
+albedo_color = Color(0.14, 0.16, 0.18, 1)
+metallic = 0.6
+roughness = 0.5
+
+[sub_resource type="BoxMesh" id="BoxMesh_Case"]
+material = SubResource("Material_HS7Case")
+size = Vector3(0.14, 0.18, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="Material_HS7CyanCore"]
+albedo_color = Color(0.15, 0.85, 1, 1)
+emission_enabled = true
+emission = Color(0.15, 0.85, 1, 1)
+emission_energy_multiplier = 1.4
+roughness = 0.2
+
+[sub_resource type="BoxMesh" id="BoxMesh_Core"]
+material = SubResource("Material_HS7CyanCore")
+size = Vector3(0.08, 0.11, 0.09)
+
+[sub_resource type="StandardMaterial3D" id="Material_Bracket"]
+albedo_color = Color(0.28, 0.3, 0.34, 1)
+metallic = 0.8
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="BoxMesh_Bracket"]
+material = SubResource("Material_Bracket")
+size = Vector3(0.15, 0.03, 0.085)
+
+[node name="HS7CarriedModule" type="Node3D"]
+
+[node name="Case" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_Case")
+
+[node name="MemoryCore" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0.01)
+mesh = SubResource("BoxMesh_Core")
+
+[node name="Bracket" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, 0)
+mesh = SubResource("BoxMesh_Bracket")
