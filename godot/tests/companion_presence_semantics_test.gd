@@ -28,9 +28,9 @@ func _create_obstacle(pos: Vector3, size: Vector3) -> StaticBody3D:
 	box.size = size
 	shape.shape = box
 	body.add_child(shape)
-	body.global_position = pos
 	root.add_child(body)
 	_nodes.append(body)
+	body.global_position = pos
 	return body
 
 func _run() -> void:
@@ -82,10 +82,10 @@ func _run() -> void:
 	camera.fov = 70.0
 	camera.near = 0.1
 	camera.far = 100.0
-	camera.position = Vector3(0, 10, 10)
-	camera.look_at(Vector3(0, 0, 0), Vector3.UP)
 	root.add_child(camera)
 	_nodes.append(camera)
+	camera.position = Vector3(0, 10, 10)
+	camera.look_at(Vector3(0, 0, 0), Vector3.UP)
 
 	var fb13_packed := load(FB13_SCENE_PATH) as PackedScene
 	if fb13_packed == null:
