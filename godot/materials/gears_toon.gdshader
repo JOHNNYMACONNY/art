@@ -8,11 +8,20 @@ uniform float emission_energy : hint_range(0.0, 4.0) = 0.0;
 uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, hint_default_white;
 uniform float surface_noise_strength : hint_range(0.0, 1.0) = 0.22;
 uniform bool use_world_uv = false;
+uniform bool use_box_uv = false;
 uniform vec2 uv_scale = vec2(1.0, 1.0);
 uniform bool is_brick = false;
 uniform bool is_pavement_tiles = false;
 uniform bool is_cardboard = false;
 uniform bool emission_use_albedo = false;
+
+varying vec3 v_local_pos;
+varying vec3 v_local_norm;
+
+void vertex() {
+	v_local_pos = VERTEX;
+	v_local_norm = NORMAL;
+}
 
 float hash(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
@@ -35,7 +44,25 @@ void fragment() {
 	vec3 world_pos = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec2 uv_coords = UV * uv_scale;
 	
-	if (use_world_uv) {
+	if (use_box_uv) {
+		vec3 anorm = abs(v_local_norm);
+		if (anorm.x >= anorm.y && anorm.x >= anorm.z) {
+			if (v_local_norm.x > 0.0) {
+				uv_coords = vec2(0.5 - v_local_pos.z, 0.5 - v_local_pos.y);
+			} else {
+				uv_coords = vec2(v_local_pos.z + 0.5, 0.5 - v_local_pos.y);
+			}
+		} else if (anorm.z >= anorm.y && anorm.z >= anorm.x) {
+			if (v_local_norm.z > 0.0) {
+				uv_coords = vec2(v_local_pos.x + 0.5, 0.5 - v_local_pos.y);
+			} else {
+				uv_coords = vec2(0.5 - v_local_pos.x, 0.5 - v_local_pos.y);
+			}
+		} else {
+			uv_coords = vec2(v_local_pos.x + 0.5, v_local_pos.z + 0.5);
+		}
+		uv_coords *= uv_scale;
+	} else if (use_world_uv) {
 		vec3 world_norm = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
 		if (abs(world_norm.y) > 0.5) {
 			uv_coords = world_pos.xz * uv_scale;

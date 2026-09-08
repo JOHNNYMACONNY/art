@@ -8,6 +8,11 @@ func _init() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	var capture_target := "all"
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--capture="):
+			capture_target = arg.trim_prefix("--capture=")
+
 	var packed := load(SCENE_PATH) as PackedScene
 	if packed == null:
 		push_error("Failed to load scene")
@@ -27,10 +32,9 @@ func _run() -> void:
 	var chinatown_cam := scene.get_node_or_null("ChinatownCamera3D") as Camera3D
 	var proof := scene.get_node_or_null("GearsStyleProof") as Node3D
 	
-	# Create dedicated inspection camera for direct landmark asset verification
+	# Create dedicated inspection camera
 	var inspect_cam := Camera3D.new()
 	inspect_cam.name = "InspectCamera"
-	inspect_cam.fov = 45.0
 	scene.add_child(inspect_cam)
 
 	# Hide debug / mobile touch HUD
@@ -55,71 +59,83 @@ func _run() -> void:
 		env_node.environment.glow_intensity = 0.6
 		env_node.environment.glow_bloom = 0.20
 
-	var captures: Array[Dictionary] = [
-		{
-			"name": "gameplay_mayor_burn_garage.png",
+	var configs := {
+		"gameplay_mayor_burn_garage": {
 			"type": "gameplay",
 			"pos": Vector3(-10.5, 0.20, -41.0)
 		},
-		{
-			"name": "inspect_mayor_burn_garage.png",
+		"inspect_mayor_burn_garage": {
 			"type": "inspect",
-			"cam_pos": Vector3(-7.5, 1.6, -41.0),
-			"look_at": Vector3(-11.8, 1.6, -41.0)
+			"cam_pos": Vector3(-9.2, 1.8, -41.0),
+			"look_at": Vector3(-11.8, 1.8, -41.0),
+			"fov": 65.0
 		},
-		{
-			"name": "gameplay_silent_core_site.png",
+		"gameplay_silent_core_site": {
 			"type": "gameplay",
 			"pos": Vector3(5.2, 0.20, -27.4)
 		},
-		{
-			"name": "inspect_silent_core_site.png",
+		"inspect_silent_core_site": {
 			"type": "inspect",
-			"cam_pos": Vector3(3.2, 1.4, -27.4),
-			"look_at": Vector3(6.2, 1.1, -27.4)
+			"cam_pos": Vector3(6.2, 1.15, -24.8),
+			"look_at": Vector3(6.2, 1.0, -27.28),
+			"fov": 48.0
 		},
-		{
-			"name": "gameplay_industrial_vent.png",
+		"gameplay_industrial_vent": {
 			"type": "gameplay",
 			"pos": Vector3(0.92, 0.20, -37.6)
 		},
-		{
-			"name": "inspect_industrial_vent.png",
+		"inspect_industrial_vent": {
 			"type": "inspect",
-			"cam_pos": Vector3(-2.8, 2.5, -39.0),
-			"look_at": Vector3(0.92, 2.5, -39.0)
+			"cam_pos": Vector3(-1.8, 2.8, -39.0),
+			"look_at": Vector3(0.92, 2.8, -39.0),
+			"fov": 42.0
 		}
-	]
+	}
 
-	for cap: Dictionary in captures:
-		var file_name: String = cap["name"]
-		var cap_type: String = cap["type"]
+	if not configs.has(capture_target):
+		push_error("Unknown capture target: " + capture_target)
+		quit(1)
+		return
 
-		if cap_type == "gameplay":
-			inspect_cam.current = false
-			chinatown_cam.current = true
-			if player:
-				player.velocity = Vector3.ZERO
-				player.global_position = cap["pos"]
-				chinatown_cam.call("reset_camera_instant", player)
-		else:
-			chinatown_cam.current = false
-			inspect_cam.current = true
-			inspect_cam.global_position = cap["cam_pos"]
-			inspect_cam.look_at(cap["look_at"])
+	var conf: Dictionary = configs[capture_target]
+	var cap_type: String = conf["type"]
 
-		for _i in range(12):
-			await process_frame
+	if cap_type == "gameplay":
+		inspect_cam.current = false
+		chinatown_cam.make_current()
+		if player:
+			player.visible = true
+			player.velocity = Vector3.ZERO
+			player.global_position = conf["pos"]
+			chinatown_cam.call("reset_camera_instant", player)
+	else:
+		chinatown_cam.current = false
+		inspect_cam.make_current()
+		inspect_cam.fov = float(conf.get("fov", 45.0))
+		if player:
+			player.visible = false
+			player.velocity = Vector3.ZERO
+			player.global_position = Vector3(0.0, 0.2, 0.0)
+		var silent_core_node := scene.get_node_or_null("SilentCore")
+		if silent_core_node and silent_core_node is Node3D:
+			silent_core_node.visible = false
+		inspect_cam.global_position = conf["cam_pos"]
+		inspect_cam.look_at(conf["look_at"])
 
-		var img := root.get_viewport().get_texture().get_image()
-		if img == null or img.is_empty():
-			push_error("Image is empty for " + file_name)
-			continue
+	for _i in range(15):
+		await process_frame
 
-		var out_runs: String = RUNS_DIR + "/" + file_name
-		var out_artifact: String = ARTIFACT_DIR + "/" + file_name
-		var err1 := img.save_png(out_runs)
-		var err2 := img.save_png(out_artifact)
-		print("Saved capture: ", file_name, " status: ", err1, " / ", err2, " size: ", img.get_width(), "x", img.get_height())
+	var img := root.get_viewport().get_texture().get_image()
+	if img == null or img.is_empty():
+		push_error("Image is empty for " + capture_target)
+		quit(1)
+		return
+
+	var out_filename := capture_target + ".png"
+	var out_runs: String = RUNS_DIR + "/" + out_filename
+	var out_artifact: String = ARTIFACT_DIR + "/" + out_filename
+	var err1 := img.save_png(out_runs)
+	var err2 := img.save_png(out_artifact)
+	print("Saved capture: ", out_filename, " status: ", err1, " / ", err2, " size: ", img.get_width(), "x", img.get_height())
 
 	quit(0)
