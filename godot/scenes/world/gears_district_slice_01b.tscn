@@ -25,6 +25,7 @@
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_store_door.png" id="tex_store_door"]
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_ac_unit.png" id="tex_ac_unit"]
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_wall_decals.png" id="tex_wall_decals"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_storefront_canopy.png" id="tex_storefront_canopy"]
 
 [sub_resource type="BoxMesh" id="Cube"]
 size = Vector3(1, 1, 1)
@@ -399,6 +400,18 @@ shader_parameter/albedo_texture = ExtResource("tex_wall_decals")
 shader_parameter/use_world_uv = false
 shader_parameter/use_box_uv = false
 shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_StorefrontCanopy"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.8
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_storefront_canopy")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/swap_uv = true
+shader_parameter/uv_scale = Vector2(2, 1)
 
 [sub_resource type="BoxShape3D" id="Shape_Road"]
 size = Vector3(8, 0.3, 26)
@@ -1267,27 +1280,31 @@ position = Vector3(-11.65, 2.96, -32.5)
 rotation = Vector3(0, 0, -0.2)
 scale = Vector3(0.45, 0.08, 6.2)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_Teal")
+material_override = SubResource("Mat_StorefrontCanopy")
 
 [node name="CanopyStripe1" type="MeshInstance3D" parent="StreetClutter/StorefrontCanopy"]
+visible = false
 position = Vector3(0, 0.52, -0.33)
 scale = Vector3(1.02, 0.1, 0.16)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_OffWhite")
 
 [node name="CanopyStripe2" type="MeshInstance3D" parent="StreetClutter/StorefrontCanopy"]
+visible = false
 position = Vector3(0, 0.52, 0)
 scale = Vector3(1.02, 0.1, 0.16)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_OffWhite")
 
 [node name="CanopyStripe3" type="MeshInstance3D" parent="StreetClutter/StorefrontCanopy"]
+visible = false
 position = Vector3(0, 0.52, 0.33)
 scale = Vector3(1.02, 0.1, 0.16)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_OffWhite")
 
 [node name="CanopyValance" type="MeshInstance3D" parent="StreetClutter/StorefrontCanopy"]
+visible = false
 position = Vector3(0.5, -0.8, 0)
 rotation = Vector3(0, 0, 0.35)
 scale = Vector3(0.06, 1.8, 1.0)

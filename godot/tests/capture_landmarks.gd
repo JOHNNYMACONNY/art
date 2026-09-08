@@ -153,6 +153,42 @@ func _run() -> void:
 			"cam_pos": Vector3(-3.1, 1.3, 15.0),
 			"look_at": Vector3(-3.87, 1.1, 11.85),
 			"fov": 40.0
+		},
+		"inspect_corrugated_fence": {
+			"type": "inspect",
+			"cam_pos": Vector3(-0.8, 1.0, 11.8),
+			"look_at": Vector3(-0.8, 1.0, 14.2),
+			"fov": 48.0
+		},
+		"inspect_scrap_barrel": {
+			"type": "inspect",
+			"cam_pos": Vector3(-4.4, 0.6, 5.0),
+			"look_at": Vector3(-4.4, 0.35, 6.7),
+			"fov": 42.0
+		},
+		"inspect_bike_pad": {
+			"type": "inspect",
+			"cam_pos": Vector3(3.5, 3.8, 8.2),
+			"look_at": Vector3(3.5, 0.0, 5.5),
+			"fov": 42.0
+		},
+		"inspect_gate_arch": {
+			"type": "inspect",
+			"cam_pos": Vector3(0.0, 2.65, -5.2),
+			"look_at": Vector3(0.0, 2.65, -9.0),
+			"fov": 42.0
+		},
+		"inspect_ground_debris": {
+			"type": "inspect",
+			"cam_pos": Vector3(3.5, 3.2, 7.2),
+			"look_at": Vector3(3.5, 0.01, 5.5),
+			"fov": 50.0
+		},
+		"inspect_storefront_canopy": {
+			"type": "inspect",
+			"cam_pos": Vector3(-9.2, 4.0, -32.5),
+			"look_at": Vector3(-11.65, 2.9, -32.5),
+			"fov": 45.0
 		}
 	}
 
@@ -204,6 +240,40 @@ func _run() -> void:
 			var pile = scene.get_node_or_null("ScrapYardDressing/1_ColdStartShelter/ScrapPileA_SWCorner")
 			if pile and pile is Node3D:
 				pile.visible = false
+		elif capture_target == "inspect_corrugated_fence":
+			var shelter = scene.get_node_or_null("ScrapYardDressing/1_ColdStartShelter/HeroShelter")
+			if shelter and shelter is Node3D:
+				shelter.visible = false
+			var gate = scene.get_node_or_null("SignalGate")
+			if gate and gate is Node3D:
+				gate.visible = false
+			var container = scene.get_node_or_null("ScrapYardDressing/1_ColdStartShelter/Container_WestBase")
+			if container and container is Node3D:
+				container.visible = false
+			var pile = scene.get_node_or_null("ScrapYardDressing/1_ColdStartShelter/ScrapPileA_SWCorner")
+			if pile and pile is Node3D:
+				pile.visible = false
+		elif capture_target == "inspect_scrap_barrel":
+			var drum = scene.get_node_or_null("ScrapYardDressing/2_TunerOutpost/ScrapPileB_TunerEast/CrushedBarrel")
+			if drum and drum is Node3D:
+				var drum_pos: Vector3 = drum.global_transform.origin
+				print("CrushedBarrel TunerEast pos: ", drum_pos)
+				conf["cam_pos"] = drum.to_global(Vector3(0.0, 0.4, 2.0))
+				conf["look_at"] = drum_pos + Vector3(0.0, 0.1, 0.0)
+		elif capture_target == "inspect_gate_arch":
+			var mast = scene.get_node_or_null("ScrapYardDressing/2_TunerOutpost/HeroTunerMast")
+			if mast and mast is Node3D:
+				mast.visible = false
+		elif capture_target == "inspect_ground_debris":
+			var pad = scene.get_node_or_null("ScrapYardDressing/4_BikeStagingPad/HeroBikePad")
+			if pad and pad is Node3D:
+				pad.visible = false
+			var fence = scene.get_node_or_null("ScrapYardDressing/4_BikeStagingPad/CorrugatedFence_StagingEast")
+			if fence and fence is Node3D:
+				fence.visible = false
+			var pipe = scene.get_node_or_null("ScrapYardDressing/4_BikeStagingPad/PipeRack_StagingEast")
+			if pipe and pipe is Node3D:
+				pipe.visible = false
 		inspect_cam.global_position = conf["cam_pos"]
 		inspect_cam.look_at(conf["look_at"])
 

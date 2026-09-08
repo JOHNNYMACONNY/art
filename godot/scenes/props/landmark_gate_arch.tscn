@@ -1,15 +1,27 @@
-[gd_scene format=3 uid="uid://lm05gatearch"]
+[gd_scene load_steps=7 format=3 uid="uid://lm05gatearch"]
 
 [ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="1_rust"]
-[ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="2_metal"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="toon_shader"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_gate_arch_warning.png" id="tex_warning"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_gantry"]
 material = ExtResource("1_rust")
 size = Vector3(6.8, 0.3, 0.4)
 
-[sub_resource type="BoxMesh" id="BoxMesh_warning_plate"]
-material = ExtResource("2_metal")
-size = Vector3(3.6, 0.45, 0.08)
+[sub_resource type="ShaderMaterial" id="Mat_GateWarning"]
+shader = ExtResource("toon_shader")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.7
+shader_parameter/emission_color = Color(1.0, 0.75, 0.2, 1)
+shader_parameter/emission_energy = 0.25
+shader_parameter/emission_use_albedo = true
+shader_parameter/albedo_texture = ExtResource("tex_warning")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_unit"]
+size = Vector3(1, 1, 1)
 
 [node name="LandmarkGateArch" type="Node3D"]
 
@@ -18,5 +30,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
 mesh = SubResource("BoxMesh_gantry")
 
 [node name="WarningPlate" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.9, 0.22)
-mesh = SubResource("BoxMesh_warning_plate")
+transform = Transform3D(3.36, 0, 0, 0, 0.8, 0, 0, 0, 0.08, 0, 2.65, 0.22)
+mesh = SubResource("BoxMesh_unit")
+material_override = SubResource("Mat_GateWarning")

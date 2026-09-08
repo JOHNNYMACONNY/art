@@ -9,6 +9,7 @@ uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, hint_defa
 uniform float surface_noise_strength : hint_range(0.0, 1.0) = 0.22;
 uniform bool use_world_uv = false;
 uniform bool use_box_uv = false;
+uniform bool swap_uv = false;
 uniform vec2 uv_scale = vec2(1.0, 1.0);
 uniform bool is_brick = false;
 uniform bool is_pavement_tiles = false;
@@ -60,6 +61,9 @@ void fragment() {
 			}
 		} else {
 			uv_coords = vec2(v_local_pos.x + 0.5, v_local_pos.z + 0.5);
+		}
+		if (swap_uv) {
+			uv_coords = uv_coords.yx;
 		}
 		uv_coords *= uv_scale;
 	} else if (use_world_uv) {
