@@ -1,13 +1,19 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `GEARS_FOUNDATION_01A_01E__FB13_THRUM_WORLD_EVENT_MERGED__VISUAL_PERF_CHECKPOINT_PASSED__CODE_VERIFIED__PUBLIC_PLAYTEST_CURRENT__AUDIO_TOUCH_DEFERRED`  
-**Current gameplay/world baseline:** `4c45c3d7219903b4d497eda6d32b6316c07f7568`  
+**Status:** `GEARS_DISTRICT_LANDMARKS_DRESSED__FB13_CANON_VERIFIED`  
+**Current gameplay/world baseline:** `eb501f3`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
 ## Current product state
 
-The retained Chinatown-Wars-style Feel foundation, three connected authored missions, approved Gears visual direction, the first bounded Gears world-production foundation, and one bounded FB-13 authored world event are now integrated in the production Godot slice.
+**Gears District Slice 01b Visual Clutter & Landmarks Dressing complete.**
+- **Street Clutter**: Verified slices 1-4 (streetlamp pools, sidewalk bins/cardboard, storefront neons, overhead utility wires, manhole covers, storm grates, tire skids).
+- **Landmark Dressing (FB-13/HS-7 Art Direction)**:
+  - Mayor Burn Garage roll-up bay door (`tex_garage_door.png`), hero sign (`tex_burn_hero_sign.png`), permit plate (`tex_permit_plate.png`).
+  - Silent Core Site relay cabinet (`tex_silent_core_cabinet.png`), memory aperture (`tex_memory_aperture.png`).
+  - Industrial Frontage substation exhaust vent grill (`tex_industrial_vent.png`).
+- 100% test pass across `run_clutter_test.gd`, `camera_mount_transition_test.gd`, and `ctw_feel_harness.gd`.
 
 The former **Visual Direction / Concept Art gate is complete**. Approved creative truth lives under `docs/visual_direction/`, especially:
 
