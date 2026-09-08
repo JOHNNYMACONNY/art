@@ -111,6 +111,48 @@ func _run() -> void:
 			"cam_pos": Vector3(-7.8, 1.65, -35.5),
 			"look_at": Vector3(-9.28, 1.6, -35.5),
 			"fov": 32.0
+		},
+		"inspect_corroded_panel": {
+			"type": "inspect",
+			"cam_pos": Vector3(0.0, 1.5, -4.8),
+			"look_at": Vector3(0.0, 1.5, -7.5),
+			"fov": 40.0
+		},
+		"inspect_signal_gate": {
+			"type": "inspect",
+			"cam_pos": Vector3(1.5, 1.5, 15.5),
+			"look_at": Vector3(1.5, 1.35, 12.0),
+			"fov": 52.0
+		},
+		"inspect_store_door": {
+			"type": "inspect",
+			"cam_pos": Vector3(-9.2, 1.1, -32.5),
+			"look_at": Vector3(-11.88, 1.1, -32.5),
+			"fov": 48.0
+		},
+		"inspect_ac_unit": {
+			"type": "inspect",
+			"cam_pos": Vector3(-9.4, 3.4, -36.2),
+			"look_at": Vector3(-11.82, 3.4, -36.2),
+			"fov": 36.0
+		},
+		"inspect_wall_decals": {
+			"type": "inspect",
+			"cam_pos": Vector3(-9.2, 1.8, -44.2),
+			"look_at": Vector3(-11.82, 1.8, -44.2),
+			"fov": 42.0
+		},
+		"inspect_cardboard_stack": {
+			"type": "inspect",
+			"cam_pos": Vector3(-9.6, 0.8, -37.5),
+			"look_at": Vector3(-11.45, 0.6, -37.5),
+			"fov": 42.0
+		},
+		"inspect_salvage_container": {
+			"type": "inspect",
+			"cam_pos": Vector3(-3.1, 1.3, 15.0),
+			"look_at": Vector3(-3.87, 1.1, 11.85),
+			"fov": 40.0
 		}
 	}
 
@@ -141,6 +183,27 @@ func _run() -> void:
 		var silent_core_node := scene.get_node_or_null("SilentCore")
 		if silent_core_node and silent_core_node is Node3D:
 			silent_core_node.visible = false
+		if capture_target == "inspect_corroded_panel":
+			var mast = scene.get_node_or_null("ScrapYardDressing/2_TunerOutpost/HeroTunerMast")
+			if mast and mast is Node3D:
+				mast.visible = false
+		elif capture_target == "inspect_signal_gate":
+			var wall = scene.get_node_or_null("ShortcutDividerWall")
+			if wall and wall is Node3D:
+				wall.visible = false
+			var fence = scene.get_node_or_null("ScrapYardDressing/1_ColdStartShelter/CorrugatedFence_SouthBack")
+			if fence and fence is Node3D:
+				fence.visible = false
+			var pile = scene.get_node_or_null("ScrapYardDressing/1_ColdStartShelter/ScrapPileA_SWCorner")
+			if pile and pile is Node3D:
+				pile.visible = false
+		elif capture_target == "inspect_salvage_container":
+			var shelter = scene.get_node_or_null("ScrapYardDressing/1_ColdStartShelter/HeroShelter")
+			if shelter and shelter is Node3D:
+				shelter.visible = false
+			var pile = scene.get_node_or_null("ScrapYardDressing/1_ColdStartShelter/ScrapPileA_SWCorner")
+			if pile and pile is Node3D:
+				pile.visible = false
 		inspect_cam.global_position = conf["cam_pos"]
 		inspect_cam.look_at(conf["look_at"])
 

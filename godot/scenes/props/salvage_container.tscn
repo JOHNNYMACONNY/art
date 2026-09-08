@@ -2,6 +2,8 @@
 
 [ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="1_metal"]
 [ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="2_rust"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="3_toon"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_salvage_container.png" id="4_tex_container"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_body"]
 material = ExtResource("1_metal")
@@ -15,6 +17,20 @@ size = Vector3(2.5, 2.3, 0.25)
 material = ExtResource("2_rust")
 size = Vector3(0.2, 0.2, 4.8)
 
+[sub_resource type="QuadMesh" id="QuadMesh_door"]
+size = Vector2(2.3, 2.1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_door"]
+shader = ExtResource("3_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.72
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("4_tex_container")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
 [node name="SalvageContainer" type="Node3D"]
 
 [node name="ContainerBody" type="MeshInstance3D" parent="."]
@@ -24,6 +40,11 @@ mesh = SubResource("BoxMesh_body")
 [node name="FrontFrame" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 2.3)
 mesh = SubResource("BoxMesh_frame")
+
+[node name="DoorFace" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 2.43)
+mesh = SubResource("QuadMesh_door")
+surface_material_override/0 = SubResource("ShaderMaterial_door")
 
 [node name="BackFrame" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, -2.3)

@@ -189,7 +189,9 @@ func _apply_actor_treatments() -> void:
 
 	var panel := scene_root.get_node_or_null("CorrodedPanel")
 	if panel != null:
-		_style(panel, "PanelMesh", OXIDIZED)
+		var pmesh := panel.get_node_or_null("PanelMesh") as MeshInstance3D
+		if pmesh == null or (pmesh.material_override == null and pmesh.get_surface_override_material(0) == null):
+			_style(panel, "PanelMesh", OXIDIZED)
 		_style(panel, "CoreMesh", AMBER, 0.72)
 		_clone_outline(panel, "PanelMesh", "GearsInteractablePanelContour")
 		panel.set_meta("gears_style_proof_treatment", true)
