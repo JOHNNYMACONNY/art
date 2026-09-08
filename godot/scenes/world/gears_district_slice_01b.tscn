@@ -26,6 +26,7 @@
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_ac_unit.png" id="tex_ac_unit"]
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_wall_decals.png" id="tex_wall_decals"]
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_storefront_canopy.png" id="tex_storefront_canopy"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_sum_yung_gai_motors.png" id="tex_sum_yung_gai_motors"]
 
 [sub_resource type="BoxMesh" id="Cube"]
 size = Vector3(1, 1, 1)
@@ -255,6 +256,18 @@ shader_parameter/emission_use_albedo = true
 shader_parameter/albedo_texture = ExtResource("tex_storefront_fascia")
 shader_parameter/use_world_uv = false
 shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_SumYungGaiSign"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.6
+shader_parameter/emission_color = Color(1, 0.9, 0.7, 1)
+shader_parameter/emission_energy = 0.4
+shader_parameter/emission_use_albedo = true
+shader_parameter/albedo_texture = ExtResource("tex_sum_yung_gai_motors")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
 shader_parameter/uv_scale = Vector2(1, 1)
 
 [sub_resource type="ShaderMaterial" id="Mat_WindowDisplay"]
@@ -570,7 +583,7 @@ material_override = SubResource("Mat_Soot")
 
 [node name="HeroSign" type="MeshInstance3D" parent="CommercialFrontage"]
 position = Vector3(2.31, 0.65, -1.5)
-scale = Vector3(0.16, 1.25, 4.2)
+scale = Vector3(0.16, 1.25, 3.75)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_StorefrontFascia")
 
@@ -763,7 +776,7 @@ material_override = SubResource("Mat_DarkMetal")
 
 [node name="MemorySignalAperture" type="MeshInstance3D" parent="SilentCoreSite"]
 position = Vector3(0.25, 0.85, 0.15)
-scale = Vector3(0.38, 0.12, 0.04)
+scale = Vector3(0.36, 0.12, 0.04)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_MemoryAperture")
 
@@ -1312,12 +1325,13 @@ mesh = SubResource("Cube")
 material_override = SubResource("Mat_Teal")
 
 [node name="StorefrontSignboard" type="MeshInstance3D" parent="StreetClutter"]
-position = Vector3(-11.68, 2.7, -32.5)
-rotation = Vector3(0, -1.570796, 0)
+position = Vector3(-11.66, 2.7, -32.5)
+rotation = Vector3(0, 1.570796, 0)
 mesh = SubResource("Quad_Sign")
-material_override = SubResource("Mat_StorefrontFascia")
+material_override = SubResource("Mat_SumYungGaiSign")
 
 [node name="StorefrontSignLabel" type="Label3D" parent="StreetClutter"]
+visible = false
 position = Vector3(-11.75, 2.72, -32.5)
 rotation = Vector3(0, 1.570796, 0)
 text = "SUM YUNG GAI // MOTORS"

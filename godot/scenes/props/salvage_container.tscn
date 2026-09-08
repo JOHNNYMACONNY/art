@@ -18,7 +18,7 @@ material = ExtResource("2_rust")
 size = Vector3(0.2, 0.2, 4.8)
 
 [sub_resource type="QuadMesh" id="QuadMesh_door"]
-size = Vector2(2.3, 2.1)
+size = Vector2(2.2, 2.2)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_door"]
 shader = ExtResource("3_toon")

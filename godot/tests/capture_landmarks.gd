@@ -189,6 +189,12 @@ func _run() -> void:
 			"cam_pos": Vector3(-9.2, 4.0, -32.5),
 			"look_at": Vector3(-11.65, 2.9, -32.5),
 			"fov": 45.0
+		},
+		"inspect_sum_yung_gai_sign": {
+			"type": "inspect",
+			"cam_pos": Vector3(-8.8, 2.7, -32.5),
+			"look_at": Vector3(-11.66, 2.7, -32.5),
+			"fov": 40.0
 		}
 	}
 
