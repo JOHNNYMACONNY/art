@@ -89,6 +89,28 @@ func _run() -> void:
 			"cam_pos": Vector3(-1.8, 2.8, -39.0),
 			"look_at": Vector3(0.92, 2.8, -39.0),
 			"fov": 42.0
+		},
+		"gameplay_sidewalk_clutter": {
+			"type": "gameplay",
+			"pos": Vector3(-8.8, 0.20, -34.6)
+		},
+		"inspect_newspaper_bins": {
+			"type": "inspect",
+			"cam_pos": Vector3(-8.4, 1.3, -33.0),
+			"look_at": Vector3(-9.55, 0.6, -34.6),
+			"fov": 45.0
+		},
+		"inspect_window_display": {
+			"type": "inspect",
+			"cam_pos": Vector3(-10.0, 1.35, -34.2),
+			"look_at": Vector3(-11.88, 1.25, -34.2),
+			"fov": 55.0
+		},
+		"inspect_junction_box": {
+			"type": "inspect",
+			"cam_pos": Vector3(-7.8, 1.65, -35.5),
+			"look_at": Vector3(-9.28, 1.6, -35.5),
+			"fov": 32.0
 		}
 	}
 

@@ -126,6 +126,7 @@ shader_parameter/emission_color = Color(0, 0, 0, 1)
 shader_parameter/emission_energy = 0.0
 shader_parameter/albedo_texture = ExtResource("tex_blue_bin")
 shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
 shader_parameter/uv_scale = Vector2(1, 1)
 
 [sub_resource type="ShaderMaterial" id="Mat_AmberBin"]
@@ -136,6 +137,7 @@ shader_parameter/emission_color = Color(0, 0, 0, 1)
 shader_parameter/emission_energy = 0.0
 shader_parameter/albedo_texture = ExtResource("tex_amber_bin")
 shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
 shader_parameter/uv_scale = Vector2(1, 1)
 
 [sub_resource type="ShaderMaterial" id="Mat_Cardboard"]
@@ -241,6 +243,7 @@ shader_parameter/emission_energy = 0.4
 shader_parameter/emission_use_albedo = true
 shader_parameter/albedo_texture = ExtResource("tex_storefront_fascia")
 shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
 shader_parameter/uv_scale = Vector2(1, 1)
 
 [sub_resource type="ShaderMaterial" id="Mat_WindowDisplay"]
@@ -252,6 +255,7 @@ shader_parameter/emission_energy = 0.7
 shader_parameter/emission_use_albedo = true
 shader_parameter/albedo_texture = ExtResource("tex_window_display")
 shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
 shader_parameter/uv_scale = Vector2(1, 1)
 
 [sub_resource type="ShaderMaterial" id="Mat_Manhole"]
@@ -272,6 +276,7 @@ shader_parameter/emission_color = Color(0, 0, 0, 1)
 shader_parameter/emission_energy = 0.0
 shader_parameter/albedo_texture = ExtResource("tex_junction_box")
 shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
 shader_parameter/uv_scale = Vector2(1, 1)
 
 [sub_resource type="StandardMaterial3D" id="Mat_TireSkid"]
@@ -953,10 +958,9 @@ material_override = SubResource("Mat_BlueBin")
 
 [node name="BlueBinHood" type="MeshInstance3D" parent="StreetClutter/NewspaperBins/BlueBin"]
 position = Vector3(0, 0.52, 0)
-rotation = Vector3(0.4, 0, 0)
-scale = Vector3(1.02, 0.16, 1.02)
+scale = Vector3(1.04, 0.12, 1.04)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_BlueBin")
+material_override = SubResource("Mat_DarkMetal")
 
 [node name="BlueBinWindow" type="MeshInstance3D" parent="StreetClutter/NewspaperBins/BlueBin"]
 visible = false
@@ -980,10 +984,9 @@ material_override = SubResource("Mat_AmberBin")
 
 [node name="AmberBinHood" type="MeshInstance3D" parent="StreetClutter/NewspaperBins/AmberBin"]
 position = Vector3(0, 0.52, 0)
-rotation = Vector3(-0.4, 0, 0)
-scale = Vector3(1.02, 0.16, 1.02)
+scale = Vector3(1.04, 0.12, 1.04)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_AmberBin")
+material_override = SubResource("Mat_DarkMetal")
 
 [node name="AmberBinWindow" type="MeshInstance3D" parent="StreetClutter/NewspaperBins/AmberBin"]
 visible = false
@@ -1117,18 +1120,21 @@ mesh = SubResource("Cube")
 material_override = SubResource("Mat_WindowDisplay")
 
 [node name="WindowInterior1" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
 position = Vector3(-0.06, 1.25, -34.2)
 scale = Vector3(0.1, 1.4, 2.1)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_GlassLit")
 
 [node name="WindowMullionV1" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
 position = Vector3(0.04, 1.25, -34.2)
 scale = Vector3(0.08, 1.6, 0.08)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_DarkMetal")
 
 [node name="WindowMullionH1" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
 position = Vector3(0.04, 1.25, -34.2)
 scale = Vector3(0.08, 0.08, 2.36)
 mesh = SubResource("Cube")
@@ -1141,6 +1147,7 @@ mesh = SubResource("Cube")
 material_override = SubResource("Mat_NeonVermilion")
 
 [node name="WindowNeonHeart" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
 position = Vector3(0.05, 1.25, -34.2)
 scale = Vector3(0.04, 0.65, 0.85)
 mesh = SubResource("Cube")
@@ -1159,18 +1166,21 @@ mesh = SubResource("Cube")
 material_override = SubResource("Mat_WindowDisplay")
 
 [node name="WindowInterior2" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
 position = Vector3(-0.06, 1.25, -30.8)
 scale = Vector3(0.1, 1.4, 2.1)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_GlassLit")
 
 [node name="WindowMullionV2" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
 position = Vector3(0.04, 1.25, -30.8)
 scale = Vector3(0.08, 1.6, 0.08)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_DarkMetal")
 
 [node name="WindowMullionH2" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
 position = Vector3(0.04, 1.25, -30.8)
 scale = Vector3(0.08, 0.08, 2.36)
 mesh = SubResource("Cube")
@@ -1183,6 +1193,7 @@ mesh = SubResource("Cube")
 material_override = SubResource("Mat_NeonCyan")
 
 [node name="WindowNeonFlame" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
 position = Vector3(0.05, 1.25, -30.8)
 scale = Vector3(0.04, 0.65, 0.85)
 mesh = SubResource("Cube")
