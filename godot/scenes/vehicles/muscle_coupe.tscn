@@ -1,10 +1,14 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/vehicles/muscle_coupe.gd" id="1_coupe"]
+[ext_resource type="Script" path="res://scripts/interactions/mount_interactable.gd" id="2_mount"]
 [ext_resource type="PackedScene" path="res://models/muscle_coupe.glb" id="4_model"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_coupe"]
 size = Vector3(1.82, 1.25, 4.3)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_mount"]
+radius = 3.0
 
 [node name="MuscleCoupe" type="CharacterBody3D" unique_id=1043560099]
 collision_layer = 2
@@ -18,3 +22,13 @@ shape = SubResource("BoxShape3D_coupe")
 [node name="VisualRoot" type="Node3D" parent="." unique_id=565418776]
 
 [node name="Model" type="Node3D" parent="VisualRoot" unique_id=1640782490 instance=ExtResource("4_model")]
+
+[node name="RiderSocket" type="Node3D" parent="." unique_id=1006259770]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.36, -0.35, 0.03)
+
+[node name="MountInteractable" type="Area3D" parent="." unique_id=1035857692]
+script = ExtResource("2_mount")
+interaction_priority = 2.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MountInteractable" unique_id=1245874565]
+shape = SubResource("SphereShape3D_mount")

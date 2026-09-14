@@ -232,17 +232,42 @@ Production behavior:
 - collecting stash transitions to `COLLECTED` state, awards 250 credits;
 - moving to exit socket updates prompt to `[E] DELIVER DROP` / `[F] DELIVER DROP`;
 - delivering drop transitions to `DELIVERED`, emits `COMPLETION` audio, and triggers root pursuit authority disturbance alert;
-- full reset restoration via `reset_world_event()` in `reset_slice()`.
+### Muscle Coupe Full Drive Integration (High-Performance V8 Fleet Class)
+
+Production node: `MuscleCoupe` attached to `scrap_test_block.tscn`.
+Script: `godot/scripts/vehicles/muscle_coupe.gd`.
+Scene: `godot/scenes/vehicles/muscle_coupe.tscn`.
+
+Canonical vehicle identity:
+- class: `High-Performance Scavenged V8 Muscle Class`;
+- max speed: `21.0 m/s` (fastest production vehicle class);
+- reverse speed: `-5.0 m/s`;
+- acceleration: `14.5 m/s^2`;
+- braking friction: `14.0 m/s^2`;
+- steering speed: `2.4 rad/s`;
+- dismount speed limit: `1.5 m/s`;
+- drift slip rate: `3.2` (power oversteer slip model);
+- staging position: `Vector3(-3.5, 0.05, 3.0)` in scrap yard (mirrors Scrap Hauler at `Vector3(3.5, 0.05, 3.0)`).
+
+Production behavior:
+- mount / dismount: 0.20s smoothstep posture and position blend into `RiderSocket` (`Vector3(-0.36, -0.35, 0.03)` matching driver bucket seat alignment);
+- posture: `player.set_vehicle_driving_posture(true, "car")` with steering wheel hand contact;
+- interaction: `MountInteractable` (`Area3D`, r=3.0m sphere, priority=2.0) participating in target arbitration;
+- driving physics: speed-sensitive yaw rate, chassis corner roll, heavy V8 drift slip, glance collisions with `collision_contact` signal;
+- dismount rejection: rejects dismount with `TOO_FAST` at speed > 1.5 m/s, volume-cleared ground check ignoring floor geometry;
+- dual world interaction: capable of high-speed ram breach at `SecurityCheckpointWorldEvent` (speed >= 5.0 m/s);
+- full reset restoration via `reset_slice()`.
 
 ## Current verification truth
 
 Code-first verification remains the default production gate.
 
-### World Event 02 & 03 verification evidence
+### Vehicle Fleet & World Events verification evidence
 
+- `godot/tests/muscle_coupe_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: hierarchy, performance constants, mounting posture, driving physics, gear transitions, dismount rejection, checkpoint ram breach, reset);
 - `godot/tests/security_checkpoint_world_event_test.gd`: **100% CONTRACT PASS**;
 - `godot/tests/alley_contraband_drop_world_event_test.gd`: **100% CONTRACT PASS**;
-- `godot/tests/camera_mount_transition_test.gd`: **PASS** (retained FB13Thrum, SecurityCheckpoint, ContrabandDrop, BurnGarage, SilentCore, ProofRetirement);
+- `godot/tests/camera_mount_transition_test.gd`: **PASS** (retained FB13Thrum, SecurityCheckpoint, ContrabandDrop, MuscleCoupeContract, BurnGarage, SilentCore, ProofRetirement);
 - `godot/tests/continuous_golden_slice_playthrough_test.gd`: **100% ALL 3 MISSIONS CONTINUOUS PLAYTHROUGH PASS**;
 - `godot/tests/desktop_controls_event_routing_test.gd`: **PASS**;
 - `godot/scripts/verification/ctw_wave1_integrated_harness.gd`: **PASS**.

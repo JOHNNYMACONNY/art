@@ -8,6 +8,7 @@ const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 ## M04: preload MemoryEchoController to avoid global class_name lookup in headless
 const MemoryEchoController = preload("res://scripts/prototype/memory_echo_controller.gd")
 const ScrapHaulerScript = preload("res://scripts/vehicles/scrap_hauler.gd")
+const MuscleCoupeScript = preload("res://scripts/vehicles/muscle_coupe.gd")
 const ScrapWorkerScript = preload("res://scripts/entities/scrap_worker.gd")
 const UtilityCrawlerScript = preload("res://scripts/entities/utility_crawler.gd")
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
@@ -48,6 +49,7 @@ enum PursuitState {
 var signal_tuner: SignalTuner = null
 var courier_bike: CourierBike = null
 var scrap_hauler: CharacterBody3D = null
+var muscle_coupe: MuscleCoupe = null
 var scrap_worker_1: CharacterBody3D = null
 var scrap_worker_2: CharacterBody3D = null
 var utility_crawler: CharacterBody3D = null
@@ -134,6 +136,25 @@ func _ready() -> void:
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
+
+	var coupe_scene: PackedScene = load("res://scenes/vehicles/muscle_coupe.tscn")
+	if coupe_scene:
+		muscle_coupe = coupe_scene.instantiate() as MuscleCoupe
+		muscle_coupe.name = "MuscleCoupe"
+		muscle_coupe.position = Vector3(-3.5, 0.05, 3.0)
+		add_child(muscle_coupe)
+		muscle_coupe.mounted.connect(_on_coupe_mounted)
+		muscle_coupe.dismounted.connect(_on_coupe_dismounted)
+		muscle_coupe.dismount_rejected.connect(_on_bike_dismount_rejected)
+		muscle_coupe.brake_screech_triggered.connect(func(pos: Vector3):
+			if audio_mgr: audio_mgr.play_event(AudioManagerScript.SoundEvent.BRAKE_SCREECH, pos)
+		)
+		muscle_coupe.collision_contact.connect(func(head_on_ratio: float, impact_speed: float, col_pos: Vector3):
+			if audio_mgr: audio_mgr.on_collision_contact(head_on_ratio, impact_speed, col_pos)
+			_check_checkpoint_ram_breach(impact_speed, col_pos)
+		)
+		if muscle_coupe.mount_interactable:
+			_interactables.append(muscle_coupe.mount_interactable)
 			
 	var pursuer_scene: PackedScene = load("res://scenes/entities/pursuer_prototype.tscn")
 	if pursuer_scene:
@@ -492,6 +513,7 @@ func _on_pursuer_intercepted() -> void:
 	if player: player.is_input_locked = true
 	if courier_bike: courier_bike.force_dismount()
 	if scrap_hauler: scrap_hauler.force_dismount()
+	if muscle_coupe: muscle_coupe.force_dismount()
 	if audio_mgr:
 		audio_mgr.clear_radio_interference()
 	_end_pursuit_common(true)
@@ -758,6 +780,10 @@ func _on_hauler_mounted(player_ref: PlayerRunner) -> void:
 	active_vehicle = scrap_hauler
 	_on_vehicle_mounted_generic(scrap_hauler, player_ref)
 
+func _on_coupe_mounted(player_ref: PlayerRunner) -> void:
+	active_vehicle = muscle_coupe
+	_on_vehicle_mounted_generic(muscle_coupe, player_ref)
+
 func _on_vehicle_mounted_generic(veh: Node3D, _player_ref: PlayerRunner) -> void:
 	active_vehicle = veh
 	_radio_owner = veh
@@ -782,6 +808,9 @@ func _on_bike_dismounted() -> void:
 
 func _on_hauler_dismounted() -> void:
 	_on_vehicle_dismounted_generic(scrap_hauler)
+
+func _on_coupe_dismounted() -> void:
+	_on_vehicle_dismounted_generic(muscle_coupe)
 
 func _on_vehicle_dismounted_generic(exiting_vehicle: Node3D = null) -> void:
 	if exiting_vehicle == null or _radio_owner == exiting_vehicle:
@@ -839,6 +868,8 @@ func reset_slice() -> void:
 		courier_bike.force_dismount()
 	if scrap_hauler and scrap_hauler.occupant != null:
 		scrap_hauler.force_dismount()
+	if muscle_coupe and muscle_coupe.occupant != null:
+		muscle_coupe.force_dismount()
 	active_vehicle = null
 		
 	current_world_state = WorldLoopState.START
@@ -887,6 +918,21 @@ func reset_slice() -> void:
 		if scrap_hauler.mount_interactable:
 			scrap_hauler.mount_interactable.is_powered = true
 			scrap_hauler.mount_interactable.visible = true
+
+	if muscle_coupe:
+		muscle_coupe.current_state = MuscleCoupeScript.VehicleState.PARKED
+		muscle_coupe.current_gear = MuscleCoupeScript.GearState.FORWARD
+		muscle_coupe.is_handbrake_active = false
+		muscle_coupe._gear_settle_timer = 0.0
+		muscle_coupe.global_position = Vector3(-3.5, 0.05, 3.0)
+		muscle_coupe.rotation.y = 0.0
+		muscle_coupe.occupant = null
+		muscle_coupe.current_speed = 0.0
+		muscle_coupe.steering_angle = 0.0
+		if muscle_coupe.visual_root: muscle_coupe.visual_root.rotation = Vector3.ZERO
+		if muscle_coupe.mount_interactable:
+			muscle_coupe.mount_interactable.is_powered = true
+			muscle_coupe.mount_interactable.visible = true
 		
 	if camera:
 		camera.reset_camera_instant(player)

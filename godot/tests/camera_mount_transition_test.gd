@@ -13,6 +13,7 @@ const FB13ThrumContract = preload("res://tests/fb13_thrum_world_event_contract.g
 const SecurityCheckpointContract = preload("res://tests/security_checkpoint_world_event_contract.gd")
 const ContrabandDropContract = preload("res://tests/alley_contraband_drop_world_event_contract.gd")
 const ProofRenderRetirementContract = preload("res://tests/gears_proof_render_retirement_contract.gd")
+const MuscleCoupeContract = preload("res://tests/muscle_coupe_contract.gd")
 
 var _scene_under_test: Node = null
 
@@ -89,6 +90,11 @@ func _run() -> void:
 	var retirement_error: String = ProofRenderRetirementContract.verify(_scene_under_test)
 	if retirement_error != "":
 		await _fail("[GEARS_DISTRICT_01E] %s" % retirement_error)
+		return
+
+	var coupe_error: String = MuscleCoupeContract.verify(_scene_under_test)
+	if coupe_error != "":
+		await _fail("[MUSCLE_COUPE_CONTRACT] %s" % coupe_error)
 		return
 
 	var camera := _scene_under_test.get_node_or_null("ChinatownCamera3D")
