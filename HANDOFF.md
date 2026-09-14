@@ -190,9 +190,62 @@ Production behavior:
 
 This event is the first material FB-13 presence in the production Godot slice, but it is intentionally not precedent for a generalized companion framework.
 
+### World Event 02 — Security Checkpoint Toll Standoff
+
+Production node: `SecurityCheckpointWorldEvent` attached to `scrap_test_block.tscn`.
+Script: `godot/scripts/world/security_checkpoint_world_event.gd`.
+
+Canonical local event identity:
+- directive: `checkpoint_toll_standoff`;
+- actor: `CIVIC_SECURITY_BARRIER`;
+- zone: `gears_north_checkpoint`;
+- trigger radius: `6.5 m`;
+- rearm radius: `10.0 m`;
+- cooldown: `8.0 s`;
+- prop: `GearsDistrictSlice01B/StreetClutter/SecurityCheckpoint` at `Vector3(-4.5, 0, -42.0)`.
+
+Production behavior:
+- approaching within 6.5 m enters `STANDOFF` state and emits `SIREN_ALARM`;
+- dual resolution:
+  1. Peaceful toll payment (150 credits via `pay_toll()`, `[E] PAY TOLL // 150` on foot or `[F] PAY TOLL // 150` in vehicle): disables barrier collision, emits `COMPLETION` audio;
+  2. High-speed vehicle ram breach (`ram_breach(speed)` at speed >= 5.0 m/s): disables barrier collision, emits `COLLISION_HEAD_ON` + `GATE_SLAM` + `SIREN_ALARM`, and triggers root pursuit authority disturbance alert;
+- HUD / touch routing: wires context-aware prompts in `TouchControlsUI` (`RouteSwitchButton` in vehicle, `ActionButton` on foot) and desktop `KEY_F` keybind for vehicle route action;
+- full reset restoration via `reset_world_event()` in `reset_slice()`.
+
+### World Event 03 — Mayor Burn Contraband Alley Delivery
+
+Production node: `AlleyContrabandDropWorldEvent` attached to `scrap_test_block.tscn`.
+Script: `godot/scripts/world/alley_contraband_drop_world_event.gd`.
+
+Canonical local event identity:
+- directive: `contraband_alley_drop`;
+- actor: `MAYOR_BURN_DROP`;
+- zone: `gears_service_alley`;
+- reward: `250 credits`;
+- entry socket: `GearsDistrictSlice01B/ServiceAlleyEntrySocket` at `Vector3(-10, 0.15, -26)`;
+- stash prop: `GearsDistrictSlice01B/StreetClutter/CardboardBoxStack` at `Vector3(-11.45, 0, -37.5)`;
+- exit socket: `GearsDistrictSlice01B/ServiceAlleyExitSocket` at `Vector3(-10, 0.15, -44)`.
+
+Production behavior:
+- entering within 4.5 m of entry socket (or 3.0 m of stash) triggers `DISCOVERED` state and emits `SIGNAL_LOCK` audio cue;
+- prompt updates to `[E] SECURE STASH` / `[F] SECURE STASH`;
+- collecting stash transitions to `COLLECTED` state, awards 250 credits;
+- moving to exit socket updates prompt to `[E] DELIVER DROP` / `[F] DELIVER DROP`;
+- delivering drop transitions to `DELIVERED`, emits `COMPLETION` audio, and triggers root pursuit authority disturbance alert;
+- full reset restoration via `reset_world_event()` in `reset_slice()`.
+
 ## Current verification truth
 
 Code-first verification remains the default production gate.
+
+### World Event 02 & 03 verification evidence
+
+- `godot/tests/security_checkpoint_world_event_test.gd`: **100% CONTRACT PASS**;
+- `godot/tests/alley_contraband_drop_world_event_test.gd`: **100% CONTRACT PASS**;
+- `godot/tests/camera_mount_transition_test.gd`: **PASS** (retained FB13Thrum, SecurityCheckpoint, ContrabandDrop, BurnGarage, SilentCore, ProofRetirement);
+- `godot/tests/continuous_golden_slice_playthrough_test.gd`: **100% ALL 3 MISSIONS CONTINUOUS PLAYTHROUGH PASS**;
+- `godot/tests/desktop_controls_event_routing_test.gd`: **PASS**;
+- `godot/scripts/verification/ctw_wave1_integrated_harness.gd`: **PASS**.
 
 ### 01D evidence
 
