@@ -258,16 +258,37 @@ Production behavior:
 - dual world interaction: capable of high-speed ram breach at `SecurityCheckpointWorldEvent` (speed >= 5.0 m/s);
 - full reset restoration via `reset_slice()`.
 
+### Street Combat & Physical Tool Improvisation
+
+Production implementation for Issue #55 leading combat frontier:
+- Player melee verb on foot:
+  - verb: `player.strike() -> bool`;
+  - reach: `2.2 m`, strike arc: `90.0 deg`, strike damage: `1`;
+  - duration: `0.28 s`, cooldown: `0.38 s`, forward impulse: `+3.6 m/s`;
+  - physical representation: procedural right arm thrust/snap down + torso rotation twist + `PrybarTool` industrial rebar mesh attached to `MeshPivot/RightArm`;
+  - rejection guards: strictly rejected while mounted or input-locked;
+  - controls: desktop `KEY_J` or `KEY_SPACE` (on foot traversal), or touch action button fallback.
+- Breakable Salvage Target (`PropSalvageLockbox`):
+  - scene: `res://scenes/props/prop_salvage_lockbox.tscn` / script `res://scripts/props/salvage_lockbox.gd`;
+  - staging position: `Vector3(2.5, 0.0, 6.5)` in scrap yard;
+  - durability: `3` hits (`MAX_DURABILITY = 3`);
+  - physical reaction: elastic impact recoil tween on `VisualRoot`, status light state transition (SECURED red -> DAMAGED hazard amber -> BREACHED dark);
+  - audio events: `AMBIENT_WORK_CLINK` + `SPARK` on impact;
+  - city consequence loop: striking restricted municipal lockbox emits `alarm_triggered` + `SIREN_ALARM`, initiating `current_pursuit_state = PursuitState.DISTURBANCE_ALERT` and activating pursuer tracking;
+  - payoff: 3rd lethal strike breaches lockbox, pops lid open, emits `COMPLETION`, and awards `+150` scrap credits;
+  - reset restoration: full reset via `reset_lockbox()` restored by `reset_slice()`.
+
 ## Current verification truth
 
 Code-first verification remains the default production gate.
 
-### Vehicle Fleet & World Events verification evidence
+### Vehicle Fleet, Street Combat & World Events verification evidence
 
+- `godot/tests/street_combat_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: player melee strike verb, StreetCombatContract invariants, hit registration/durability decrement, security alarm disturbance sequence, lockbox breach + 150 scrap payoff, reset slice restoration);
 - `godot/tests/muscle_coupe_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: hierarchy, performance constants, mounting posture, driving physics, gear transitions, dismount rejection, checkpoint ram breach, reset);
 - `godot/tests/security_checkpoint_world_event_test.gd`: **100% CONTRACT PASS**;
 - `godot/tests/alley_contraband_drop_world_event_test.gd`: **100% CONTRACT PASS**;
-- `godot/tests/camera_mount_transition_test.gd`: **PASS** (retained FB13Thrum, SecurityCheckpoint, ContrabandDrop, MuscleCoupeContract, BurnGarage, SilentCore, ProofRetirement);
+- `godot/tests/camera_mount_transition_test.gd`: **PASS** (retained FB13Thrum, SecurityCheckpoint, ContrabandDrop, MuscleCoupeContract, StreetCombatContract, BurnGarage, SilentCore, ProofRetirement);
 - `godot/tests/continuous_golden_slice_playthrough_test.gd`: **100% ALL 3 MISSIONS CONTINUOUS PLAYTHROUGH PASS**;
 - `godot/tests/desktop_controls_event_routing_test.gd`: **PASS**;
 - `godot/scripts/verification/ctw_wave1_integrated_harness.gd`: **PASS**.

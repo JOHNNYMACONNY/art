@@ -9,6 +9,7 @@ const AudioManagerScript = preload("res://scripts/audio/audio_manager.gd")
 const MemoryEchoController = preload("res://scripts/prototype/memory_echo_controller.gd")
 const ScrapHaulerScript = preload("res://scripts/vehicles/scrap_hauler.gd")
 const MuscleCoupeScript = preload("res://scripts/vehicles/muscle_coupe.gd")
+const SalvageLockboxScript = preload("res://scripts/props/salvage_lockbox.gd")
 const ScrapWorkerScript = preload("res://scripts/entities/scrap_worker.gd")
 const UtilityCrawlerScript = preload("res://scripts/entities/utility_crawler.gd")
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
@@ -50,6 +51,7 @@ var signal_tuner: SignalTuner = null
 var courier_bike: CourierBike = null
 var scrap_hauler: CharacterBody3D = null
 var muscle_coupe: MuscleCoupe = null
+var salvage_lockbox: StaticBody3D = null
 var scrap_worker_1: CharacterBody3D = null
 var scrap_worker_2: CharacterBody3D = null
 var utility_crawler: CharacterBody3D = null
@@ -177,6 +179,16 @@ func _ready() -> void:
 		signal_gate.gate_triggered.connect(_on_signal_gate_triggered)
 		_interactables.append(signal_gate)
 
+	var lockbox_scene: PackedScene = load("res://scenes/props/prop_salvage_lockbox.tscn")
+	if lockbox_scene:
+		salvage_lockbox = lockbox_scene.instantiate() as StaticBody3D
+		salvage_lockbox.name = "PropSalvageLockbox"
+		salvage_lockbox.position = Vector3(2.5, 0.0, 6.5)
+		add_child(salvage_lockbox)
+		salvage_lockbox.hit_received.connect(_on_lockbox_hit_received)
+		salvage_lockbox.lockbox_breached.connect(_on_lockbox_breached)
+		salvage_lockbox.alarm_triggered.connect(_on_lockbox_alarm_triggered)
+
 	var worker_scene: PackedScene = load("res://scenes/entities/scrap_worker.tscn")
 	if worker_scene:
 		scrap_worker_1 = worker_scene.instantiate() as CharacterBody3D
@@ -218,10 +230,12 @@ func _ready() -> void:
 	if player and camera:
 		camera.set_target(player)
 		player.footstep_triggered.connect(_on_player_footstep)
+		player.strike_triggered.connect(_on_player_strike_triggered)
 		
 	if touch_ui:
 		touch_ui.joystick_vector_updated.connect(_on_joystick_vector_updated)
 		touch_ui.action_button_pressed.connect(_on_action_pressed)
+		touch_ui.strike_pressed.connect(_on_strike_pressed)
 		touch_ui.peel_gesture_dragged.connect(_on_peel_gesture_dragged)
 		touch_ui.peel_gesture_released.connect(_on_peel_gesture_released)
 		touch_ui.tuner_dragged.connect(_on_tuner_dragged)
@@ -737,6 +751,8 @@ func _on_action_pressed() -> void:
 					return
 
 	if not _active_target or not player:
+		if player and not player.is_mounted and not player.is_input_locked:
+			player.strike()
 		return
 
 		
@@ -833,6 +849,36 @@ func _on_vehicle_dismounted_generic(exiting_vehicle: Node3D = null) -> void:
 			audio_mgr.clear_vehicle_feedback()
 		if pursuer and pursuer.is_active:
 			pursuer.target_node = player
+
+func _on_strike_pressed() -> void:
+	if player and not player.is_mounted and not player.is_input_locked:
+		player.strike()
+
+func _on_player_strike_triggered(hit_target: Node3D, hit_pos: Vector3) -> void:
+	if hit_target:
+		if audio_mgr:
+			audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, hit_pos)
+	else:
+		if audio_mgr:
+			audio_mgr.play_event(AudioManagerScript.SoundEvent.COLLISION_GLANCE, hit_pos)
+
+func _on_lockbox_hit_received(remaining_durability: int, hit_pos: Vector3, _impulse_dir: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, hit_pos)
+	if status_label and (status_label.visible or OS.get_cmdline_user_args().has("--debug-ui")):
+		status_label.text = "[SALVAGE HIT] LOCKBOX INTEGRITY: %d/3" % remaining_durability
+
+func _on_lockbox_alarm_triggered(source_pos: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SIREN_ALARM, source_pos)
+	if current_pursuit_state == PursuitState.CALM:
+		trigger_disturbance_alert()
+
+func _on_lockbox_breached(reward: int, breach_pos: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.COMPLETION, breach_pos)
+	if status_label:
+		status_label.text = "[MUNICIPAL LOCKBOX BREACHED] +%d SCRAP // SECURITY ALARM ACTIVE" % reward
 
 func _on_radio_toggle_pressed() -> void:
 	var veh := _get_active_vehicle()
@@ -993,6 +1039,9 @@ func reset_slice() -> void:
 	var contraband_event = get_node_or_null("AlleyContrabandDropWorldEvent")
 	if contraband_event and contraband_event.has_method("reset_world_event"):
 		contraband_event.reset_world_event()
+
+	if salvage_lockbox and salvage_lockbox.has_method("reset_lockbox"):
+		salvage_lockbox.reset_lockbox()
 
 	if touch_ui:
 		touch_ui.reset_all_input_states()

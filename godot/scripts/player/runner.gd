@@ -26,7 +26,19 @@ var joystick_vector := Vector2.ZERO
 var is_input_locked: bool = false
 var is_mounted: bool = false
 
+const STRIKE_COOLDOWN_TIME: float = 0.38
+const STRIKE_DURATION: float = 0.28
+const STRIKE_REACH_M: float = 2.2
+const STRIKE_ARC_DEG: float = 90.0
+const STRIKE_DAMAGE: int = 1
+
+var is_striking: bool = false
+var _strike_timer: float = 0.0
+var _strike_cooldown: float = 0.0
+
 signal footstep_triggered
+signal strike_triggered(hit_target: Node3D, hit_pos: Vector3)
+signal strike_performed
 
 var _step_timer: float = 0.0
 var _anim_time: float = 0.0
@@ -129,6 +141,30 @@ func set_vehicle_steering(steer: float) -> void:
 	target_steering = clampf(steer, -1.0, 1.0)
 
 func _physics_process(delta: float) -> void:
+	if _strike_cooldown > 0.0:
+		_strike_cooldown = maxf(0.0, _strike_cooldown - delta)
+
+	if is_striking:
+		_strike_timer += delta
+		var strike_progress: float = clampf(_strike_timer / STRIKE_DURATION, 0.0, 1.0)
+		if right_arm:
+			if strike_progress < 0.4:
+				var t := strike_progress / 0.4
+				right_arm.rotation.x = lerp_angle(deg_to_rad(-10.0), deg_to_rad(-85.0), t)
+				right_arm.rotation.y = lerp_angle(deg_to_rad(4.0), deg_to_rad(-25.0), t)
+			else:
+				var t := (strike_progress - 0.4) / 0.6
+				right_arm.rotation.x = lerp_angle(deg_to_rad(-85.0), deg_to_rad(-10.0), t)
+				right_arm.rotation.y = lerp_angle(deg_to_rad(-25.0), deg_to_rad(4.0), t)
+		if torso_node:
+			if strike_progress < 0.4:
+				torso_node.rotation.y = lerp_angle(0.0, deg_to_rad(-18.0), strike_progress / 0.4)
+			else:
+				torso_node.rotation.y = lerp_angle(deg_to_rad(-18.0), 0.0, (strike_progress - 0.4) / 0.6)
+		if _strike_timer >= STRIKE_DURATION:
+			is_striking = false
+			_reset_standing_pose()
+
 	if is_mounted:
 		current_steering = move_toward(current_steering, target_steering, delta * 8.0)
 		if current_vehicle_posture == "car":
@@ -227,8 +263,8 @@ func _physics_process(delta: float) -> void:
 		if left_leg: left_leg.rotation.x = leg_swing
 		if right_leg: right_leg.rotation.x = -leg_swing
 		if left_arm: left_arm.rotation.x = -arm_swing
-		if right_arm: right_arm.rotation.x = arm_swing
-		if torso_node: torso_node.position.y = 1.15 + abs(sin(_anim_time * 2.0)) * 0.04
+		if right_arm and not is_striking: right_arm.rotation.x = arm_swing
+		if torso_node and not is_striking: torso_node.position.y = 1.15 + abs(sin(_anim_time * 2.0)) * 0.04
 		if head_node: head_node.position = Vector3(0, 1.48 + abs(sin(_anim_time * 2.0)) * 0.03, -0.06)
 
 		# Trigger footstep audio event periodically
@@ -239,7 +275,8 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity = velocity.move_toward(Vector3.ZERO, friction * delta)
 		_step_timer = 0.0
-		_reset_standing_pose()
+		if not is_striking:
+			_reset_standing_pose()
 		if anim_player and anim_player.has_animation("idle"):
 			if anim_player.current_animation != "idle":
 				anim_player.play("idle", 0.2)
@@ -340,3 +377,76 @@ func _reset_standing_pose() -> void:
 	if right_leg:
 		right_leg.position = Vector3(0.13, 0.85, -0.04)
 		right_leg.rotation = Vector3(deg_to_rad(6.0), 0, 0)
+
+func strike() -> bool:
+	if is_input_locked or is_mounted or _strike_cooldown > 0.0 or is_striking:
+		return false
+
+	is_striking = true
+	_strike_timer = 0.0
+	_strike_cooldown = STRIKE_COOLDOWN_TIME
+
+	var facing_dir := Vector3.FORWARD
+	if mesh_pivot:
+		facing_dir = -mesh_pivot.global_transform.basis.z.normalized()
+		if facing_dir.length_squared() < 0.001:
+			facing_dir = Vector3.FORWARD
+
+	# Forward kinetic impulse
+	velocity += facing_dir * 3.6
+
+	# Hit detection
+	var hit_target: Node3D = null
+	var hit_position: Vector3 = global_position + facing_dir * STRIKE_REACH_M
+
+	if is_inside_tree():
+		var space_state := get_world_3d().direct_space_state
+		var query := PhysicsRayQueryParameters3D.create(
+			global_position + Vector3(0, 0.9, 0),
+			global_position + Vector3(0, 0.9, 0) + facing_dir * STRIKE_REACH_M
+		)
+		query.exclude = [get_rid()]
+		var ray_res := space_state.intersect_ray(query)
+		if ray_res and ray_res.has("collider"):
+			var col = ray_res["collider"]
+			if col is Node3D:
+				hit_target = col
+				hit_position = ray_res["position"]
+
+	if not hit_target or not hit_target.has_method("take_hit"):
+		var candidates: Array[Node] = []
+		for c in get_tree().get_nodes_in_group("damageable"):
+			candidates.append(c)
+		for c in get_tree().get_nodes_in_group("strike_target"):
+			if not candidates.has(c):
+				candidates.append(c)
+
+		var best_candidate: Node3D = null
+		var best_dist: float = STRIKE_REACH_M
+
+		for cand in candidates:
+			if not (cand is Node3D) or cand == self:
+				continue
+			var cand_pos: Vector3 = (cand as Node3D).global_position
+			var to_cand := cand_pos - global_position
+			to_cand.y = 0.0
+			var dist := to_cand.length()
+			if dist <= STRIKE_REACH_M:
+				var cand_dir := to_cand.normalized()
+				var angle_deg := rad_to_deg(facing_dir.angle_to(cand_dir))
+				if angle_deg <= STRIKE_ARC_DEG * 0.5:
+					if dist < best_dist:
+						best_dist = dist
+						best_candidate = cand
+
+		if best_candidate:
+			hit_target = best_candidate
+			hit_position = best_candidate.global_position
+
+	if hit_target and hit_target.has_method("take_hit"):
+		hit_target.take_hit(STRIKE_DAMAGE, hit_position, facing_dir)
+
+	emit_signal("strike_triggered", hit_target, hit_position)
+	emit_signal("strike_performed")
+	return true
+
