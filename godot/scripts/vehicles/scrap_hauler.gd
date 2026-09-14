@@ -50,14 +50,39 @@ var _brake_screech_cooldown: float = 0.0
 var _gear_settle_timer: float = 0.0
 const GEAR_SETTLE_DURATION: float = 0.12
 
+var _mount_blend_time: float = 0.0
+var _mount_start_pos: Vector3 = Vector3.ZERO
+var _mount_start_basis: Basis = Basis.IDENTITY
+var _dismount_blend_time: float = 0.0
+var _dismount_start_pos: Vector3 = Vector3.ZERO
+var _dismount_start_basis: Basis = Basis.IDENTITY
+var _dismount_target_pos: Vector3 = Vector3.ZERO
+const MOUNT_BLEND_DURATION: float = 0.20
+const DISMOUNT_BLEND_DURATION: float = 0.20
+
 func _ready() -> void:
 	if mount_interactable:
 		mount_interactable.interaction_priority = 2.0
 		mount_interactable.is_powered = true
 
-func _process(_delta: float) -> void:
-	if occupant:
-		occupant.global_position = to_global(rider_socket.position)
+func _process(delta: float) -> void:
+	if not occupant:
+		return
+	var socket_pos := to_global(rider_socket.position)
+	if current_state == VehicleState.MOUNTING:
+		_mount_blend_time += delta
+		var t: float = clampf(_mount_blend_time / MOUNT_BLEND_DURATION, 0.0, 1.0)
+		var smooth_t: float = 0.5 - 0.5 * cos(t * PI)
+		occupant.global_position = _mount_start_pos.lerp(socket_pos, smooth_t)
+		occupant.global_basis = _mount_start_basis.slerp(global_basis, smooth_t)
+	elif current_state == VehicleState.DISMOUNTING:
+		_dismount_blend_time += delta
+		var t: float = clampf(_dismount_blend_time / DISMOUNT_BLEND_DURATION, 0.0, 1.0)
+		var smooth_t: float = 0.5 - 0.5 * cos(t * PI)
+		occupant.global_position = _dismount_start_pos.lerp(_dismount_target_pos, smooth_t)
+		occupant.global_basis = _dismount_start_basis.slerp(Basis.IDENTITY, smooth_t)
+	elif current_state == VehicleState.DRIVING:
+		occupant.global_position = socket_pos
 		occupant.global_basis = global_basis
 
 func _physics_process(delta: float) -> void:
@@ -109,8 +134,9 @@ func _physics_process(delta: float) -> void:
 						collision_contact.emit(head_on_ratio, pre_impact_speed, col.get_position())
 						
 		if occupant:
-			occupant.global_position = to_global(rider_socket.position)
-			occupant.global_basis = global_basis
+			if current_state == VehicleState.DRIVING:
+				occupant.global_position = to_global(rider_socket.position)
+				occupant.global_basis = global_basis
 			occupant.velocity = Vector3.ZERO
 			occupant.is_input_locked = true
 
@@ -125,11 +151,13 @@ func request_mount(player: PlayerRunner) -> bool:
 	occupant = player
 	state_changed.emit("MOUNTING")
 	
+	_mount_blend_time = 0.0
+	_mount_start_pos = player.global_position
+	_mount_start_basis = player.global_basis
+
 	player.is_input_locked = true
 	player.velocity = Vector3.ZERO
 	player.set_vehicle_driving_posture(true, "car")
-	player.global_position = to_global(rider_socket.position)
-	player.global_basis = global_basis
 	var p_col := player.get_node_or_null("CollisionShape3D") as CollisionShape3D
 	if p_col: p_col.set_deferred("disabled", true)
 	
@@ -161,6 +189,11 @@ func request_dismount() -> bool:
 	current_state = VehicleState.DISMOUNTING
 	state_changed.emit("DISMOUNTING")
 	
+	_dismount_blend_time = 0.0
+	_dismount_start_pos = occupant.global_position
+	_dismount_start_basis = occupant.global_basis
+	_dismount_target_pos = safe_pos
+
 	if mount_interactable:
 		mount_interactable.is_powered = false
 		
@@ -170,6 +203,7 @@ func request_dismount() -> bool:
 			if p_col: p_col.set_deferred("disabled", false)
 			occupant.set_mounted_posture(false)
 			occupant.global_position = safe_pos
+			occupant.global_basis = Basis()
 			occupant.is_input_locked = false
 			occupant.velocity = Vector3.ZERO
 			occupant = null
@@ -187,10 +221,13 @@ func request_dismount() -> bool:
 	return true
 
 func force_dismount() -> void:
+	_mount_blend_time = 0.0
+	_dismount_blend_time = 0.0
 	if occupant:
 		var p_col := occupant.get_node_or_null("CollisionShape3D") as CollisionShape3D
 		if p_col: p_col.set_deferred("disabled", false)
 		occupant.set_mounted_posture(false)
+		occupant.global_basis = Basis()
 		occupant.is_input_locked = false
 		occupant.velocity = Vector3.ZERO
 		occupant = null
