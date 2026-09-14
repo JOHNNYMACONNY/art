@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3 uid="uid://c_scrap_test_block_001"]
+[gd_scene load_steps=33 format=3 uid="uid://c_scrap_test_block_001"]
 
 [ext_resource type="Script" path="res://scripts/prototype/scrap_test_block.gd" id="1_root"]
 
@@ -23,6 +23,7 @@
 [ext_resource type="Script" path="res://scripts/world/fb13_thrum_world_event.gd" id="15_fb13_thrum"]
 [ext_resource type="Script" path="res://tests/gears_verification_capture.gd" id="16_verify_capture"]
 [ext_resource type="Script" path="res://scripts/world/security_checkpoint_world_event.gd" id="17_checkpoint_event"]
+[ext_resource type="Script" path="res://scripts/world/alley_contraband_drop_world_event.gd" id="18_contraband_event"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -228,6 +229,9 @@ script = ExtResource("15_fb13_thrum")
 
 [node name="SecurityCheckpointWorldEvent" type="Node" parent="."]
 script = ExtResource("17_checkpoint_event")
+
+[node name="AlleyContrabandDropWorldEvent" type="Node" parent="."]
+script = ExtResource("18_contraband_event")
 
 [node name="VerificationCaptureDriver" type="Node" parent="."]
 script = ExtResource("16_verify_capture")

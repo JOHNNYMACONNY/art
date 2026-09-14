@@ -633,11 +633,27 @@ func _evaluate_target_selection() -> void:
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
 	var is_checkpoint_standoff: bool = checkpoint_event != null and checkpoint_event.current_state == 1 # State.STANDOFF
 
+	var contraband_event = get_node_or_null("AlleyContrabandDropWorldEvent")
+	var is_contraband_stash: bool = contraband_event != null and contraband_event.current_state == 1 # State.DISCOVERED
+	var is_contraband_delivery: bool = false
+	if contraband_event != null and contraband_event.current_state == 2: # State.COLLECTED
+		var exit_sock = contraband_event._exit_socket
+		if exit_sock and active_pos.distance_to(exit_sock.global_position) <= contraband_event.EXIT_RADIUS_M:
+			is_contraband_delivery = true
+
 	if touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING:
 		if is_checkpoint_standoff:
 			touch_ui.set_route_switch_button_visible(true)
 			if touch_ui.route_switch_button:
 				touch_ui.route_switch_button.text = "[F] PAY TOLL // 150"
+		elif is_contraband_stash:
+			touch_ui.set_route_switch_button_visible(true)
+			if touch_ui.route_switch_button:
+				touch_ui.route_switch_button.text = "[F] SECURE STASH"
+		elif is_contraband_delivery:
+			touch_ui.set_route_switch_button_visible(true)
+			if touch_ui.route_switch_button:
+				touch_ui.route_switch_button.text = "[F] DELIVER DROP"
 		else:
 			if touch_ui.route_switch_button:
 				touch_ui.route_switch_button.text = "[ ROUTE ]"
@@ -647,6 +663,14 @@ func _evaluate_target_selection() -> void:
 			touch_ui.set_action_button_highlight(true)
 			if touch_ui.action_button:
 				touch_ui.action_button.text = "[E] PAY TOLL // 150"
+		elif is_contraband_stash:
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				touch_ui.action_button.text = "[E] SECURE STASH"
+		elif is_contraband_delivery:
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				touch_ui.action_button.text = "[E] DELIVER DROP"
 		else:
 			if touch_ui.action_button:
 				touch_ui.action_button.text = "[E] ACTION"
@@ -664,10 +688,35 @@ func _on_action_pressed() -> void:
 					touch_ui.action_button.text = "[E] ACTION"
 			return
 
+	var active_veh: Node3D = _get_active_vehicle()
+	var active_pos: Vector3 = active_veh.global_position if active_veh else (player.global_position if player else Vector3.ZERO)
+
+	var contraband_event = get_node_or_null("AlleyContrabandDropWorldEvent")
+	if contraband_event:
+		if contraband_event.current_state == 1: # State.DISCOVERED
+			if contraband_event.collect_stash():
+				if touch_ui:
+					if touch_ui.route_switch_button:
+						touch_ui.route_switch_button.text = "[ ROUTE ]"
+					touch_ui.set_route_switch_button_visible(false)
+					if touch_ui.action_button:
+						touch_ui.action_button.text = "[E] ACTION"
+				return
+		elif contraband_event.current_state == 2: # State.COLLECTED
+			var exit_sock = contraband_event._exit_socket
+			if exit_sock and active_pos.distance_to(exit_sock.global_position) <= contraband_event.EXIT_RADIUS_M:
+				if contraband_event.deliver_drop():
+					if touch_ui:
+						if touch_ui.route_switch_button:
+							touch_ui.route_switch_button.text = "[ ROUTE ]"
+						touch_ui.set_route_switch_button_visible(false)
+						if touch_ui.action_button:
+							touch_ui.action_button.text = "[E] ACTION"
+					return
+
 	if not _active_target or not player:
 		return
-		
-	var active_pos: Vector3 = courier_bike.global_position if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player.global_position
+
 		
 	if _active_target is MountInteractable:
 		(_active_target as MountInteractable).set_player_reference(player)
@@ -894,6 +943,10 @@ func reset_slice() -> void:
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
 	if checkpoint_event and checkpoint_event.has_method("reset_world_event"):
 		checkpoint_event.reset_world_event()
+
+	var contraband_event = get_node_or_null("AlleyContrabandDropWorldEvent")
+	if contraband_event and contraband_event.has_method("reset_world_event"):
+		contraband_event.reset_world_event()
 
 	if touch_ui:
 		touch_ui.reset_all_input_states()
