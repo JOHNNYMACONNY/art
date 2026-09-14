@@ -57,12 +57,12 @@ func _pcm_span(stream: AudioStreamWAV) -> int:
 		maximum_byte = maxi(maximum_byte, int(sample_byte))
 	return maximum_byte - minimum_byte
 
-func _play_test_master_probe(duration: float = 0.20) -> AudioStreamPlayer:
+func _play_test_master_probe(_duration: float = 0.20) -> AudioStreamPlayer:
 	var player := AudioStreamPlayer.new()
 	player.name = "AudioRuntimeTestProbe"
 	player.bus = &"Master"
 	player.volume_db = -6.0
-	player.stream = _manager.call("_create_tone_wav", 660.0, clampf(duration, 0.05, 1.0), 0.5)
+	player.stream = load("res://audio/player/sfx_player_signal_lock_pulse.wav")
 	_manager.add_child(player)
 	player.play()
 	return player
@@ -225,11 +225,11 @@ func _run() -> void:
 		await _fail("Master bus volume is effectively silent")
 		return
 
-	var tone: AudioStreamWAV = _manager.call("_create_tone_wav", 440.0, 0.10, 0.5)
-	if _pcm_span(tone) < 32:
-		await _fail("Procedural fallback tone has insufficient PCM amplitude")
+	var test_stream := load("res://audio/player/sfx_player_signal_lock_pulse.wav") as AudioStreamWAV
+	if _pcm_span(test_stream) < 32:
+		await _fail("Production stream has insufficient PCM amplitude")
 		return
-	tone = null
+	test_stream = null
 
 	var probe_player := _play_test_master_probe(0.20)
 	if not await _require_player(probe_player, "Test output probe"):

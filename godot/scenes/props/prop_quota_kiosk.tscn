@@ -1,0 +1,57 @@
+[gd_scene load_steps=8 format=3 uid="uid://propquotakiosk01"]
+
+[ext_resource type="Script" path="res://scripts/props/prop_quota_kiosk.gd" id="1_script"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="1_toon"]
+[ext_resource type="Texture2D" uid="uid://tkwlu5vlpjf" path="res://textures/urban_clutter/tex_storefront_burnside.png" id="2_atlas"]
+[ext_resource type="PackedScene" path="res://models/environment/prop_quota_kiosk.glb" id="3_model"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_kiosk"]
+size = Vector3(0.85, 2.0, 0.65)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Outline"]
+cull_mode = 1
+shading_mode = 0
+albedo_color = Color(0.015, 0.015, 0.02, 1)
+grow = true
+grow_amount = 0.012
+
+[sub_resource type="ShaderMaterial" id="Mat_KioskMain"]
+next_pass = SubResource("Mat_Outline")
+shader = ExtResource("1_toon")
+shader_parameter/base_color = Color(0.95, 0.95, 0.95, 1)
+shader_parameter/roughness_value = 0.65
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("2_atlas")
+shader_parameter/surface_noise_strength = 0.04
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_KioskScreen"]
+shader = ExtResource("1_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.2
+shader_parameter/emission_color = Color(0.0, 0.95, 1.0, 1)
+shader_parameter/emission_energy = 0.65
+shader_parameter/albedo_texture = ExtResource("2_atlas")
+shader_parameter/surface_noise_strength = 0.0
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+shader_parameter/emission_use_albedo = true
+
+[node name="PropQuotaKiosk" type="StaticBody3D"]
+script = ExtResource("1_script")
+material_main = SubResource("Mat_KioskMain")
+material_screen = SubResource("Mat_KioskScreen")
+collision_layer = 1
+collision_mask = 6
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("BoxShape3D_kiosk")
+
+[node name="Model" parent="." instance=ExtResource("3_model")]

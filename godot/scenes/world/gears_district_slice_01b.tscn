@@ -27,6 +27,9 @@
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_wall_decals.png" id="tex_wall_decals"]
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_storefront_canopy.png" id="tex_storefront_canopy"]
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_sum_yung_gai_motors.png" id="tex_sum_yung_gai_motors"]
+[ext_resource type="PackedScene" path="res://scenes/props/prop_traffic_barrier.tscn" id="prop_traffic_barrier"]
+[ext_resource type="PackedScene" path="res://scenes/props/prop_street_vendor.tscn" id="prop_street_vendor"]
+[ext_resource type="PackedScene" path="res://scenes/props/prop_security_checkpoint.tscn" id="prop_security_checkpoint"]
 
 [sub_resource type="BoxMesh" id="Cube"]
 size = Vector3(1, 1, 1)
@@ -1774,3 +1777,15 @@ position = Vector3(-3.2, 0.02, -36.5)
 scale = Vector3(2.4, 0.01, 3.2)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_Soot")
+
+[node name="TrafficBarrier1" parent="StreetClutter" instance=ExtResource("prop_traffic_barrier")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -28.0)
+
+[node name="TrafficBarrier2" parent="StreetClutter" instance=ExtResource("prop_traffic_barrier")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.5, 0, -28.0)
+
+[node name="StreetVendor" parent="StreetClutter" instance=ExtResource("prop_street_vendor")]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, 3.5, 0, -32.0)
+
+[node name="SecurityCheckpoint" parent="StreetClutter" instance=ExtResource("prop_security_checkpoint")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 0, -42.0)

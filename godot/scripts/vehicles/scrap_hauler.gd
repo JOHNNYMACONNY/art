@@ -127,7 +127,7 @@ func request_mount(player: PlayerRunner) -> bool:
 	
 	player.is_input_locked = true
 	player.velocity = Vector3.ZERO
-	player.set_mounted_posture(true)
+	player.set_vehicle_driving_posture(true, "car")
 	player.global_position = to_global(rider_socket.position)
 	player.global_basis = global_basis
 	var p_col := player.get_node_or_null("CollisionShape3D") as CollisionShape3D
@@ -241,6 +241,8 @@ func set_drive_inputs(throttle: float, steer: float, delta: float, handbrake: bo
 		
 	steering_angle = steer
 	is_handbrake_active = handbrake
+	if occupant and occupant.has_method("set_vehicle_steering"):
+		occupant.set_vehicle_steering(steer)
 	
 	if handbrake:
 		var pre_brake_speed := current_speed

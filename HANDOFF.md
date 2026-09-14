@@ -1,6 +1,6 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `GEARS_DISTRICT_LANDMARKS_DRESSED__FB13_CANON_VERIFIED`  
+**Status:** `GEARS_DISTRICT_CLUTTER_AND_VEHICLE_FLEET_VERIFIED`  
 **Current gameplay/world baseline:** `eb501f3`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
@@ -251,6 +251,11 @@ The owner explicitly chose the momentum policy: small reversible increments may 
 - Mission 01/02/03 remain precedent for **small authored adapters over retained production state**, not permission to build a generalized quest graph/database, persistent economy, inventory, combat, wanted-system rewrite, save-slot campaign framework, destination framework or unrelated infrastructure.
 - World Event 01 is precedent for a **small local authored reaction over retained systems**, not permission to build a generalized companion AI, network event bus or world-event registry.
 - Preserve approved visual canon; do not reinterpret reference material against the approved direction.
+- **3D Asset Modeling & Texturing Standard**: Enforce authentic video-game industry / GTA-grade 3D modeling and texturing across all assets, vehicles, clutter, and architecture (`docs/visual_direction/ASSET_MODELING_AND_TEXTURE_STANDARD.md`). Box primitives, stacked cubes, and flat painted-car billboard textures are strictly banned. All vehicles and complex assets must use the 4-part modular industry pipeline:
+  1. Multi-material body separation (`Mat_Paint`, `Mat_Glass`, `Mat_Rubber`, `Mat_Chrome`/`Mat_Steel`, `Mat_Interior`, `Mat_Emissive`).
+  2. UV seams cut along real vehicle panel shut lines (doors, hood, trunk, fenders) to eliminate curved surface stretching.
+  3. Shared vehicle trim sheet (`tex_vehicle_trim.png`) for headlights, taillights, grilles, license plates, and badges.
+  4. Decal & Livery Layer: pure vector stencils/markings on 100% transparent PNGs with ZERO pre-baked 3D shadows, fake lighting, or drawn wheels/windows, blended over clean car paint in Godot cel shader.
 - Keep Issue #60's `GearsStyleProof` separate from production geography; it remains a bounded proof/foundation layer rather than the district scene itself.
 - Prefer useful density and authored destinations/events over empty acreage.
 - Do not add more Gears acreage as the automatic next step.

@@ -5,7 +5,7 @@ uniform vec4 base_color : source_color = vec4(0.51, 0.50, 0.45, 1.0);
 uniform float roughness_value : hint_range(0.0, 1.0) = 0.82;
 uniform vec4 emission_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform float emission_energy : hint_range(0.0, 4.0) = 0.0;
-uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, hint_default_white;
+uniform sampler2D albedo_texture : source_color, filter_linear_mipmap_anisotropic, hint_default_white;
 uniform float surface_noise_strength : hint_range(0.0, 1.0) = 0.22;
 uniform bool use_world_uv = false;
 uniform bool use_box_uv = false;
@@ -15,6 +15,7 @@ uniform bool is_brick = false;
 uniform bool is_pavement_tiles = false;
 uniform bool is_cardboard = false;
 uniform bool emission_use_albedo = false;
+uniform bool use_alpha_blend_livery = false;
 
 varying vec3 v_local_pos;
 varying vec3 v_local_norm;
@@ -77,8 +78,13 @@ void fragment() {
 		}
 	}
 	
-	vec4 tex = texture(albedo_texture, uv_coords);
-	vec3 col = base_color.rgb * tex.rgb;
+	vec4 tex = texture(albedo_texture, uv_coords, -0.65);
+	vec3 col;
+	if (use_alpha_blend_livery) {
+		col = mix(base_color.rgb, tex.rgb, tex.a);
+	} else {
+		col = base_color.rgb * tex.rgb;
+	}
 	
 	// Micro-grit (asphalt grain / concrete aggregate)
 	float n = noise2d(world_pos.xz * 14.0) * 0.7 + noise2d(world_pos.xz * 56.0) * 0.3;
@@ -86,15 +92,15 @@ void fragment() {
 	
 	// Procedural brick pattern for vertical masonry walls
 	if (is_brick) {
-		vec2 bpos = vec2(world_pos.z * 3.0, world_pos.y * 6.0);
+		vec2 bpos = vec2(world_pos.z * 12.0, world_pos.y * 18.0);
 		if (mod(floor(bpos.y), 2.0) > 0.5) {
 			bpos.x += 0.5;
 		}
 		vec2 b_grid = abs(fract(bpos) - 0.5);
-		float mortar = smoothstep(0.40, 0.48, max(b_grid.x, b_grid.y));
-		col = mix(col, vec3(0.12, 0.11, 0.10), mortar * 0.65);
+		float mortar = smoothstep(0.38, 0.48, max(b_grid.x, b_grid.y));
+		col = mix(col, vec3(0.14, 0.13, 0.12), mortar * 0.75);
 		float b_var = hash(floor(bpos));
-		col *= 0.82 + 0.35 * b_var;
+		col *= 0.85 + 0.28 * b_var;
 	}
 	
 	// Procedural pavement flagstone tile joints for sidewalks
@@ -123,4 +129,12 @@ void fragment() {
 	} else {
 		EMISSION = emission_color.rgb * emission_energy;
 	}
+}
+
+void light() {
+	float NdotL = dot(NORMAL, LIGHT);
+	float shadow = ATTENUATION;
+	// Hard 2-tone comic cel cut: 1.0 in direct light vs 0.38 comic ink shadow
+	float cel = (NdotL > 0.05 && shadow > 0.35) ? 1.0 : 0.38;
+	DIFFUSE_LIGHT += LIGHT_COLOR * ALBEDO * cel;
 }

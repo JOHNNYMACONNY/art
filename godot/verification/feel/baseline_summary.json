@@ -1,7 +1,7 @@
 {
 	"metadata": {
 		"baseline_behavior_sha": "09fa2b0ab8aebc8a2ae54b989bffad7720503e48",
-		"behavior_commit": "25f7ff3a7e77549b22245bf8d972b32183e5a4d0",
+		"behavior_commit": "09fa2b0ab8aebc8a2ae54b989bffad7720503e48",
 		"camera_default_fov": 32.0,
 		"camera_follow_speed": 5.0,
 		"camera_max_speed_fov": 38.0,
@@ -79,7 +79,7 @@
 				"endpoint_yaw_deg": -92.1745708116702,
 				"held_speed_mps": 4.2,
 				"path_length_m": 2.36793977022171,
-				"peak_yaw_rate_deg_s": 167.590712419202,
+				"peak_yaw_rate_deg_s": 167.590302607852,
 				"radius_estimate_m": 1.50747727749869,
 				"turn_90_time_s": 0.55
 			},
@@ -93,7 +93,7 @@
 				"endpoint_yaw_deg": -90.2408554651803,
 				"held_speed_mps": 8.4,
 				"path_length_m": 5.97574524581432,
-				"peak_yaw_rate_deg_s": 128.915995678055,
+				"peak_yaw_rate_deg_s": 128.91579077238,
 				"radius_estimate_m": 3.80427757811697,
 				"turn_90_time_s": 0.7
 			}
@@ -106,7 +106,7 @@
 				0.0500000007450581,
 				191.876480102539
 			],
-			"heading_recovery_s": 0.56666666666667,
+			"heading_recovery_s": 0.566666666666667,
 			"held_speed_mps": 9.1,
 			"left_hold_time_s": 0.6,
 			"opposite_yaw_response_s": 0.0166666666666667,
@@ -132,7 +132,7 @@
 			"camera_peak_follow_error_m": 1.91762030124664,
 			"glance": {
 				"collision_events_first_0_25s": 32,
-			"endpoint_position": [
+				"endpoint_position": [
 					338.995056152344,
 					0.0500000007450581,
 					300.996917724609
@@ -141,7 +141,7 @@
 				"impact_time_s": 2.23333333333333,
 				"post_recovery_yaw_deg": -72.0000020035825,
 				"pre_impact_speed_mps": 10.0,
-				"recovery_to_50pct_max_s": 0.1166666666666667,
+				"recovery_to_50pct_max_s": 0.116666666666667,
 				"retained_speed_ratio_0_25s": 0.560546979657478,
 				"speed_after_0_25s_mps": 5.60546979657478
 			},
@@ -156,7 +156,7 @@
 				"impact_time_s": 0.666666666666667,
 				"post_recovery_yaw_deg": 0.0,
 				"pre_impact_speed_mps": 10.0,
-					"recovery_to_50pct_max_s": 0.583333333333332,
+				"recovery_to_50pct_max_s": 0.583333333333332,
 				"retained_speed_ratio_0_25s": 0.0,
 				"speed_after_0_25s_mps": 0.0
 			}
@@ -188,14 +188,14 @@
 			"collision_events": 14,
 			"detour_state_observed": true,
 			"duration_s": 4.99999999999999,
-			"final_pursuer_distance_m": 39.1515312194824,
-			"max_pursuer_distance_m": 39.1515312194824,
-			"min_pursuer_distance_m": 12.1512441635132,
+			"final_pursuer_distance_m": 39.1515502929688,
+			"max_pursuer_distance_m": 39.1515502929688,
+			"min_pursuer_distance_m": 12.1550760269165,
 			"outcome": "CONTACT_BREAK_CANDIDATE",
 			"pursuer_endpoint_position": [
-				2.20456171035767,
+				2.20456838607788,
 				0.600000023841858,
-				26.0208854675293
+				26.020866394043
 			],
 			"route_switch_time_s": 1.01666666666667
 		}

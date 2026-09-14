@@ -196,6 +196,9 @@ func advance_segment() -> void:
 	_play_current_segment()
 	segment_started.emit(_current_item)
 
+var _song_body_reps_remaining: int = 0
+const SONG_BODY_REPETITIONS: int = 8
+
 func _play_current_segment() -> void:
 	_ensure_player()
 	var segments: Array = _current_item.get("segments", [])
@@ -206,6 +209,9 @@ func _play_current_segment() -> void:
 	_current_segment = segments[_current_segment_index]
 	var phase: int = _current_segment.get("phase", RadioStationCatalogScript.Phase.BODY)
 	phase_changed.emit(phase, _current_item, _current_segment)
+
+	if _current_item.get("category") == RadioStationCatalogScript.Category.SONG and phase == RadioStationCatalogScript.Phase.BODY:
+		_song_body_reps_remaining = SONG_BODY_REPETITIONS
 
 	var slot_id: String = _current_segment.get("semantic_slot_id", "")
 	var stream: AudioStream = null
@@ -234,6 +240,14 @@ func _play_current_segment() -> void:
 func _on_stream_finished() -> void:
 	if not _is_playing or _is_paused:
 		return
+
+	if _current_item.get("category") == RadioStationCatalogScript.Category.SONG:
+		var current_phase: int = _current_segment.get("phase", RadioStationCatalogScript.Phase.BODY)
+		if current_phase == RadioStationCatalogScript.Phase.BODY and _song_body_reps_remaining > 0:
+			_song_body_reps_remaining -= 1
+			if _player and _player.is_inside_tree():
+				_player.play(0.0)
+				return
 
 	var segments: Array = _current_item.get("segments", [])
 	_current_segment_index += 1

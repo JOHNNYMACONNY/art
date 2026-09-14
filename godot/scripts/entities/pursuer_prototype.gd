@@ -34,9 +34,9 @@ enum PursuerState {
 @export var intercept_prediction_min_target_speed: float = 0.75
 @export var intercept_prediction_full_target_speed: float = 10.0
 
-@onready var visual_root: Node3D = $VisualRoot
-@onready var siren_mesh: MeshInstance3D = $VisualRoot/SirenMesh
-@onready var siren_light: OmniLight3D = $VisualRoot/SirenLight
+@onready var visual_root: Node3D = get_node_or_null("VisualRoot")
+@onready var siren_mesh: MeshInstance3D = get_node_or_null("VisualRoot/SirenMesh")
+@onready var siren_light: OmniLight3D = get_node_or_null("VisualRoot/SirenLight")
 
 var is_active: bool = false
 var current_state: PursuerState = PursuerState.INACTIVE

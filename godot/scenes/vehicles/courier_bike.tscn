@@ -1,90 +1,88 @@
-[gd_scene load_steps=25 format=3 uid="uid://c_courier_bike_001"]
+[gd_scene format=3 uid="uid://c_courier_bike_001"]
 
 [ext_resource type="Script" path="res://scripts/vehicles/courier_bike.gd" id="1_bike"]
 [ext_resource type="Script" path="res://scripts/interactions/mount_interactable.gd" id="2_mount"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="3_toon"]
+[ext_resource type="Texture2D" uid="uid://dnwrmkii8l5ju" path="res://textures/urban_clutter/tex_courier_bike.png" id="4_atlas"]
+[ext_resource type="Mesh" uid="uid://8ywwir6hdutk" path="res://models/courier_bike/bike_frame.obj" id="5_frame"]
+[ext_resource type="Mesh" uid="uid://bl83aolsytkws" path="res://models/courier_bike/bike_wheel_front.obj" id="6_wheel_front"]
+[ext_resource type="Mesh" uid="uid://dxifwyifqor30" path="res://models/courier_bike/bike_wheel_rear.obj" id="7_wheel_rear"]
+[ext_resource type="Mesh" uid="uid://cco12h4shjpvg" path="res://models/courier_bike/bike_forks.obj" id="8_forks"]
+[ext_resource type="Mesh" uid="uid://bd6b2svcw23m" path="res://models/courier_bike/bike_handlebars.obj" id="9_bars"]
+[ext_resource type="Mesh" uid="uid://kbahl5a4nji2" path="res://models/courier_bike/bike_headlight.obj" id="10_headlight"]
+[ext_resource type="Mesh" uid="uid://bpptpvepc0dwt" path="res://models/courier_bike/bike_tank.obj" id="11_tank"]
+[ext_resource type="Mesh" uid="uid://bjk8igl4i4xyw" path="res://models/courier_bike/bike_battery.obj" id="12_battery"]
+[ext_resource type="Mesh" uid="uid://bhpa70wawbda0" path="res://models/courier_bike/bike_seat.obj" id="13_seat"]
+[ext_resource type="Mesh" uid="uid://d30g4uf3wmx3u" path="res://models/courier_bike/bike_cargo.obj" id="14_cargo"]
+[ext_resource type="Mesh" uid="uid://b8f8sgdwuu8ht" path="res://models/courier_bike/bike_skid.obj" id="15_skid"]
+[ext_resource type="Mesh" uid="uid://dxv8w8rsp8o8p" path="res://models/courier_bike/bike_exhaust.obj" id="16_exhaust"]
+[ext_resource type="PackedScene" path="res://models/courier_bike.glb" id="17_glb"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_bike"]
 size = Vector3(1.0, 1.0, 2.2)
 
-[sub_resource type="StandardMaterial3D" id="Mat_Frame"]
-albedo_color = Color(0.12, 0.14, 0.16, 1)
-metallic = 0.5
-roughness = 0.6
-
-[sub_resource type="BoxMesh" id="Mesh_Frame"]
-material = SubResource("Mat_Frame")
-size = Vector3(0.36, 0.45, 1.4)
-
-[sub_resource type="StandardMaterial3D" id="Mat_OrangeBody"]
-albedo_color = Color(0.92, 0.46, 0.08, 1)
-roughness = 0.35
-
-[sub_resource type="BoxMesh" id="Mesh_Tank"]
-material = SubResource("Mat_OrangeBody")
-size = Vector3(0.42, 0.32, 0.75)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Tire"]
-albedo_color = Color(0.08, 0.09, 0.1, 1)
-roughness = 0.9
-
-[sub_resource type="CylinderMesh" id="Mesh_WheelFront"]
-material = SubResource("Mat_Tire")
-top_radius = 0.35
-bottom_radius = 0.35
-height = 0.16
-radial_segments = 16
-
-[sub_resource type="CylinderMesh" id="Mesh_WheelRear"]
-material = SubResource("Mat_Tire")
-top_radius = 0.35
-bottom_radius = 0.35
-height = 0.22
-radial_segments = 16
-
-[sub_resource type="StandardMaterial3D" id="Mat_Headlight"]
-albedo_color = Color(1, 0.9, 0.6, 1)
-emission_enabled = true
-emission = Color(1, 0.85, 0.5, 1)
-emission_energy_multiplier = 1.5
-
-[sub_resource type="BoxMesh" id="Mesh_Headlight"]
-material = SubResource("Mat_Headlight")
-size = Vector3(0.24, 0.14, 0.12)
-
-[sub_resource type="BoxMesh" id="Mesh_Handlebars"]
-material = SubResource("Mat_Frame")
-size = Vector3(0.72, 0.06, 0.06)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Seat"]
-albedo_color = Color(0.06, 0.06, 0.08, 1)
-roughness = 0.8
-
-[sub_resource type="BoxMesh" id="Mesh_Seat"]
-material = SubResource("Mat_Seat")
-size = Vector3(0.34, 0.12, 0.48)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Battery"]
-albedo_color = Color(0.12, 0.85, 1, 1)
-emission_enabled = true
-emission = Color(0.1, 0.8, 1, 1)
-emission_energy_multiplier = 1.8
-
-[sub_resource type="BoxMesh" id="Mesh_Battery"]
-material = SubResource("Mat_Battery")
-size = Vector3(0.28, 0.22, 0.38)
-
-[sub_resource type="BoxMesh" id="Mesh_CargoRack"]
-material = SubResource("Mat_Frame")
-size = Vector3(0.44, 0.08, 0.52)
-
 [sub_resource type="StandardMaterial3D" id="Mat_Outline"]
 cull_mode = 1
 shading_mode = 0
-albedo_color = Color(0.04, 0.04, 0.06, 1)
+albedo_color = Color(0.02, 0.02, 0.03, 1)
+grow = true
+grow_amount = 0.009
 
-[sub_resource type="BoxMesh" id="Mesh_TankOutline"]
-material = SubResource("Mat_Outline")
-size = Vector3(0.46, 0.36, 0.79)
+[sub_resource type="ShaderMaterial" id="Mat_Main"]
+next_pass = SubResource("Mat_Outline")
+shader = ExtResource("3_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.65
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("4_atlas")
+shader_parameter/surface_noise_strength = 0.12
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_Battery"]
+next_pass = SubResource("Mat_Outline")
+shader = ExtResource("3_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.5
+shader_parameter/emission_color = Color(0.12, 0.9, 1, 1)
+shader_parameter/emission_energy = 0.9
+shader_parameter/albedo_texture = ExtResource("4_atlas")
+shader_parameter/surface_noise_strength = 0.1
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+shader_parameter/emission_use_albedo = true
+
+[sub_resource type="ShaderMaterial" id="Mat_Headlight"]
+shader = ExtResource("3_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.3
+shader_parameter/emission_color = Color(1, 0.92, 0.65, 1)
+shader_parameter/emission_energy = 2.0
+shader_parameter/albedo_texture = ExtResource("4_atlas")
+shader_parameter/surface_noise_strength = 0.1
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+shader_parameter/emission_use_albedo = true
+
+[sub_resource type="ShaderMaterial" id="Mat_Bars"]
+shader = ExtResource("3_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.7
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("4_atlas")
+shader_parameter/surface_noise_strength = 0.1
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
 
 [sub_resource type="BoxMesh" id="BoxMesh_Compat"]
 size = Vector3(0.01, 0.01, 0.01)
@@ -101,46 +99,83 @@ shape = SubResource("BoxShape3D_bike")
 
 [node name="VisualRoot" type="Node3D" parent="."]
 
+[node name="Model" type="Node3D" parent="VisualRoot" instance=ExtResource("17_glb")]
+
 [node name="MainChassis" type="MeshInstance3D" parent="VisualRoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.44, 0)
-mesh = SubResource("Mesh_Frame")
+visible = false
+mesh = ExtResource("5_frame")
+material_override = SubResource("Mat_Main")
+
+[node name="SkidPlate" type="MeshInstance3D" parent="VisualRoot"]
+visible = false
+mesh = ExtResource("15_skid")
+material_override = SubResource("Mat_Main")
 
 [node name="FrontWheel" type="MeshInstance3D" parent="VisualRoot"]
-transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0.35, -0.85)
-mesh = SubResource("Mesh_WheelFront")
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, -0.92)
+mesh = ExtResource("6_wheel_front")
+material_override = SubResource("Mat_Main")
 
 [node name="RearWheel" type="MeshInstance3D" parent="VisualRoot"]
-transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, 0, 0.35, 0.85)
-mesh = SubResource("Mesh_WheelRear")
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0.85)
+mesh = ExtResource("7_wheel_rear")
+material_override = SubResource("Mat_Main")
 
 [node name="FrontTank" type="Node3D" parent="VisualRoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.68, -0.32)
+visible = false
 
 [node name="TankMesh" type="MeshInstance3D" parent="VisualRoot/FrontTank"]
-mesh = SubResource("Mesh_Tank")
+mesh = ExtResource("11_tank")
+material_override = SubResource("Mat_Main")
 
 [node name="TankOutline" type="MeshInstance3D" parent="VisualRoot/FrontTank"]
-mesh = SubResource("Mesh_TankOutline")
-
-[node name="Headlight" type="MeshInstance3D" parent="VisualRoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, -0.74)
-mesh = SubResource("Mesh_Headlight")
-
-[node name="Handlebars" type="MeshInstance3D" parent="VisualRoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.86, -0.52)
-mesh = SubResource("Mesh_Handlebars")
-
-[node name="Saddle" type="MeshInstance3D" parent="VisualRoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 0.12)
-mesh = SubResource("Mesh_Seat")
-
-[node name="CargoRack" type="MeshInstance3D" parent="VisualRoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.62, 0.68)
-mesh = SubResource("Mesh_CargoRack")
+visible = false
+mesh = SubResource("BoxMesh_Compat")
 
 [node name="BatteryCell" type="MeshInstance3D" parent="VisualRoot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.76, 0.68)
-mesh = SubResource("Mesh_Battery")
+visible = false
+mesh = ExtResource("12_battery")
+material_override = SubResource("Mat_Battery")
+
+[node name="Saddle" type="MeshInstance3D" parent="VisualRoot"]
+visible = false
+mesh = ExtResource("13_seat")
+material_override = SubResource("Mat_Main")
+
+[node name="CargoRack" type="MeshInstance3D" parent="VisualRoot"]
+visible = false
+mesh = ExtResource("14_cargo")
+material_override = SubResource("Mat_Main")
+
+[node name="CargoBox" type="MeshInstance3D" parent="VisualRoot"]
+visible = false
+mesh = SubResource("BoxMesh_Compat")
+
+[node name="Headlight" type="MeshInstance3D" parent="VisualRoot"]
+visible = false
+mesh = ExtResource("10_headlight")
+material_override = SubResource("Mat_Headlight")
+
+[node name="Handlebars" type="MeshInstance3D" parent="VisualRoot"]
+visible = false
+mesh = ExtResource("9_bars")
+material_override = SubResource("Mat_Bars")
+
+[node name="FrontFender" type="MeshInstance3D" parent="VisualRoot"]
+visible = false
+mesh = ExtResource("8_forks")
+material_override = SubResource("Mat_Main")
+
+[node name="Exhaust" type="MeshInstance3D" parent="VisualRoot"]
+visible = false
+mesh = ExtResource("16_exhaust")
+material_override = SubResource("Mat_Main")
+
+[node name="SidePlate" type="MeshInstance3D" parent="VisualRoot"]
+visible = false
+mesh = SubResource("BoxMesh_Compat")
 
 [node name="BikeMesh" type="MeshInstance3D" parent="VisualRoot"]
 visible = false
@@ -150,8 +185,8 @@ mesh = SubResource("BoxMesh_Compat")
 visible = false
 mesh = SubResource("BoxMesh_Compat")
 
-[node name="RiderSocket" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0.08)
+[node name="RiderSocket" type="Node3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 0.15)
 
 [node name="MountInteractable" type="Area3D" parent="."]
 script = ExtResource("2_mount")

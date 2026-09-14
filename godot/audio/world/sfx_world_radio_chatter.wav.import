@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://adddad03faba"
-path="res://.godot/imported/sfx_world_radio_chatter.wav-adddad03faba2a0005ea7c4bf6a3a9af.sample"
+uid="uid://dddad03faba"
+path="res://.godot/imported/sfx_world_radio_chatter.wav-ec03e34abeb15951a8967b9e245af482.sample"
 
 [deps]
 
 source_file="res://audio/world/sfx_world_radio_chatter.wav"
-dest_files=["res://.godot/imported/sfx_world_radio_chatter.wav-adddad03faba2a0005ea7c4bf6a3a9af.sample"]
+dest_files=["res://.godot/imported/sfx_world_radio_chatter.wav-ec03e34abeb15951a8967b9e245af482.sample"]
 
 [params]
 
