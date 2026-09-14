@@ -10,6 +10,7 @@ extends SceneTree
 const BurnGarageContract = preload("res://tests/mayor_burn_garage_integration_contract.gd")
 const SilentCoreSiteContract = preload("res://tests/silent_core_site_integration_contract.gd")
 const FB13ThrumContract = preload("res://tests/fb13_thrum_world_event_contract.gd")
+const SecurityCheckpointContract = preload("res://tests/security_checkpoint_world_event_contract.gd")
 const ProofRenderRetirementContract = preload("res://tests/gears_proof_render_retirement_contract.gd")
 
 var _scene_under_test: Node = null
@@ -72,6 +73,11 @@ func _run() -> void:
 	var fb13_thrum_error: String = await FB13ThrumContract.verify(_scene_under_test)
 	if fb13_thrum_error != "":
 		await _fail("[FB13_THRUM_WORLD_EVENT] %s" % fb13_thrum_error)
+		return
+
+	var checkpoint_error: String = SecurityCheckpointContract.verify(_scene_under_test)
+	if checkpoint_error != "":
+		await _fail("[CHECKPOINT_WORLD_EVENT] %s" % checkpoint_error)
 		return
 
 	var retirement_error: String = ProofRenderRetirementContract.verify(_scene_under_test)

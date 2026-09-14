@@ -846,6 +846,10 @@ func reset_slice() -> void:
 	_radio_station_id = RadioStationCatalogScript.DEFAULT_STATION_ID
 	_radio_owner = null
 	
+	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
+	if checkpoint_event and checkpoint_event.has_method("reset_world_event"):
+		checkpoint_event.reset_world_event()
+
 	if touch_ui:
 		touch_ui.reset_all_input_states()
 		touch_ui.set_route_switch_button_visible(false)
