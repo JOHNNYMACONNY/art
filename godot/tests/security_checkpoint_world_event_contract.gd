@@ -67,18 +67,34 @@ static func verify(scene_root: Node) -> String:
 	if audio.get_event_count(siren_id) < 1:
 		return "Standoff did not emit security warning audio"
 
-	# TEST 2: Peaceful resolution via Pay Toll
+	# TEST 1B: Touch UI prompt presentation during STANDOFF
+	var touch_ui = scene_root.get("touch_ui")
+	if touch_ui:
+		scene_root.call("_evaluate_target_selection")
+		if touch_ui.action_button.text != "[E] PAY TOLL // 150":
+			return "Touch UI ActionButton did not display PAY TOLL prompt on foot: got %s" % touch_ui.action_button.text
+
+		touch_ui.current_mode = 1 # VEHICLE_DRIVING
+		scene_root.call("_evaluate_target_selection")
+		if not touch_ui.route_switch_button.visible or touch_ui.route_switch_button.text != "[F] PAY TOLL // 150":
+			return "Touch UI RouteSwitchButton did not display vehicle PAY TOLL prompt: visible=%s, text=%s" % [str(touch_ui.route_switch_button.visible), touch_ui.route_switch_button.text]
+		touch_ui.current_mode = 0 # FOOT_TRAVERSAL
+		scene_root.call("_evaluate_target_selection")
+
+	# TEST 2: Peaceful resolution via action button press
 	audio.reset_event_counts()
-	var pay_ok: bool = bool(event.call("pay_toll"))
-	if not pay_ok:
-		return "pay_toll rejected during STANDOFF"
+	scene_root.call("_on_action_pressed")
 	if event.get("current_state") != 2: # State.TOLL_PAID
-		return "pay_toll did not transition to TOLL_PAID state"
+		return "action button press did not transition to TOLL_PAID state"
 	if audio.get_event_count(completion_id) < 1:
 		return "pay_toll did not play completion audio confirmation"
 	var barrier_col := checkpoint.get_node("CollisionShape3D") as CollisionShape3D
 	if not barrier_col.disabled:
 		return "Barrier collision must be disabled when toll is paid"
+	if touch_ui:
+		scene_root.call("_evaluate_target_selection")
+		if touch_ui.action_button.text != "[E] ACTION":
+			return "Action button did not revert after toll paid"
 
 	# TEST 3: Full reset restores ARMED state and barrier collision
 	event.call("reset_world_event")
@@ -98,13 +114,11 @@ static func verify(scene_root: Node) -> String:
 	if low_ram:
 		return "Low speed ram should not breach checkpoint"
 
-	# High speed ram succeeds and alerts pursuer
+	# High speed vehicle collision breach succeeds and alerts pursuer
 	audio.reset_event_counts()
-	var high_ram: bool = bool(event.call("ram_breach", 8.5))
-	if not high_ram:
-		return "High speed ram failed to breach checkpoint"
+	scene_root.call("_check_checkpoint_ram_breach", 8.5, checkpoint.global_position)
 	if event.get("current_state") != 3: # State.BREACHED
-		return "High speed ram did not enter BREACHED state"
+		return "High speed vehicle collision did not enter BREACHED state"
 	if not barrier_col.disabled:
 		return "Barrier collision must be disabled after breach"
 	if audio.get_event_count(collision_id) < 1 or audio.get_event_count(gate_slam_id) < 1:

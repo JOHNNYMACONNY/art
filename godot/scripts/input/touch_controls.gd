@@ -682,6 +682,9 @@ func _input(event: InputEvent) -> void:
 					action_button_pressed.emit()
 				elif current_mode == UIMode.VEHICLE_DRIVING:
 					dismount_pressed.emit()
+			elif _is_key(key_ev, KEY_F) and current_mode == UIMode.VEHICLE_DRIVING:
+				if route_switch_button and route_switch_button.visible:
+					_on_route_switch_button_clicked()
 			elif _is_key(key_ev, KEY_SPACE) and current_mode == UIMode.FOOT_TRAVERSAL:
 				if gesture_panel and gesture_panel.visible and _current_gesture_type == "EXPOSE_CORE":
 					core_tap_pressed.emit()

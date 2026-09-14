@@ -111,6 +111,7 @@ func _ready() -> void:
 		)
 		courier_bike.collision_contact.connect(func(head_on_ratio: float, impact_speed: float, col_pos: Vector3):
 			if audio_mgr: audio_mgr.on_collision_contact(head_on_ratio, impact_speed, col_pos)
+			_check_checkpoint_ram_breach(impact_speed, col_pos)
 		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
@@ -129,6 +130,7 @@ func _ready() -> void:
 		)
 		scrap_hauler.collision_contact.connect(func(head_on_ratio: float, impact_speed: float, col_pos: Vector3):
 			if audio_mgr: audio_mgr.on_collision_contact(head_on_ratio, impact_speed, col_pos)
+			_check_checkpoint_ram_breach(impact_speed, col_pos)
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
@@ -611,7 +613,8 @@ func _evaluate_target_selection() -> void:
 		
 	var best_target: InteractableBase = null
 	var best_score: float = -9999.0
-	var active_pos: Vector3 = courier_bike.global_position if (courier_bike and courier_bike.current_state == CourierBike.BikeState.DRIVING) else player.global_position
+	var active_veh: Node3D = _get_active_vehicle()
+	var active_pos: Vector3 = active_veh.global_position if active_veh else player.global_position
 	
 	for item in _interactables:
 		if item and item.can_interact(active_pos):
@@ -626,11 +629,41 @@ func _evaluate_target_selection() -> void:
 	if best_target != _active_target:
 		_active_target = best_target
 		touch_ui.set_action_button_highlight(_active_target != null)
-		
+
+	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
+	var is_checkpoint_standoff: bool = checkpoint_event != null and checkpoint_event.current_state == 1 # State.STANDOFF
+
 	if touch_ui.current_mode == TouchControlsUI.UIMode.VEHICLE_DRIVING:
-		touch_ui.set_route_switch_button_visible(_active_target is SignalGateInteractable)
+		if is_checkpoint_standoff:
+			touch_ui.set_route_switch_button_visible(true)
+			if touch_ui.route_switch_button:
+				touch_ui.route_switch_button.text = "[F] PAY TOLL // 150"
+		else:
+			if touch_ui.route_switch_button:
+				touch_ui.route_switch_button.text = "[ ROUTE ]"
+			touch_ui.set_route_switch_button_visible(_active_target is SignalGateInteractable)
+	else:
+		if is_checkpoint_standoff:
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				touch_ui.action_button.text = "[E] PAY TOLL // 150"
+		else:
+			if touch_ui.action_button:
+				touch_ui.action_button.text = "[E] ACTION"
+			touch_ui.set_action_button_highlight(_active_target != null)
 
 func _on_action_pressed() -> void:
+	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
+	if checkpoint_event and checkpoint_event.current_state == 1: # State.STANDOFF
+		if checkpoint_event.pay_toll():
+			if touch_ui:
+				if touch_ui.route_switch_button:
+					touch_ui.route_switch_button.text = "[ ROUTE ]"
+				touch_ui.set_route_switch_button_visible(false)
+				if touch_ui.action_button:
+					touch_ui.action_button.text = "[E] ACTION"
+			return
+
 	if not _active_target or not player:
 		return
 		
@@ -655,6 +688,18 @@ func _on_action_pressed() -> void:
 				camera.set_interaction_mode(true, corroded_panel)
 			if touch_ui:
 				touch_ui.show_gesture_overlay("PEEL_PANEL")
+
+func _check_checkpoint_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
+	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
+	if checkpoint_event and (checkpoint_event.current_state == 1 or checkpoint_event.current_state == 0):
+		var checkpoint_prop = checkpoint_event._checkpoint_prop
+		if checkpoint_prop and col_pos.distance_to(checkpoint_prop.global_position) < 5.0:
+			if impact_speed >= 5.0:
+				checkpoint_event.ram_breach(impact_speed)
+				if touch_ui:
+					if touch_ui.route_switch_button:
+						touch_ui.route_switch_button.text = "[ ROUTE ]"
+					touch_ui.set_route_switch_button_visible(false)
 
 func _on_bike_mounted(player_ref: PlayerRunner) -> void:
 	active_vehicle = courier_bike
@@ -853,6 +898,10 @@ func reset_slice() -> void:
 	if touch_ui:
 		touch_ui.reset_all_input_states()
 		touch_ui.set_route_switch_button_visible(false)
+		if touch_ui.route_switch_button:
+			touch_ui.route_switch_button.text = "[ ROUTE ]"
+		if touch_ui.action_button:
+			touch_ui.action_button.text = "[E] ACTION"
 		touch_ui.hide_replay_overlay()
 		touch_ui.update_radio_button_state(true, _radio_station_id)
 		
