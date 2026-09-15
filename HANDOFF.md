@@ -1,13 +1,22 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `VEHICLE_PURSUER_RAM_COMBAT_VERIFIED`  
-**Current gameplay/world baseline:** `c286a74`  
+**Status:** `MUNICIPAL_QUOTA_KIOSK_VERIFIED`  
+**Current gameplay/world baseline:** `e201372`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
 ## Current product state
 
-**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat & Interceptor Ram Combat complete.**
+**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat & Municipal Quota Kiosk complete.**
+- **Interactive Municipal Quota Kiosk / Civic Deposit Terminal ([`prop_quota_kiosk.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_quota_kiosk.gd), [`prop_quota_kiosk.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_quota_kiosk.tscn))**:
+  - Staged on commercial sidewalk frontage at `Vector3(-9.8, 0.0, -30.5)`.
+  - Biometric proximity detection & dynamic scanner emission (`OmniLight3D` scanner light surges from 1.2 to 3.2 intensity on player arrival).
+  - Target arbitration integration: `QuotaKioskInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via `[E] ACTION` desktop prompt and touch action button.
+  - Lawful scrap deposit & civic quota clearance: `kiosk.deposit_scrap(150)` transitions to `State.FULFILLED`, screen emission flashes biometric green (`Color(0.2, 1.0, 0.4)`), plays `COMPLETION` SFX, de-escalates active pursuer heat.
+  - Street combat melee tampering: striking kiosk with prybar (`kiosk.take_hit(1, ...)`) triggers elastic mesh recoil, screen security red strobe (`Color(1.0, 0.1, 0.1)`), `SIREN_ALARM`, and initiates municipal disturbance alert.
+  - 3-hit terminal breach: lethal strike breaches cash box, awards +200 emergency contraband scrap, emits `kiosk_breached`.
+  - Vehicle ram breach: high-speed vehicle impact (`apply_vehicle_ram(speed >= 4.5)`) shatters vault and triggers alarm.
+  - Deterministic reset: `reset_kiosk()` restores cold start state cleanly.
 - **Pursuit Interceptor Ram / Vehicle Melee Combat**:
   - Weaponized vehicle-on-vehicle collision reception via `pursuer.apply_vehicle_ram(impact_speed, ram_direction, vehicle_source)`.
   - Minimum ram threshold: speed-gated at `>= 4.5 m/s` (`ram_threshold_speed`). Slower nudges safely rejected without state disruption.
@@ -28,8 +37,8 @@
   - WE 01 (FB-13 Infrastructure Thrum), WE 02 (Security Checkpoint Toll/Ram Breach), WE 03 (Mayor Burn Contraband Drop).
 - **Authored Mission Chain (3 Missions)**:
   - Continuous 3-mission playthrough passes 100% end-to-end.
-- **100% test pass across all 8 verification contracts**:
-  - `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`.
+- **100% test pass across all 9 verification contracts**:
+  - `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`.
 
 The former **Visual Direction / Concept Art gate is complete**. Approved creative truth lives under `docs/visual_direction/`, especially:
 
