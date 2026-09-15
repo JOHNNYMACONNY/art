@@ -116,6 +116,7 @@ func _ready() -> void:
 		courier_bike.collision_contact.connect(func(head_on_ratio: float, impact_speed: float, col_pos: Vector3):
 			if audio_mgr: audio_mgr.on_collision_contact(head_on_ratio, impact_speed, col_pos)
 			_check_checkpoint_ram_breach(impact_speed, col_pos)
+			_check_pursuer_ram(impact_speed, col_pos, courier_bike)
 		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
@@ -135,6 +136,7 @@ func _ready() -> void:
 		scrap_hauler.collision_contact.connect(func(head_on_ratio: float, impact_speed: float, col_pos: Vector3):
 			if audio_mgr: audio_mgr.on_collision_contact(head_on_ratio, impact_speed, col_pos)
 			_check_checkpoint_ram_breach(impact_speed, col_pos)
+			_check_pursuer_ram(impact_speed, col_pos, scrap_hauler)
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
@@ -154,6 +156,7 @@ func _ready() -> void:
 		muscle_coupe.collision_contact.connect(func(head_on_ratio: float, impact_speed: float, col_pos: Vector3):
 			if audio_mgr: audio_mgr.on_collision_contact(head_on_ratio, impact_speed, col_pos)
 			_check_checkpoint_ram_breach(impact_speed, col_pos)
+			_check_pursuer_ram(impact_speed, col_pos, muscle_coupe)
 		)
 		if muscle_coupe.mount_interactable:
 			_interactables.append(muscle_coupe.mount_interactable)
@@ -422,7 +425,17 @@ func _process_pursuit_loop(delta: float) -> void:
 				
 			var contact_threshold: float = 1.6
 			if dist < contact_threshold:
-				_on_pursuer_intercepted()
+				if pursuer.current_state == PursuerPrototype.PursuerState.STUNNED:
+					pass
+				elif _is_vehicle_ramming(target, pursuer):
+					var speed: float = 0.0
+					if "current_speed" in target:
+						speed = abs(target.current_speed)
+					elif target is CharacterBody3D:
+						speed = (target as CharacterBody3D).velocity.length()
+					_check_pursuer_ram(maxf(speed, 5.0), pursuer.global_position, target)
+				else:
+					_on_pursuer_intercepted()
 			elif dist > 18.0:
 				_contact_broken_timer += delta
 				if _contact_broken_timer >= 3.0:
@@ -436,6 +449,29 @@ func _process_pursuit_loop(delta: float) -> void:
 					)
 			else:
 				_contact_broken_timer = move_toward(_contact_broken_timer, 0.0, delta)
+
+func _is_vehicle_ramming(target: Node3D, pursuer_node: PursuerPrototype) -> bool:
+	if not target or target == player:
+		return false
+	if target != active_vehicle and target != courier_bike and target != scrap_hauler and target != muscle_coupe:
+		return false
+
+	var speed: float = 0.0
+	var forward: Vector3 = -target.global_transform.basis.z
+	if "current_speed" in target:
+		speed = abs(target.current_speed)
+	elif target is CharacterBody3D:
+		var vel := (target as CharacterBody3D).velocity
+		speed = vel.length()
+		if speed > 0.5:
+			forward = vel.normalized()
+
+	if speed < 4.0:
+		return false
+
+	var to_pursuer := (pursuer_node.global_position - target.global_position).normalized()
+	to_pursuer.y = 0.0
+	return forward.dot(to_pursuer) > 0.2
 
 func _begin_disturbance_sequence(expected_source_state: PursuitState) -> bool:
 	if current_pursuit_state != expected_source_state:
@@ -787,6 +823,32 @@ func _check_checkpoint_ram_breach(impact_speed: float, col_pos: Vector3) -> void
 					if touch_ui.route_switch_button:
 						touch_ui.route_switch_button.text = "[ ROUTE ]"
 					touch_ui.set_route_switch_button_visible(false)
+
+func _check_pursuer_ram(impact_speed: float, col_pos: Vector3, vehicle: Node3D = null) -> bool:
+	if not pursuer or not pursuer.is_active or pursuer.current_state == PursuerPrototype.PursuerState.INACTIVE:
+		return false
+	if pursuer.current_state == PursuerPrototype.PursuerState.STUNNED or pursuer.current_state == PursuerPrototype.PursuerState.EVADED_DISENGAGED:
+		return false
+	if col_pos.distance_to(pursuer.global_position) > 4.5:
+		return false
+
+	var ram_dir := pursuer.global_position - (vehicle.global_position if vehicle else col_pos)
+	ram_dir.y = 0.0
+	if vehicle and vehicle is CharacterBody3D:
+		var veh_vel = (vehicle as CharacterBody3D).velocity
+		if veh_vel.length() > 1.5:
+			ram_dir = veh_vel
+
+	var success: bool = pursuer.apply_vehicle_ram(impact_speed, ram_dir, vehicle)
+	if success:
+		if audio_mgr:
+			audio_mgr.play_event(AudioManagerScript.SoundEvent.COLLISION_HEAD_ON, pursuer.global_position)
+			audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, pursuer.global_position)
+		if vehicle and "current_speed" in vehicle:
+			vehicle.current_speed *= 0.65
+		print("[WORLD] VEHICLE RAM SUCCESS! Pursuer disabled by %s at %.1f m/s" % [vehicle.name if vehicle else "vehicle", impact_speed])
+		return true
+	return false
 
 func _on_bike_mounted(player_ref: PlayerRunner) -> void:
 	active_vehicle = courier_bike

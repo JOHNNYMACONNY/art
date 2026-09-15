@@ -139,6 +139,9 @@ func _physics_process(delta: float) -> void:
 					var head_on_ratio: float = abs(forward_dir.dot(normal))
 					var pre_impact_speed: float = abs(current_speed)
 					var impact_decay: float = lerpf(1.5, 30.0, head_on_ratio * head_on_ratio)
+					var collider = col.get_collider()
+					if collider and collider.has_method("apply_vehicle_ram"):
+						impact_decay = lerpf(1.0, 7.5, head_on_ratio * head_on_ratio)
 					current_speed = move_toward(current_speed, 0.0, impact_decay * delta)
 					collision_contact.emit(head_on_ratio, pre_impact_speed, col.get_position())
 

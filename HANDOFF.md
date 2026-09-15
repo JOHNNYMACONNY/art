@@ -1,14 +1,23 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `STREET_COMBAT_AND_VEHICLE_FLEET_VERIFIED`  
+**Status:** `VEHICLE_PURSUER_RAM_COMBAT_VERIFIED`  
 **Current gameplay/world baseline:** `5435d67`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
 ## Current product state
 
-**Gears District Slice 01b Visual Clutter, Vehicle Fleet & Street Combat complete.**
-- **Street Combat & Physical Tool Improvisation (Issue #55 frontier)**:
+**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat & Interceptor Ram Combat complete.**
+- **Pursuit Interceptor Ram / Vehicle Melee Combat**:
+  - Weaponized vehicle-on-vehicle collision reception via `pursuer.apply_vehicle_ram(impact_speed, ram_direction, vehicle_source)`.
+  - Minimum ram threshold: speed-gated at `>= 4.5 m/s` (`ram_threshold_speed`). Slower nudges safely rejected without state disruption.
+  - Stun state machine: transitions pursuer to `PursuerState.STUNNED` for 3.5s (`stun_recovery_time`) with knockback impulse (`velocity = flat_dir * (impact_speed * 1.1) + Vector3(0, 2.2, 0)`), yaw spin-out, and visual root elastic recoil tween.
+  - Stun safety: target interception strictly inhibited while in `STUNNED` state (`intercepted_target` cannot fire).
+  - Audio & visual feedback: plays `COLLISION_HEAD_ON` and `SPARK` sound events, triggers malfunction amber strobe on siren light.
+  - Reboot recovery: on timer expiry, siren light restores red, recovers to `CHASING` (or `DE_ESCALATING`), and emits `stun_recovered`.
+  - Vehicle kinetic momentum: `MuscleCoupe` and `ScrapHauler` retain forward momentum through ram collisions via softened `impact_decay` against dynamic ram targets.
+  - Pursuit loop safety: `_process_pursuit_loop` checks `_is_vehicle_ramming` to execute offensive vehicle rams instead of false player interceptions.
+- **Street Combat & Physical Tool Improvisation**:
   - Player melee strike verb (`player.strike()`) with procedural arm thrust/snap down, torso twist, 2.2m reach, 90.0° arc, 1 damage, 0.38s cooldown rejection, and `PrybarTool` industrial rebar mesh.
   - Breakable Salvage Target (`PropSalvageLockbox`): 3-hit durability, elastic hit recoil, spark VFX, `AMBIENT_WORK_CLINK` / `SPARK` SFX.
   - Municipal security alarm consequence: striking restricted lockbox triggers `alarm_triggered` + `SIREN_ALARM`, activating city disturbance alert and pursuer tracking.
@@ -19,8 +28,8 @@
   - WE 01 (FB-13 Infrastructure Thrum), WE 02 (Security Checkpoint Toll/Ram Breach), WE 03 (Mayor Burn Contraband Drop).
 - **Authored Mission Chain (3 Missions)**:
   - Continuous 3-mission playthrough passes 100% end-to-end.
-- **100% test pass across all 7 verification contracts**:
-  - `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`.
+- **100% test pass across all 8 verification contracts**:
+  - `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`.
 
 The former **Visual Direction / Concept Art gate is complete**. Approved creative truth lives under `docs/visual_direction/`, especially:
 
