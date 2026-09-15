@@ -1,19 +1,26 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `GEARS_DISTRICT_CLUTTER_AND_VEHICLE_FLEET_VERIFIED`  
-**Current gameplay/world baseline:** `eb501f3`  
+**Status:** `STREET_COMBAT_AND_VEHICLE_FLEET_VERIFIED`  
+**Current gameplay/world baseline:** `5435d67`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
 ## Current product state
 
-**Gears District Slice 01b Visual Clutter & Landmarks Dressing complete.**
-- **Street Clutter**: Verified slices 1-4 (streetlamp pools, sidewalk bins/cardboard, storefront neons, overhead utility wires, manhole covers, storm grates, tire skids).
-- **Landmark Dressing (FB-13/HS-7 Art Direction)**:
-  - Mayor Burn Garage roll-up bay door (`tex_garage_door.png`), hero sign (`tex_burn_hero_sign.png`), permit plate (`tex_permit_plate.png`).
-  - Silent Core Site relay cabinet (`tex_silent_core_cabinet.png`), memory aperture (`tex_memory_aperture.png`).
-  - Industrial Frontage substation exhaust vent grill (`tex_industrial_vent.png`).
-- 100% test pass across `run_clutter_test.gd`, `camera_mount_transition_test.gd`, and `ctw_feel_harness.gd`.
+**Gears District Slice 01b Visual Clutter, Vehicle Fleet & Street Combat complete.**
+- **Street Combat & Physical Tool Improvisation (Issue #55 frontier)**:
+  - Player melee strike verb (`player.strike()`) with procedural arm thrust/snap down, torso twist, 2.2m reach, 90.0° arc, 1 damage, 0.38s cooldown rejection, and `PrybarTool` industrial rebar mesh.
+  - Breakable Salvage Target (`PropSalvageLockbox`): 3-hit durability, elastic hit recoil, spark VFX, `AMBIENT_WORK_CLINK` / `SPARK` SFX.
+  - Municipal security alarm consequence: striking restricted lockbox triggers `alarm_triggered` + `SIREN_ALARM`, activating city disturbance alert and pursuer tracking.
+  - Scrap Payoff: 3rd strike breaches lockbox, pops lid open, emits `COMPLETION`, and awards +150 scrap credits.
+- **Production Vehicle Fleet (3 Classes)**:
+  - Courier Bike (scout/apex banking), Scrap Hauler (heavy/payload/service alley), Muscle Coupe (high-speed scavenged V8, 21 m/s top speed, drift slip, ram breach).
+- **World Events (3 Active)**:
+  - WE 01 (FB-13 Infrastructure Thrum), WE 02 (Security Checkpoint Toll/Ram Breach), WE 03 (Mayor Burn Contraband Drop).
+- **Authored Mission Chain (3 Missions)**:
+  - Continuous 3-mission playthrough passes 100% end-to-end.
+- **100% test pass across all 7 verification contracts**:
+  - `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`.
 
 The former **Visual Direction / Concept Art gate is complete**. Approved creative truth lives under `docs/visual_direction/`, especially:
 
