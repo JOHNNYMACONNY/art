@@ -52,6 +52,7 @@ var courier_bike: CourierBike = null
 var scrap_hauler: CharacterBody3D = null
 var muscle_coupe: MuscleCoupe = null
 var salvage_lockbox: StaticBody3D = null
+var quota_kiosk: StaticBody3D = null
 var scrap_worker_1: CharacterBody3D = null
 var scrap_worker_2: CharacterBody3D = null
 var utility_crawler: CharacterBody3D = null
@@ -117,6 +118,7 @@ func _ready() -> void:
 			if audio_mgr: audio_mgr.on_collision_contact(head_on_ratio, impact_speed, col_pos)
 			_check_checkpoint_ram_breach(impact_speed, col_pos)
 			_check_pursuer_ram(impact_speed, col_pos, courier_bike)
+			_check_kiosk_ram_breach(impact_speed, col_pos)
 		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
@@ -137,6 +139,7 @@ func _ready() -> void:
 			if audio_mgr: audio_mgr.on_collision_contact(head_on_ratio, impact_speed, col_pos)
 			_check_checkpoint_ram_breach(impact_speed, col_pos)
 			_check_pursuer_ram(impact_speed, col_pos, scrap_hauler)
+			_check_kiosk_ram_breach(impact_speed, col_pos)
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
@@ -157,6 +160,7 @@ func _ready() -> void:
 			if audio_mgr: audio_mgr.on_collision_contact(head_on_ratio, impact_speed, col_pos)
 			_check_checkpoint_ram_breach(impact_speed, col_pos)
 			_check_pursuer_ram(impact_speed, col_pos, muscle_coupe)
+			_check_kiosk_ram_breach(impact_speed, col_pos)
 		)
 		if muscle_coupe.mount_interactable:
 			_interactables.append(muscle_coupe.mount_interactable)
@@ -173,9 +177,9 @@ func _ready() -> void:
 				current_pursuit_state = PursuitState.CALM
 		)
 		
-	var gate_scene: PackedScene = load("res://scenes/interactions/signal_gate.tscn")
-	if gate_scene:
-		signal_gate = gate_scene.instantiate() as SignalGateInteractable
+	var signal_gate_scene: PackedScene = load("res://scenes/interactions/signal_gate.tscn")
+	if signal_gate_scene:
+		signal_gate = signal_gate_scene.instantiate() as SignalGateInteractable
 		signal_gate.name = "SignalGate"
 		signal_gate.position = Vector3(-1.5, 0.5, 12.0)
 		add_child(signal_gate)
@@ -191,6 +195,21 @@ func _ready() -> void:
 		salvage_lockbox.hit_received.connect(_on_lockbox_hit_received)
 		salvage_lockbox.lockbox_breached.connect(_on_lockbox_breached)
 		salvage_lockbox.alarm_triggered.connect(_on_lockbox_alarm_triggered)
+
+	var kiosk_scene: PackedScene = load("res://scenes/props/prop_quota_kiosk.tscn")
+	if kiosk_scene:
+		quota_kiosk = kiosk_scene.instantiate() as StaticBody3D
+		quota_kiosk.name = "PropQuotaKiosk"
+		quota_kiosk.position = Vector3(-9.8, 0.0, -30.5)
+		add_child(quota_kiosk)
+		quota_kiosk.quota_deposited.connect(_on_quota_deposited)
+		quota_kiosk.quota_fulfilled.connect(_on_quota_fulfilled)
+		quota_kiosk.hit_received.connect(_on_kiosk_hit_received)
+		quota_kiosk.alarm_triggered.connect(_on_kiosk_alarm_triggered)
+		quota_kiosk.kiosk_breached.connect(_on_kiosk_breached)
+		var kiosk_area = quota_kiosk.get_node_or_null("QuotaKioskInteractable") as InteractableBase
+		if kiosk_area:
+			_interactables.append(kiosk_area)
 
 	var worker_scene: PackedScene = load("res://scenes/entities/scrap_worker.tscn")
 	if worker_scene:
@@ -811,6 +830,16 @@ func _on_action_pressed() -> void:
 				camera.set_interaction_mode(true, corroded_panel)
 			if touch_ui:
 				touch_ui.show_gesture_overlay("PEEL_PANEL")
+	elif quota_kiosk and (_active_target == quota_kiosk.get_node_or_null("QuotaKioskInteractable") or (is_instance_valid(quota_kiosk) and _active_target.get_parent() == quota_kiosk)):
+		if _active_target.has_method("set_player_reference"):
+			_active_target.set_player_reference(player)
+		_active_target.begin_interaction(active_pos)
+
+func _check_kiosk_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
+	if quota_kiosk and not quota_kiosk.is_breached:
+		if col_pos.distance_to(quota_kiosk.global_position) < 4.0:
+			if impact_speed >= 4.5:
+				quota_kiosk.apply_vehicle_ram(impact_speed, Vector3.FORWARD)
 
 func _check_checkpoint_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
@@ -941,6 +970,44 @@ func _on_lockbox_breached(reward: int, breach_pos: Vector3) -> void:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.COMPLETION, breach_pos)
 	if status_label:
 		status_label.text = "[MUNICIPAL LOCKBOX BREACHED] +%d SCRAP // SECURITY ALARM ACTIVE" % reward
+
+func _on_quota_deposited(amount: int, _total_deposited: int, remaining: int) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SIGNAL_LOCK, quota_kiosk.global_position if quota_kiosk else Vector3.ZERO)
+	if status_label:
+		status_label.text = "[QUOTA KIOSK] DEPOSITED +%d SCRAP // %d REMAINING" % [amount, remaining]
+
+func _on_quota_fulfilled(total_deposited: int) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.COMPLETION, quota_kiosk.global_position if quota_kiosk else Vector3.ZERO)
+	if status_label:
+		status_label.text = "[QUOTA KIOSK] CIVIC QUOTA FULFILLED! (%d SCRAP) // CLEARANCE GRANTED" % total_deposited
+	if current_pursuit_state == PursuitState.PURSUIT_ACTIVE or current_pursuit_state == PursuitState.DISTURBANCE_ALERT:
+		_end_pursuit_common(false)
+		if pursuer:
+			pursuer.start_de_escalation()
+
+func _on_kiosk_hit_received(remaining_durability: int, hit_pos: Vector3, _impulse_dir: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, hit_pos)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, hit_pos)
+	if status_label:
+		status_label.text = "[MUNICIPAL KIOSK TAMPER] DURABILITY %d/3 // SECURITY WARNING" % remaining_durability
+
+func _on_kiosk_alarm_triggered(source_pos: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SIREN_ALARM, source_pos)
+	if current_pursuit_state == PursuitState.CALM:
+		trigger_disturbance_alert()
+	if status_label:
+		status_label.text = "[SECURITY ALERT] MUNICIPAL KIOSK TAMPER // PURSUIT INITIATED"
+
+func _on_kiosk_breached(reward: int, breach_pos: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.COMPLETION, breach_pos)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, breach_pos)
+	if status_label:
+		status_label.text = "[MUNICIPAL KIOSK BREACHED] +%d EMERGENCY SCRAP CASHOUT!" % reward
 
 func _on_radio_toggle_pressed() -> void:
 	var veh := _get_active_vehicle()
@@ -1104,6 +1171,9 @@ func reset_slice() -> void:
 
 	if salvage_lockbox and salvage_lockbox.has_method("reset_lockbox"):
 		salvage_lockbox.reset_lockbox()
+
+	if quota_kiosk and quota_kiosk.has_method("reset_kiosk"):
+		quota_kiosk.reset_kiosk()
 
 	if touch_ui:
 		touch_ui.reset_all_input_states()
