@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
 **Status:** `VEHICLE_PURSUER_RAM_COMBAT_VERIFIED`  
-**Current gameplay/world baseline:** `5435d67`  
+**Current gameplay/world baseline:** `c286a74`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
