@@ -1,13 +1,21 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `TRAFFIC_BARRIER_SHORTCUT_BREACH_VERIFIED`  
-**Current gameplay/world baseline:** `b8e40eb`  
+**Status:** `UTILITY_POLE_EMP_OVERLOAD_VERIFIED`  
+**Current gameplay/world baseline:** `5b386be`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
 ## Current product state
 
-**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot & Destructible Traffic Barrier Shortcut Breach complete.**
+**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach & Interactive Utility Pole EMP Grid Overload complete.**
+- **Interactive Surveillance Utility Pole & EMP Grid Overload ([`prop_utility_pole.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_utility_pole.gd), [`prop_utility_pole.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_utility_pole.tscn), [`utility_pole_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/utility_pole_interactable.gd))**:
+  - Staged on sidewalk curb frontage at `Vector3(-6.2, 0.0, -18.0)`.
+  - Target arbitration integration: `UtilityPoleInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] TAP GRID`, `[E] OVERLOADED`, `[E] WRECKED`, `[E] BLOWN`).
+  - Tactical player interaction: `[E] TAP GRID` triggers grid overload, dims cyan optic conduit emission (from 0.7 to 0.05), spawns 5 electrical spark debris shards, broadcasts 9.0m EMP shockwave, and stuns active pursuers for 4.0s.
+  - Foot melee strike tampering: prybar strikes (`pole.take_hit(1, ...)`) trigger elastic visual recoil shake, decrement durability (3 -> 0); lethal 3rd hit causes transformer blowout, detonating EMP shockwave.
+  - High-speed vehicle ram: impacts at `>= 4.5 m/s` tilt pole by 22° in impact direction, blow out transformer, detonate EMP shockwave, and transition to `PoleState.RAMMED`. Low-speed nudges (< 4.5 m/s) deflect with zero damage.
+  - Pursuer EMP stun integration: `pursuer.apply_emp_stun(4.0)` disables pursuer velocity, triggers cyan glitch strobe on siren light, and inhibits target interception during stun duration.
+  - Deterministic reset: `reset_pole()` in `reset_slice()` fully restores upright transform, durability (3), optic emission (0.7), clears spark instances, and restores `READY` state.
 - **Destructible Traffic Barrier Shortcut Breach ([`prop_traffic_barrier.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_traffic_barrier.gd), [`prop_traffic_barrier.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_traffic_barrier.tscn))**:
   - Dual roadblock barricades blocking secondary alley shortcut corridor at `Vector3(-2.5, 0, -28.0)` and `Vector3(-0.5, 0, -28.0)`.
   - Melee strike tampering: prybar strikes (`barrier.take_hit(1, ...)`) trigger elastic mesh recoil, play `AMBIENT_WORK_CLINK` sound event, zero breach (collision shape remains active).
@@ -59,8 +67,8 @@
   - WE 01 (FB-13 Infrastructure Thrum), WE 02 (Security Checkpoint Toll/Ram Breach), WE 03 (Mayor Burn Contraband Drop).
 - **Authored Mission Chain (3 Missions)**:
   - Continuous 3-mission playthrough passes 100% end-to-end.
-- **100% test pass across all 11 verification contracts**:
-  - `scrap_dumpster_integration_test.gd`, `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`, `street_vendor_integration_test.gd`.
+- **100% test pass across all 13 verification contracts**:
+  - `scrap_dumpster_integration_test.gd`, `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`, `street_vendor_integration_test.gd`, `traffic_barrier_integration_test.gd`, `utility_pole_integration_test.gd`.
 
 The former **Visual Direction / Concept Art gate is complete**. Approved creative truth lives under `docs/visual_direction/`, especially:
 
@@ -331,6 +339,8 @@ Code-first verification remains the default production gate.
 
 ### Vehicle Fleet, Street Combat, Props & World Events verification evidence
 
+- `godot/tests/utility_pole_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: state machine/invariants/action verb arbitration, melee tampering/3-hit transformer blowout, tactical TAP GRID interaction/EMP detonation, 9.0m EMP shockwave pursuer stun, vehicle ram deflection vs high-speed tilt/blowout, deterministic slice reset);
+- `godot/tests/traffic_barrier_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: state machine/invariants, melee strike recoil/zero breach, low-speed vehicle deflection, high-speed vehicle ram breach/debris scatter/collision disable, alleyway dual-barrier clearance, deterministic slice reset);
 - `godot/tests/street_vendor_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: state machine/invariants, proximity detection/dynamic action verbs, scrap trade/tune-up purchase, vehicle speed & acceleration physics surge, melee strike tampering/durability breakdown, vehicle ram knockback/canopy tilt/trade lockout, reset slice clean restoration);
 - `godot/tests/scrap_dumpster_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: arbitration prompt, scrap scavenging payoff, stealth hiding evasion/pursuer de-escalation, melee tampering ejection, vehicle ram knockback, reset slice restoration);
 - `godot/tests/quota_kiosk_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: biometric proximity detection/dynamic light, scrap deposit/quota clearance/de-escalation, melee tampering/alarm strobe, 3-hit vault breach/200 scrap payoff, vehicle ram breach, reset slice restoration);
