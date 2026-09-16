@@ -56,6 +56,7 @@ var salvage_lockbox: StaticBody3D = null
 var quota_kiosk: StaticBody3D = null
 var scrap_dumpster: StaticBody3D = null
 var street_vendor: StaticBody3D = null
+var traffic_barriers: Array[PropTrafficBarrier] = []
 var scrap_worker_1: CharacterBody3D = null
 var scrap_worker_2: CharacterBody3D = null
 var utility_crawler: CharacterBody3D = null
@@ -124,6 +125,7 @@ func _ready() -> void:
 			_check_kiosk_ram_breach(impact_speed, col_pos)
 			_check_dumpster_ram(impact_speed, col_pos, courier_bike)
 			_check_vendor_ram(impact_speed, col_pos, courier_bike)
+			_check_barrier_ram(impact_speed, col_pos, courier_bike)
 		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
@@ -147,6 +149,7 @@ func _ready() -> void:
 			_check_kiosk_ram_breach(impact_speed, col_pos)
 			_check_dumpster_ram(impact_speed, col_pos, scrap_hauler)
 			_check_vendor_ram(impact_speed, col_pos, scrap_hauler)
+			_check_barrier_ram(impact_speed, col_pos, scrap_hauler)
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
@@ -170,6 +173,7 @@ func _ready() -> void:
 			_check_kiosk_ram_breach(impact_speed, col_pos)
 			_check_dumpster_ram(impact_speed, col_pos, muscle_coupe)
 			_check_vendor_ram(impact_speed, col_pos, muscle_coupe)
+			_check_barrier_ram(impact_speed, col_pos, muscle_coupe)
 		)
 		if muscle_coupe.mount_interactable:
 			_interactables.append(muscle_coupe.mount_interactable)
@@ -254,6 +258,38 @@ func _ready() -> void:
 		var vendor_area = street_vendor.get_node_or_null("StreetVendorInteractable") as InteractableBase
 		if vendor_area:
 			_interactables.append(vendor_area)
+
+	traffic_barriers.clear()
+	if gears_slice and gears_slice.has_node("StreetClutter"):
+		var clutter = gears_slice.get_node("StreetClutter")
+		for child in clutter.get_children():
+			if child is PropTrafficBarrier:
+				traffic_barriers.append(child)
+	if traffic_barriers.is_empty():
+		var barrier_scene: PackedScene = load("res://scenes/props/prop_traffic_barrier.tscn")
+		if barrier_scene:
+			var b1 = barrier_scene.instantiate() as PropTrafficBarrier
+			b1.name = "TrafficBarrier1"
+			b1.position = Vector3(-2.5, 0.0, -28.0)
+			add_child(b1)
+			traffic_barriers.append(b1)
+			var b2 = barrier_scene.instantiate() as PropTrafficBarrier
+			b2.name = "TrafficBarrier2"
+			b2.position = Vector3(-0.5, 0.0, -28.0)
+			add_child(b2)
+			traffic_barriers.append(b2)
+
+	for barrier in traffic_barriers:
+		barrier.barrier_hit.connect(func(hit_pos: Vector3, _dir: Vector3):
+			if audio_mgr:
+				audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, hit_pos)
+		)
+		barrier.barrier_breached.connect(func(_impact_speed: float, _ram_dir: Vector3):
+			if audio_mgr:
+				audio_mgr.play_event(AudioManagerScript.SoundEvent.COLLISION_HEAD_ON, barrier.global_position)
+				audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, barrier.global_position)
+			trigger_disturbance_alert()
+		)
 
 	var worker_scene: PackedScene = load("res://scenes/entities/scrap_worker.tscn")
 	if worker_scene:
@@ -927,6 +963,14 @@ func _check_vendor_ram(impact_speed: float, col_pos: Vector3, vehicle_source: No
 				var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
 				street_vendor.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
 
+func _check_barrier_ram(impact_speed: float, col_pos: Vector3, vehicle_source: Node3D = null) -> void:
+	for barrier in traffic_barriers:
+		if is_instance_valid(barrier) and not barrier.is_breached:
+			if col_pos.distance_to(barrier.global_position) < 4.5:
+				if impact_speed >= 5.0:
+					var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
+					barrier.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
+
 func _check_checkpoint_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
 	if checkpoint_event and (checkpoint_event.current_state == 1 or checkpoint_event.current_state == 0):
@@ -1330,6 +1374,10 @@ func reset_slice() -> void:
 
 	if street_vendor and street_vendor.has_method("reset_vendor"):
 		street_vendor.reset_vendor()
+
+	for barrier in traffic_barriers:
+		if is_instance_valid(barrier) and barrier.has_method("reset_barrier"):
+			barrier.reset_barrier()
 
 	if touch_ui:
 		touch_ui.reset_all_input_states()
