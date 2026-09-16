@@ -1,13 +1,20 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `MUNICIPAL_DUMPSTER_SCAVENGE_AND_STEALTH_VERIFIED`  
-**Current gameplay/world baseline:** `8f84be2`  
+**Status:** `STREET_VENDOR_SMUGGLER_DEPOT_VERIFIED`  
+**Current gameplay/world baseline:** `d1c5495`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
 ## Current product state
 
-**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk & Scrap Dumpster Stealth complete.**
+**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth & Street Vendor Smuggler Depot complete.**
+- **Interactive Street Vendor Smuggler Depot ([`prop_street_vendor.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_street_vendor.gd), [`prop_street_vendor.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_street_vendor.tscn))**:
+  - Staged on commercial sidewalk frontage at `Vector3(-8.5, 0.0, -22.0)`.
+  - Target arbitration integration: `StreetVendorInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] TUNE-UP // 150`, `[E] TUNED`, `[E] WRECKED`) on desktop and touch UI.
+  - Scrap economy loop: 150 scrap trade awards temporary vehicle tune-up (+35% top speed, +40% acceleration for 8.0s on Courier Bike and Muscle Coupe), transitions to `VendorState.TUNED`, plays `COMPLETION` + `AMBIENT_WORK_CLINK` SFX.
+  - Street combat melee tampering: prybar strikes (`vendor.take_hit(1, ...)`) rattle corrugated stall structure, trigger elastic mesh recoil, play spark/clink sound events, reduce durability (3 -> 0), and transition vendor to `VendorState.DAMAGED` (trade locked out).
+  - High-speed vehicle ram: impacts at `>= 4.5 m/s` knock vendor stall along collision vector (`impact_speed * 0.35` slide displacement), tilt canopy fabric/mesh, play `COLLISION_HEAD_ON` + `SPARK` SFX, and transition to `VendorState.RAMMED` (trade locked out).
+  - Deterministic reset: `reset_vendor()` fully restores initial transform, durability (3), canopy rotation, and clears tuned/damaged state.
 - **Interactive Municipal Scrap Dumpster & Stealth Evasion ([`prop_scrap_dumpster.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_scrap_dumpster.gd), [`prop_scrap_dumpster.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_scrap_dumpster.tscn))**:
   - Staged in service alley bypass at `Vector3(-10.8, 0.0, -32.5)`.
   - Target arbitration integration: `ScrapDumpsterInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] SEARCH`, `[E] HIDE`, `[E] EXIT`) on desktop and touch UI.
@@ -46,8 +53,8 @@
   - WE 01 (FB-13 Infrastructure Thrum), WE 02 (Security Checkpoint Toll/Ram Breach), WE 03 (Mayor Burn Contraband Drop).
 - **Authored Mission Chain (3 Missions)**:
   - Continuous 3-mission playthrough passes 100% end-to-end.
-- **100% test pass across all 10 verification contracts**:
-  - `scrap_dumpster_integration_test.gd`, `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`.
+- **100% test pass across all 11 verification contracts**:
+  - `scrap_dumpster_integration_test.gd`, `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`, `street_vendor_integration_test.gd`.
 
 The former **Visual Direction / Concept Art gate is complete**. Approved creative truth lives under `docs/visual_direction/`, especially:
 
@@ -316,8 +323,12 @@ Production implementation for Issue #55 leading combat frontier:
 
 Code-first verification remains the default production gate.
 
-### Vehicle Fleet, Street Combat & World Events verification evidence
+### Vehicle Fleet, Street Combat, Props & World Events verification evidence
 
+- `godot/tests/street_vendor_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: state machine/invariants, proximity detection/dynamic action verbs, scrap trade/tune-up purchase, vehicle speed & acceleration physics surge, melee strike tampering/durability breakdown, vehicle ram knockback/canopy tilt/trade lockout, reset slice clean restoration);
+- `godot/tests/scrap_dumpster_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: arbitration prompt, scrap scavenging payoff, stealth hiding evasion/pursuer de-escalation, melee tampering ejection, vehicle ram knockback, reset slice restoration);
+- `godot/tests/quota_kiosk_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: biometric proximity detection/dynamic light, scrap deposit/quota clearance/de-escalation, melee tampering/alarm strobe, 3-hit vault breach/200 scrap payoff, vehicle ram breach, reset slice restoration);
+- `godot/tests/vehicle_pursuer_ram_combat_test.gd`: **100% CONTRACT PASS** (7-stage contract: ram threshold gating, 3.5s stun state, knockback/spin-out, target lock inhibition, reboot recovery, vehicle momentum retention, pursuit loop safety);
 - `godot/tests/street_combat_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: player melee strike verb, StreetCombatContract invariants, hit registration/durability decrement, security alarm disturbance sequence, lockbox breach + 150 scrap payoff, reset slice restoration);
 - `godot/tests/muscle_coupe_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: hierarchy, performance constants, mounting posture, driving physics, gear transitions, dismount rejection, checkpoint ram breach, reset);
 - `godot/tests/security_checkpoint_world_event_test.gd`: **100% CONTRACT PASS**;
