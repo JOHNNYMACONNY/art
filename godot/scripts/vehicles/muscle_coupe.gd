@@ -51,6 +51,25 @@ var _brake_screech_cooldown: float = 0.0
 var _gear_settle_timer: float = 0.0
 const GEAR_SETTLE_DURATION: float = 0.12
 
+var tune_up_time_remaining: float = 0.0
+var tune_up_speed_mult: float = 1.35
+var tune_up_accel_mult: float = 1.40
+
+var is_tuned_up: bool:
+	get:
+		return tune_up_time_remaining > 0.0
+
+func apply_tune_up(duration: float = 8.0, speed_mult: float = 1.35, accel_mult: float = 1.40) -> void:
+	tune_up_time_remaining = duration
+	tune_up_speed_mult = speed_mult
+	tune_up_accel_mult = accel_mult
+
+func get_effective_max_speed() -> float:
+	return max_speed * (tune_up_speed_mult if tune_up_time_remaining > 0.0 else 1.0)
+
+func get_effective_acceleration() -> float:
+	return acceleration * (tune_up_accel_mult if tune_up_time_remaining > 0.0 else 1.0)
+
 var _mount_blend_time: float = 0.0
 var _mount_start_pos: Vector3 = Vector3.ZERO
 var _mount_start_basis: Basis = Basis.IDENTITY
@@ -92,6 +111,8 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if _brake_screech_cooldown > 0.0:
 		_brake_screech_cooldown -= delta
+	if tune_up_time_remaining > 0.0:
+		tune_up_time_remaining = maxf(0.0, tune_up_time_remaining - delta)
 
 	if current_state != VehicleState.DRIVING and current_state != VehicleState.MOUNTING:
 		if not is_on_floor():
@@ -101,7 +122,7 @@ func _physics_process(delta: float) -> void:
 
 	if current_state == VehicleState.DRIVING:
 		# 1. Speed-sensitive steering yaw rate (sharp response at mid speed, stable at max speed)
-		var speed_ratio: float = clampf(abs(current_speed) / max_speed, 0.0, 1.0)
+		var speed_ratio: float = clampf(abs(current_speed) / get_effective_max_speed(), 0.0, 1.0)
 		var steer_rate: float = lerp(steering_speed, 1.3, speed_ratio * 0.7)
 		if is_handbrake_active:
 			steer_rate *= 1.4
@@ -126,8 +147,8 @@ func _physics_process(delta: float) -> void:
 		var new_forward_vel: float = current_speed
 
 		velocity = (forward_dir * new_forward_vel) + (right_dir * new_lateral_vel)
-		if velocity.length() > max_speed:
-			velocity = velocity.normalized() * max_speed
+		if velocity.length() > get_effective_max_speed():
+			velocity = velocity.normalized() * get_effective_max_speed()
 		move_and_slide()
 
 		# 3. Glance Collision Response
@@ -250,6 +271,7 @@ func force_dismount() -> void:
 	velocity = Vector3.ZERO
 	current_gear = GearState.FORWARD
 	is_handbrake_active = false
+	tune_up_time_remaining = 0.0
 	_gear_settle_timer = 0.0
 	if visual_root: visual_root.rotation = Vector3.ZERO
 	current_state = VehicleState.PARKED
@@ -327,7 +349,7 @@ func set_drive_inputs(throttle: float, steer: float, delta: float, handbrake: bo
 
 	if current_gear == GearState.FORWARD:
 		if throttle > 0.01:
-			current_speed = move_toward(current_speed, max_speed, acceleration * throttle * delta)
+			current_speed = move_toward(current_speed, get_effective_max_speed(), get_effective_acceleration() * throttle * delta)
 		elif throttle < -0.01:
 			current_speed = move_toward(current_speed, 0.0, braking_friction * abs(throttle) * delta)
 			if abs(current_speed) < 0.1:

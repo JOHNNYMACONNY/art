@@ -56,6 +56,25 @@ var _feedback_active: bool = false
 var _slip_dust: GPUParticles3D = null
 const GEAR_SETTLE_DURATION: float = 0.12
 
+var tune_up_time_remaining: float = 0.0
+var tune_up_speed_mult: float = 1.35
+var tune_up_accel_mult: float = 1.40
+
+var is_tuned_up: bool:
+	get:
+		return tune_up_time_remaining > 0.0
+
+func apply_tune_up(duration: float = 8.0, speed_mult: float = 1.35, accel_mult: float = 1.40) -> void:
+	tune_up_time_remaining = duration
+	tune_up_speed_mult = speed_mult
+	tune_up_accel_mult = accel_mult
+
+func get_effective_max_speed() -> float:
+	return max_speed * (tune_up_speed_mult if tune_up_time_remaining > 0.0 else 1.0)
+
+func get_effective_acceleration() -> float:
+	return acceleration * (tune_up_accel_mult if tune_up_time_remaining > 0.0 else 1.0)
+
 var _mount_blend_time: float = 0.0
 var _mount_start_pos: Vector3 = Vector3.ZERO
 var _mount_start_basis: Basis = Basis.IDENTITY
@@ -75,11 +94,13 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _brake_screech_cooldown > 0.0:
 		_brake_screech_cooldown -= delta
+	if tune_up_time_remaining > 0.0:
+		tune_up_time_remaining = maxf(0.0, tune_up_time_remaining - delta)
 		
 	if current_state == BikeState.DRIVING or current_state == BikeState.MOUNTING:
 		if current_state == BikeState.DRIVING:
 			# 1. Speed-sensitive steering yaw rate (high agility at low speed, stability at top speed)
-			var speed_ratio: float = clampf(abs(current_speed) / max_speed, 0.0, 1.0)
+			var speed_ratio: float = clampf(abs(current_speed) / get_effective_max_speed(), 0.0, 1.0)
 			var steer_rate: float = lerp(3.6, 1.35, speed_ratio)
 			if is_handbrake_active:
 				steer_rate *= 1.75 # Powerslide yaw agility
@@ -104,8 +125,8 @@ func _physics_process(delta: float) -> void:
 			var new_forward_vel: float = current_speed
 			
 			velocity = (forward_dir * new_forward_vel) + (right_dir * new_lateral_vel)
-			if velocity.length() > max_speed:
-				velocity = velocity.normalized() * max_speed
+			if velocity.length() > get_effective_max_speed():
+				velocity = velocity.normalized() * get_effective_max_speed()
 			move_and_slide()
 			
 			# 3. GTA-style Glance Collision Response (Glancing impacts slide along tangent; head-on sheds speed)
@@ -252,6 +273,7 @@ func force_dismount() -> void:
 	velocity = Vector3.ZERO
 	current_gear = GearState.FORWARD
 	is_handbrake_active = false
+	tune_up_time_remaining = 0.0
 	_feedback_throttle = 0.0
 	_gear_settle_timer = 0.0
 	if visual_root: visual_root.rotation = Vector3.ZERO
@@ -316,7 +338,7 @@ func set_drive_inputs(throttle: float, steering: float, delta: float, handbrake:
 	if current_gear == GearState.FORWARD:
 		if throttle > 0.0:
 			_gear_settle_timer = 0.0
-			current_speed = clampf(current_speed + acceleration * throttle * delta, 0.0, max_speed)
+			current_speed = clampf(current_speed + get_effective_acceleration() * throttle * delta, 0.0, get_effective_max_speed())
 		elif throttle < 0.0:
 			if current_speed > 0.05:
 				if current_speed > 6.0 and _brake_screech_cooldown <= 0.0:

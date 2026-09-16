@@ -12,6 +12,7 @@ const MuscleCoupeScript = preload("res://scripts/vehicles/muscle_coupe.gd")
 const SalvageLockboxScript = preload("res://scripts/props/salvage_lockbox.gd")
 const ScrapWorkerScript = preload("res://scripts/entities/scrap_worker.gd")
 const UtilityCrawlerScript = preload("res://scripts/entities/utility_crawler.gd")
+const PropStreetVendorScript = preload("res://scripts/props/prop_street_vendor.gd")
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
@@ -54,6 +55,7 @@ var muscle_coupe: MuscleCoupe = null
 var salvage_lockbox: StaticBody3D = null
 var quota_kiosk: StaticBody3D = null
 var scrap_dumpster: StaticBody3D = null
+var street_vendor: StaticBody3D = null
 var scrap_worker_1: CharacterBody3D = null
 var scrap_worker_2: CharacterBody3D = null
 var utility_crawler: CharacterBody3D = null
@@ -121,6 +123,7 @@ func _ready() -> void:
 			_check_pursuer_ram(impact_speed, col_pos, courier_bike)
 			_check_kiosk_ram_breach(impact_speed, col_pos)
 			_check_dumpster_ram(impact_speed, col_pos, courier_bike)
+			_check_vendor_ram(impact_speed, col_pos, courier_bike)
 		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
@@ -143,6 +146,7 @@ func _ready() -> void:
 			_check_pursuer_ram(impact_speed, col_pos, scrap_hauler)
 			_check_kiosk_ram_breach(impact_speed, col_pos)
 			_check_dumpster_ram(impact_speed, col_pos, scrap_hauler)
+			_check_vendor_ram(impact_speed, col_pos, scrap_hauler)
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
@@ -165,6 +169,7 @@ func _ready() -> void:
 			_check_pursuer_ram(impact_speed, col_pos, muscle_coupe)
 			_check_kiosk_ram_breach(impact_speed, col_pos)
 			_check_dumpster_ram(impact_speed, col_pos, muscle_coupe)
+			_check_vendor_ram(impact_speed, col_pos, muscle_coupe)
 		)
 		if muscle_coupe.mount_interactable:
 			_interactables.append(muscle_coupe.mount_interactable)
@@ -229,6 +234,26 @@ func _ready() -> void:
 		var dumpster_area = scrap_dumpster.get_node_or_null("ScrapDumpsterInteractable") as InteractableBase
 		if dumpster_area:
 			_interactables.append(dumpster_area)
+
+	var gears_slice = get_node_or_null("GearsDistrictSlice01B")
+	if gears_slice and gears_slice.has_node("StreetClutter/StreetVendor"):
+		street_vendor = gears_slice.get_node("StreetClutter/StreetVendor") as StaticBody3D
+		street_vendor.position = Vector3(-8.5, 0.0, -22.0)
+	else:
+		var vendor_scene: PackedScene = load("res://scenes/props/prop_street_vendor.tscn")
+		if vendor_scene:
+			street_vendor = vendor_scene.instantiate() as StaticBody3D
+			street_vendor.name = "PropStreetVendor"
+			street_vendor.position = Vector3(-8.5, 0.0, -22.0)
+			add_child(street_vendor)
+
+	if street_vendor:
+		street_vendor.tune_up_purchased.connect(_on_vendor_tune_up_purchased)
+		street_vendor.hit_received.connect(_on_vendor_hit_received)
+		street_vendor.vendor_rammed.connect(_on_vendor_rammed)
+		var vendor_area = street_vendor.get_node_or_null("StreetVendorInteractable") as InteractableBase
+		if vendor_area:
+			_interactables.append(vendor_area)
 
 	var worker_scene: PackedScene = load("res://scenes/entities/scrap_worker.tscn")
 	if worker_scene:
@@ -789,6 +814,16 @@ func _evaluate_target_selection() -> void:
 					_active_target.set("is_pursuit_active", current_pursuit_state == PursuitState.PURSUIT_ACTIVE or current_pursuit_state == PursuitState.DISTURBANCE_ALERT)
 					verb = _active_target.get_action_verb()
 				touch_ui.action_button.text = "[E] " + verb
+		elif street_vendor and (_active_target == street_vendor.get_node_or_null("StreetVendorInteractable") or (is_instance_valid(street_vendor) and _active_target != null and _active_target.get_parent() == street_vendor)):
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				var verb: String = "TUNE-UP"
+				if _active_target.has_method("get_action_verb"):
+					verb = _active_target.get_action_verb()
+				if verb == "TUNE-UP":
+					touch_ui.action_button.text = "[E] TUNE-UP // 150"
+				else:
+					touch_ui.action_button.text = "[E] " + verb
 		else:
 			if touch_ui.action_button:
 				touch_ui.action_button.text = "[E] ACTION"
@@ -867,6 +902,10 @@ func _on_action_pressed() -> void:
 		if _active_target.has_method("set_pursuit_active"):
 			_active_target.set_pursuit_active(current_pursuit_state == PursuitState.PURSUIT_ACTIVE or current_pursuit_state == PursuitState.DISTURBANCE_ALERT)
 		_active_target.begin_interaction(active_pos)
+	elif street_vendor and (_active_target == street_vendor.get_node_or_null("StreetVendorInteractable") or (is_instance_valid(street_vendor) and _active_target != null and _active_target.get_parent() == street_vendor)):
+		if _active_target.has_method("set_player_reference"):
+			_active_target.set_player_reference(player)
+		_active_target.begin_interaction(active_pos)
 
 func _check_kiosk_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	if quota_kiosk and not quota_kiosk.is_breached:
@@ -880,6 +919,13 @@ func _check_dumpster_ram(impact_speed: float, col_pos: Vector3, vehicle_source: 
 			if impact_speed >= 4.5:
 				var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
 				scrap_dumpster.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
+
+func _check_vendor_ram(impact_speed: float, col_pos: Vector3, vehicle_source: Node3D = null) -> void:
+	if street_vendor and not street_vendor.is_rammed:
+		if col_pos.distance_to(street_vendor.global_position) < 4.5:
+			if impact_speed >= 4.5:
+				var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
+				street_vendor.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
 
 func _check_checkpoint_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
@@ -1086,6 +1132,31 @@ func _on_dumpster_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
 	if status_label:
 		status_label.text = "[DUMPSTER RAMMED] IMPACT AT %.1f M/S" % impact_speed
 
+func _on_vendor_tune_up_purchased(cost: int, duration: float, pos: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.COMPLETION, pos)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, pos)
+	if courier_bike and courier_bike.has_method("apply_tune_up"):
+		courier_bike.apply_tune_up(duration)
+	if muscle_coupe and muscle_coupe.has_method("apply_tune_up"):
+		muscle_coupe.apply_tune_up(duration)
+	if status_label:
+		status_label.text = "[STREET VENDOR] TUNE-UP ACQUIRED! (+35%% SPEED // %.0fs SURGE)" % duration
+
+func _on_vendor_hit_received(remaining_durability: int, hit_pos: Vector3, _impulse_dir: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, hit_pos)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, hit_pos)
+	if status_label:
+		status_label.text = "[VENDOR TAMPER] DURABILITY %d/3" % remaining_durability
+
+func _on_vendor_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.COLLISION_HEAD_ON, street_vendor.global_position if street_vendor else Vector3.ZERO)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, street_vendor.global_position if street_vendor else Vector3.ZERO)
+	if status_label:
+		status_label.text = "[VENDOR RAMMED] CANOPY DESTROYED AT %.1f M/S" % impact_speed
+
 func _on_radio_toggle_pressed() -> void:
 	var veh := _get_active_vehicle()
 	if not veh or not audio_mgr:
@@ -1151,6 +1222,7 @@ func reset_slice() -> void:
 		courier_bike.occupant = null
 		courier_bike.current_speed = 0.0
 		courier_bike.steering_angle = 0.0
+		courier_bike.tune_up_time_remaining = 0.0
 		if courier_bike.visual_root: courier_bike.visual_root.rotation = Vector3.ZERO
 		if courier_bike.mount_interactable:
 			courier_bike.mount_interactable.is_powered = true
@@ -1181,6 +1253,7 @@ func reset_slice() -> void:
 		muscle_coupe.occupant = null
 		muscle_coupe.current_speed = 0.0
 		muscle_coupe.steering_angle = 0.0
+		muscle_coupe.tune_up_time_remaining = 0.0
 		if muscle_coupe.visual_root: muscle_coupe.visual_root.rotation = Vector3.ZERO
 		if muscle_coupe.mount_interactable:
 			muscle_coupe.mount_interactable.is_powered = true
@@ -1254,6 +1327,9 @@ func reset_slice() -> void:
 
 	if scrap_dumpster and scrap_dumpster.has_method("reset_dumpster"):
 		scrap_dumpster.reset_dumpster()
+
+	if street_vendor and street_vendor.has_method("reset_vendor"):
+		street_vendor.reset_vendor()
 
 	if touch_ui:
 		touch_ui.reset_all_input_states()
