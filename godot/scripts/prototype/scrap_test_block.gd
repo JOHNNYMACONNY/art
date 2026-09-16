@@ -129,6 +129,7 @@ func _ready() -> void:
 			_check_vendor_ram(impact_speed, col_pos, courier_bike)
 			_check_barrier_ram(impact_speed, col_pos, courier_bike)
 			_check_utility_pole_ram(impact_speed, col_pos, courier_bike)
+			_check_crawler_ram(impact_speed, col_pos, courier_bike)
 		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
@@ -154,6 +155,7 @@ func _ready() -> void:
 			_check_vendor_ram(impact_speed, col_pos, scrap_hauler)
 			_check_barrier_ram(impact_speed, col_pos, scrap_hauler)
 			_check_utility_pole_ram(impact_speed, col_pos, scrap_hauler)
+			_check_crawler_ram(impact_speed, col_pos, scrap_hauler)
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
@@ -179,6 +181,7 @@ func _ready() -> void:
 			_check_vendor_ram(impact_speed, col_pos, muscle_coupe)
 			_check_barrier_ram(impact_speed, col_pos, muscle_coupe)
 			_check_utility_pole_ram(impact_speed, col_pos, muscle_coupe)
+			_check_crawler_ram(impact_speed, col_pos, muscle_coupe)
 		)
 		if muscle_coupe.mount_interactable:
 			_interactables.append(muscle_coupe.mount_interactable)
@@ -339,6 +342,17 @@ func _ready() -> void:
 		utility_crawler.setup_audio(audio_mgr)
 		add_child(utility_crawler)
 		ambient_actors.append(utility_crawler)
+		var crawler_area := utility_crawler.get_node_or_null("UtilityCrawlerInteractable") as InteractableBase
+		if crawler_area:
+			_interactables.append(crawler_area)
+		if utility_crawler.has_signal("crawler_intercepted"):
+			utility_crawler.connect("crawler_intercepted", _on_crawler_intercepted)
+		if utility_crawler.has_signal("hit_received"):
+			utility_crawler.connect("hit_received", _on_crawler_hit_received)
+		if utility_crawler.has_signal("crawler_disabled"):
+			utility_crawler.connect("crawler_disabled", _on_crawler_disabled)
+		if utility_crawler.has_signal("crawler_rammed"):
+			utility_crawler.connect("crawler_rammed", _on_crawler_rammed)
 		
 	if corroded_panel:
 		corroded_panel.magnetism_changed.connect(_on_magnetism_changed)
@@ -885,6 +899,13 @@ func _evaluate_target_selection() -> void:
 				if _active_target.has_method("get_action_verb"):
 					verb = _active_target.get_action_verb()
 				touch_ui.action_button.text = "[E] " + verb
+		elif utility_crawler and (_active_target == utility_crawler.get_node_or_null("UtilityCrawlerInteractable") or (is_instance_valid(utility_crawler) and _active_target != null and _active_target.get_parent() == utility_crawler)):
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				var verb: String = "INTERCEPT"
+				if _active_target.has_method("get_action_verb"):
+					verb = _active_target.get_action_verb()
+				touch_ui.action_button.text = "[E] " + verb
 		else:
 			if touch_ui.action_button:
 				touch_ui.action_button.text = "[E] ACTION"
@@ -971,6 +992,10 @@ func _on_action_pressed() -> void:
 		if _active_target.has_method("set_player_reference"):
 			_active_target.set_player_reference(player)
 		_active_target.begin_interaction(active_pos)
+	elif utility_crawler and (_active_target == utility_crawler.get_node_or_null("UtilityCrawlerInteractable") or (is_instance_valid(utility_crawler) and _active_target != null and _active_target.get_parent() == utility_crawler)):
+		if _active_target.has_method("set_player_reference"):
+			_active_target.set_player_reference(player)
+		_active_target.begin_interaction(active_pos)
 
 func _check_kiosk_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	if quota_kiosk and not quota_kiosk.is_breached:
@@ -1006,6 +1031,13 @@ func _check_utility_pole_ram(impact_speed: float, col_pos: Vector3, vehicle_sour
 			if impact_speed >= 4.5:
 				var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
 				utility_pole.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
+
+func _check_crawler_ram(impact_speed: float, col_pos: Vector3, vehicle_source: Node3D = null) -> void:
+	if utility_crawler and not utility_crawler.is_rammed:
+		if col_pos.distance_to(utility_crawler.global_position) < 4.0:
+			if impact_speed >= 4.5:
+				var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
+				utility_crawler.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
 
 func _check_checkpoint_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
@@ -1264,6 +1296,22 @@ func _on_utility_pole_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
 	if status_label:
 		status_label.text = "[POLE RAMMED] TRANSFORMER BLOWN AT %.1f M/S" % impact_speed
 
+func _on_crawler_intercepted(reward: int, _pos: Vector3) -> void:
+	if status_label:
+		status_label.text = "[CRAWLER INTERCEPTED] +%d SCRAP HARVESTED" % reward
+
+func _on_crawler_hit_received(remaining_durability: int, _hit_pos: Vector3, _impulse_dir: Vector3) -> void:
+	if status_label:
+		status_label.text = "[CRAWLER TAMPER] DURABILITY %d/2" % remaining_durability
+
+func _on_crawler_disabled(reward: int, _pos: Vector3) -> void:
+	if status_label:
+		status_label.text = "[CRAWLER DISABLED] 2/2 HITS // +%d SCRAP EXTRACTED" % reward
+
+func _on_crawler_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
+	if status_label:
+		status_label.text = "[CRAWLER WRECKED] HIGH-SPEED IMPACT AT %.1f M/S // ALARM ACTIVE" % impact_speed
+
 func _on_radio_toggle_pressed() -> void:
 	var veh := _get_active_vehicle()
 	if not veh or not audio_mgr:
@@ -1425,6 +1473,10 @@ func reset_slice() -> void:
 	var contraband_event = get_node_or_null("AlleyContrabandDropWorldEvent")
 	if contraband_event and contraband_event.has_method("reset_world_event"):
 		contraband_event.reset_world_event()
+
+	var crawler_event = get_node_or_null("UtilityCrawlerWorldEvent")
+	if crawler_event and crawler_event.has_method("reset_world_event"):
+		crawler_event.reset_world_event()
 
 	if salvage_lockbox and salvage_lockbox.has_method("reset_lockbox"):
 		salvage_lockbox.reset_lockbox()

@@ -4,9 +4,13 @@
 [ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="2_toon"]
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_clankers_atlas.png" id="3_atlas"]
 [ext_resource type="PackedScene" path="res://models/utility_crawler.glb" id="4_model"]
+[ext_resource type="Script" path="res://scripts/interactions/utility_crawler_interactable.gd" id="5_interactable"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_crawler"]
 size = Vector3(0.9, 0.6, 1.3)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_interact"]
+radius = 2.5
 
 [sub_resource type="StandardMaterial3D" id="Mat_Outline"]
 cull_mode = 1
@@ -43,7 +47,7 @@ shader_parameter/swap_uv = false
 shader_parameter/uv_scale = Vector2(1, 1)
 shader_parameter/emission_use_albedo = true
 
-[node name="UtilityCrawler" type="CharacterBody3D"]
+[node name="UtilityCrawler" type="CharacterBody3D" groups=["damageable", "strike_target", "utility_crawlers"]]
 collision_layer = 4
 collision_mask = 3
 script = ExtResource("1_script")
@@ -66,3 +70,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.72, 0.32)
 light_color = Color(1, 0.72, 0.12, 1)
 light_energy = 0.0
 omni_range = 3.0
+
+[node name="UtilityCrawlerInteractable" type="Area3D" parent="."]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("5_interactable")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="UtilityCrawlerInteractable"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+shape = SubResource("SphereShape3D_interact")
