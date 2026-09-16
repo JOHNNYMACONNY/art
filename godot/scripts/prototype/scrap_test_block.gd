@@ -53,6 +53,7 @@ var scrap_hauler: CharacterBody3D = null
 var muscle_coupe: MuscleCoupe = null
 var salvage_lockbox: StaticBody3D = null
 var quota_kiosk: StaticBody3D = null
+var scrap_dumpster: StaticBody3D = null
 var scrap_worker_1: CharacterBody3D = null
 var scrap_worker_2: CharacterBody3D = null
 var utility_crawler: CharacterBody3D = null
@@ -119,6 +120,7 @@ func _ready() -> void:
 			_check_checkpoint_ram_breach(impact_speed, col_pos)
 			_check_pursuer_ram(impact_speed, col_pos, courier_bike)
 			_check_kiosk_ram_breach(impact_speed, col_pos)
+			_check_dumpster_ram(impact_speed, col_pos, courier_bike)
 		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
@@ -140,6 +142,7 @@ func _ready() -> void:
 			_check_checkpoint_ram_breach(impact_speed, col_pos)
 			_check_pursuer_ram(impact_speed, col_pos, scrap_hauler)
 			_check_kiosk_ram_breach(impact_speed, col_pos)
+			_check_dumpster_ram(impact_speed, col_pos, scrap_hauler)
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
@@ -161,6 +164,7 @@ func _ready() -> void:
 			_check_checkpoint_ram_breach(impact_speed, col_pos)
 			_check_pursuer_ram(impact_speed, col_pos, muscle_coupe)
 			_check_kiosk_ram_breach(impact_speed, col_pos)
+			_check_dumpster_ram(impact_speed, col_pos, muscle_coupe)
 		)
 		if muscle_coupe.mount_interactable:
 			_interactables.append(muscle_coupe.mount_interactable)
@@ -210,6 +214,21 @@ func _ready() -> void:
 		var kiosk_area = quota_kiosk.get_node_or_null("QuotaKioskInteractable") as InteractableBase
 		if kiosk_area:
 			_interactables.append(kiosk_area)
+
+	var dumpster_scene: PackedScene = load("res://scenes/props/prop_scrap_dumpster.tscn")
+	if dumpster_scene:
+		scrap_dumpster = dumpster_scene.instantiate() as StaticBody3D
+		scrap_dumpster.name = "PropScrapDumpster"
+		scrap_dumpster.position = Vector3(-10.8, 0.0, -32.5)
+		add_child(scrap_dumpster)
+		scrap_dumpster.dumpster_scavenged.connect(_on_dumpster_scavenged)
+		scrap_dumpster.player_entered_hiding.connect(_on_dumpster_player_entered_hiding)
+		scrap_dumpster.player_exited_hiding.connect(_on_dumpster_player_exited_hiding)
+		scrap_dumpster.hit_received.connect(_on_dumpster_hit_received)
+		scrap_dumpster.dumpster_rammed.connect(_on_dumpster_rammed)
+		var dumpster_area = scrap_dumpster.get_node_or_null("ScrapDumpsterInteractable") as InteractableBase
+		if dumpster_area:
+			_interactables.append(dumpster_area)
 
 	var worker_scene: PackedScene = load("res://scenes/entities/scrap_worker.tscn")
 	if worker_scene:
@@ -762,6 +781,14 @@ func _evaluate_target_selection() -> void:
 			touch_ui.set_action_button_highlight(true)
 			if touch_ui.action_button:
 				touch_ui.action_button.text = "[E] DELIVER DROP"
+		elif scrap_dumpster and (_active_target == scrap_dumpster.get_node_or_null("ScrapDumpsterInteractable") or (is_instance_valid(scrap_dumpster) and _active_target != null and _active_target.get_parent() == scrap_dumpster)):
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				var verb: String = "SEARCH"
+				if _active_target.has_method("get_action_verb"):
+					_active_target.set("is_pursuit_active", current_pursuit_state == PursuitState.PURSUIT_ACTIVE or current_pursuit_state == PursuitState.DISTURBANCE_ALERT)
+					verb = _active_target.get_action_verb()
+				touch_ui.action_button.text = "[E] " + verb
 		else:
 			if touch_ui.action_button:
 				touch_ui.action_button.text = "[E] ACTION"
@@ -834,12 +861,25 @@ func _on_action_pressed() -> void:
 		if _active_target.has_method("set_player_reference"):
 			_active_target.set_player_reference(player)
 		_active_target.begin_interaction(active_pos)
+	elif scrap_dumpster and (_active_target == scrap_dumpster.get_node_or_null("ScrapDumpsterInteractable") or (is_instance_valid(scrap_dumpster) and _active_target != null and _active_target.get_parent() == scrap_dumpster)):
+		if _active_target.has_method("set_player_reference"):
+			_active_target.set_player_reference(player)
+		if _active_target.has_method("set_pursuit_active"):
+			_active_target.set_pursuit_active(current_pursuit_state == PursuitState.PURSUIT_ACTIVE or current_pursuit_state == PursuitState.DISTURBANCE_ALERT)
+		_active_target.begin_interaction(active_pos)
 
 func _check_kiosk_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	if quota_kiosk and not quota_kiosk.is_breached:
 		if col_pos.distance_to(quota_kiosk.global_position) < 4.0:
 			if impact_speed >= 4.5:
 				quota_kiosk.apply_vehicle_ram(impact_speed, Vector3.FORWARD)
+
+func _check_dumpster_ram(impact_speed: float, col_pos: Vector3, vehicle_source: Node3D = null) -> void:
+	if scrap_dumpster and not scrap_dumpster.is_rammed:
+		if col_pos.distance_to(scrap_dumpster.global_position) < 4.5:
+			if impact_speed >= 4.5:
+				var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
+				scrap_dumpster.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
 
 func _check_checkpoint_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
@@ -1009,6 +1049,43 @@ func _on_kiosk_breached(reward: int, breach_pos: Vector3) -> void:
 	if status_label:
 		status_label.text = "[MUNICIPAL KIOSK BREACHED] +%d EMERGENCY SCRAP CASHOUT!" % reward
 
+func _on_dumpster_scavenged(reward: int, pos: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.COMPLETION, pos)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, pos)
+	if status_label:
+		status_label.text = "[DUMPSTER SCAVENGED] +%d SALVAGE SCRAP EXTRACTED" % reward
+
+func _on_dumpster_player_entered_hiding(_hiding_player: CharacterBody3D) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, scrap_dumpster.global_position if scrap_dumpster else Vector3.ZERO)
+	if current_pursuit_state == PursuitState.PURSUIT_ACTIVE or current_pursuit_state == PursuitState.DISTURBANCE_ALERT:
+		_end_pursuit_common(false)
+		if pursuer:
+			pursuer.start_de_escalation()
+	if status_label:
+		status_label.text = "[STEALTH EVASION] CONCEALED IN DUMPSTER // PURSUIT DE-ESCALATING"
+
+func _on_dumpster_player_exited_hiding(_exited_player: CharacterBody3D) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, scrap_dumpster.global_position if scrap_dumpster else Vector3.ZERO)
+	if status_label:
+		status_label.text = "[STEALTH EVASION] EXITED DUMPSTER // ON FOOT"
+
+func _on_dumpster_hit_received(remaining_durability: int, hit_pos: Vector3, _impulse_dir: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, hit_pos)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, hit_pos)
+	if status_label:
+		status_label.text = "[DUMPSTER TAMPER] DURABILITY %d/3" % remaining_durability
+
+func _on_dumpster_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.COLLISION_HEAD_ON, scrap_dumpster.global_position if scrap_dumpster else Vector3.ZERO)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, scrap_dumpster.global_position if scrap_dumpster else Vector3.ZERO)
+	if status_label:
+		status_label.text = "[DUMPSTER RAMMED] IMPACT AT %.1f M/S" % impact_speed
+
 func _on_radio_toggle_pressed() -> void:
 	var veh := _get_active_vehicle()
 	if not veh or not audio_mgr:
@@ -1174,6 +1251,9 @@ func reset_slice() -> void:
 
 	if quota_kiosk and quota_kiosk.has_method("reset_kiosk"):
 		quota_kiosk.reset_kiosk()
+
+	if scrap_dumpster and scrap_dumpster.has_method("reset_dumpster"):
+		scrap_dumpster.reset_dumpster()
 
 	if touch_ui:
 		touch_ui.reset_all_input_states()
