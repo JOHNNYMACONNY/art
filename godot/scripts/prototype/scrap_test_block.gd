@@ -13,6 +13,7 @@ const SalvageLockboxScript = preload("res://scripts/props/salvage_lockbox.gd")
 const ScrapWorkerScript = preload("res://scripts/entities/scrap_worker.gd")
 const UtilityCrawlerScript = preload("res://scripts/entities/utility_crawler.gd")
 const PropStreetVendorScript = preload("res://scripts/props/prop_street_vendor.gd")
+const PropUtilityPoleScript = preload("res://scripts/props/prop_utility_pole.gd")
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
@@ -56,6 +57,7 @@ var salvage_lockbox: StaticBody3D = null
 var quota_kiosk: StaticBody3D = null
 var scrap_dumpster: StaticBody3D = null
 var street_vendor: StaticBody3D = null
+var utility_pole: PropUtilityPole = null
 var traffic_barriers: Array[PropTrafficBarrier] = []
 var scrap_worker_1: CharacterBody3D = null
 var scrap_worker_2: CharacterBody3D = null
@@ -126,6 +128,7 @@ func _ready() -> void:
 			_check_dumpster_ram(impact_speed, col_pos, courier_bike)
 			_check_vendor_ram(impact_speed, col_pos, courier_bike)
 			_check_barrier_ram(impact_speed, col_pos, courier_bike)
+			_check_utility_pole_ram(impact_speed, col_pos, courier_bike)
 		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
@@ -150,6 +153,7 @@ func _ready() -> void:
 			_check_dumpster_ram(impact_speed, col_pos, scrap_hauler)
 			_check_vendor_ram(impact_speed, col_pos, scrap_hauler)
 			_check_barrier_ram(impact_speed, col_pos, scrap_hauler)
+			_check_utility_pole_ram(impact_speed, col_pos, scrap_hauler)
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
@@ -174,6 +178,7 @@ func _ready() -> void:
 			_check_dumpster_ram(impact_speed, col_pos, muscle_coupe)
 			_check_vendor_ram(impact_speed, col_pos, muscle_coupe)
 			_check_barrier_ram(impact_speed, col_pos, muscle_coupe)
+			_check_utility_pole_ram(impact_speed, col_pos, muscle_coupe)
 		)
 		if muscle_coupe.mount_interactable:
 			_interactables.append(muscle_coupe.mount_interactable)
@@ -290,6 +295,19 @@ func _ready() -> void:
 				audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, barrier.global_position)
 			trigger_disturbance_alert()
 		)
+
+	var pole_scene: PackedScene = load("res://scenes/props/prop_utility_pole.tscn")
+	if pole_scene:
+		utility_pole = pole_scene.instantiate() as PropUtilityPole
+		utility_pole.name = "PropUtilityPole"
+		utility_pole.position = Vector3(-6.2, 0.0, -18.0)
+		add_child(utility_pole)
+		utility_pole.grid_overloaded.connect(_on_utility_pole_grid_overloaded)
+		utility_pole.hit_received.connect(_on_utility_pole_hit_received)
+		utility_pole.pole_rammed.connect(_on_utility_pole_rammed)
+		var pole_area = utility_pole.get_node_or_null("UtilityPoleInteractable") as InteractableBase
+		if pole_area:
+			_interactables.append(pole_area)
 
 	var worker_scene: PackedScene = load("res://scenes/entities/scrap_worker.tscn")
 	if worker_scene:
@@ -860,6 +878,13 @@ func _evaluate_target_selection() -> void:
 					touch_ui.action_button.text = "[E] TUNE-UP // 150"
 				else:
 					touch_ui.action_button.text = "[E] " + verb
+		elif utility_pole and (_active_target == utility_pole.get_node_or_null("UtilityPoleInteractable") or (is_instance_valid(utility_pole) and _active_target != null and _active_target.get_parent() == utility_pole)):
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				var verb: String = "TAP GRID"
+				if _active_target.has_method("get_action_verb"):
+					verb = _active_target.get_action_verb()
+				touch_ui.action_button.text = "[E] " + verb
 		else:
 			if touch_ui.action_button:
 				touch_ui.action_button.text = "[E] ACTION"
@@ -942,6 +967,10 @@ func _on_action_pressed() -> void:
 		if _active_target.has_method("set_player_reference"):
 			_active_target.set_player_reference(player)
 		_active_target.begin_interaction(active_pos)
+	elif utility_pole and (_active_target == utility_pole.get_node_or_null("UtilityPoleInteractable") or (is_instance_valid(utility_pole) and _active_target != null and _active_target.get_parent() == utility_pole)):
+		if _active_target.has_method("set_player_reference"):
+			_active_target.set_player_reference(player)
+		_active_target.begin_interaction(active_pos)
 
 func _check_kiosk_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	if quota_kiosk and not quota_kiosk.is_breached:
@@ -970,6 +999,13 @@ func _check_barrier_ram(impact_speed: float, col_pos: Vector3, vehicle_source: N
 				if impact_speed >= 5.0:
 					var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
 					barrier.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
+
+func _check_utility_pole_ram(impact_speed: float, col_pos: Vector3, vehicle_source: Node3D = null) -> void:
+	if utility_pole and not utility_pole.is_rammed:
+		if col_pos.distance_to(utility_pole.global_position) < 4.5:
+			if impact_speed >= 4.5:
+				var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
+				utility_pole.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
 
 func _check_checkpoint_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
@@ -1201,6 +1237,33 @@ func _on_vendor_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
 	if status_label:
 		status_label.text = "[VENDOR RAMMED] CANOPY DESTROYED AT %.1f M/S" % impact_speed
 
+func _on_utility_pole_grid_overloaded(shockwave_radius: float, origin_pos: Vector3) -> void:
+	if pursuer and is_instance_valid(pursuer) and pursuer.is_active:
+		if origin_pos.distance_to(pursuer.global_position) <= shockwave_radius:
+			pursuer.apply_emp_stun(4.0)
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, origin_pos)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.DISTURBANCE_ALERT, origin_pos)
+	trigger_disturbance_alert()
+	if status_label:
+		status_label.text = "[EMP GRID OVERLOAD] 9.0M SHOCKWAVE DETONATED // PURSUERS STUNNED"
+
+func _on_utility_pole_hit_received(remaining_durability: int, hit_pos: Vector3, _impulse_dir: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, hit_pos)
+		if remaining_durability <= 0:
+			audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, hit_pos)
+	if status_label:
+		status_label.text = "[POLE TAMPER] TRANSFORMER DURABILITY %d/3" % remaining_durability
+
+func _on_utility_pole_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.COLLISION_HEAD_ON, utility_pole.global_position if utility_pole else Vector3.ZERO)
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.SPARK, utility_pole.global_position if utility_pole else Vector3.ZERO)
+	trigger_disturbance_alert()
+	if status_label:
+		status_label.text = "[POLE RAMMED] TRANSFORMER BLOWN AT %.1f M/S" % impact_speed
+
 func _on_radio_toggle_pressed() -> void:
 	var veh := _get_active_vehicle()
 	if not veh or not audio_mgr:
@@ -1378,6 +1441,9 @@ func reset_slice() -> void:
 	for barrier in traffic_barriers:
 		if is_instance_valid(barrier) and barrier.has_method("reset_barrier"):
 			barrier.reset_barrier()
+
+	if utility_pole and utility_pole.has_method("reset_pole"):
+		utility_pole.reset_pole()
 
 	if touch_ui:
 		touch_ui.reset_all_input_states()

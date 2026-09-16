@@ -1,13 +1,18 @@
-[gd_scene load_steps=8 format=3 uid="uid://proputilitypole01"]
+[gd_scene load_steps=10 format=3 uid="uid://proputilitypole01"]
 
 [ext_resource type="Script" path="res://scripts/props/prop_utility_pole.gd" id="1_script"]
 [ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="1_toon"]
 [ext_resource type="Texture2D" uid="uid://tkwlu5vlpjf" path="res://textures/urban_clutter/tex_storefront_burnside.png" id="2_atlas"]
 [ext_resource type="PackedScene" path="res://models/environment/prop_utility_pole.glb" id="3_model"]
+[ext_resource type="Script" path="res://scripts/interactions/utility_pole_interactable.gd" id="4_interactable"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_pole"]
 height = 5.6
 radius = 0.22
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_interact"]
+height = 3.0
+radius = 2.8
 
 [sub_resource type="StandardMaterial3D" id="Mat_Outline"]
 cull_mode = 1
@@ -55,4 +60,15 @@ collision_mask = 6
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8, 0)
 shape = SubResource("CylinderShape3D_pole")
 
-[node name="Model" parent="." instance=ExtResource("3_model")]
+[node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="Model" parent="VisualRoot" instance=ExtResource("3_model")]
+
+[node name="UtilityPoleInteractable" type="Area3D" parent="."]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("4_interactable")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="UtilityPoleInteractable"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("CylinderShape3D_interact")

@@ -60,6 +60,7 @@ var detour_waypoints: Array[Vector3] = []
 var current_detour_index: int = -1
 
 func _ready() -> void:
+	add_to_group("pursuers")
 	visible = false
 	current_state = PursuerState.INACTIVE
 	set_physics_process(false)
@@ -166,6 +167,30 @@ func apply_vehicle_ram(impact_speed: float, ram_direction: Vector3, _vehicle_sou
 
 	pursuer_rammed.emit(impact_speed, global_position)
 	print("[PURSUER] VEHICLE RAM IMPACT! Speed: %.1f m/s. Pursuer STUNNED for %.1fs!" % [impact_speed, stun_recovery_time])
+	return true
+
+func apply_emp_stun(duration: float = 4.0) -> bool:
+	if not is_active or current_state == PursuerState.INACTIVE or current_state == PursuerState.EVADED_DISENGAGED:
+		return false
+
+	current_state = PursuerState.STUNNED
+	_stun_timer = duration
+	_intercept_timer = 0.0
+	velocity = Vector3.ZERO
+	current_speed = 0.0
+	_stun_spin_rate = 0.0
+
+	if siren_light:
+		siren_light.visible = true
+		siren_light.light_color = Color(0.1, 0.8, 1.0)
+		siren_light.light_energy = 0.6
+	if visual_root:
+		var tween := create_tween()
+		tween.tween_property(visual_root, "rotation:z", deg_to_rad(10.0), 0.08)
+		tween.tween_property(visual_root, "rotation:z", deg_to_rad(-10.0), 0.08)
+		tween.tween_property(visual_root, "rotation:z", 0.0, 0.12)
+
+	print("[PURSUER] EMP OVERLOAD STUN! Pursuer disabled for %.1fs!" % duration)
 	return true
 
 func set_detour_path(waypoints: Array[Vector3]) -> void:
