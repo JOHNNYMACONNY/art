@@ -14,6 +14,7 @@ const ScrapWorkerScript = preload("res://scripts/entities/scrap_worker.gd")
 const UtilityCrawlerScript = preload("res://scripts/entities/utility_crawler.gd")
 const PropStreetVendorScript = preload("res://scripts/props/prop_street_vendor.gd")
 const PropUtilityPoleScript = preload("res://scripts/props/prop_utility_pole.gd")
+const PropVendingMachineScript = preload("res://scripts/props/prop_vending_machine.gd")
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
@@ -58,6 +59,7 @@ var quota_kiosk: StaticBody3D = null
 var scrap_dumpster: StaticBody3D = null
 var street_vendor: StaticBody3D = null
 var utility_pole: PropUtilityPole = null
+var vending_machine: StaticBody3D = null
 var traffic_barriers: Array[PropTrafficBarrier] = []
 var scrap_worker_1: CharacterBody3D = null
 var scrap_worker_2: CharacterBody3D = null
@@ -130,6 +132,7 @@ func _ready() -> void:
 			_check_barrier_ram(impact_speed, col_pos, courier_bike)
 			_check_utility_pole_ram(impact_speed, col_pos, courier_bike)
 			_check_crawler_ram(impact_speed, col_pos, courier_bike)
+			_check_vending_machine_ram(impact_speed, col_pos, courier_bike)
 		)
 		if courier_bike.mount_interactable:
 			_interactables.append(courier_bike.mount_interactable)
@@ -156,6 +159,7 @@ func _ready() -> void:
 			_check_barrier_ram(impact_speed, col_pos, scrap_hauler)
 			_check_utility_pole_ram(impact_speed, col_pos, scrap_hauler)
 			_check_crawler_ram(impact_speed, col_pos, scrap_hauler)
+			_check_vending_machine_ram(impact_speed, col_pos, scrap_hauler)
 		)
 		if scrap_hauler.mount_interactable:
 			_interactables.append(scrap_hauler.mount_interactable)
@@ -182,6 +186,7 @@ func _ready() -> void:
 			_check_barrier_ram(impact_speed, col_pos, muscle_coupe)
 			_check_utility_pole_ram(impact_speed, col_pos, muscle_coupe)
 			_check_crawler_ram(impact_speed, col_pos, muscle_coupe)
+			_check_vending_machine_ram(impact_speed, col_pos, muscle_coupe)
 		)
 		if muscle_coupe.mount_interactable:
 			_interactables.append(muscle_coupe.mount_interactable)
@@ -311,6 +316,21 @@ func _ready() -> void:
 		var pole_area = utility_pole.get_node_or_null("UtilityPoleInteractable") as InteractableBase
 		if pole_area:
 			_interactables.append(pole_area)
+
+	var vending_scene: PackedScene = load("res://scenes/props/prop_vending_machine.tscn")
+	if vending_scene:
+		vending_machine = vending_scene.instantiate() as PropVendingMachine
+		vending_machine.name = "PropVendingMachine"
+		vending_machine.position = Vector3(-6.5, 0.0, -25.0)
+		vending_machine.setup_audio(audio_mgr)
+		add_child(vending_machine)
+		vending_machine.terminal_hacked.connect(_on_vending_machine_hacked)
+		vending_machine.terminal_breached.connect(_on_vending_machine_breached)
+		vending_machine.hit_received.connect(_on_vending_machine_hit_received)
+		vending_machine.vending_machine_rammed.connect(_on_vending_machine_rammed)
+		var vending_area := vending_machine.get_node_or_null("VendingMachineInteractable") as InteractableBase
+		if vending_area:
+			_interactables.append(vending_area)
 
 	var worker_scene: PackedScene = load("res://scenes/entities/scrap_worker.tscn")
 	if worker_scene:
@@ -906,6 +926,13 @@ func _evaluate_target_selection() -> void:
 				if _active_target.has_method("get_action_verb"):
 					verb = _active_target.get_action_verb()
 				touch_ui.action_button.text = "[E] " + verb
+		elif vending_machine and (_active_target == vending_machine.get_node_or_null("VendingMachineInteractable") or (is_instance_valid(vending_machine) and _active_target != null and _active_target.get_parent() == vending_machine)):
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				var verb: String = "HACK TERMINAL"
+				if _active_target.has_method("get_action_verb"):
+					verb = _active_target.get_action_verb()
+				touch_ui.action_button.text = "[E] " + verb
 		else:
 			if touch_ui.action_button:
 				touch_ui.action_button.text = "[E] ACTION"
@@ -996,6 +1023,10 @@ func _on_action_pressed() -> void:
 		if _active_target.has_method("set_player_reference"):
 			_active_target.set_player_reference(player)
 		_active_target.begin_interaction(active_pos)
+	elif vending_machine and (_active_target == vending_machine.get_node_or_null("VendingMachineInteractable") or (is_instance_valid(vending_machine) and _active_target != null and _active_target.get_parent() == vending_machine)):
+		if _active_target.has_method("set_player_reference"):
+			_active_target.set_player_reference(player)
+		_active_target.begin_interaction(active_pos)
 
 func _check_kiosk_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	if quota_kiosk and not quota_kiosk.is_breached:
@@ -1038,6 +1069,13 @@ func _check_crawler_ram(impact_speed: float, col_pos: Vector3, vehicle_source: N
 			if impact_speed >= 4.5:
 				var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
 				utility_crawler.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
+
+func _check_vending_machine_ram(impact_speed: float, col_pos: Vector3, vehicle_source: Node3D = null) -> void:
+	if vending_machine and not vending_machine.is_rammed:
+		if col_pos.distance_to(vending_machine.global_position) < 4.0:
+			if impact_speed >= 4.5:
+				var ram_dir: Vector3 = -vehicle_source.global_transform.basis.z if vehicle_source else Vector3.FORWARD
+				vending_machine.apply_vehicle_ram(impact_speed, ram_dir, vehicle_source)
 
 func _check_checkpoint_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
@@ -1312,6 +1350,33 @@ func _on_crawler_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
 	if status_label:
 		status_label.text = "[CRAWLER WRECKED] HIGH-SPEED IMPACT AT %.1f M/S // ALARM ACTIVE" % impact_speed
 
+func _on_vending_machine_hacked(reward: int, _pos: Vector3) -> void:
+	if status_label:
+		status_label.text = "[TERMINAL HACKED] +%d CONTRABAND SCRAP DISPENSED" % reward
+	var vending_event = get_node_or_null("VendingMachineWorldEvent")
+	if vending_event and vending_event.has_method("notify_hacked"):
+		vending_event.notify_hacked(reward, _pos)
+
+func _on_vending_machine_hit_received(remaining_durability: int, _hit_pos: Vector3, _impulse_dir: Vector3) -> void:
+	if status_label:
+		status_label.text = "[VENDING TAMPER] CHASSIS DURABILITY %d/3" % remaining_durability
+
+func _on_vending_machine_breached(reward: int, _pos: Vector3) -> void:
+	trigger_disturbance_alert()
+	if status_label:
+		status_label.text = "[VENDING BREACHED] VAULT SHATTERED // +%d SCRAP SPILLED" % reward
+	var vending_event = get_node_or_null("VendingMachineWorldEvent")
+	if vending_event and vending_event.has_method("notify_breached"):
+		vending_event.notify_breached(reward, _pos)
+
+func _on_vending_machine_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
+	trigger_disturbance_alert()
+	if status_label:
+		status_label.text = "[VENDING WRECKED] HIGH-SPEED IMPACT AT %.1f M/S // ALARM ACTIVE" % impact_speed
+	var vending_event = get_node_or_null("VendingMachineWorldEvent")
+	if vending_event and vending_event.has_method("notify_rammed"):
+		vending_event.notify_rammed(impact_speed, _ram_dir)
+
 func _on_radio_toggle_pressed() -> void:
 	var veh := _get_active_vehicle()
 	if not veh or not audio_mgr:
@@ -1477,6 +1542,13 @@ func reset_slice() -> void:
 	var crawler_event = get_node_or_null("UtilityCrawlerWorldEvent")
 	if crawler_event and crawler_event.has_method("reset_world_event"):
 		crawler_event.reset_world_event()
+
+	var vending_event = get_node_or_null("VendingMachineWorldEvent")
+	if vending_event and vending_event.has_method("reset_world_event"):
+		vending_event.reset_world_event()
+
+	if vending_machine and vending_machine.has_method("reset_vending_machine"):
+		vending_machine.reset_vending_machine()
 
 	if salvage_lockbox and salvage_lockbox.has_method("reset_lockbox"):
 		salvage_lockbox.reset_lockbox()
