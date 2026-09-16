@@ -1,13 +1,20 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `UTILITY_POLE_EMP_OVERLOAD_VERIFIED`  
-**Current gameplay/world baseline:** `5b386be`  
+**Status:** `UTILITY_CRAWLER_PATROL_VERIFIED`  
+**Current gameplay/world baseline:** `e7470c6`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
 ## Current product state
 
-**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach & Interactive Utility Pole EMP Grid Overload complete.**
+**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload & Municipal Utility Crawler Patrol complete.**
+- **World Event 04 — Municipal Utility Crawler Patrol ([`utility_crawler.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/entities/utility_crawler.gd), [`utility_crawler.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/entities/utility_crawler.tscn), [`utility_crawler_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/utility_crawler_interactable.gd), [`utility_crawler_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/utility_crawler_world_event.gd}))**:
+  - Waypoint patrol loop along sidewalk conduit circuit (`Vector3(1.0, 0.05, -2.0)` to `Vector3(1.0, 0.05, 3.0)`).
+  - Target arbitration integration: `UtilityCrawlerInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] INTERCEPT`, `[E] HARVESTED`, `[E] DISABLED`, `[E] WRECKED`).
+  - Tactical scrap interception: interacting via `[E] INTERCEPT` claims +60 scrap credits, transitions to `CrawlerState.DISABLED`, halts movement, extinguishes amber beacon, and plays `COMPLETION` + `AMBIENT_WORK_CLINK` SFX.
+  - Foot melee strike tampering: prybar strikes (`crawler.take_hit(1, ...)`) trigger elastic chassis recoil tween, play clink/spark audio; 2-hit lifecycle (durability 2 -> 0) disables crawler, spills +60 scrap (if unharvested), and scatters 3 scrap debris shards.
+  - High-speed vehicle ram: impacts at `>= 4.5 m/s` launch/tilt chassis (35° tilt, 2.5m displacement), scatter 4-5 scrap debris chunks, grant +60 scrap (if unharvested), transition to `CrawlerState.WRECKED`, play `COLLISION_HEAD_ON` + `SPARK` + `SIREN_ALARM`, and trigger municipal disturbance alert (`trigger_disturbance_alert()`).
+  - Deterministic reset: `reset_actor()` in `reset_slice()` fully restores upright transform, durability (2), amber beacon (energy 1.4), clears all debris shards, re-enables collision shape, and restores `AMBIENT` state cleanly.
 - **Interactive Surveillance Utility Pole & EMP Grid Overload ([`prop_utility_pole.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_utility_pole.gd), [`prop_utility_pole.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_utility_pole.tscn), [`utility_pole_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/utility_pole_interactable.gd))**:
   - Staged on sidewalk curb frontage at `Vector3(-6.2, 0.0, -18.0)`.
   - Target arbitration integration: `UtilityPoleInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] TAP GRID`, `[E] OVERLOADED`, `[E] WRECKED`, `[E] BLOWN`).
@@ -339,6 +346,7 @@ Code-first verification remains the default production gate.
 
 ### Vehicle Fleet, Street Combat, Props & World Events verification evidence
 
+- `godot/tests/utility_crawler_world_event_test.gd`: **100% CONTRACT PASS** (5-stage contract: state machine/invariants/action verb arbitration, peaceful [E] INTERCEPT scrap harvest, melee tampering/2-hit disable/scrap spill/debris, vehicle ram deflection vs high-speed wreck/alarm trigger, deterministic slice reset);
 - `godot/tests/utility_pole_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: state machine/invariants/action verb arbitration, melee tampering/3-hit transformer blowout, tactical TAP GRID interaction/EMP detonation, 9.0m EMP shockwave pursuer stun, vehicle ram deflection vs high-speed tilt/blowout, deterministic slice reset);
 - `godot/tests/traffic_barrier_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: state machine/invariants, melee strike recoil/zero breach, low-speed vehicle deflection, high-speed vehicle ram breach/debris scatter/collision disable, alleyway dual-barrier clearance, deterministic slice reset);
 - `godot/tests/street_vendor_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: state machine/invariants, proximity detection/dynamic action verbs, scrap trade/tune-up purchase, vehicle speed & acceleration physics surge, melee strike tampering/durability breakdown, vehicle ram knockback/canopy tilt/trade lockout, reset slice clean restoration);
