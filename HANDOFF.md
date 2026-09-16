@@ -1,13 +1,19 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `STREET_VENDOR_SMUGGLER_DEPOT_VERIFIED`  
-**Current gameplay/world baseline:** `d1c5495`  
+**Status:** `TRAFFIC_BARRIER_SHORTCUT_BREACH_VERIFIED`  
+**Current gameplay/world baseline:** `b8e40eb`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
 ## Current product state
 
-**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth & Street Vendor Smuggler Depot complete.**
+**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot & Destructible Traffic Barrier Shortcut Breach complete.**
+- **Destructible Traffic Barrier Shortcut Breach ([`prop_traffic_barrier.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_traffic_barrier.gd), [`prop_traffic_barrier.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_traffic_barrier.tscn))**:
+  - Dual roadblock barricades blocking secondary alley shortcut corridor at `Vector3(-2.5, 0, -28.0)` and `Vector3(-0.5, 0, -28.0)`.
+  - Melee strike tampering: prybar strikes (`barrier.take_hit(1, ...)`) trigger elastic mesh recoil, play `AMBIENT_WORK_CLINK` sound event, zero breach (collision shape remains active).
+  - Low-speed vehicle nudge: impacts at `< 5.0 m/s` deflected with solid block collision, zero breach.
+  - High-speed vehicle ram breach: impacts at `>= 5.0 m/s` transition barrier to `BarrierState.BREACHED`, disable `CollisionShape3D` (clearing shortcut corridor), launch barrier mesh tumbling upward and forward, scatter 4 debris shards with quadratic arc trajectory, play `COLLISION_HEAD_ON` and `SPARK` SFX, and trigger municipal disturbance alert.
+  - Deterministic reset: `reset_barrier()` in `reset_slice()` restores initial transforms, clears debris instances, re-enables collision shape, and restores `INTACT` state cleanly.
 - **Interactive Street Vendor Smuggler Depot ([`prop_street_vendor.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_street_vendor.gd), [`prop_street_vendor.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_street_vendor.tscn))**:
   - Staged on commercial sidewalk frontage at `Vector3(-8.5, 0.0, -22.0)`.
   - Target arbitration integration: `StreetVendorInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] TUNE-UP // 150`, `[E] TUNED`, `[E] WRECKED`) on desktop and touch UI.
