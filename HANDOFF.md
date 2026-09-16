@@ -1,13 +1,20 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `UTILITY_CRAWLER_PATROL_VERIFIED`  
-**Current gameplay/world baseline:** `e7470c6`  
+**Status:** `VENDING_MACHINE_CONTRABAND_HACK_VERIFIED`  
+**Current gameplay/world baseline:** `ee47102` (feature) / `07417bf` (uid chore)  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
 ## Current product state
 
-**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload & Municipal Utility Crawler Patrol complete.**
+**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
+- **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
+  - Staged on commercial storefront sidewalk paver corner at `Vector3(-6.5, 0.0, -25.0)`.
+  - Target arbitration integration: `VendingMachineInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] HACK TERMINAL`, `[E] DISPENSED`, `[E] BREACHED`) on desktop and touch UI.
+  - Tactical frequency hack: interacting via `[E] HACK TERMINAL` hacks contraband circuit, dispenses emergency fuel cell (+80 scrap credits or vehicle nitro surge boost +35% top speed, +40% accel for 6.0s), transitions to `VendingState.HACKED`, switches illuminated display light from cyan (`Color(0.2, 0.85, 1.0)`) to green (`Color(0.2, 1.0, 0.4)`), and plays `COMPLETION` + `AMBIENT_WORK_CLINK` SFX.
+  - Foot melee strike tampering: prybar strikes (`machine.take_hit(1, ...)`) rattle reinforced cabinet, trigger elastic mesh recoil, play spark/clink sound events; 3-hit durability lifecycle (3 -> 0) shatters cash vault, transitions to `VendingState.BREACHED`, spills +120 scrap chunks, scatters 4 debris shards, trips `SIREN_ALARM`, and triggers municipal disturbance alert.
+  - High-speed vehicle ram: impacts at `>= 4.5 m/s` knock chassis with 30° tilt along collision vector, scatter 4 debris shards, spill +120 scrap chunks, transition to `VendingState.BREACHED`, play `COLLISION_HEAD_ON` + `SPARK` + `SIREN_ALARM`, and trigger municipal disturbance alert. Low-speed nudges (< 4.5 m/s) deflect with zero breach.
+  - Deterministic reset: `reset_vending_machine()` in `reset_slice()` restores upright transform, durability (3), cyan screen emission, clears debris shards, re-enables collision shape, and restores `READY` state cleanly.
 - **World Event 04 — Municipal Utility Crawler Patrol ([`utility_crawler.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/entities/utility_crawler.gd), [`utility_crawler.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/entities/utility_crawler.tscn), [`utility_crawler_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/utility_crawler_interactable.gd), [`utility_crawler_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/utility_crawler_world_event.gd}))**:
   - Waypoint patrol loop along sidewalk conduit circuit (`Vector3(1.0, 0.05, -2.0)` to `Vector3(1.0, 0.05, 3.0)`).
   - Target arbitration integration: `UtilityCrawlerInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] INTERCEPT`, `[E] HARVESTED`, `[E] DISABLED`, `[E] WRECKED`).
@@ -74,8 +81,8 @@
   - WE 01 (FB-13 Infrastructure Thrum), WE 02 (Security Checkpoint Toll/Ram Breach), WE 03 (Mayor Burn Contraband Drop).
 - **Authored Mission Chain (3 Missions)**:
   - Continuous 3-mission playthrough passes 100% end-to-end.
-- **100% test pass across all 13 verification contracts**:
-  - `scrap_dumpster_integration_test.gd`, `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`, `street_vendor_integration_test.gd`, `traffic_barrier_integration_test.gd`, `utility_pole_integration_test.gd`.
+- **100% test pass across all 17 verification suites**:
+  - `scrap_dumpster_integration_test.gd`, `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`, `street_vendor_integration_test.gd`, `traffic_barrier_integration_test.gd`, `utility_pole_integration_test.gd`, `utility_crawler_world_event_test.gd`, `vending_machine_integration_test.gd`, `run_expansion_contract.gd`, `run_storefront_contract.gd`.
 
 The former **Visual Direction / Concept Art gate is complete**. Approved creative truth lives under `docs/visual_direction/`, especially:
 
