@@ -1,13 +1,22 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `MUNICIPAL_QUOTA_KIOSK_VERIFIED`  
-**Current gameplay/world baseline:** `e201372`  
+**Status:** `MUNICIPAL_DUMPSTER_SCAVENGE_AND_STEALTH_VERIFIED`  
+**Current gameplay/world baseline:** `8f84be2`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
 ## Current product state
 
-**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat & Municipal Quota Kiosk complete.**
+**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk & Scrap Dumpster Stealth complete.**
+- **Interactive Municipal Scrap Dumpster & Stealth Evasion ([`prop_scrap_dumpster.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_scrap_dumpster.gd), [`prop_scrap_dumpster.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_scrap_dumpster.tscn))**:
+  - Staged in service alley bypass at `Vector3(-10.8, 0.0, -32.5)`.
+  - Target arbitration integration: `ScrapDumpsterInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] SEARCH`, `[E] HIDE`, `[E] EXIT`) on desktop and touch UI.
+  - Salvage scavenging: first search loots +75 scrap credits, transitions to `DumpsterState.SCAVENGED`, plays `COMPLETION` + `AMBIENT_WORK_CLINK` SFX; single-claim rule strictly enforced.
+  - Stealth evasion mechanics: when pursuers are actively hunting, action verb becomes `HIDE`; entering dumpster locks player input, suppresses player visibility and velocity, transitions to `DumpsterState.OCCUPIED_HIDING`, and triggers `pursuer.start_de_escalation()` to cool down city heat.
+  - Evasion release: interacting while concealed (`[E] EXIT`) restores player visibility, unlocks locomotion, repositions runner safely outside (+1.5m Z), and restores dumpster state.
+  - Street combat melee tampering: prybar strikes (`dumpster.take_hit(1, ...)`) rattle metal lid, trigger elastic mesh recoil, play spark/clink sound events, and automatically eject any hiding player.
+  - High-speed vehicle ram: impacts at `>= 4.5 m/s` knock dumpster along collision vector (`impact_speed * 0.35` slide displacement), spill scrap, play `COLLISION_HEAD_ON` SFX, and eject hiding player with knockback impulse.
+  - Deterministic reset: `reset_dumpster()` fully restores initial transform, durability (3), unsearched state, and clears hiding references.
 - **Interactive Municipal Quota Kiosk / Civic Deposit Terminal ([`prop_quota_kiosk.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_quota_kiosk.gd), [`prop_quota_kiosk.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_quota_kiosk.tscn))**:
   - Staged on commercial sidewalk frontage at `Vector3(-9.8, 0.0, -30.5)`.
   - Biometric proximity detection & dynamic scanner emission (`OmniLight3D` scanner light surges from 1.2 to 3.2 intensity on player arrival).
@@ -37,8 +46,8 @@
   - WE 01 (FB-13 Infrastructure Thrum), WE 02 (Security Checkpoint Toll/Ram Breach), WE 03 (Mayor Burn Contraband Drop).
 - **Authored Mission Chain (3 Missions)**:
   - Continuous 3-mission playthrough passes 100% end-to-end.
-- **100% test pass across all 9 verification contracts**:
-  - `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`.
+- **100% test pass across all 10 verification contracts**:
+  - `scrap_dumpster_integration_test.gd`, `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`.
 
 The former **Visual Direction / Concept Art gate is complete**. Approved creative truth lives under `docs/visual_direction/`, especially:
 
