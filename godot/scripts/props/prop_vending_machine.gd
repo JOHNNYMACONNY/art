@@ -21,6 +21,7 @@ const DEBRIS_SHARD_COUNT: int = 4
 
 @export var material_main: Material
 @export var material_screen: Material
+@export var material_glass: Material
 
 var current_state: VendingState = VendingState.READY
 var current_durability: int = MAX_DURABILITY
@@ -72,6 +73,10 @@ func _setup_materials() -> void:
 		if surf_count == 0 and mi.mesh:
 			surf_count = mi.mesh.get_surface_count()
 		for s in range(surf_count):
+			if s == 1:
+				if material_glass:
+					mi.set_surface_override_material(s, material_glass.duplicate())
+				continue
 			if s == 2 and material_screen:
 				mi.set_surface_override_material(s, material_screen.duplicate())
 			elif material_main:

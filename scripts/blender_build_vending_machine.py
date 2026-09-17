@@ -85,9 +85,11 @@ def add_box_geometry(bm, size, pos, rot=(0,0,0), uv_rect=None, mat_idx=0, flip_u
                 if abs(face.normal.y) > 0.8:
                     loop[uv_layer].uv = (u1 + nx * (u2 - u1), v1 + nz * (v2 - v1))
                 elif abs(face.normal.x) > 0.8:
-                    loop[uv_layer].uv = (u1 + ny * (u2 - u1), v1 + nz * (v2 - v1))
+                    cu1, cv1, cu2, cv2 = (0.0, 0.0, 0.5, 0.5)
+                    loop[uv_layer].uv = (cu1 + ny * (cu2 - cu1), cv1 + nz * (cv2 - cv1))
                 else:
-                    loop[uv_layer].uv = (u1 + nx * (u2 - u1), v1 + ny * (v2 - v1))
+                    cu1, cv1, cu2, cv2 = (0.0, 0.0, 0.5, 0.5)
+                    loop[uv_layer].uv = (cu1 + nx * (cu2 - cu1), cv1 + ny * (cv2 - cu1))
     else:
         for face in new_faces:
             face.material_index = mat_idx
@@ -141,19 +143,17 @@ def build_vending_machine():
     mat_steel = create_pbr_material("Mat_VendingSteel", diffuse_color=(0.8, 0.82, 0.85, 1.0), roughness=0.25, metallic=0.9)
 
     # 1. Base plinth / bottom feet (mat 0)
-    add_box_geometry(bm, (0.95, 0.85, 0.12), (0.0, 0.0, 0.06), uv_rect=(0.75, 0.75, 1.0, 1.0), mat_idx=0)
+    add_box_geometry(bm, (0.95, 0.85, 0.12), (0.0, 0.0, 0.06), uv_rect=(0.75, 0.0, 1.0, 0.25), mat_idx=0)
     # Steel leveling feet pegs
     for fx in (-0.42, 0.42):
         for fy in (-0.38, 0.38):
-            add_cylinder_geometry(bm, 0.04, 0.08, (fx, fy, 0.04), uv_rect=(0.75, 0.75, 1.0, 1.0), mat_idx=3)
+            add_cylinder_geometry(bm, 0.04, 0.08, (fx, fy, 0.04), uv_rect=(0.75, 0.0, 1.0, 0.25), mat_idx=3)
 
     # 2. Main cabinet outer frame (0.95m W x 0.85m D x 1.88m H) (mat 0)
     add_box_geometry(bm, (0.95, 0.85, 1.84), (0.0, 0.0, 1.04), uv_rect=(0.0, 0.0, 0.5, 0.5), mat_idx=0)
 
     # 3. Top illuminated marquee sign - angled header (mat 0 with UV mapped to marquee)
     add_box_geometry(bm, (0.96, 0.22, 0.32), (0.0, -0.36, 1.80), rot=(0.14, 0.0, 0.0), uv_rect=(0.5, 0.75, 1.0, 1.0), mat_idx=0)
-    # Emissive front face inset
-    add_box_geometry(bm, (0.90, 0.02, 0.26), (0.0, -0.47, 1.80), rot=(0.14, 0.0, 0.0), uv_rect=(0.5, 0.75, 1.0, 1.0), mat_idx=2)
 
     # 4. Front display cavity / goods shelves (mat 0)
     add_box_geometry(bm, (0.56, 0.18, 0.95), (-0.16, -0.34, 1.15), uv_rect=(0.0, 0.5, 0.5, 1.0), mat_idx=0)
@@ -163,21 +163,19 @@ def build_vending_machine():
 
     # 6. Right side control interface & keypad housing (mat 0)
     add_box_geometry(bm, (0.32, 0.16, 0.95), (0.29, -0.35, 1.15), uv_rect=(0.5, 0.0, 0.75, 0.75), mat_idx=0)
-    # Status display mini-screen (mat 2 emissive cyan)
-    add_box_geometry(bm, (0.26, 0.02, 0.18), (0.29, -0.44, 1.45), uv_rect=(0.5, 0.38, 0.75, 0.55), mat_idx=2)
 
     # 7. Bottom dispenser hopper door (mat 0 & mat 3)
-    add_box_geometry(bm, (0.64, 0.18, 0.34), (-0.12, -0.34, 0.36), uv_rect=(0.75, 0.25, 1.0, 0.75), mat_idx=0)
+    add_box_geometry(bm, (0.76, 0.18, 0.36), (0.0, -0.38, 0.36), uv_rect=(0.75, 0.25, 1.0, 0.75), mat_idx=0)
     # Flap chrome push handle
-    add_cylinder_geometry(bm, 0.018, 0.44, (-0.12, -0.45, 0.36), rot=(0.0, math.pi/2, 0.0), uv_rect=(0.75, 0.25, 1.0, 0.75), mat_idx=3)
+    add_cylinder_geometry(bm, 0.016, 0.52, (0.0, -0.49, 0.28), rot=(0.0, math.pi/2, 0.0), uv_rect=(0.75, 0.25, 1.0, 0.75), mat_idx=3)
 
     # 8. Side cooling vents louvers (mat 0)
     for sx in (-0.48, 0.48):
-        add_box_geometry(bm, (0.02, 0.52, 0.45), (sx, 0.05, 1.20), uv_rect=(0.75, 0.75, 1.0, 1.0), mat_idx=0)
+        add_box_geometry(bm, (0.02, 0.52, 0.45), (sx, 0.05, 1.20), uv_rect=(0.75, 0.0, 1.0, 0.25), mat_idx=0)
 
     # 9. Rear electrical conduit box & cable pipe (mat 3)
-    add_box_geometry(bm, (0.22, 0.14, 0.28), (0.22, 0.44, 0.75), uv_rect=(0.75, 0.75, 1.0, 1.0), mat_idx=3)
-    add_cylinder_geometry(bm, 0.025, 0.75, (0.22, 0.44, 0.38), rot=(0.0, 0.0, 0.0), uv_rect=(0.75, 0.75, 1.0, 1.0), mat_idx=3)
+    add_box_geometry(bm, (0.22, 0.14, 0.28), (0.22, 0.44, 0.75), uv_rect=(0.75, 0.0, 1.0, 0.25), mat_idx=3)
+    add_cylinder_geometry(bm, 0.025, 0.75, (0.22, 0.44, 0.38), rot=(0.0, 0.0, 0.0), uv_rect=(0.75, 0.0, 1.0, 0.25), mat_idx=3)
 
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     mesh = bpy.data.meshes.new("VendingMachine_Mesh")
