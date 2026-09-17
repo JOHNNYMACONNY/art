@@ -20,6 +20,9 @@ enum PursuerState {
 	STUNNED
 }
 
+const SCRAPPER_STAGGER_SEC := 0.30
+const SCRAPPER_SHOVE_SPEED_MPS := 3.3
+
 @export var max_speed: float = 15.5
 @export var acceleration: float = 14.0
 @export var steering_speed: float = 4.0
@@ -55,6 +58,8 @@ var _stun_spin_rate: float = 0.0
 var is_stunned: bool:
 	get:
 		return current_state == PursuerState.STUNNED
+var _scrapper_stagger_remaining: float = 0.0
+var _scrapper_stagger_velocity: Vector3 = Vector3.ZERO
 
 var detour_waypoints: Array[Vector3] = []
 var current_detour_index: int = -1
@@ -77,6 +82,7 @@ func activate_pursuit(target: Node3D) -> void:
 	_stun_spin_rate = 0.0
 	if visual_root:
 		visual_root.rotation = Vector3.ZERO
+	clear_scrapper_stagger()
 	detour_waypoints.clear()
 	current_detour_index = -1
 	set_physics_process(true)
@@ -88,7 +94,8 @@ func activate_pursuit(target: Node3D) -> void:
 func start_de_escalation() -> void:
 	if not is_active or current_state == PursuerState.INACTIVE:
 		return
-		
+
+	clear_scrapper_stagger()
 	current_state = PursuerState.DE_ESCALATING
 	_de_escalate_timer = 0.0
 	_stun_timer = 0.0
@@ -99,13 +106,12 @@ func start_de_escalation() -> void:
 	_intercept_timer = 0.0
 	if visual_root:
 		visual_root.rotation = Vector3.ZERO
-	
 	# Compute retreat vector (continue moving forward-diagonal while slowing down)
 	_de_escalate_turn_target = global_position - global_transform.basis.z * 12.0 + Vector3(2.5, 0.0, 0.0)
-	
+
 	if siren_light:
 		siren_light.light_color = Color(1.0, 0.65, 0.2) # Transition to amber search
-		
+
 	de_escalation_started.emit()
 	print("[PURSUER] De-escalation started. Transitioning to non-hostile retreat/search...")
 
@@ -127,6 +133,7 @@ func reset_pursuer(spawn_pos: Vector3 = Vector3(0, 0.6, -10.0)) -> void:
 	_stun_spin_rate = 0.0
 	if visual_root:
 		visual_root.rotation = Vector3.ZERO
+	clear_scrapper_stagger()
 	global_position = spawn_pos
 	set_physics_process(false)
 	if siren_light:
@@ -193,23 +200,51 @@ func apply_emp_stun(duration: float = 4.0) -> bool:
 	print("[PURSUER] EMP OVERLOAD STUN! Pursuer disabled for %.1fs!" % duration)
 	return true
 
+func apply_scrapper_stagger(impact_direction: Vector3) -> bool:
+	if not is_active or (current_state != PursuerState.CHASING and current_state != PursuerState.DETOURING):
+		return false
+	var planar_direction := impact_direction
+	planar_direction.y = 0.0
+	if planar_direction.length_squared() <= 0.001:
+		return false
+	_scrapper_stagger_velocity = planar_direction.normalized() * SCRAPPER_SHOVE_SPEED_MPS
+	_scrapper_stagger_remaining = SCRAPPER_STAGGER_SEC
+	current_speed = 0.0
+	_intercept_timer = 0.0
+	velocity = _scrapper_stagger_velocity
+	return true
+
+func is_scrapper_staggered() -> bool:
+	return _scrapper_stagger_remaining > 0.0
+
+func get_scrapper_stagger_remaining() -> float:
+	return _scrapper_stagger_remaining
+
+func get_scrapper_stagger_velocity() -> Vector3:
+	return _scrapper_stagger_velocity
+
+func clear_scrapper_stagger() -> void:
+	_scrapper_stagger_remaining = 0.0
+	_scrapper_stagger_velocity = Vector3.ZERO
+	if current_state == PursuerState.CHASING or current_state == PursuerState.DETOURING:
+		velocity = Vector3.ZERO
 func set_detour_path(waypoints: Array[Vector3]) -> void:
 	if current_state == PursuerState.DE_ESCALATING or current_state == PursuerState.EVADED_DISENGAGED or current_state == PursuerState.STUNNED:
 		return
-		
+
 	detour_waypoints.clear()
 	# Filter out any waypoints behind pursuer Z position to prevent 180 deg U-turns
 	for wp in waypoints:
 		if wp.z > global_position.z:
 			detour_waypoints.append(wp)
-			
+
 	if detour_waypoints.size() > 0:
 		current_state = PursuerState.DETOURING
 		current_detour_index = 0
 	else:
 		current_detour_index = -1
 		current_state = PursuerState.CHASING
-		
+
 	print("[PURSUER] Detour reroute path set (%d forward waypoints)..." % detour_waypoints.size())
 
 ## CTW Feel 06 — pure destination candidate. It has no target input history and
@@ -262,7 +297,21 @@ func get_navigation_destination() -> Vector3:
 func _physics_process(delta: float) -> void:
 	if not is_active:
 		return
-		
+
+	# Production 05 Scrapper contact is a bounded physical modifier only. It
+	# temporarily owns pursuer translation, never pursuit/Wanted authority.
+	if _scrapper_stagger_remaining > 0.0 and (current_state == PursuerState.CHASING or current_state == PursuerState.DETOURING):
+		_scrapper_stagger_remaining = maxf(0.0, _scrapper_stagger_remaining - maxf(delta, 0.0))
+		current_speed = 0.0
+		_intercept_timer = 0.0
+		var remaining_factor := clampf(_scrapper_stagger_remaining / SCRAPPER_STAGGER_SEC, 0.0, 1.0)
+		velocity = _scrapper_stagger_velocity * maxf(remaining_factor, 0.35)
+		move_and_slide()
+		if _scrapper_stagger_remaining <= 0.0:
+			_scrapper_stagger_velocity = Vector3.ZERO
+			velocity = Vector3.ZERO
+		return
+
 	# -------------------------------------------------------------------------
 	# STATE: STUNNED (Temporarily disabled by weaponized vehicle ram)
 	# -------------------------------------------------------------------------
@@ -310,10 +359,10 @@ func _physics_process(delta: float) -> void:
 	# -------------------------------------------------------------------------
 	if current_state == PursuerState.DE_ESCALATING:
 		_de_escalate_timer += delta
-		
+
 		# Smoothly decelerate toward search speed (2.5 m/s)
 		current_speed = move_toward(current_speed, 2.5, 6.0 * delta)
-		
+
 		var to_retreat := _de_escalate_turn_target - global_position
 		to_retreat.y = 0.0
 		if to_retreat.length() > 0.5:
@@ -321,13 +370,13 @@ func _physics_process(delta: float) -> void:
 			var current_forward := -global_transform.basis.z
 			var new_forward := current_forward.slerp(desired_dir, 1.8 * delta).normalized()
 			look_at(global_position + new_forward, Vector3.UP)
-			
+
 		velocity = -global_transform.basis.z * current_speed
 		move_and_slide()
-		
+
 		if siren_light:
 			siren_light.light_energy = maxf(0.0, 1.0 - (_de_escalate_timer / 2.5))
-			
+
 		if _de_escalate_timer >= 2.5:
 			current_state = PursuerState.EVADED_DISENGAGED
 			current_speed = 0.0
@@ -340,13 +389,13 @@ func _physics_process(delta: float) -> void:
 			de_escalation_completed.emit()
 			print("[PURSUER] De-escalation completed. Pursuer safely disengaged.")
 		return
-		
+
 	# -------------------------------------------------------------------------
 	# STATE: CHASING / DETOURING (Active hostile pursuit)
 	# -------------------------------------------------------------------------
 	if not target_node:
 		return
-		
+
 	var destination: Vector3 = get_navigation_destination()
 	if current_detour_index >= 0 and current_detour_index < detour_waypoints.size():
 		if global_position.distance_to(destination) < 3.0:
@@ -356,21 +405,21 @@ func _physics_process(delta: float) -> void:
 				current_detour_index = -1
 				current_state = PursuerState.CHASING
 				print("[PURSUER] Detour completed. Resuming direct pursuit...")
-				
+
 	var to_target := destination - global_position
 	to_target.y = 0.0
 	var dist := to_target.length()
-	
+
 	if dist > 0.1:
 		var desired_dir := to_target.normalized()
 		var current_forward := -global_transform.basis.z
 		var new_forward := current_forward.slerp(desired_dir, steering_speed * delta).normalized()
 		look_at(global_position + new_forward, Vector3.UP)
-		
+
 		current_speed = move_toward(current_speed, max_speed, acceleration * delta)
 		velocity = -global_transform.basis.z * current_speed
 		move_and_slide()
-		
+
 	# Hostile interception only possible during active CHASING / DETOURING
 	if (current_state == PursuerState.CHASING or current_state == PursuerState.DETOURING) and target_node:
 		if global_position.distance_to(target_node.global_position) <= intercept_distance:

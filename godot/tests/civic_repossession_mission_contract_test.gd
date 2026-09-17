@@ -94,4 +94,20 @@ static func verify() -> String:
 	if not shortcut.on_return_zone_entered():
 		return "Shortcut fixture did not complete delivery"
 
+	var quiet = mission_script.new()
+	if not quiet.unlock_after_scrap_job():
+		return "Quiet-take fixture did not unlock"
+	if not quiet.on_vehicle_mounted("ScrapHauler"):
+		return "Quiet-take fixture did not accept Hauler"
+	if not quiet.has_method("on_clean_take"):
+		return "Clean-take mission transition is absent"
+	if not bool(quiet.call("on_clean_take")):
+		return "Report-suppressed Hauler theft did not advance to delivery"
+	if quiet.phase != mission_script.Phase.DELIVERY:
+		return "Clean Hauler theft did not enter DELIVERY"
+	if quiet.route_choice != mission_script.RouteChoice.UNDECIDED:
+		return "Clean Hauler theft fabricated a pursuit route choice"
+	if "RETURN" not in quiet.objective or "HAULER" not in quiet.objective:
+		return "Clean Hauler theft does not expose the garage delivery objective"
+
 	return ""

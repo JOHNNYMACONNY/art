@@ -47,6 +47,20 @@ shader_parameter/swap_uv = false
 shader_parameter/uv_scale = Vector2(1, 1)
 shader_parameter/emission_use_albedo = true
 
+[sub_resource type="BoxMesh" id="BoxMesh_Chassis"]
+size = Vector3(0.8, 0.35, 1.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Tread"]
+size = Vector3(0.15, 0.25, 1.15)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Cargo"]
+size = Vector3(0.6, 0.22, 0.7)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_Beacon"]
+top_radius = 0.1
+bottom_radius = 0.12
+height = 0.15
+
 [node name="UtilityCrawler" type="CharacterBody3D" groups=["damageable", "strike_target", "utility_crawlers"]]
 collision_layer = 4
 collision_mask = 3
@@ -62,8 +76,31 @@ shape = SubResource("BoxShape3D_crawler")
 
 [node name="Model" parent="Chassis" instance=ExtResource("4_model")]
 
+[node name="Body" type="MeshInstance3D" parent="Chassis"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+mesh = SubResource("BoxMesh_Chassis")
+
+[node name="LeftTread" type="MeshInstance3D" parent="Chassis"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.42, 0, 0)
+mesh = SubResource("BoxMesh_Tread")
+
+[node name="RightTread" type="MeshInstance3D" parent="Chassis"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.42, 0, 0)
+mesh = SubResource("BoxMesh_Tread")
+
+[node name="CargoBed" type="MeshInstance3D" parent="Chassis"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, -0.15)
+mesh = SubResource("BoxMesh_Cargo")
+
 [node name="BeaconMesh" type="MeshInstance3D" parent="Chassis"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.68, 0.32)
+mesh = SubResource("CylinderMesh_Beacon")
+
 
 [node name="BeaconLight" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.72, 0.32)

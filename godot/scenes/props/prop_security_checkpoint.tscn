@@ -1,6 +1,6 @@
 [gd_scene load_steps=8 format=3 uid="uid://propcheckpoint01"]
 
-[ext_resource type="Script" path="res://scripts/props/prop_security_checkpoint.gd" id="1_script"]
+
 [ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="2_toon"]
 [ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_security_checkpoint.png" id="3_texture"]
 [ext_resource type="PackedScene" path="res://models/prop_security_checkpoint.glb" id="4_model"]
@@ -30,8 +30,6 @@ shader_parameter/swap_uv = false
 shader_parameter/uv_scale = Vector2(1, 1)
 
 [node name="PropSecurityCheckpoint" type="StaticBody3D"]
-script = ExtResource("1_script")
-material_main = SubResource("Mat_CheckpointMain")
 collision_layer = 1
 collision_mask = 6
 
@@ -40,4 +38,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 1.4, 0)
 shape = SubResource("BoxShape3D_checkpoint")
 
 [node name="Model" parent="." instance=ExtResource("4_model")]
+
+[node name="SecurityCheckpoint_Mesh" parent="Model" index="0"]
+material_override = SubResource("Mat_CheckpointMain")
+
 

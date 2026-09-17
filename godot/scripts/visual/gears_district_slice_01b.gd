@@ -1,8 +1,13 @@
 extends Node3D
 
-# Open World Expansion 01B — introspection only.
-# Traversable geometry is declarative in the scene; this script owns no gameplay authority.
+# Open World Expansion 01B — declarative geometry + introspection.
+# This node owns no gameplay authority. Production 04 may use it only as a
+# spatial composition seam to mount a separate root-level runtime sibling.
 
+const GearsWorkZoneIncidentScript = preload("res://scripts/world/gears_work_zone_incident.gd")
+const GearsScrapperToolRuntimeScript = preload("res://scripts/world/gears_scrapper_tool_runtime.gd")
+const GearsSurveyedServiceCutRuntimeScript = preload("res://scripts/world/gears_surveyed_service_cut_runtime.gd")
+const BurnGarageRepairRuntimeScript = preload("res://scripts/world/burn_garage_repair_runtime.gd")
 const RETAINED_NORTH_EDGE_Z := -20.0
 const APPROVED_TOON_SHADER_PATH := "res://materials/gears_toon.gdshader"
 const ADDITIVE_EXTENSION_PATHS := [
@@ -10,6 +15,77 @@ const ADDITIVE_EXTENSION_PATHS := [
 	"SilentCoreSite",
 	"StreetClutter",
 ]
+
+func _ready() -> void:
+	call_deferred("_mount_production_04_work_zone")
+	call_deferred("_mount_production_05_scrapper_tool")
+	call_deferred("_mount_production_06_surveyed_service_cut")
+	call_deferred("_mount_production_07_burn_garage_repair")
+
+func _mount_production_04_work_zone() -> void:
+	var scene_root := get_parent()
+	if scene_root == null or not (scene_root is Node3D):
+		return
+	if scene_root.get_node_or_null("GearsWorkZoneIncident") != null:
+		return
+
+	var incident := GearsWorkZoneIncidentScript.new() as Node3D
+	if incident == null:
+		return
+	incident.name = "GearsWorkZoneIncident"
+	scene_root.add_child(incident)
+
+	var wanted_runtime := get_tree().root.get_node_or_null("BurnsideWantedRuntime")
+	var audio_mgr := scene_root.get_node_or_null("AudioManager")
+	if not bool(incident.call("configure", scene_root, self, wanted_runtime, audio_mgr)):
+		incident.queue_free()
+
+func _mount_production_05_scrapper_tool() -> void:
+	var scene_root := get_parent()
+	if scene_root == null or not (scene_root is Node3D):
+		return
+	if scene_root.get_node_or_null("GearsScrapperToolRuntime") != null:
+		return
+	var runtime := GearsScrapperToolRuntimeScript.new() as Node3D
+	if runtime == null:
+		return
+	runtime.name = "GearsScrapperToolRuntime"
+	scene_root.add_child(runtime)
+	if not bool(runtime.call("configure", scene_root, self)):
+		runtime.queue_free()
+
+func _mount_production_06_surveyed_service_cut() -> void:
+	var scene_root := get_parent()
+	if scene_root == null or not (scene_root is Node3D):
+		return
+	if scene_root.get_node_or_null("GearsSurveyedServiceCutRuntime") != null:
+		return
+	if scene_root.get_node_or_null("GearsScrapperToolRuntime") == null:
+		return
+	var runtime := GearsSurveyedServiceCutRuntimeScript.new() as Node3D
+	if runtime == null:
+		return
+	runtime.name = "GearsSurveyedServiceCutRuntime"
+	scene_root.add_child(runtime)
+	if not bool(runtime.call("configure", scene_root, self)):
+		runtime.queue_free()
+
+func _mount_production_07_burn_garage_repair() -> void:
+	var scene_root := get_parent()
+	if scene_root == null or not (scene_root is Node3D):
+		return
+	if scene_root.get_node_or_null("BurnGarageRepairRuntime") != null:
+		return
+	var wanted_runtime := get_tree().root.get_node_or_null("BurnsideWantedRuntime")
+	if wanted_runtime == null:
+		return
+	var runtime := BurnGarageRepairRuntimeScript.new() as Node3D
+	if runtime == null:
+		return
+	runtime.name = "BurnGarageRepairRuntime"
+	scene_root.add_child(runtime)
+	if not bool(runtime.call("configure", scene_root, self, wanted_runtime)):
+		runtime.queue_free()
 
 func _box_shape(node_path: String) -> BoxShape3D:
 	var collider := get_node_or_null(node_path) as CollisionShape3D

@@ -1,6 +1,6 @@
 # Wayfinder Map: Echos in the Scrapheap — Historical Architecture Map
 
-> **Status note (2026-08-24):** This file is retained for architecture/history and is **not the current milestone/status tracker**. Current implementation truth lives in `HANDOFF.md`, current GitHub PR/issue state, and machine-readable verification records such as `godot/verification/feel/wave1_retention_summary.json`. Labels such as `ACTIVE` below describe the historical snapshot in which this map was written and must not be used to infer present completion state.
+> **Status note (2026-08-30):** This file is retained for architecture/history and is **not the current Wayfinder or milestone/status tracker**. The canonical **Burnside Open World Design** Wayfinder map lives in GitHub Issue #101 (`Burnside Open World Design — Wayfinder Map`); do not expand this file into a competing tracker. Current implementation truth lives in `HANDOFF.md`, current GitHub PR/issue state, and machine-readable verification records such as `godot/verification/feel/wave1_retention_summary.json`. Labels such as `ACTIVE` below describe the historical snapshot in which this map was written and must not be used to infer present completion state.
 
 ## 1. Project Overview & Destination
 A playable, mobile-first Godot 4 3D vertical slice of **ECHOES IN THE SCRAPHEAP** featuring:

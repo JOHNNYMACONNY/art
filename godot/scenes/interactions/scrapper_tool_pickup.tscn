@@ -1,0 +1,59 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/interactions/scrapper_tool_pickup.gd" id="1_pickup"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial_scrapper"]
+albedo_color = Color(0.78, 0.32, 0.12, 1)
+metallic = 0.55
+roughness = 0.52
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial_grip"]
+albedo_color = Color(0.08, 0.09, 0.085, 1)
+metallic = 0.2
+roughness = 0.78
+
+[sub_resource type="BoxMesh" id="BoxMesh_handle"]
+size = Vector3(0.13, 0.13, 1.1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_head"]
+size = Vector3(0.42, 0.18, 0.18)
+
+[sub_resource type="BoxMesh" id="BoxMesh_grip"]
+size = Vector3(0.17, 0.16, 0.28)
+
+[sub_resource type="BoxShape3D" id="BoxShape_tool"]
+size = Vector3(0.5, 0.24, 1.15)
+
+[node name="ScrapperToolPickup" type="Area3D"]
+script = ExtResource("1_pickup")
+interaction_radius = 2.2
+interaction_priority = 1.4
+
+[node name="ToolVisual" type="Node3D" parent="."]
+rotation = Vector3(0, -0.52, 0)
+
+[node name="Handle" type="MeshInstance3D" parent="ToolVisual"]
+mesh = SubResource("BoxMesh_handle")
+material_override = SubResource("StandardMaterial_scrapper")
+
+[node name="PryHead" type="MeshInstance3D" parent="ToolVisual"]
+position = Vector3(0, 0.02, -0.48)
+mesh = SubResource("BoxMesh_head")
+material_override = SubResource("StandardMaterial_scrapper")
+
+[node name="Grip" type="MeshInstance3D" parent="ToolVisual"]
+position = Vector3(0, 0.015, 0.42)
+mesh = SubResource("BoxMesh_grip")
+material_override = SubResource("StandardMaterial_grip")
+
+[node name="StatusLabel" type="Label3D" parent="."]
+position = Vector3(0, 0.42, 0)
+text = "SCRAPPER // TOOL"
+font_size = 24
+pixel_size = 0.009
+outline_size = 6
+billboard = 1
+no_depth_test = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape_tool")

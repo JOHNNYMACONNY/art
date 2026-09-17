@@ -1,9 +1,10 @@
-[gd_scene load_steps=11 format=3 uid="uid://c_player_runner_001"]
+[gd_scene load_steps=20 format=3 uid="uid://c_player_runner_001"]
 
 [ext_resource type="Script" path="res://scripts/player/runner.gd" id="1_runner"]
 [ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="2_toon"]
 [ext_resource type="Texture2D" uid="uid://cx46rxgh0eck8" path="res://textures/urban_clutter/tex_runner_atlas.png" id="3_atlas"]
 [ext_resource type="PackedScene" path="res://models/runner.glb" id="4_model"]
+[ext_resource type="PackedScene" uid="uid://hs7carriedmod001" path="res://scenes/entities/hs7_carried_module.tscn" id="5_hs7"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
@@ -63,6 +64,10 @@ top_radius = 0.025
 bottom_radius = 0.025
 height = 0.65
 
+[sub_resource type="BoxMesh" id="Mesh_TorsoOutline"]
+size = Vector3(0.52, 0.59, 0.36)
+
+
 [sub_resource type="StandardMaterial3D" id="Mat_Tool"]
 albedo_color = Color(0.25, 0.26, 0.28, 1)
 roughness = 0.4
@@ -85,6 +90,15 @@ transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
 
 [node name="Torso" type="Node3D" parent="MeshPivot"]
 transform = Transform3D(1, 0, 0, 0, 0.994522, 0.104528, 0, -0.104528, 0.994522, 0, 1.15, 0)
+
+[node name="TorsoOutline" type="MeshInstance3D" parent="MeshPivot/Torso"]
+visible = false
+mesh = SubResource("Mesh_TorsoOutline")
+
+[node name="HS7CarrySocket" type="Node3D" parent="MeshPivot/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.22, -0.15, 0.08)
+
+[node name="HS7CarriedModule" parent="MeshPivot/Torso/HS7CarrySocket" instance=ExtResource("5_hs7")]
 
 [node name="Head" type="Node3D" parent="MeshPivot"]
 transform = Transform3D(1, 0, 0, 0, 0.994522, -0.104528, 0, 0.104528, 0.994522, 0, 1.48, -0.06)

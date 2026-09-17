@@ -1,11 +1,15 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `VENDING_MACHINE_CONTRABAND_HACK_VERIFIED`  
-**Current gameplay/world baseline:** `c20ca4a` (chatgpt texture atlas & 3d bake)  
+**Status:** `BURNSIDE_P08_AND_GEARS_WORLD_EVENTS_PROPS_MERGED_VERIFIED`  
+**Current gameplay/world baseline:** `feat/gears-world-events-and-props`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
+> Continuity only. Refresh remote `main`, open PRs/issues, CI, public-playtest state, and any concurrent Audio/shared-scene work before repo-sensitive claims. A later docs-only continuity merge may make repository HEAD newer than the exact verified gameplay/public baseline above without changing runnable gameplay.
+
 ## Current product state
+
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, and authored FB-13 / HS-7 companion presence compose in the same geography.
 
 **Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
 - **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
@@ -84,180 +88,187 @@
 - **100% test pass across all 17 verification suites**:
   - `scrap_dumpster_integration_test.gd`, `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`, `street_vendor_integration_test.gd`, `traffic_barrier_integration_test.gd`, `utility_pole_integration_test.gd`, `utility_crawler_world_event_test.gd`, `vending_machine_integration_test.gd`, `run_expansion_contract.gd`, `run_storefront_contract.gd`.
 
-The former **Visual Direction / Concept Art gate is complete**. Approved creative truth lives under `docs/visual_direction/`, especially:
+Approved visual direction remains **Civic Salvage Palimpsest / Industrial Cel-Shaded Near Future**. Issue #118 remains the canonical downstream Burnside player-facing production contract. Issue #55 remains the durable product-direction anchor.
 
-- `README.md`;
-- `REFERENCE_ATLAS.md`;
-- `GEARS_DISTRICT_VISUAL_DIRECTION_APPROVAL.md`;
-- `GEARS_DISTRICT_HUMANOID_BOT_VISUAL_FAMILY_APPROVAL.md`;
-- `GEARS_DISTRICT_VISUAL_DIRECTION_V2_CONVERGENCE.md` where later approved location language is relevant.
+Do not default to more acreage or generalized frameworks. Favor player-facing systemic density, feel, clarity, cohesion, and authored consequence.
 
-Approved direction: **Civic Salvage Palimpsest / Industrial Cel-Shaded Near Future**. Humanoid bots are an approved supporting family, not a requirement for every increment.
+## Production sequence — verified baselines
 
-The current yard is no longer the only production geography. It now connects into one real Gears production block with a primary industrial road/intersection, alternate service alley/rejoin, commercial and industrial frontage, Mayor Burn's authored garage destination, and a physically reachable Silent Core infrastructure pocket.
+- **Production 01** — #119 / PR #121 — Wanted / Contact-Search — `4e62e198508393821bf902da681daa776d1d8545`.
+- **Production 02** — #122 / PR #123 — Field Hacking / Report Suppression — `7a5c36598c6d950d832f71c42e41eaacfb7b75b2`.
+- **Production 03** — #124 / PR #125 — Mission-02 Wanted + Field-Hacking composition — `afd1db546b04221c7fb4b222b9f77311acd6d3ea`.
+- **Production 04** — #127 / PR #129 — Gears Work-Zone / Player-Reactive Ambient Incident — `7605277d920b7877715d78687ccab16a69745b2f`.
+- **Production 05** — #131 / PR #132 — Gears Scrapper Tool / Street-Combat Contact Tracer — `702678cb66ab7544b43644cfa29baf5361c68dc1`.
+- **Production 06** — #134 / PR #135 — Gears Surveyed Service Cut / Durable Map-Knowledge Tracer — `cfe82d2580a7300e3ebb2bf3257d08a4300bf2a4`.
+- **Production 07** — #137 / PR #138 — Gears Vehicle Condition / Burn Garage Repair Tracer — `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`.
+- **Production 08** — #141 / PR #143 / PR #145 (review polish) — FB-13 / HS-7 Authored Companion Presence Tracer — `37c130b10db057ba923d5a9a6738081fa91e6fdf`.
 
-FB-13 is now materially present in the Godot production slice through one ambient infrastructure-thrum event at the existing industrial frontage. This is intentionally **not** a companion-AI framework, mission system, combat mechanic, input mode or generalized world-event bus.
+## Retained authority truths
 
-Do **not** continue multiplying acreage by default. The product-direction anchor in issue #55 says that after the district foundation, prefer authored missions/world events that exploit the expanded geography before expanding the map again. After the first bounded world event, accumulated visual/performance/audio verification debt is now a first-class competing priority.
+Wanted authority remains:
 
-## Retained Feel foundation
+`INCIDENT -> REPORT -> HEAT 1 + CONTACT -> PHYSICAL RESPONSE -> CONTACT LOSS -> SEARCH -> REACQUIRE or EVADE -> CLEAR FREE ROAM`
 
-| Ticket | Candidate | Disposition | Production state |
-|---|---|---|---|
-| #12 | Touch steering conditioner | **PENDING** | Linear normalized touch steering remains the default. The `0.06` radial deadzone / `1.5` response-power experiment remains disabled pending physical touch A/B. |
-| #13 | Camera occlusion cutaway experiment | **REVERTED** | The existing dynamic elevated 3/4 Chinatown-Wars-style camera follow remains retained. PR #44 is deferred experimentation, not unfinished camera work. |
-| #14 | Vehicle traction, impact and audio feedback | **RETAINED** | Telemetry-driven engine/load, traction/recovery, scaled impact output and priority ducking remain active. |
-| #15 | Fast pursuit retry | **RETAINED** | Retry preserves solved setup and returns directly to the pursuit loop. |
-| #16 | Bounded pursuer interception | **RETAINED** | Observable-velocity destination prediction remains enabled; authored Signal Gate detours retain authority. |
+Field Hacking remains local and situational:
 
-Do not reopen camera, steering, vehicle feel, pursuit, input, radio, audio, retry, or interaction ownership for speculative polish. Require a concrete observed weakness.
+`DISCOVER LOCAL SERVICE ACCESS -> JAM REPORT LINK -> CIVIC INCIDENT -> ALARM FAULT -> REPORT SUPPRESSED -> NO NEW WANTED`
 
-## Authored mission chain
+Mission completion, Scrapper use, route surveying, map viewing, local incident recovery, vehicle repair, and Replay do not silently clear valid Heat / Contact / Search / Recognition authority.
 
-The active authored chain remains:
+Mission 01 and Mission 03 retain their historical authored pursuit behavior. Mission 02 remains composed with ordinary open-world Wanted + Field Hacking and the existing Burn Garage delivery socket.
 
-`Lira scrap job -> Mayor Burn civic repossession -> Sister Kael / Silent Core memory reveal`
+## Production 05 retained result
 
-The retained gameplay chain remains:
+The Scrapper Tool remains one bounded authored physical tool, not a generalized combat/inventory framework.
 
-`touch / desktop intent -> foot traversal or retained vehicle authority -> retained camera / feedback / radio -> authored objective -> interaction / pursuit / route pressure -> interception, retry or evasion -> authored payoff / next contact`
+Primary chain:
 
-### Mission / Narrative 01 — Scrap Job
+`TAKE SCRAPPER TOOL -> FORCE JAMMED SERVICE ACCESS -> LOCAL WORK-ZONE REACTS -> EXISTING CIVIC REPORT ATTEMPT -> HEAT 1 + CONTACT -> PHYSICAL PURSUER CLOSES -> SCRAPPER IMPACT CREATES BRIEF SPACE -> USE SERVICE CUT / BREAK CONTACT`
 
-Merged in PR #51 at `42ed53fad90463bd5bf8897a766e48d9da767940`.
+Key boundaries retained:
 
-Authored flow:
+- Tool Action is dedicated touch + desktop input and yields to retained gesture/input ownership.
+- Forcing the authored ServiceAlley access changes physical traversal only through retained P04/P05 seams.
+- Scrapper contact only creates a brief pursuer stagger/displacement window.
+- No Player Health/Armor, firearms, weapon roster, generic NPC damage/death, generalized hostile combat AI, inventory/loot/RPG stats, Heat 2–5, generalized witness/crime framework, or unrelated Audio scope exists from P05.
 
-`Lira briefing -> Courier Bike -> tuner spoof -> customs-core extraction -> pursuit complication -> Signal Gate or long road -> interception/fast retry or escape -> 320-credit payoff + aftermath`
+## Production 06 retained result
 
-Mission 01 remains a narrow authored state machine over retained Bike, tuner, Corroded Panel, pursuit, Signal Gate, fast retry, Memory Echo, camera/audio/vehicle and Mission HUD authorities.
+Issue #134 / PR #135: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED**.
 
-### Mission / Narrative 02 — Civic Repossession
+Exact gameplay/public baseline:
 
-Original mission implementation merged in PR #53. Open World Expansion 01C later replaced its old in-yard delivery placeholder with the authored Gears destination.
+`cfe82d2580a7300e3ebb2bf3257d08a4300bf2a4`
 
-Current authored flow:
+Player-facing contract:
 
-`Mission 01 completion -> Mayor Burn handoff -> Scrap Hauler acquisition -> retained pursuit pressure -> Signal Gate or long road -> interception/fast retry or evasion -> authored Burn garage delivery -> 450-credit presentation payoff + aftermath`
+`LEGITIMATELY TRAVERSE SERVICEALLEY <-> NORTHCONNECTOR -> RECORD SURVEYED ROUTE ONCE -> REPLAY/RELAUNCH RETAINS LEARNED GEOGRAPHY -> PHYSICAL ACCESS MAY RESET TO JAMMED INDEPENDENTLY`
 
-Current production facts:
+Retained truths:
 
-- the retained `CivicRepossessionRuntime` still owns only the thin Mission 02 adapter;
-- its delivery zone resolves to `GearsDistrictSlice01B/MissionDestinationSocket` when production geography is present;
-- the old `(7, 0.08, 8)` position survives only as an isolated-fixture fallback;
-- Mayor Burn's garage is authored under the existing commercial frontage with no new gameplay state machine;
-- the service alley retains at least 3.2 m effective clearance for the 1.8 m Scrap Hauler;
-- Mission 01/03 composition boundaries remain unchanged.
+- only the authored `ServiceAlley <-> NorthConnector` cut is surveyable;
+- learned map knowledge and current physical accessibility are independent truths;
+- Replay can restore the barrier to `JAMMED` while surveyed route knowledge remains known;
+- the route sheet is bounded and on-demand, not a generalized GPS/minimap/navigation system;
+- durable P06 knowledge remains isolated in its narrow versioned `surveyed_routes` store;
+- P07 does not modify `user://burnside_mapped_knowledge.json` or its schema.
 
-### Mission / Narrative 03 — The City That Forgot
+## Production 07 — verified player-facing result
 
-Original mission implementation merged in PR #57. Open World Expansion 01D later replaced its hard-coded in-yard Silent Core placeholder with an authored Gears infrastructure destination.
+Issue #137 / PR #138: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED** pending only this docs continuity merge and issue closure.
 
-Current authored flow:
+Frozen feature head:
 
-`Civic Repossession completion -> Sister Kael handoff -> reach Silent Core infrastructure pocket -> retained Action interaction -> authored HS-7 Memory Echo -> fresh retained disturbance/pursuit -> interception/fast retry or evasion -> narrative aftermath`
+`b98f7e00a0865f5f9e6902cdf7dba2d66d9dec8f`
 
-Current production facts:
+Exact gameplay merge / verified public baseline:
 
-- Mission 03 still uses the same `LOCKED -> REACH_SILENT_CORE -> ECHO_ACTIVE -> ESCAPE / FAILED -> COMPLETE` state model;
-- the retained Action target arbitration remains authoritative;
-- the retained `MemoryEchoController`, authored Echo payload, pursuit handoff, fast retry and Full Replay behavior are unchanged;
-- the runtime Silent Core resolves to `GearsDistrictSlice01B/SilentCoreSite/SilentCoreSocket` when production geography is present;
-- the old `(8, 0.4, -8)` position survives only as an isolated-fixture fallback;
-- the Core is now a restrained toon-shaded utility module rather than a generic glowing cylinder;
-- the site is ordinary obsolete telecom/relay infrastructure with removed asset-plate history, maintenance cues and sparse HS-7 cyan rather than fantasy-shrine spectacle;
-- the site is physically reachable through a two-piece on-foot maintenance apron with stable >=0.25 m ground overlaps;
-- no Sister Kael character model was added; existing authored narrative presentation remains authoritative.
+`3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`
 
-## Approved Gears world foundation
+Player loop:
 
-### 01A — In-engine visual style proof
+`DRIVE -> SIGNIFICANT IMPACTS -> BATTERED -> CRITICAL / LIMPING -> ABANDON, SWAP, OR REACH BURN'S GARAGE -> REPAIR -> ROADWORTHY`
 
-Issue #60 / PR #63 proved the approved direction in the real Godot slice at the retained 32-degree elevated 3/4 camera.
+Production truths:
 
-Exact reviewed candidate: `7302d2eb05b1e86eefb88c1ee5f8e10ac2852cdf`.
+- scope is exactly the retained `CourierBike` and `ScrapHauler`;
+- player-readable condition states are exactly `ROADWORTHY`, `BATTERED`, and `CRITICAL`;
+- no visible numeric HP exists;
+- condition derives from each vehicle's real collision telemetry and uses bounded deterministic accumulation plus a 0.50-second accepted-contact cooldown;
+- trivial hits are ignored and sustained wall contact cannot melt condition frame-by-frame;
+- BATTERED is presentation-first;
+- CRITICAL changes only usable forward maximum speed, using the approved `0.52` multiplier;
+- steering, reverse, acceleration, braking, grip, mount/dismount, collision response, and retained handling authority remain intact;
+- no vehicle explosion or destruction exists;
+- Mayor Burn's existing `GearsDistrictSlice01B/MissionDestinationSocket` is the sole P07 repair point;
+- repair requires a damaged active supported vehicle, inside the 2.6 m Garage radius, effectively stopped, with authoritative Wanted heat `0` and state `CLEAR`;
+- CONTACT, SEARCH, or any other active Wanted state rejects repair;
+- repair never clears, resets, or otherwise mutates Wanted authority;
+- Garage repair uses the retained Action route only; no repair menu, economy, or generalized interaction/service framework was created;
+- Mission 02 remains authoritative for delivery and a CRITICAL Hauler can still complete legal Garage delivery;
+- Mission completion and repair affect only their own state and do not double-fire;
+- full Replay resets both supported vehicle conditions to ROADWORTHY while P06 surveyed route knowledge remains durable;
+- no ownership/claiming, generalized damage framework, generalized vehicle framework, generalized save framework, Garage network, economy, navigation expansion, canon change, or Audio change entered P07.
 
-The proof established:
+### Render/readability repair
 
-- lightweight toon treatment plus selective contours;
-- stacked mixed-use salvage architecture;
-- primary / shortcut route hierarchy;
-- municipal, commercial, aftermarket and asset-marking graphic families;
-- restrained practical day/dusk hierarchy;
-- treated Runner, Courier Bike, Scrap Hauler, Pursuer, worker, utility robot and interactable families;
-- bounded mesh/outline/light budgets;
-- no full-district production inside the proof.
+The first fixed-size world-label repair made the old typography values visually enormous. Automation alone was not accepted as proof.
 
-Required retained-camera screenshots and exact candidate desktop render telemetry were not captured because the candidate artifact was not deployable through the available verification surface at the time. The owner explicitly accepted this as **verification debt**, not as proof that the perceptual/performance gate had happened.
+The final presentation contract keeps `fixed_size = true` and `no_depth_test = true`, but bounds the world labels to small screen-space typography. Final values are:
 
-### 01B — First real production block
+- CourierBike condition tag: font 6 / outline 2;
+- ScrapHauler condition tag: font 6 / outline 2;
+- Burn Garage affordance: font 5 / outline 2.
 
-PR #64 merged the first contiguous Gears production geography; its squash result became `8297f5ae54d2b66348620b25feecff6c754b988a`.
+The frozen nine-shot proof was directly inspected after tuning. Vehicle condition tags and Garage `WANTED // SERVICE LOCKED`, `REPAIR // ACTION`, and `ROADWORTHY` states remain readable without dominating or clipping the frame.
 
-Production topology:
+## Production 07 verification truth
 
-`retained yard north edge -> industrial intersection / primary road -> north continuation`
+### Frozen feature head
 
-with an alternate:
+At `b98f7e00a0865f5f9e6902cdf7dba2d66d9dec8f`:
 
-`intersection -> service alley -> north connector -> primary road`
+- exact-source P07 semantics/runtime: **PASS**;
+- real `move_and_slide()` collision -> BATTERED/CRITICAL tracer: **PASS**;
+- sustained-contact debounce: **PASS**;
+- CRITICAL forward limp, steering, and reverse runtime behavior: **PASS**;
+- Burn Garage outside/moving/CONTACT/SEARCH rejection + CLEAR repair: **PASS**;
+- Mission 02 composition: **PASS**;
+- retained P01–P06 focused regressions: **PASS**;
+- nine-state rendered proof: **PASS and directly inspected**;
+- literal-head Web export/static-host smoke: **PASS**;
+- synthetic-merge Web export/static-host smoke: **PASS**;
+- literal-head + merge Web persistence: **PASS**;
+- current camera contracts + canonical 29-suite compatibility matrix: **PASS**.
 
-The block includes real collision, one commercial frontage, one industrial frontage, a passive mission destination socket and a temporary finite-slice edge barrier. It deliberately does not introduce a traffic system, generalized route framework, mission framework, camera changes, or district-wide content pass.
+Independent frozen review was attempted through both ChatGPT Codex code review and GitHub Copilot review. Both were unavailable because their review quotas were exhausted. A fresh exact-diff senior review in the coordinating ChatGPT session found no concrete blocker but was explicitly non-independent. The owner then explicitly waived the independent-review requirement. Treat this as an **OWNER-WAIVED GATE**, not as an independent approval.
 
-The 01B introspection contract now reports both its historical base budget and current cumulative totals so later additive authored locations do not masquerade as regressions to the original 01B budget.
+### Exact-main verification
 
-### 01C — Mayor Burn garage integration
+Exact gameplay merge:
 
-PR #65 merged at `133ea941f7766a4c431e292628be4a57be1eb5e8`.
+`3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`
 
-It:
+Verification-only PR #139 was opened against the pre-P07 base solely to force the P07 pull-request workflow to execute literal head `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`; it was closed unmerged after verification.
 
-- authored Mayor Burn's garage identity into the existing commercial frontage;
-- retargeted Mission 02's existing return-zone adapter to the production mission socket;
-- added no new mission phase, destination framework, acreage, local light layer or garage collision;
-- repaired an inherited service-alley divider placement so effective Hauler clearance is ~3.2 m.
+Production-07 exact-main run `33833338289`:
 
-### 01D — Silent Core infrastructure integration
+- exact source checkout at `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`: **PASS**;
+- P07 vehicle semantics: **PASS**;
+- Burn Garage repair runtime: **PASS**;
+- Mission 02 composition: **PASS**;
+- real collision runtime tracer: **PASS**;
+- retained P01–P06 matrix: **PASS**;
+- exact-main rendered proof capture/upload: **PASS**;
+- artifact `9922447864`, digest `sha256:c63b4096b5aeb2e72be7e47b38b40400c7e884837ad3611c7c61c3d89d91d518`.
 
-PR #66 exact reviewed head: `3ef4597a6da3a61771e64406b584e67ceaae0ca3`.  
-Squash merge: `b2ac20fb09bb8ee9188525d6cf4474adddd31ad7`.
+Production-06 exact-main retained run `33833186967` additionally proved P06 persistence/survey/input plus retained P01–P05 regressions and same-origin browser relaunch persistence at the same gameplay SHA.
 
-It:
+Godot Web Playtest main push run `33833186949`:
 
-- authored a quiet Silent Core utility/relay pocket inside existing 01B geography;
-- added one passive `SilentCoreSocket`;
-- moved the production Mission 03 interactable to that socket while preserving a fixture-only legacy fallback;
-- replaced the generic glowing-cylinder marker with four restrained toon-shaded utility meshes;
-- added exactly two ground-only maintenance-apron colliders so the on-foot destination is genuinely reachable;
-- requires >=0.25 m overlap at intersection -> walkway and walkway -> site-pad seams;
-- added no road acreage, local lights, new mission phases, Echo system, pursuit authority, input/UI framework, economy or generalized destination system.
+- exact source checkout: **PASS**;
+- mobile touch routing: **PASS**;
+- desktop controls / alias ownership / vehicle authority / interaction cancel: **PASS**;
+- Web export: **PASS**;
+- static-host smoke: **PASS**;
+- source revision stamp verification: **PASS**;
+- public `playtest-web` publication: **PASS**.
 
-## Authored world events
+Public source stamp:
 
-### World Event 01 — FB-13 Infrastructure Thrum
+`playtest-web/PLAYTEST_BUILD.txt = 3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`
 
-PR #68 exact reviewed head: `d033c5841276e896f430023619ef95e309af6623`.  
-Squash merge / current gameplay baseline: `4c45c3d7219903b4d497eda6d32b6316c07f7568`.
+## Production 08 — verified player-facing result
 
-Canonical local event identity:
+Issue #141 / PR #143: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED** pending only this docs continuity merge and issue closure.
 
-- directive: `thrum_spike`;
-- actor: `FB-13`;
-- zone: `gears_industrial_frontage`;
-- severity: `0.30`;
-- pulse TTL: `650 ms`.
+Frozen feature head:
 
-Production behavior:
+`892c8eb0e32602b7974f2281ce9a81d0141abcf5`
 
-- entering within 5.5 m of the existing `CivicUtilityPlate` during a non-priority audio state triggers one FB-13 thrum;
-- retained `AudioManager` owns the appended `FB13_THRUM` sound event, transient voice budget and reset lifecycle;
-- the event briefly duplicates/pulses only the existing `CivicUtilityPlate` and `UtilitySpine` toon materials, then restores the exact original material resources after 650 ms;
-- the event remains disarmed while the player stays nearby and requires both leaving beyond 8.0 m and clearing a 6.0 s cooldown before retrigger;
-- `DISTURBANCE`, `PURSUIT_PRESSURE` and `MEMORY_ECHO` suppress the event without consuming the armed state;
-- Runner remains the single position source; this also works while mounted because retained Courier Bike authority continuously binds Runner to the rider socket;
-- the event adds no companion AI/body, input, mission state, pursuit behavior, network/Nostr runtime, world-event registry, geometry, collision, light, HUD, particles or acreage.
+Exact gameplay merge / verified public baseline:
 
-This event is the first material FB-13 presence in the production Godot slice, but it is intentionally not precedent for a generalized companion framework.
+`fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`
 
 ### World Event 02 — Security Checkpoint Toll Standoff
 
@@ -301,6 +312,7 @@ Production behavior:
 - collecting stash transitions to `COLLECTED` state, awards 250 credits;
 - moving to exit socket updates prompt to `[E] DELIVER DROP` / `[F] DELIVER DROP`;
 - delivering drop transitions to `DELIVERED`, emits `COMPLETION` audio, and triggers root pursuit authority disturbance alert;
+
 ### Muscle Coupe Full Drive Integration (High-Performance V8 Fleet Class)
 
 Production node: `MuscleCoupe` attached to `scrap_test_block.tscn`.
@@ -330,7 +342,7 @@ Production behavior:
 ### Street Combat & Physical Tool Improvisation
 
 Production implementation for Issue #55 leading combat frontier:
-- Player melee verb on foot:
+- Player melee strike verb on foot:
   - verb: `player.strike() -> bool`;
   - reach: `2.2 m`, strike arc: `90.0 deg`, strike damage: `1`;
   - duration: `0.28 s`, cooldown: `0.38 s`, forward impulse: `+3.6 m/s`;
@@ -347,9 +359,11 @@ Production implementation for Issue #55 leading combat frontier:
   - payoff: 3rd lethal strike breaches lockbox, pops lid open, emits `COMPLETION`, and awards `+150` scrap credits;
   - reset restoration: full reset via `reset_lockbox()` restored by `reset_slice()`.
 
-## Current verification truth
+Player loop:
 
-Code-first verification remains the default production gate.
+`RUNNER ON FOOT -> FB-13 FOLLOWS LOCALLY / HS-7 CARRIED -> MOUNT BIKE/HAULER -> FB-13 DOCKS IN RACK/BED -> DISMOUNT -> FB-13 RELEASES TO FOLLOW -> SUSTAINED OFF-SCREEN SEPARATION -> OFF-SCREEN SNAP -> PHYSICAL REJOIN -> RETEAM`
+
+## Current verification truth
 
 ### Vehicle Fleet, Street Combat, Props & World Events verification evidence
 
@@ -369,56 +383,104 @@ Code-first verification remains the default production gate.
 - `godot/tests/desktop_controls_event_routing_test.gd`: **PASS**;
 - `godot/scripts/verification/ctw_wave1_integrated_harness.gd`: **PASS**.
 
-### 01D evidence
+- character-specific presence: FB-13 mobile drone body + HS-7 carried memory module;
+- FB-13 is collisionless with no gameplay collision authority (no physics shove, cannot block Runner, vehicles, NPCs, or objectives);
+- bounded local follow: side 2.1 m, trailing 1.8 m, height 1.15 m;
+- clearance queries: one preferred candidate + one alternate mirrored candidate; holds/lags if both obstructed;
+- follow speed (10.5 m/s) and acceleration (28.0 m/s²) intentionally outpace Runner's 8.5 m/s sprint so straight-line running does not force recovery;
+- hard recovery: eligible only when separation >= 18.0 m sustained for >= 0.75 s while FB-13 is off-screen;
+- deterministic recovery staging: up to 4 deterministic candidate positions on a 16.0 m ring around Runner evaluated for off-screen and clearance;
+- recovery snap is off-screen source -> off-screen staging candidate only; visible catch-up is physical `REJOINING` movement at 15.0 m/s until within 5.0 m; zero visible popping;
+- explicit vehicle dock sockets: CourierBike rear cargo rack (`FB13DockSocket`) and ScrapHauler cargo bed (`FB13DockSocket`);
+- docking starts on retained vehicle `state_changed("MOUNTING")` and interpolates over 0.20 s, completing before the vehicle's 0.25 s mount;
+- rejected dismount keeps FB-13 docked;
+- successful dismount starts on retained vehicle `state_changed("DISMOUNTING")`, releasing FB-13 physically from vehicle origin;
+- HS-7 carried visual instanced under Runner `MeshPivot/Torso/HS7CarrySocket` (presentation-only, moves with torso across all postures);
+- retained `FB13ThrumWorldEvent` owns trigger/Audio authority; P08 adds only a local FB-13 body reaction (tilt + emission pulse) for <= 0.65 s; exactly one `FB13_THRUM` Audio event per trigger;
+- full Replay resets transient companion presence only; P06 mapped knowledge survives intact; Mission 03 Memory Echo payload/order unchanged;
+- no generalized companion AI, navmesh, `NavigationAgent3D`, companion manager, inventory, combat, or audio changes.
 
-For 01D, the final frozen exact-head evidence at `3ef4597a6da3a61771e64406b584e67ceaae0ca3` was:
+## Production 08 verification truth
 
-- Camera Feel 30 PR run #94 / `32959370958`: **PASS**;
-- Godot Web Playtest push run #477 / `32959366935`: **PASS**;
-- Godot Web Playtest PR run #478 / `32959370953`: exact-head Web artifact, synthetic-merge artifact and canonical compatibility matrix **PASS**;
-- fresh frozen review: **Standards PASS / Spec PASS**.
+### Frozen feature head
 
-### FB-13 World Event 01 evidence
+At `892c8eb0e32602b7974f2281ce9a81d0141abcf5`:
 
-Intentional RED evidence on test-only head `fe1ed251610dde2f07907bcff801d900facc01bb`:
+- exact-source P08 semantics/runtime: **PASS**;
+- companion vehicle docking (Bike/Hauler mount, dock, rejected dismount, release): **PASS**;
+- companion Thrum composition, Replay, P06 durability, Mission 03 regression: **PASS**;
+- retained P01–P07 focused regressions (18 test suites): **PASS**;
+- windowed rendered proof (6 screenshots + JSON report telemetry): **PASS and directly inspected**;
+- literal-head Web export/static-host smoke: **PASS**;
+- synthetic-merge Web export/static-host smoke: **PASS**;
+- current camera contracts + canonical 29-suite compatibility matrix: **PASS**.
 
-- Camera Feel 30 PR run #96 / `33003475696`: **FAIL**, as intended before production event implementation;
-- ordinary Web push export on that test-only head still succeeded, isolating the RED contract from project-load/export health.
+Independent two-axis review (Standards + Spec) was completed on the feature diff and followed by a dedicated review-polish cycle (PR #145), resolving:
+- **Standards Axis**: Godot 4 typed signals (`node.signal_name.connect(...)`), variable declaration ordering (`@onready` after regular variables), vector math deduplication for follow target offsets, space state extraction helper `_get_space_state()`, and defensive null guards on Runner dereferences.
+- **Spec Axis**: Linear dock interpolation via cached `_dock_start_transform`; outward 32px viewport boundary expansion (`vp_rect.grow(32.0)`) eliminating visual pop-in / mesh boundary edge clipping; Spec line 99 remain-in-place on failed hard rejoin; strict alignment of dock release to vehicle dismount; modeled `hs7_state: "CARRIED"` in runtime snapshot; full test coverage for Spec lines 279 (alternate follow target selection) and 281 (hard rejoin suppression under full staging ring occlusion); mobile viewport framing capture (`07_mobile_viewport_framing.png` at 400x700).
 
-Final frozen exact-head evidence at `d033c5841276e896f430023619ef95e309af6623`:
+### Exact-main verification
 
-- Audio Runtime 31 PR run #60 / `33003999886`: **PASS**;
-- Camera Feel 30 PR run #100 / `33003999888`: **PASS** — includes the real-scene FB-13 event contract plus retained Burn/Silent-Core/camera continuity checks;
-- Godot Web Playtest push run #489 / `33003995115`: **PASS**;
-- Godot Web Playtest PR run #490 / `33003999859`: exact-head/synthetic-merge/canonical compatibility **PASS**;
-- fresh frozen review: **Standards PASS / Spec PASS**.
+Initial gameplay merge: `fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`  
+Post-review polished gameplay merge (PR #145): `37c130b10db057ba923d5a9a6738081fa91e6fdf`
 
-Post-merge exact-main evidence at `4c45c3d7219903b4d497eda6d32b6316c07f7568`:
+Production-08 exact-main run `34160830753`:
 
-- Audio Runtime 31 main run #61 / `33004337322`: **PASS**;
-- Camera Feel 30 main run #101 / `33004337238`: **PASS**;
-- Godot Web Playtest main run #491 / `33004337288`: **PASS**;
-- non-production `playtest-web/PLAYTEST_BUILD.txt`: exact `4c45c3d7219903b4d497eda6d32b6316c07f7568`.
+- exact source checkout at `37c130b10db057ba923d5a9a6738081fa91e6fdf`: **PASS**;
+- P08 semantics / runtime / docking / thrum: **PASS**;
+- retained P01–P07 matrix (including camera mount transition and dynamic camera follow): **PASS**;
+- exact-main rendered proof capture/upload (7 screenshots including mobile viewport framing): **PASS**;
+- artifact `production08-rendered-proof-37c130b10db057ba923d5a9a6738081fa91e6fdf`.
 
-Do not replace these production-scene contracts with a parallel gameplay simulator.
+Godot Web Playtest main push run `34160816224`:
 
-## Perceptual / performance / audio verification debt
+- exact source checkout: **PASS**;
+- mobile touch routing / desktop controls / vehicle authority / interaction cancel: **PASS**;
+- Web export: **PASS**;
+- static-host smoke: **PASS**;
+- public `playtest-web` publication: **PASS**.
 
-Functional/code verification and perceptual qualification remain separate.
+Public source stamp:
 
-### Completed — Issue #89 Checkpoint (`VISUAL_PERF_CHECKPOINT_PASS`)
+`playtest-web/PLAYTEST_BUILD.txt = 37c130b10db057ba923d5a9a6738081fa91e6fdf`
 
-- **Retained-camera captures:** Nine representative rendered states qualified from the real production scene (quiet traversal, Courier Bike, pursuit, shortcut intersection, Burn garage, Silent Core, day, dusk, FB-13 thrum).
-- **Structural render cost:** Net Gears production delta measured at +56 draw calls, +1,068 primitives, +89 objects versus retained yard control (reduced from un-retired +173/+2,376/+173).
+## Post-Production-08 re-evaluation state
 
-Still deferred and **not to be represented as completed**:
+Production 08 grounds FB-13 and HS-7 as visible, physical companions in ordinary Gears play. FB-13 follows, navigates local clearance, docks in both vehicles, reacts to the civic Thrum, and recovers off-screen without pop-in. HS-7 remains physically carried with Runner across on-foot and mounted postures. All of this was accomplished without a generalized companion AI, navmesh, save schema, or audio changes.
 
-- native desktop average/P95 frame-time qualification on dedicated desktop hardware (llvmpipe/CI single-frame timing remains advisory smoke only);
+**Production 09 is not selected yet.** Re-evaluate from exact runnable behavior rather than numbering momentum.
+
+Leading credible next gaps to compare:
+
+1. **next bounded Street-Combat danger/depth** — P05 proves committed physical counterplay with the Scrapper Tool, but production still has no Player Health/Armor or escalating pursuer danger;
+2. **authored relationship / Standing consequence** — one small local outcome that visibly changes later interactions or gate/access decisions without a broad reputation authority system;
+3. **vehicle claiming / identity** — P07 gives condition and repair meaning, but vehicle ownership/claiming remains unaddressed;
+4. **deeper authored city mastery** — another deliberately authored shortcut/knowledge payoff only if it adds a distinct decision rather than generalizing into a GPS layer;
+5. **moment-to-moment vehicle feel / authored escape pressure** — handling/encounter pressure improvements under Heat-1 pursuit.
+
+Heat escalation, generalized witnesses/surveillance, transit, broader geography, generalized persistence, Garage networks, economy, companion navigation, and generalized vehicle/damage architecture remain later candidates unless current play proves they outrank smaller authored gains.
+
+## Retained foundations / deferred lanes
+
+Do not recreate retained Feel tickets #12–#16, Missions 01–03, Open World Expansion 01A–01D, World Event 01 / PR #68, or Productions 01–08 because older roadmaps describe them historically.
+
+FB-13 / HS-7 companion presence is now embodied in production gameplay. Do not add generalized companion AI or navmesh frameworks.
+
+Audio Production remains a first-class parallel lane. Refresh live Audio branches/PRs before shared-scene/audio mutation. Actual perceptual audio claims require playback evidence.
+
+PR #44 — CTW Feel 03 camera occlusion readability — remains **DEFERRED** unless fresh evidence materially changes priority.
+
+## Verification / human-gate debt
+
+Still not completed unless fresh evidence says otherwise:
+
+- native desktop average/P95 frame-time qualification on dedicated desktop hardware;
 - broader fresh-player perceptual qualification;
-- physical touch-conditioner A/B;
-- human/windowed listening for the FB-13 thrum and any other real listening-quality question.
+- physical touch-conditioner A/B before changing touch steering defaults;
+- human/windowed listening where actual playback quality is the question;
+- real mobile performance until measured on hardware.
 
-The owner explicitly chose the momentum policy: small reversible increments may merge with remaining debt visible, but map expansion must prioritize authored content on existing geography before adding acreage.
+Small reversible production increments may continue when they do not depend on those unanswered gates. The owner explicitly chose the momentum policy: small reversible increments may merge with remaining debt visible, but map expansion must prioritize authored content on existing geography before adding acreage.
 
 ## Scope discipline
 
@@ -455,15 +517,15 @@ Do not choose historical open tickets merely because they remain open. Several a
 
 ## Next-state rule
 
-On every future autonomous continuation:
+Next production session:
 
-1. refresh exact `main`, current PR/issue/CI/public-playtest state;
-2. read the approved visual-direction canon before visual/world-sensitive work;
-3. compare current runtime truth against issue #55's product intent;
-4. select the smallest highest-value visible increment;
-5. create/refine its just-in-time in-repo spec only when it becomes current;
-6. run `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen Standards+Spec REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY`;
-7. update continuity only after verified changes land;
-8. keep deferred perceptual/performance/audio debt explicit rather than silently upgrading it to PASS.
+1. refresh exact `main`, open PRs/issues, CI, public playtest, and concurrent Audio/shared-scene state;
+2. read `START_HERE.md`, issue #55, issue #118, and this continuity file;
+3. verify local repo/branch/HEAD/upstream/dirty state before local code mutation;
+4. re-evaluate post-P08 player-facing gaps by **fun / feel / clarity / cohesion / value / cost / risk**;
+5. select exactly one bounded next production increment only after evidence supports it;
+6. create the JIT ticket/spec for that increment;
+7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW (independent when available, or explicitly owner-waived if the owner changes the gate) -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
+8. update continuity only after verified changes land.
 
-`WAYFINDER_MAP.md` remains a historical architecture map and is not the live status tracker.
+Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.

@@ -46,6 +46,14 @@ func on_vehicle_mounted(vehicle_name: String) -> bool:
 	contact_line = "MAYOR BURN // Excellent. You are now driving a municipal accounting error. Try not to itemize yourself."
 	return true
 
+func on_clean_take() -> bool:
+	if phase != Phase.ESCAPE:
+		return false
+	phase = Phase.DELIVERY
+	objective = "OBJECTIVE // CLEAN TAKE // RETURN THE SCRAP HAULER TO BURN'S GARAGE"
+	contact_line = "MAYOR BURN // No report, no pursuit. Bring the accounting error home."
+	return true
+
 func on_gate_triggered() -> bool:
 	if phase != Phase.ESCAPE:
 		return false

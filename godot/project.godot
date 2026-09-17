@@ -14,6 +14,9 @@ config/name="Echos in the Scrap - Golden Slice"
 run/main_scene="res://scenes/prototype/scrap_test_block.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
+[autoload]
+BurnsideWantedRuntime="*res://scripts/world/wanted_heat1_runtime.gd"
+
 [display]
 
 window/size/viewport_width=960

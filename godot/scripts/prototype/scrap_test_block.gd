@@ -49,6 +49,8 @@ enum PursuitState {
 @onready var status_label: Label = $CanvasLayer/StatusLabel
 @onready var world_env: WorldEnvironment = $WorldEnvironment
 @onready var power_conduit: MeshInstance3D = $PowerConduit
+@onready var companion_presence_runtime: BurnsideCompanionPresenceRuntime = get_node_or_null("BurnsideCompanionPresenceRuntime")
+@onready var fb13_companion_body: FB13CompanionBody = get_node_or_null("FB13CompanionBody")
 
 var signal_tuner: SignalTuner = null
 var courier_bike: CourierBike = null
@@ -190,6 +192,16 @@ func _ready() -> void:
 		)
 		if muscle_coupe.mount_interactable:
 			_interactables.append(muscle_coupe.mount_interactable)
+			
+	if companion_presence_runtime and fb13_companion_body:
+		companion_presence_runtime.configure(
+			player,
+			camera,
+			fb13_companion_body,
+			courier_bike,
+			scrap_hauler as ScrapHauler,
+			get_node_or_null("FB13ThrumWorldEvent")
+		)
 			
 	var pursuer_scene: PackedScene = load("res://scenes/entities/pursuer_prototype.tscn")
 	if pursuer_scene:
@@ -836,7 +848,7 @@ func _evaluate_target_selection() -> void:
 		
 	var best_target: InteractableBase = null
 	var best_score: float = -9999.0
-	var active_veh: Node3D = _get_active_vehicle()
+	var active_veh := _get_active_vehicle()
 	var active_pos: Vector3 = active_veh.global_position if active_veh else player.global_position
 	
 	for item in _interactables:
@@ -981,7 +993,6 @@ func _on_action_pressed() -> void:
 			player.strike()
 		return
 
-		
 	if _active_target is MountInteractable:
 		(_active_target as MountInteractable).set_player_reference(player)
 		_active_target.begin_interaction(active_pos)
@@ -1413,7 +1424,13 @@ func reset_slice() -> void:
 		scrap_hauler.force_dismount()
 	if muscle_coupe and muscle_coupe.occupant != null:
 		muscle_coupe.force_dismount()
+	if courier_bike and courier_bike.has_method("reset_condition"):
+		courier_bike.reset_condition()
+	if scrap_hauler and scrap_hauler.has_method("reset_condition"):
+		scrap_hauler.reset_condition()
 	active_vehicle = null
+	if companion_presence_runtime:
+		companion_presence_runtime.reset_presence()
 		
 	current_world_state = WorldLoopState.START
 	current_pursuit_state = PursuitState.CALM

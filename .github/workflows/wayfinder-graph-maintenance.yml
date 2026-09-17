@@ -1,0 +1,102 @@
+# Durable bridge for native Wayfinder issue relationships.
+# If the direct ChatGPT/Codex GitHub connector lacks a relationship mutation,
+# update .github/wayfinder-graph-request.json instead of creating a one-shot workflow.
+
+name: Wayfinder Graph Maintenance
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/wayfinder-graph-request.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: wayfinder-graph-maintenance
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    if: github.repository == 'JOHNNYMACONNY/art'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      REQUEST_PATH: .github/wayfinder-graph-request.json
+    steps:
+      - name: Apply and verify graph request
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          fail() { echo "ERROR: $*" >&2; exit 1; }
+          valid_num() { [[ "$1" =~ ^[1-9][0-9]*$ ]] || fail "invalid issue number: $1"; }
+          parent_of() { gh issue view "$1" -R "${REPO}" --json parent --jq '.parent.number // 0'; }
+          blocked_by() {
+            gh issue view "$1" -R "${REPO}" --json blockedBy \
+              --jq "[.blockedBy[].number] | index($2) != null"
+          }
+
+          request_b64="$(gh api "/repos/${REPO}/contents/${REQUEST_PATH}?ref=${GITHUB_SHA}" --jq '.content')"
+          request="$(printf '%s' "${request_b64}" | tr -d '\n' | base64 --decode)"
+          jq -e '.schema_version == 1 and (.request_id|type=="string" and length>0) and (.operations|type=="array")' \
+            <<<"${request}" >/dev/null || fail 'invalid request schema'
+
+          request_id="$(jq -r '.request_id' <<<"${request}")"
+          echo "Wayfinder graph request: ${request_id}"
+
+          while IFS= read -r item; do
+            op="$(jq -r '.op // ""' <<<"${item}")"
+
+            case "${op}" in
+              add_sub_issue|remove_sub_issue)
+                parent="$(jq -r '.parent' <<<"${item}")"
+                child="$(jq -r '.child' <<<"${item}")"
+                valid_num "${parent}"; valid_num "${child}"
+                current="$(parent_of "${child}")"
+
+                if [[ "${op}" == add_sub_issue ]]; then
+                  if [[ "${current}" == "${parent}" ]]; then
+                    echo "#${child} already child of #${parent}"
+                  elif [[ "${current}" != 0 ]]; then
+                    fail "#${child} already belongs to #${current}"
+                  else
+                    gh issue edit "${parent}" -R "${REPO}" --add-sub-issue "${child}"
+                  fi
+                  [[ "$(parent_of "${child}")" == "${parent}" ]] || fail "failed to attach #${child} to #${parent}"
+                else
+                  if [[ "${current}" == 0 ]]; then
+                    echo "#${child} already has no parent"
+                  elif [[ "${current}" != "${parent}" ]]; then
+                    fail "refusing to detach #${child} from unexpected parent #${current}"
+                  else
+                    gh issue edit "${parent}" -R "${REPO}" --remove-sub-issue "${child}"
+                  fi
+                  [[ "$(parent_of "${child}")" == 0 ]] || fail "failed to detach #${child} from #${parent}"
+                fi
+                ;;
+
+              add_blocked_by|remove_blocked_by)
+                issue="$(jq -r '.issue' <<<"${item}")"
+                blocker="$(jq -r '.blocker' <<<"${item}")"
+                valid_num "${issue}"; valid_num "${blocker}"
+                current="$(blocked_by "${issue}" "${blocker}")"
+
+                if [[ "${op}" == add_blocked_by ]]; then
+                  [[ "${current}" == true ]] || gh issue edit "${issue}" -R "${REPO}" --add-blocked-by "${blocker}"
+                  [[ "$(blocked_by "${issue}" "${blocker}")" == true ]] || fail "failed to add #${issue} blocked by #${blocker}"
+                else
+                  [[ "${current}" != true ]] || gh issue edit "${issue}" -R "${REPO}" --remove-blocked-by "${blocker}"
+                  [[ "$(blocked_by "${issue}" "${blocker}")" != true ]] || fail "failed to remove #${issue} blocked by #${blocker}"
+                fi
+                ;;
+
+              *) fail "unsupported operation: ${op}" ;;
+            esac
+          done < <(jq -c '.operations[]' <<<"${request}")
+
+          echo "Wayfinder graph request ${request_id} verified."

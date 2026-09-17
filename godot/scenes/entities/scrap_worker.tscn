@@ -44,6 +44,16 @@ shader_parameter/swap_uv = false
 shader_parameter/uv_scale = Vector2(1, 1)
 shader_parameter/emission_use_albedo = true
 
+[sub_resource type="BoxMesh" id="BoxMesh_Torso"]
+size = Vector3(0.48, 0.6, 0.28)
+
+[sub_resource type="SphereMesh" id="SphereMesh_Helmet"]
+radius = 0.22
+height = 0.44
+
+[sub_resource type="BoxMesh" id="BoxMesh_Visor"]
+size = Vector3(0.25, 0.16, 0.12)
+
 [node name="ScrapWorker" type="CharacterBody3D"]
 collision_layer = 4
 collision_mask = 3
@@ -60,10 +70,20 @@ shape = SubResource("CapsuleShape3D_worker")
 [node name="Model" parent="MeshPivot" instance=ExtResource("4_model")]
 
 [node name="Torso" type="MeshInstance3D" parent="MeshPivot"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+mesh = SubResource("BoxMesh_Torso")
 
 [node name="Helmet" type="MeshInstance3D" parent="MeshPivot"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+mesh = SubResource("SphereMesh_Helmet")
+
+[node name="Visor" type="MeshInstance3D" parent="MeshPivot/Helmet"]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.16)
+mesh = SubResource("BoxMesh_Visor")
+
 
 
 [node name="LeftArm" type="Node3D" parent="MeshPivot"]
