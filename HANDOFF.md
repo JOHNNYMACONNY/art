@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
 **Status:** `VENDING_MACHINE_CONTRABAND_HACK_VERIFIED`  
-**Current gameplay/world baseline:** `ee47102` (feature) / `07417bf` (uid chore)  
+**Current gameplay/world baseline:** `c20ca4a` (chatgpt texture atlas & 3d bake)  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
