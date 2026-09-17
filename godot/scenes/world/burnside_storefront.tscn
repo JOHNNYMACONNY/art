@@ -1,0 +1,87 @@
+[gd_scene load_steps=10 format=3 uid="uid://burnsidestorefront01"]
+
+[ext_resource type="Script" path="res://scripts/world/burnside_storefront.gd" id="1_script"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="1_toon"]
+[ext_resource type="Texture2D" uid="uid://tkwlu5vlpjf" path="res://textures/urban_clutter/tex_storefront_burnside.png" id="2_atlas"]
+[ext_resource type="PackedScene" path="res://models/environment/storefront_burnside.glb" id="3_model"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_left_wall"]
+size = Vector3(1.2, 4.8, 5.4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_center_wall"]
+size = Vector3(1.0, 4.8, 5.4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_right_wall"]
+size = Vector3(1.2, 4.8, 5.4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_back_wall"]
+size = Vector3(9.2, 4.8, 0.8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_roof"]
+size = Vector3(9.4, 0.6, 5.6)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Outline"]
+cull_mode = 1
+shading_mode = 0
+albedo_color = Color(0.015, 0.015, 0.02, 1)
+grow = true
+grow_amount = 0.012
+
+[sub_resource type="ShaderMaterial" id="Mat_StorefrontMain"]
+next_pass = SubResource("Mat_Outline")
+shader = ExtResource("1_toon")
+shader_parameter/base_color = Color(0.92, 0.92, 0.94, 1)
+shader_parameter/roughness_value = 0.78
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("2_atlas")
+shader_parameter/surface_noise_strength = 0.03
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_StorefrontNeon"]
+shader = ExtResource("1_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.2
+shader_parameter/emission_color = Color(1.0, 0.35, 0.25, 1.0)
+shader_parameter/emission_energy = 0.6
+shader_parameter/albedo_texture = ExtResource("2_atlas")
+shader_parameter/surface_noise_strength = 0.0
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+shader_parameter/emission_use_albedo = true
+
+[node name="BurnsideStorefront" type="Node3D"]
+script = ExtResource("1_script")
+material_main = SubResource("Mat_StorefrontMain")
+material_neon = SubResource("Mat_StorefrontNeon")
+
+[node name="StorefrontCollision" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 6
+
+[node name="Collision_LeftWall" type="CollisionShape3D" parent="StorefrontCollision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.1, 2.4, 0)
+shape = SubResource("BoxShape3D_left_wall")
+
+[node name="Collision_CenterWall" type="CollisionShape3D" parent="StorefrontCollision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.0, 2.4, 0)
+shape = SubResource("BoxShape3D_center_wall")
+
+[node name="Collision_RightWall" type="CollisionShape3D" parent="StorefrontCollision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.1, 2.4, 0)
+shape = SubResource("BoxShape3D_right_wall")
+
+[node name="Collision_BackWall" type="CollisionShape3D" parent="StorefrontCollision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, -2.4)
+shape = SubResource("BoxShape3D_back_wall")
+
+[node name="Collision_Roof" type="CollisionShape3D" parent="StorefrontCollision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.8, 0)
+shape = SubResource("BoxShape3D_roof")
+
+[node name="Model" parent="." instance=ExtResource("3_model")]

@@ -1,14 +1,26 @@
-[gd_scene format=3 uid="uid://b00scrap02pileb"]
+[gd_scene load_steps=9 format=3 uid="uid://b00scrap02pileb"]
 
 [ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="1_rust"]
 [ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="2_metal"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="toon_shader"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_scrap_barrel.png" id="tex_barrel"]
+
+[sub_resource type="ShaderMaterial" id="Mat_ScrapBarrel"]
+shader = ExtResource("toon_shader")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.7
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_barrel")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_barrel1"]
-material = ExtResource("1_rust")
 top_radius = 0.35
 bottom_radius = 0.35
 height = 0.95
-radial_segments = 10
+radial_segments = 16
 rings = 1
 
 [sub_resource type="BoxMesh" id="BoxMesh_beam"]
@@ -28,6 +40,7 @@ mesh = SubResource("BoxMesh_engine")
 [node name="CrushedBarrel" type="MeshInstance3D" parent="."]
 transform = Transform3D(0.707107, -0.707107, 0, 0.707107, 0.707107, 0, 0, 0, 1, -0.8, 0.35, 0.2)
 mesh = SubResource("CylinderMesh_barrel1")
+material_override = SubResource("Mat_ScrapBarrel")
 
 [node name="AngledGirder" type="MeshInstance3D" parent="."]
 transform = Transform3D(0.866025, 0.353553, -0.353553, -0.5, 0.612372, -0.612372, 0, 0.707107, 0.707107, 0.4, 0.7, -0.1)

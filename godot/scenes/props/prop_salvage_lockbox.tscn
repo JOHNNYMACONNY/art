@@ -1,0 +1,74 @@
+[gd_scene load_steps=8 format=3 uid="uid://salvagelockbox01"]
+
+[ext_resource type="Script" path="res://scripts/props/salvage_lockbox.gd" id="1_script"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="2_toon"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_silent_core_cabinet.png" id="3_texture"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lockbox"]
+size = Vector3(1.1, 1.2, 0.9)
+
+[sub_resource type="BoxMesh" id="BoxMesh_body"]
+size = Vector3(0.9, 1.0, 0.7)
+
+[sub_resource type="BoxMesh" id="BoxMesh_lid"]
+size = Vector3(0.94, 0.12, 0.74)
+
+[sub_resource type="BoxMesh" id="BoxMesh_light"]
+size = Vector3(0.22, 0.08, 0.04)
+
+[sub_resource type="StandardMaterial3D" id="Mat_StatusLight"]
+albedo_color = Color(1, 0.15, 0.1, 1)
+emission_enabled = true
+emission = Color(1, 0.1, 0.05, 1)
+emission_energy_multiplier = 2.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_Outline"]
+cull_mode = 1
+shading_mode = 0
+albedo_color = Color(0.015, 0.015, 0.02, 1)
+grow = true
+grow_amount = 0.012
+
+[sub_resource type="ShaderMaterial" id="Mat_LockboxMain"]
+next_pass = SubResource("Mat_Outline")
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.9, 0.9, 0.92, 1)
+shader_parameter/roughness_value = 0.65
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("3_texture")
+shader_parameter/surface_noise_strength = 0.04
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[node name="PropSalvageLockbox" type="StaticBody3D"]
+collision_layer = 1
+collision_mask = 6
+script = ExtResource("1_script")
+material_main = SubResource("Mat_LockboxMain")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("BoxShape3D_lockbox")
+
+[node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="BoxBody" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_body")
+surface_material_override/0 = SubResource("Mat_LockboxMain")
+
+[node name="LockboxLid" type="Node3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+
+[node name="LidMesh" type="MeshInstance3D" parent="VisualRoot/LockboxLid"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
+mesh = SubResource("BoxMesh_lid")
+surface_material_override/0 = SubResource("Mat_LockboxMain")
+
+[node name="StatusLight" type="MeshInstance3D" parent="VisualRoot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0.36)
+mesh = SubResource("BoxMesh_light")
+surface_material_override/0 = SubResource("Mat_StatusLight")

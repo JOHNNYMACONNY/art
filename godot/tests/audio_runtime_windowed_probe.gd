@@ -22,12 +22,12 @@ func _finish(exit_code: int) -> void:
 	await process_frame
 	quit(exit_code)
 
-func _play_test_master_probe(audio_manager: Node, duration: float = 0.80) -> AudioStreamPlayer:
+func _play_test_master_probe(audio_manager: Node, _duration: float = 0.80) -> AudioStreamPlayer:
 	var player := AudioStreamPlayer.new()
 	player.name = "AudioRuntimeWindowedTestProbe"
 	player.bus = &"Master"
 	player.volume_db = -6.0
-	player.stream = audio_manager.call("_create_tone_wav", 660.0, clampf(duration, 0.05, 1.0), 0.5)
+	player.stream = load("res://audio/player/sfx_player_signal_lock_pulse.wav")
 	audio_manager.add_child(player)
 	player.play()
 	return player

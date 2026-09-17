@@ -1,15 +1,18 @@
-[gd_scene format=3 uid="uid://d00debr01flat"]
+[gd_scene load_steps=6 format=3 uid="uid://d00debr01flat"]
 
-[ext_resource type="Material" path="res://materials/mat_oil_stain.tres" id="1_stain"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_ground_scrap_decal.png" id="tex_decal"]
 [ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="2_rust"]
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_heptagon_stain"]
-material = ExtResource("1_stain")
-top_radius = 1.8
-bottom_radius = 1.8
-height = 0.005
-radial_segments = 7
-rings = 1
+[sub_resource type="StandardMaterial3D" id="Mat_GroundDecal"]
+transparency = 1
+cull_mode = 2
+albedo_color = Color(1, 1, 1, 0.95)
+albedo_texture = ExtResource("tex_decal")
+roughness = 0.9
+
+[sub_resource type="QuadMesh" id="QuadMesh_decal"]
+material = SubResource("Mat_GroundDecal")
+size = Vector2(3.2, 3.2)
 
 [sub_resource type="BoxMesh" id="BoxMesh_flake"]
 material = ExtResource("2_rust")
@@ -17,10 +20,10 @@ size = Vector3(0.35, 0.02, 0.25)
 
 [node name="GroundDebrisFlat" type="Node3D"]
 
-[node name="OrganicHeptagonStain" type="MeshInstance3D" parent="."]
-transform = Transform3D(1.1, 0, 0.3, 0, 1, 0, -0.2, 0, 0.9, 0, 0.005, 0)
+[node name="ScrapDecalQuad" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0.006, 0)
 cast_shadow = 0
-mesh = SubResource("CylinderMesh_heptagon_stain")
+mesh = SubResource("QuadMesh_decal")
 
 [node name="MetalFlake1" type="MeshInstance3D" parent="."]
 transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, 0.6, 0.015, 0.4)

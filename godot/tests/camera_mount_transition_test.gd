@@ -10,7 +10,11 @@ extends SceneTree
 const BurnGarageContract = preload("res://tests/mayor_burn_garage_integration_contract.gd")
 const SilentCoreSiteContract = preload("res://tests/silent_core_site_integration_contract.gd")
 const FB13ThrumContract = preload("res://tests/fb13_thrum_world_event_contract.gd")
+const SecurityCheckpointContract = preload("res://tests/security_checkpoint_world_event_contract.gd")
+const ContrabandDropContract = preload("res://tests/alley_contraband_drop_world_event_contract.gd")
 const ProofRenderRetirementContract = preload("res://tests/gears_proof_render_retirement_contract.gd")
+const MuscleCoupeContract = preload("res://tests/muscle_coupe_contract.gd")
+const StreetCombatContract = preload("res://tests/street_combat_contract.gd")
 
 var _scene_under_test: Node = null
 
@@ -74,9 +78,29 @@ func _run() -> void:
 		await _fail("[FB13_THRUM_WORLD_EVENT] %s" % fb13_thrum_error)
 		return
 
+	var checkpoint_error: String = SecurityCheckpointContract.verify(_scene_under_test)
+	if checkpoint_error != "":
+		await _fail("[CHECKPOINT_WORLD_EVENT] %s" % checkpoint_error)
+		return
+
+	var contraband_error: String = ContrabandDropContract.verify(_scene_under_test)
+	if contraband_error != "":
+		await _fail("[CONTRABAND_WORLD_EVENT] %s" % contraband_error)
+		return
+
 	var retirement_error: String = ProofRenderRetirementContract.verify(_scene_under_test)
 	if retirement_error != "":
 		await _fail("[GEARS_DISTRICT_01E] %s" % retirement_error)
+		return
+
+	var coupe_error: String = MuscleCoupeContract.verify(_scene_under_test)
+	if coupe_error != "":
+		await _fail("[MUSCLE_COUPE_CONTRACT] %s" % coupe_error)
+		return
+
+	var combat_res: Dictionary = StreetCombatContract.verify(_scene_under_test)
+	if not combat_res["ok"]:
+		await _fail("[STREET_COMBAT_CONTRACT] %s" % str(combat_res["errors"]))
 		return
 
 	var camera := _scene_under_test.get_node_or_null("ChinatownCamera3D")

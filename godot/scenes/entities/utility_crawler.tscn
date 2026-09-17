@@ -1,81 +1,118 @@
 [gd_scene format=3 uid="uid://crawldrone01live"]
 
-[ext_resource type="Script" uid="uid://cyardcrawler01" path="res://scripts/entities/utility_crawler.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/entities/utility_crawler.gd" id="1_script"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="2_toon"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_clankers_atlas.png" id="3_atlas"]
+[ext_resource type="PackedScene" path="res://models/utility_crawler.glb" id="4_model"]
+[ext_resource type="Script" path="res://scripts/interactions/utility_crawler_interactable.gd" id="5_interactable"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_crawler"]
 size = Vector3(0.9, 0.6, 1.3)
 
-[sub_resource type="StandardMaterial3D" id="Material_HazardYellow"]
-albedo_color = Color(0.85, 0.72, 0.12, 1)
-roughness = 0.5
+[sub_resource type="SphereShape3D" id="SphereShape3D_interact"]
+radius = 2.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_Outline"]
+cull_mode = 1
+shading_mode = 0
+albedo_color = Color(0.015, 0.015, 0.02, 1)
+grow = true
+grow_amount = 0.010
+
+[sub_resource type="ShaderMaterial" id="Mat_CrawlerMain"]
+next_pass = SubResource("Mat_Outline")
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.65
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("3_atlas")
+shader_parameter/surface_noise_strength = 0.06
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_CrawlerOptic"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.2
+shader_parameter/emission_color = Color(0.0, 0.95, 1.0, 1)
+shader_parameter/emission_energy = 2.2
+shader_parameter/albedo_texture = ExtResource("3_atlas")
+shader_parameter/surface_noise_strength = 0.0
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+shader_parameter/emission_use_albedo = true
 
 [sub_resource type="BoxMesh" id="BoxMesh_Chassis"]
-material = SubResource("Material_HazardYellow")
 size = Vector3(0.8, 0.35, 1.2)
 
-[sub_resource type="StandardMaterial3D" id="Material_Tread"]
-albedo_color = Color(0.15, 0.15, 0.16, 1)
-roughness = 0.9
-
 [sub_resource type="BoxMesh" id="BoxMesh_Tread"]
-material = SubResource("Material_Tread")
 size = Vector3(0.15, 0.25, 1.15)
 
-[sub_resource type="StandardMaterial3D" id="Material_CargoFrame"]
-albedo_color = Color(0.25, 0.25, 0.28, 1)
-metallic = 0.6
-roughness = 0.5
-
 [sub_resource type="BoxMesh" id="BoxMesh_Cargo"]
-material = SubResource("Material_CargoFrame")
 size = Vector3(0.6, 0.22, 0.7)
 
-[sub_resource type="StandardMaterial3D" id="Material_AmberBeacon"]
-albedo_color = Color(1, 0.72, 0.12, 1)
-emission_enabled = true
-emission = Color(1, 0.72, 0.12, 1)
-emission_energy_multiplier = 1.8
-
 [sub_resource type="CylinderMesh" id="CylinderMesh_Beacon"]
-material = SubResource("Material_AmberBeacon")
 top_radius = 0.1
 bottom_radius = 0.12
 height = 0.15
 
-[node name="UtilityCrawler" type="CharacterBody3D"]
+[node name="UtilityCrawler" type="CharacterBody3D" groups=["damageable", "strike_target", "utility_crawlers"]]
 collision_layer = 4
 collision_mask = 3
 script = ExtResource("1_script")
+material_main = SubResource("Mat_CrawlerMain")
+material_optic = SubResource("Mat_CrawlerOptic")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
 shape = SubResource("BoxShape3D_crawler")
 
 [node name="Chassis" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+
+[node name="Model" parent="Chassis" instance=ExtResource("4_model")]
 
 [node name="Body" type="MeshInstance3D" parent="Chassis"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 mesh = SubResource("BoxMesh_Chassis")
 
 [node name="LeftTread" type="MeshInstance3D" parent="Chassis"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.42, 0, 0)
 mesh = SubResource("BoxMesh_Tread")
 
 [node name="RightTread" type="MeshInstance3D" parent="Chassis"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.42, 0, 0)
 mesh = SubResource("BoxMesh_Tread")
 
 [node name="CargoBed" type="MeshInstance3D" parent="Chassis"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, -0.15)
 mesh = SubResource("BoxMesh_Cargo")
 
 [node name="BeaconMesh" type="MeshInstance3D" parent="Chassis"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0.35)
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.68, 0.32)
 mesh = SubResource("CylinderMesh_Beacon")
 
+
 [node name="BeaconLight" type="OmniLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0.35)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.72, 0.32)
 light_color = Color(1, 0.72, 0.12, 1)
-light_energy = 1.4
-omni_range = 3.5
+light_energy = 0.0
+omni_range = 3.0
+
+[node name="UtilityCrawlerInteractable" type="Area3D" parent="."]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("5_interactable")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="UtilityCrawlerInteractable"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+shape = SubResource("SphereShape3D_interact")

@@ -1,86 +1,83 @@
 [gd_scene load_steps=20 format=3 uid="uid://c_player_runner_001"]
 
 [ext_resource type="Script" path="res://scripts/player/runner.gd" id="1_runner"]
-[ext_resource type="PackedScene" uid="uid://hs7carriedmod001" path="res://scenes/entities/hs7_carried_module.tscn" id="2_hs7"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="2_toon"]
+[ext_resource type="Texture2D" uid="uid://cx46rxgh0eck8" path="res://textures/urban_clutter/tex_runner_atlas.png" id="3_atlas"]
+[ext_resource type="PackedScene" path="res://models/runner.glb" id="4_model"]
+[ext_resource type="PackedScene" uid="uid://hs7carriedmod001" path="res://scenes/entities/hs7_carried_module.tscn" id="5_hs7"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.4
 height = 1.8
 
-[sub_resource type="StandardMaterial3D" id="Mat_Jacket"]
-albedo_color = Color(0.16, 0.22, 0.28, 1)
-roughness = 0.6
-
-[sub_resource type="BoxMesh" id="Mesh_Torso"]
-material = SubResource("Mat_Jacket")
-size = Vector3(0.48, 0.55, 0.32)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Harness"]
-albedo_color = Color(0.12, 0.78, 0.9, 1)
-emission_enabled = true
-emission = Color(0.1, 0.65, 0.8, 1)
-emission_energy_multiplier = 0.5
-roughness = 0.4
-
-[sub_resource type="BoxMesh" id="Mesh_ChestRig"]
-material = SubResource("Mat_Harness")
-size = Vector3(0.36, 0.32, 0.36)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Satchel"]
-albedo_color = Color(0.65, 0.42, 0.18, 1)
-roughness = 0.8
-
-[sub_resource type="BoxMesh" id="Mesh_Satchel"]
-material = SubResource("Mat_Satchel")
-size = Vector3(0.24, 0.28, 0.14)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Helmet"]
-albedo_color = Color(0.12, 0.14, 0.18, 1)
-roughness = 0.5
-
-[sub_resource type="SphereMesh" id="Mesh_Head"]
-material = SubResource("Mat_Helmet")
-radius = 0.2
-height = 0.4
-
-[sub_resource type="StandardMaterial3D" id="Mat_Visor"]
-albedo_color = Color(0.15, 0.9, 1, 1)
-emission_enabled = true
-emission = Color(0.15, 0.9, 1, 1)
-emission_energy_multiplier = 1.6
-roughness = 0.1
-
-[sub_resource type="BoxMesh" id="Mesh_Visor"]
-material = SubResource("Mat_Visor")
-size = Vector3(0.26, 0.1, 0.16)
-
-[sub_resource type="BoxMesh" id="Mesh_Arm"]
-material = SubResource("Mat_Jacket")
-size = Vector3(0.12, 0.48, 0.14)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Pants"]
-albedo_color = Color(0.12, 0.13, 0.16, 1)
-roughness = 0.7
-
-[sub_resource type="BoxMesh" id="Mesh_Leg"]
-material = SubResource("Mat_Pants")
-size = Vector3(0.16, 0.62, 0.18)
-
 [sub_resource type="StandardMaterial3D" id="Mat_Outline"]
 cull_mode = 1
 shading_mode = 0
-albedo_color = Color(0.04, 0.04, 0.06, 1)
+albedo_color = Color(0.015, 0.015, 0.02, 1)
+grow = true
+grow_amount = 0.010
+
+[sub_resource type="ShaderMaterial" id="Mat_RunnerMain"]
+next_pass = SubResource("Mat_Outline")
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.65
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("3_atlas")
+shader_parameter/surface_noise_strength = 0.04
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_RunnerVisor"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.2
+shader_parameter/emission_color = Color(0.0, 0.92, 1.0, 1)
+shader_parameter/emission_energy = 2.8
+shader_parameter/albedo_texture = ExtResource("3_atlas")
+shader_parameter/surface_noise_strength = 0.0
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+shader_parameter/emission_use_albedo = true
+
+[sub_resource type="ShaderMaterial" id="Mat_RunnerComm"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.2
+shader_parameter/emission_color = Color(0.0, 0.92, 1.0, 1)
+shader_parameter/emission_energy = 2.8
+shader_parameter/albedo_texture = ExtResource("3_atlas")
+shader_parameter/surface_noise_strength = 0.0
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+shader_parameter/emission_use_albedo = true
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_tool"]
+top_radius = 0.025
+bottom_radius = 0.025
+height = 0.65
 
 [sub_resource type="BoxMesh" id="Mesh_TorsoOutline"]
-material = SubResource("Mat_Outline")
 size = Vector3(0.52, 0.59, 0.36)
 
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_Compat"]
-radius = 0.01
-height = 0.02
+
+[sub_resource type="StandardMaterial3D" id="Mat_Tool"]
+albedo_color = Color(0.25, 0.26, 0.28, 1)
+roughness = 0.4
+metallic = 0.85
 
 [node name="Runner" type="CharacterBody3D"]
 script = ExtResource("1_runner")
+material_main = SubResource("Mat_RunnerMain")
+material_visor = SubResource("Mat_RunnerVisor")
+material_comm = SubResource("Mat_RunnerComm")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
@@ -88,70 +85,37 @@ shape = SubResource("CapsuleShape3D_1")
 
 [node name="MeshPivot" type="Node3D" parent="."]
 
-[node name="Torso" type="Node3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
+[node name="Model" parent="MeshPivot" instance=ExtResource("4_model")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
 
-[node name="TorsoMesh" type="MeshInstance3D" parent="MeshPivot/Torso"]
-mesh = SubResource("Mesh_Torso")
+[node name="Torso" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 0.994522, 0.104528, 0, -0.104528, 0.994522, 0, 1.15, 0)
 
 [node name="TorsoOutline" type="MeshInstance3D" parent="MeshPivot/Torso"]
+visible = false
 mesh = SubResource("Mesh_TorsoOutline")
-
-[node name="ChestRig" type="MeshInstance3D" parent="MeshPivot/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.02)
-mesh = SubResource("Mesh_ChestRig")
-
-[node name="Satchel" type="MeshInstance3D" parent="MeshPivot/Torso"]
-transform = Transform3D(0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 0, 0, 1, 0.22, -0.15, 0.08)
-mesh = SubResource("Mesh_Satchel")
 
 [node name="HS7CarrySocket" type="Node3D" parent="MeshPivot/Torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.22, -0.15, 0.08)
 
-[node name="HS7CarriedModule" parent="MeshPivot/Torso/HS7CarrySocket" instance=ExtResource("2_hs7")]
+[node name="HS7CarriedModule" parent="MeshPivot/Torso/HS7CarrySocket" instance=ExtResource("5_hs7")]
 
 [node name="Head" type="Node3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, 0)
-
-[node name="HeadMesh" type="MeshInstance3D" parent="MeshPivot/Head"]
-mesh = SubResource("Mesh_Head")
-
-[node name="Visor" type="MeshInstance3D" parent="MeshPivot/Head"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.14)
-mesh = SubResource("Mesh_Visor")
+transform = Transform3D(1, 0, 0, 0, 0.994522, -0.104528, 0, 0.104528, 0.994522, 0, 1.48, -0.06)
 
 [node name="LeftArm" type="Node3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.32, 1.18, 0)
-
-[node name="LeftArmMesh" type="MeshInstance3D" parent="MeshPivot/LeftArm"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.18, 0)
-mesh = SubResource("Mesh_Arm")
+transform = Transform3D(0.997564, 0, -0.069756, -0.009712, 0.990268, -0.138865, 0.069078, 0.139204, 0.987856, -0.28, 1.28, -0.04)
 
 [node name="RightArm" type="Node3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 1.18, 0)
+transform = Transform3D(0.997564, 0, 0.069756, 0.012079, 0.984808, -0.172778, -0.0687, 0.1732, 0.98241, 0.28, 1.28, -0.04)
 
-[node name="RightArmMesh" type="MeshInstance3D" parent="MeshPivot/RightArm"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.18, 0)
-mesh = SubResource("Mesh_Arm")
+[node name="PrybarTool" type="MeshInstance3D" parent="MeshPivot/RightArm"]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0.02, -0.32, 0.14)
+mesh = SubResource("CylinderMesh_tool")
+surface_material_override/0 = SubResource("Mat_Tool")
 
 [node name="LeftLeg" type="Node3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, 0.85, 0)
-
-[node name="LeftLegMesh" type="MeshInstance3D" parent="MeshPivot/LeftLeg"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.26, 0)
-mesh = SubResource("Mesh_Leg")
+transform = Transform3D(1, 0, 0, 0, 0.997564, 0.069756, 0, -0.069756, 0.997564, -0.13, 0.85, 0.03)
 
 [node name="RightLeg" type="Node3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, 0.85, 0)
-
-[node name="RightLegMesh" type="MeshInstance3D" parent="MeshPivot/RightLeg"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.26, 0)
-mesh = SubResource("Mesh_Leg")
-
-[node name="OutlineMesh" type="MeshInstance3D" parent="MeshPivot"]
-visible = false
-mesh = SubResource("CapsuleMesh_Compat")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="MeshPivot"]
-visible = false
-mesh = SubResource("CapsuleMesh_Compat")
+transform = Transform3D(1, 0, 0, 0, 0.994522, -0.104528, 0, 0.104528, 0.994522, 0.13, 0.85, -0.04)

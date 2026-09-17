@@ -6,6 +6,8 @@
 .DS_Store
 node_modules/
 godot/.godot/
+.godot
+/.godot
 
 # Python bytecode / cache
 __pycache__/
@@ -21,4 +23,5 @@ __pycache__/
 # Web export and temp builds
 /build/
 /.godot-web-project/
+/scratch/
 

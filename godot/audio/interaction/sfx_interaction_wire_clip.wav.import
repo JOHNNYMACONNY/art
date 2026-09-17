@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://1bc09fdbb88b"
-path="res://.godot/imported/sfx_interaction_wire_clip.wav-1bc09fdbb88b9e845fb4f43a99dea2cd.sample"
+uid="uid://1bc1afdbb88b"
+path="res://.godot/imported/sfx_interaction_wire_clip.wav-99e19f18e53c71749d3ec96d940c31c2.sample"
 
 [deps]
 
 source_file="res://audio/interaction/sfx_interaction_wire_clip.wav"
-dest_files=["res://.godot/imported/sfx_interaction_wire_clip.wav-1bc09fdbb88b9e845fb4f43a99dea2cd.sample"]
+dest_files=["res://.godot/imported/sfx_interaction_wire_clip.wav-99e19f18e53c71749d3ec96d940c31c2.sample"]
 
 [params]
 

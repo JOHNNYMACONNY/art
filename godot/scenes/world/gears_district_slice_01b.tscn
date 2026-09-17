@@ -2,23 +2,56 @@
 
 [ext_resource type="Script" path="res://scripts/visual/gears_district_slice_01b.gd" id="1_slice"]
 [ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="2_toon"]
+[ext_resource type="Shader" path="res://materials/streetlamp_pool.gdshader" id="3_pool"]
+[ext_resource type="Material" path="res://materials/mat_oil_stain.tres" id="4_stain"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_asphalt.png" id="tex_asphalt"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_sidewalk.png" id="tex_sidewalk"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_brick_wall.png" id="tex_brick"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_cardboard.png" id="tex_cardboard"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_newspaper_bin_blue.png" id="tex_blue_bin"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_newspaper_bin_amber.png" id="tex_amber_bin"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_storefront_fascia.png" id="tex_storefront_fascia"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_window_display.png" id="tex_window_display"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_storm_grate.png" id="tex_storm_grate"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_manhole.png" id="tex_manhole"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_junction_box.png" id="tex_junction_box"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_tire_skid.png" id="tex_tire_skid"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_garage_door.png" id="tex_garage_door"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_burn_hero_sign.png" id="tex_burn_hero_sign"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_permit_plate.png" id="tex_permit_plate"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_silent_core_cabinet.png" id="tex_silent_core_cabinet"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_memory_aperture.png" id="tex_memory_aperture"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_industrial_vent.png" id="tex_industrial_vent"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_store_door.png" id="tex_store_door"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_ac_unit.png" id="tex_ac_unit"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_wall_decals.png" id="tex_wall_decals"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_storefront_canopy.png" id="tex_storefront_canopy"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_sum_yung_gai_motors.png" id="tex_sum_yung_gai_motors"]
+[ext_resource type="PackedScene" path="res://scenes/props/prop_security_checkpoint.tscn" id="prop_security_checkpoint"]
+
 
 [sub_resource type="BoxMesh" id="Cube"]
 size = Vector3(1, 1, 1)
 
 [sub_resource type="ShaderMaterial" id="Mat_Road"]
 shader = ExtResource("2_toon")
-shader_parameter/base_color = Color(0.11, 0.14, 0.15, 1)
-shader_parameter/roughness_value = 0.9
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.92
 shader_parameter/emission_color = Color(0, 0, 0, 1)
 shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_asphalt")
+shader_parameter/use_world_uv = true
+shader_parameter/uv_scale = Vector2(0.3, 0.3)
 
 [sub_resource type="ShaderMaterial" id="Mat_Soot"]
 shader = ExtResource("2_toon")
-shader_parameter/base_color = Color(0.094, 0.129, 0.149, 1)
+shader_parameter/base_color = Color(0.75, 0.75, 0.75, 1)
 shader_parameter/roughness_value = 0.86
 shader_parameter/emission_color = Color(0, 0, 0, 1)
 shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_asphalt")
+shader_parameter/use_world_uv = true
+shader_parameter/uv_scale = Vector2(0.35, 0.35)
 
 [sub_resource type="ShaderMaterial" id="Mat_OffWhite"]
 shader = ExtResource("2_toon")
@@ -29,10 +62,13 @@ shader_parameter/emission_energy = 0.0
 
 [sub_resource type="ShaderMaterial" id="Mat_Concrete"]
 shader = ExtResource("2_toon")
-shader_parameter/base_color = Color(0.51, 0.498, 0.451, 1)
-shader_parameter/roughness_value = 0.92
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.9
 shader_parameter/emission_color = Color(0, 0, 0, 1)
 shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_sidewalk")
+shader_parameter/use_world_uv = true
+shader_parameter/uv_scale = Vector2(0.5, 0.5)
 
 [sub_resource type="ShaderMaterial" id="Mat_Amber"]
 shader = ExtResource("2_toon")
@@ -68,6 +104,329 @@ shader_parameter/base_color = Color(0.824, 0.294, 0.227, 1)
 shader_parameter/roughness_value = 0.8
 shader_parameter/emission_color = Color(0, 0, 0, 1)
 shader_parameter/emission_energy = 0.0
+
+[sub_resource type="ShaderMaterial" id="Mat_LampLens"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1.0, 0.95, 0.72, 1)
+shader_parameter/roughness_value = 0.5
+shader_parameter/emission_color = Color(1.0, 0.95, 0.72, 1)
+shader_parameter/emission_energy = 3.0
+
+[sub_resource type="QuadMesh" id="Quad_Sign"]
+size = Vector2(4.8, 0.85)
+
+[sub_resource type="QuadMesh" id="Quad_Pool"]
+size = Vector2(1, 1)
+orientation = 1
+
+[sub_resource type="QuadMesh" id="Quad_WallDecal"]
+size = Vector2(2.1, 1.4)
+
+[sub_resource type="ShaderMaterial" id="Mat_Pool"]
+shader = ExtResource("3_pool")
+shader_parameter/pool_color = Color(1.0, 0.90, 0.60, 1)
+shader_parameter/intensity = 1.6
+shader_parameter/falloff_power = 2.2
+
+[sub_resource type="ShaderMaterial" id="Mat_BlueBin"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.75
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_blue_bin")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_AmberBin"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.75
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_amber_bin")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_Cardboard"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.9
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_cardboard")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/is_cardboard = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_CardboardDark"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.85, 0.8, 0.75, 1)
+shader_parameter/roughness_value = 0.92
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_cardboard")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/is_cardboard = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_SteelGrate"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.6
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_storm_grate")
+shader_parameter/use_world_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_NeonVermilion"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1.0, 0.22, 0.15, 1)
+shader_parameter/roughness_value = 0.4
+shader_parameter/emission_color = Color(1.0, 0.22, 0.15, 1)
+shader_parameter/emission_energy = 3.5
+
+[sub_resource type="ShaderMaterial" id="Mat_NeonCyan"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.2, 0.88, 1.0, 1)
+shader_parameter/roughness_value = 0.4
+shader_parameter/emission_color = Color(0.2, 0.88, 1.0, 1)
+shader_parameter/emission_energy = 3.2
+
+[sub_resource type="ShaderMaterial" id="Mat_WindowGlass"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.15, 0.22, 0.26, 1)
+shader_parameter/roughness_value = 0.3
+shader_parameter/emission_color = Color(0.9, 0.72, 0.42, 1)
+shader_parameter/emission_energy = 0.6
+
+[sub_resource type="ShaderMaterial" id="Mat_UtilityWire"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.06, 0.08, 0.10, 1)
+shader_parameter/roughness_value = 0.8
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+
+[sub_resource type="CylinderMesh" id="Cylinder"]
+top_radius = 0.5
+bottom_radius = 0.5
+height = 1.0
+
+[sub_resource type="ShaderMaterial" id="Mat_NeonAmber"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1.0, 0.65, 0.1, 1)
+shader_parameter/roughness_value = 0.4
+shader_parameter/emission_color = Color(1.0, 0.65, 0.1, 1)
+shader_parameter/emission_energy = 3.8
+
+[sub_resource type="ShaderMaterial" id="Mat_GlassLit"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.95, 0.85, 0.6, 1)
+shader_parameter/roughness_value = 0.2
+shader_parameter/emission_color = Color(1.0, 0.88, 0.55, 1)
+shader_parameter/emission_energy = 1.8
+
+[sub_resource type="ShaderMaterial" id="Mat_Brick"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.88
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_brick")
+shader_parameter/use_world_uv = true
+shader_parameter/uv_scale = Vector2(0.25, 0.25)
+
+[sub_resource type="ShaderMaterial" id="Mat_DarkMetal"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(0.12, 0.14, 0.16, 1)
+shader_parameter/roughness_value = 0.7
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+
+[sub_resource type="ShaderMaterial" id="Mat_StorefrontFascia"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.6
+shader_parameter/emission_color = Color(1, 0.9, 0.7, 1)
+shader_parameter/emission_energy = 0.4
+shader_parameter/emission_use_albedo = true
+shader_parameter/albedo_texture = ExtResource("tex_storefront_fascia")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_SumYungGaiSign"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.6
+shader_parameter/emission_color = Color(1, 0.9, 0.7, 1)
+shader_parameter/emission_energy = 0.4
+shader_parameter/emission_use_albedo = true
+shader_parameter/albedo_texture = ExtResource("tex_sum_yung_gai_motors")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_WindowDisplay"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.3
+shader_parameter/emission_color = Color(1, 0.95, 0.85, 1)
+shader_parameter/emission_energy = 0.7
+shader_parameter/emission_use_albedo = true
+shader_parameter/albedo_texture = ExtResource("tex_window_display")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_Manhole"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.7
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_manhole")
+shader_parameter/use_world_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_JunctionBox"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.7
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_junction_box")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_TireSkid"]
+transparency = 1
+albedo_color = Color(1, 1, 1, 0.88)
+albedo_texture = ExtResource("tex_tire_skid")
+roughness = 0.95
+shading_mode = 1
+specular_mode = 2
+
+[sub_resource type="ShaderMaterial" id="Mat_GarageDoor"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.75
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_garage_door")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_BurnHeroSign"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.6
+shader_parameter/emission_color = Color(1.0, 0.85, 0.5, 1)
+shader_parameter/emission_energy = 0.5
+shader_parameter/emission_use_albedo = true
+shader_parameter/albedo_texture = ExtResource("tex_burn_hero_sign")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_PermitPlate"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.7
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_permit_plate")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_SilentCoreCabinet"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.75
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_silent_core_cabinet")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_MemoryAperture"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.4
+shader_parameter/emission_color = Color(0.486, 0.812, 0.816, 1)
+shader_parameter/emission_energy = 0.85
+shader_parameter/emission_use_albedo = true
+shader_parameter/albedo_texture = ExtResource("tex_memory_aperture")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_IndustrialVent"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.7
+shader_parameter/emission_color = Color(1.0, 0.75, 0.3, 1)
+shader_parameter/emission_energy = 0.35
+shader_parameter/emission_use_albedo = true
+shader_parameter/albedo_texture = ExtResource("tex_industrial_vent")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_StoreDoor"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.65
+shader_parameter/emission_color = Color(0.2, 0.9, 0.8, 1)
+shader_parameter/emission_energy = 0.5
+shader_parameter/emission_use_albedo = true
+shader_parameter/albedo_texture = ExtResource("tex_store_door")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_ACUnit"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.75
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_ac_unit")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_WallDecals"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.85
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_wall_decals")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_StorefrontCanopy"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.8
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_storefront_canopy")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/swap_uv = true
+shader_parameter/uv_scale = Vector2(2, 1)
 
 [sub_resource type="BoxShape3D" id="Shape_Road"]
 size = Vector3(8, 0.3, 26)
@@ -216,7 +575,7 @@ material_override = SubResource("Mat_Concrete")
 position = Vector3(-0.2, 1.15, 0.8)
 scale = Vector3(4, 2, 10.5)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_OffWhite")
+material_override = SubResource("Mat_Brick")
 
 [node name="ServiceCanopy" type="MeshInstance3D" parent="CommercialFrontage"]
 position = Vector3(2.35, -0.6, -2.2)
@@ -226,14 +585,15 @@ material_override = SubResource("Mat_Soot")
 
 [node name="HeroSign" type="MeshInstance3D" parent="CommercialFrontage"]
 position = Vector3(2.31, 0.65, -1.5)
-scale = Vector3(0.16, 1.25, 4.2)
+scale = Vector3(0.16, 1.25, 3.75)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_Teal")
+material_override = SubResource("Mat_StorefrontFascia")
 
 [node name="HeroSignIcon" type="MeshInstance3D" parent="CommercialFrontage"]
 position = Vector3(2.41, 0.65, -2.65)
 rotation = Vector3(0.785398, 0, 0)
-scale = Vector3(0.1, 0.42, 0.42)
+scale = Vector3(0.01, 0.01, 0.01)
+visible = false
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_Amber")
 
@@ -251,7 +611,7 @@ material_override = SubResource("Mat_Oxidized")
 
 [node name="CommercialLabel" type="Label3D" parent="CommercialFrontage"]
 position = Vector3(2.43, 0.65, -0.65)
-rotation = Vector3(0, -1.570796, 0)
+rotation = Vector3(0, 1.570796, 0)
 text = "PARTS"
 modulate = Color(0.843, 0.824, 0.765, 1)
 outline_modulate = Color(0.094, 0.129, 0.149, 1)
@@ -261,7 +621,7 @@ pixel_size = 0.006
 
 [node name="AftermarketLabel" type="Label3D" parent="CommercialFrontage"]
 position = Vector3(2.43, -1.15, 1.8)
-rotation = Vector3(0, -1.570796, 0)
+rotation = Vector3(0, 1.570796, 0)
 text = "RIDE/FIX"
 modulate = Color(0.843, 0.824, 0.765, 1)
 outline_modulate = Color(0.094, 0.129, 0.149, 1)
@@ -275,29 +635,30 @@ pixel_size = 0.0035
 position = Vector3(2.38, -0.85, -6.25)
 scale = Vector3(0.14, 2.15, 2.8)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_Soot")
+material_override = SubResource("Mat_GarageDoor")
 
 [node name="BurnHeroSign" type="MeshInstance3D" parent="CommercialFrontage/MayorBurnGarage"]
 position = Vector3(2.43, 0.72, -5.95)
 scale = Vector3(0.16, 0.72, 2.15)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_Amber")
+material_override = SubResource("Mat_BurnHeroSign")
 
 [node name="CivicPermitPlate" type="MeshInstance3D" parent="CommercialFrontage/MayorBurnGarage"]
 position = Vector3(2.45, -0.2, -4.62)
 scale = Vector3(0.12, 0.48, 0.72)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_Teal")
+material_override = SubResource("Mat_PermitPlate")
 
 [node name="RepairPatch" type="MeshInstance3D" parent="CommercialFrontage/MayorBurnGarage"]
-position = Vector3(2.46, -1.15, -6.95)
-scale = Vector3(0.10, 0.68, 0.62)
+position = Vector3(2.45, -1.75, -7.2)
+scale = Vector3(0.04, 0.35, 0.45)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_Oxidized")
+material_override = SubResource("Mat_DarkMetal")
 
 [node name="BurnGarageLabel" type="Label3D" parent="CommercialFrontage/MayorBurnGarage"]
+visible = false
 position = Vector3(2.54, 0.72, -5.95)
-rotation = Vector3(0, -1.570796, 0)
+rotation = Vector3(0, 1.570796, 0)
 text = "BURN // GARAGE"
 modulate = Color(0.094, 0.129, 0.149, 1)
 outline_modulate = Color(0.843, 0.824, 0.765, 1)
@@ -306,8 +667,9 @@ outline_size = 9
 pixel_size = 0.0045
 
 [node name="PermitLabel" type="Label3D" parent="CommercialFrontage/MayorBurnGarage"]
+visible = false
 position = Vector3(2.54, -0.2, -4.62)
-rotation = Vector3(0, -1.570796, 0)
+rotation = Vector3(0, 1.570796, 0)
 text = "PERMIT 77"
 modulate = Color(0.843, 0.824, 0.765, 1)
 outline_modulate = Color(0.094, 0.129, 0.149, 1)
@@ -341,9 +703,9 @@ material_override = SubResource("Mat_OffWhite")
 
 [node name="CivicUtilityPlate" type="MeshInstance3D" parent="IndustrialFrontage"]
 position = Vector3(-3.08, 0.3, -1.0)
-scale = Vector3(0.14, 1.1, 2.7)
+scale = Vector3(0.14, 1.5, 1.5)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_Amber")
+material_override = SubResource("Mat_IndustrialVent")
 
 [node name="RepairPatch" type="MeshInstance3D" parent="IndustrialFrontage"]
 position = Vector3(-3.09, -0.9, 3.2)
@@ -358,6 +720,7 @@ mesh = SubResource("Cube")
 material_override = SubResource("Mat_OffWhite")
 
 [node name="CivicAssetLabel" type="Label3D" parent="IndustrialFrontage"]
+visible = false
 position = Vector3(-3.18, 0.3, -1.0)
 rotation = Vector3(0, 1.570796, 0)
 text = "UTIL 04"
@@ -399,11 +762,11 @@ shape = SubResource("Shape_SilentCorePad")
 position = Vector3(0, 1.0, -0.35)
 scale = Vector3(1.35, 2.0, 0.95)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_OffWhite")
+material_override = SubResource("Mat_SilentCoreCabinet")
 
 [node name="RemovedAssetPlateScar" type="MeshInstance3D" parent="SilentCoreSite"]
-position = Vector3(0, 1.18, 0.15)
-scale = Vector3(0.62, 0.34, 0.08)
+position = Vector3(0.25, 1.25, 0.14)
+scale = Vector3(0.48, 0.28, 0.04)
 mesh = SubResource("Cube")
 material_override = SubResource("Mat_Soot")
 
@@ -411,13 +774,13 @@ material_override = SubResource("Mat_Soot")
 position = Vector3(-0.62, 0.36, 0.10)
 scale = Vector3(0.22, 0.55, 0.18)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_Oxidized")
+material_override = SubResource("Mat_DarkMetal")
 
 [node name="MemorySignalAperture" type="MeshInstance3D" parent="SilentCoreSite"]
-position = Vector3(0, 0.86, 0.18)
-scale = Vector3(0.42, 0.12, 0.05)
+position = Vector3(0.25, 0.85, 0.15)
+scale = Vector3(0.36, 0.12, 0.04)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_Cyan")
+material_override = SubResource("Mat_MemoryAperture")
 
 [node name="SilentCoreSocket" type="Marker3D" parent="SilentCoreSite"]
 position = Vector3(0, 0.15, 0.55)
@@ -486,7 +849,7 @@ position = Vector3(-8.4, 0.4, -35.5)
 [node name="RailMesh" type="MeshInstance3D" parent="WestGuardRail"]
 scale = Vector3(0.3, 0.8, 14)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_OffWhite")
+material_override = SubResource("Mat_DarkMetal")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="WestGuardRail"]
 shape = SubResource("Shape_WestRail")
@@ -497,7 +860,923 @@ position = Vector3(-0.25, 0.4, -35.5)
 [node name="RailMesh" type="MeshInstance3D" parent="EastGuardRail"]
 scale = Vector3(0.3, 0.8, 14)
 mesh = SubResource("Cube")
-material_override = SubResource("Mat_OffWhite")
+material_override = SubResource("Mat_DarkMetal")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="EastGuardRail"]
 shape = SubResource("Shape_EastRail")
+
+[node name="StreetClutter" type="Node3D" parent="."]
+
+[node name="DistrictGround" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-5.0, -0.06, -35.0)
+scale = Vector3(140.0, 0.1, 140.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Road")
+
+[node name="BuildingBackdrop" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-17.5, 6.0, -35.0)
+scale = Vector3(4.0, 12.0, 26.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="BuildingUpperFloor" type="MeshInstance3D" parent="StreetClutter/BuildingBackdrop"]
+position = Vector3(0.05, 0.1, 0)
+scale = Vector3(0.98, 0.45, 0.95)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Brick")
+
+[node name="UpperWindow1" type="MeshInstance3D" parent="StreetClutter/BuildingBackdrop"]
+position = Vector3(0.52, 0.12, -0.28)
+scale = Vector3(0.05, 0.15, 0.12)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="UpperWindow2" type="MeshInstance3D" parent="StreetClutter/BuildingBackdrop"]
+position = Vector3(0.52, 0.12, 0.0)
+scale = Vector3(0.05, 0.15, 0.12)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="UpperWindow3" type="MeshInstance3D" parent="StreetClutter/BuildingBackdrop"]
+position = Vector3(0.52, 0.12, 0.28)
+scale = Vector3(0.05, 0.15, 0.12)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="CurbSidewalk" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-10.6, 0.03, -35.0)
+scale = Vector3(2.6, 0.06, 22.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Concrete")
+
+[node name="CurbEdge" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-9.24, 0.04, -35.0)
+scale = Vector3(0.12, 0.08, 22.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="SidewalkSeams" type="Node3D" parent="StreetClutter"]
+position = Vector3(-10.6, 0.045, -35.0)
+
+[node name="Seam1" type="MeshInstance3D" parent="StreetClutter/SidewalkSeams"]
+position = Vector3(0, 0, -6.0)
+scale = Vector3(2.6, 0.01, 0.04)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="Seam2" type="MeshInstance3D" parent="StreetClutter/SidewalkSeams"]
+position = Vector3(0, 0, -4.0)
+scale = Vector3(2.6, 0.01, 0.04)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="Seam3" type="MeshInstance3D" parent="StreetClutter/SidewalkSeams"]
+position = Vector3(0, 0, -2.0)
+scale = Vector3(2.6, 0.01, 0.04)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="Seam4" type="MeshInstance3D" parent="StreetClutter/SidewalkSeams"]
+position = Vector3(0, 0, 0.0)
+scale = Vector3(2.6, 0.01, 0.04)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="Seam5" type="MeshInstance3D" parent="StreetClutter/SidewalkSeams"]
+position = Vector3(0, 0, 2.0)
+scale = Vector3(2.6, 0.01, 0.04)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="Seam6" type="MeshInstance3D" parent="StreetClutter/SidewalkSeams"]
+position = Vector3(0, 0, 4.0)
+scale = Vector3(2.6, 0.01, 0.04)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="Seam7" type="MeshInstance3D" parent="StreetClutter/SidewalkSeams"]
+position = Vector3(0, 0, 6.0)
+scale = Vector3(2.6, 0.01, 0.04)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="Streetlamp" type="Node3D" parent="StreetClutter"]
+position = Vector3(-9.4, 0.0, -35.5)
+
+[node name="BasePlinth" type="MeshInstance3D" parent="StreetClutter/Streetlamp"]
+position = Vector3(0, 0.2, 0)
+scale = Vector3(0.4, 0.4, 0.4)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="PoleMesh" type="MeshInstance3D" parent="StreetClutter/Streetlamp"]
+position = Vector3(0, 2.3, 0)
+scale = Vector3(0.14, 4.4, 0.14)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="TransformerCan" type="MeshInstance3D" parent="StreetClutter/Streetlamp"]
+position = Vector3(0, 3.4, 0.22)
+scale = Vector3(0.38, 0.75, 0.38)
+mesh = SubResource("Cylinder")
+material_override = SubResource("Mat_Soot")
+
+[node name="JunctionBox" type="MeshInstance3D" parent="StreetClutter/Streetlamp"]
+position = Vector3(0.12, 1.6, 0.0)
+rotation = Vector3(0, 1.570796, 0)
+scale = Vector3(0.38, 0.48, 0.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_JunctionBox")
+
+[node name="ConduitPipe" type="MeshInstance3D" parent="StreetClutter/Streetlamp"]
+position = Vector3(0.12, 0.8, 0.0)
+scale = Vector3(0.05, 1.6, 0.05)
+mesh = SubResource("Cylinder")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="PoleArm" type="MeshInstance3D" parent="StreetClutter/Streetlamp"]
+position = Vector3(1.2, 4.35, 0)
+rotation = Vector3(0, 0, -0.2)
+scale = Vector3(2.5, 0.1, 0.1)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="LampHead" type="MeshInstance3D" parent="StreetClutter/Streetlamp"]
+position = Vector3(2.3, 4.1, 0)
+scale = Vector3(0.65, 0.22, 0.42)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="LampLens" type="MeshInstance3D" parent="StreetClutter/Streetlamp"]
+position = Vector3(2.3, 3.98, 0)
+scale = Vector3(0.55, 0.04, 0.35)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_LampLens")
+
+[node name="LightPool" type="MeshInstance3D" parent="StreetClutter/Streetlamp"]
+position = Vector3(2.3, 0.02, 0)
+scale = Vector3(6.5, 1.0, 7.5)
+mesh = SubResource("Quad_Pool")
+material_override = SubResource("Mat_Pool")
+
+[node name="NewspaperBins" type="Node3D" parent="StreetClutter"]
+position = Vector3(-9.55, 0.0, -34.6)
+
+[node name="BlueBin" type="MeshInstance3D" parent="StreetClutter/NewspaperBins"]
+position = Vector3(0, 0.45, -0.38)
+scale = Vector3(0.54, 0.9, 0.52)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_BlueBin")
+
+[node name="BlueBinHood" type="MeshInstance3D" parent="StreetClutter/NewspaperBins/BlueBin"]
+position = Vector3(0, 0.52, 0)
+scale = Vector3(1.04, 0.12, 1.04)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="BlueBinWindow" type="MeshInstance3D" parent="StreetClutter/NewspaperBins/BlueBin"]
+visible = false
+position = Vector3(0.51, 0.12, 0)
+scale = Vector3(0.04, 0.36, 0.72)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="BlueBinHandle" type="MeshInstance3D" parent="StreetClutter/NewspaperBins/BlueBin"]
+visible = false
+position = Vector3(0.54, 0.26, 0)
+scale = Vector3(0.06, 0.04, 0.55)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="AmberBin" type="MeshInstance3D" parent="StreetClutter/NewspaperBins"]
+position = Vector3(0, 0.45, 0.38)
+scale = Vector3(0.54, 0.9, 0.52)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_AmberBin")
+
+[node name="AmberBinHood" type="MeshInstance3D" parent="StreetClutter/NewspaperBins/AmberBin"]
+position = Vector3(0, 0.52, 0)
+scale = Vector3(1.04, 0.12, 1.04)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="AmberBinWindow" type="MeshInstance3D" parent="StreetClutter/NewspaperBins/AmberBin"]
+visible = false
+position = Vector3(0.51, 0.12, 0)
+scale = Vector3(0.04, 0.36, 0.72)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="AmberBinHandle" type="MeshInstance3D" parent="StreetClutter/NewspaperBins/AmberBin"]
+visible = false
+position = Vector3(0.54, 0.26, 0)
+scale = Vector3(0.06, 0.04, 0.55)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="CardboardBoxStack" type="Node3D" parent="StreetClutter"]
+position = Vector3(-11.45, 0.0, -37.5)
+
+[node name="BoxBase" type="MeshInstance3D" parent="StreetClutter/CardboardBoxStack"]
+position = Vector3(0, 0.4, 0)
+scale = Vector3(0.9, 0.8, 0.9)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Cardboard")
+
+[node name="BoxTop" type="MeshInstance3D" parent="StreetClutter/CardboardBoxStack"]
+position = Vector3(0.06, 1.08, -0.05)
+rotation = Vector3(0, 0.25, 0)
+scale = Vector3(0.72, 0.58, 0.72)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_CardboardDark")
+
+[node name="BoxSide" type="MeshInstance3D" parent="StreetClutter/CardboardBoxStack"]
+position = Vector3(0.1, 0.28, 0.92)
+rotation = Vector3(0, -0.18, 0)
+scale = Vector3(0.68, 0.56, 0.78)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Cardboard")
+
+[node name="BoxSide2" type="MeshInstance3D" parent="StreetClutter/CardboardBoxStack"]
+position = Vector3(-0.12, 0.22, -0.85)
+rotation = Vector3(0, 0.32, 0)
+scale = Vector3(0.6, 0.45, 0.65)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_CardboardDark")
+
+[node name="TapeStrip" type="MeshInstance3D" parent="StreetClutter/CardboardBoxStack"]
+position = Vector3(0.06, 1.38, -0.05)
+rotation = Vector3(0, 0.25, 0)
+scale = Vector3(0.12, 0.01, 0.72)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="TrashBags" type="Node3D" parent="StreetClutter"]
+position = Vector3(-11.35, 0.15, -39.0)
+
+[node name="TrashBag1" type="MeshInstance3D" parent="StreetClutter/TrashBags"]
+position = Vector3(0, 0, 0)
+rotation = Vector3(0.2, 0.3, 0)
+scale = Vector3(0.5, 0.42, 0.5)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="TrashBag2" type="MeshInstance3D" parent="StreetClutter/TrashBags"]
+position = Vector3(0.08, 0, 0.48)
+rotation = Vector3(-0.15, -0.22, 0)
+scale = Vector3(0.45, 0.36, 0.46)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+
+[node name="WallGraffitiDecal" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-11.82, 1.8, -44.2)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("Quad_WallDecal")
+material_override = SubResource("Mat_WallDecals")
+
+[node name="StormDrainGrate" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-7.8, 0.022, -32.5)
+rotation = Vector3(0, 1.570796, 0)
+scale = Vector3(1.2, 1.0, 1.2)
+mesh = SubResource("Quad_Pool")
+material_override = SubResource("Mat_SteelGrate")
+
+[node name="GrateBar1" type="MeshInstance3D" parent="StreetClutter/StormDrainGrate"]
+visible = false
+position = Vector3(0, 0.52, -0.38)
+scale = Vector3(0.85, 0.2, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_SteelGrate")
+
+[node name="GrateBar2" type="MeshInstance3D" parent="StreetClutter/StormDrainGrate"]
+visible = false
+position = Vector3(0, 0.52, -0.19)
+scale = Vector3(0.85, 0.2, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_SteelGrate")
+
+[node name="GrateBar3" type="MeshInstance3D" parent="StreetClutter/StormDrainGrate"]
+visible = false
+position = Vector3(0, 0.52, 0)
+scale = Vector3(0.85, 0.2, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_SteelGrate")
+
+[node name="GrateBar4" type="MeshInstance3D" parent="StreetClutter/StormDrainGrate"]
+visible = false
+position = Vector3(0, 0.52, 0.19)
+scale = Vector3(0.85, 0.2, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_SteelGrate")
+
+[node name="GrateBar5" type="MeshInstance3D" parent="StreetClutter/StormDrainGrate"]
+visible = false
+position = Vector3(0, 0.52, 0.38)
+scale = Vector3(0.85, 0.2, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_SteelGrate")
+
+[node name="ManholeCover" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-6.2, 0.022, -36.5)
+scale = Vector3(1.4, 1.0, 1.4)
+mesh = SubResource("Quad_Pool")
+material_override = SubResource("Mat_Manhole")
+
+[node name="StorefrontFrames" type="Node3D" parent="StreetClutter"]
+position = Vector3(-11.88, 0.0, 0.0)
+
+[node name="WindowFrame1" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+position = Vector3(0, 1.25, -34.2)
+scale = Vector3(0.12, 1.8, 2.6)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="WindowGlass1" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+position = Vector3(0.02, 1.25, -34.2)
+scale = Vector3(0.1, 1.6, 2.36)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_WindowDisplay")
+
+[node name="WindowInterior1" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
+position = Vector3(-0.06, 1.25, -34.2)
+scale = Vector3(0.1, 1.4, 2.1)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="WindowMullionV1" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
+position = Vector3(0.04, 1.25, -34.2)
+scale = Vector3(0.08, 1.6, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="WindowMullionH1" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
+position = Vector3(0.04, 1.25, -34.2)
+scale = Vector3(0.08, 0.08, 2.36)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="NeonSignTrim" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+position = Vector3(0.06, 2.22, -34.2)
+scale = Vector3(0.08, 0.14, 2.6)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_NeonVermilion")
+
+[node name="WindowNeonHeart" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
+position = Vector3(0.05, 1.25, -34.2)
+scale = Vector3(0.04, 0.65, 0.85)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_NeonVermilion")
+
+[node name="WindowFrame2" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+position = Vector3(0, 1.25, -30.8)
+scale = Vector3(0.12, 1.8, 2.6)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="WindowGlass2" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+position = Vector3(0.02, 1.25, -30.8)
+scale = Vector3(0.1, 1.6, 2.36)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_WindowDisplay")
+
+[node name="WindowInterior2" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
+position = Vector3(-0.06, 1.25, -30.8)
+scale = Vector3(0.1, 1.4, 2.1)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="WindowMullionV2" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
+position = Vector3(0.04, 1.25, -30.8)
+scale = Vector3(0.08, 1.6, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="WindowMullionH2" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
+position = Vector3(0.04, 1.25, -30.8)
+scale = Vector3(0.08, 0.08, 2.36)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="NeonSignTrim2" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+position = Vector3(0.06, 2.22, -30.8)
+scale = Vector3(0.08, 0.14, 2.6)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_NeonCyan")
+
+[node name="WindowNeonFlame" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
+position = Vector3(0.05, 1.25, -30.8)
+scale = Vector3(0.04, 0.65, 0.85)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_NeonCyan")
+
+[node name="StoreDoor" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+position = Vector3(0, 1.0, -32.5)
+scale = Vector3(0.14, 2.0, 1.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_StoreDoor")
+
+[node name="StoreDoorGlass" type="MeshInstance3D" parent="StreetClutter/StorefrontFrames"]
+visible = false
+position = Vector3(0.02, 1.3, -32.5)
+scale = Vector3(0.12, 1.1, 0.65)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="StorefrontCanopy" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-11.65, 2.96, -32.5)
+rotation = Vector3(0, 0, -0.2)
+scale = Vector3(0.45, 0.08, 6.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_StorefrontCanopy")
+
+[node name="CanopyStripe1" type="MeshInstance3D" parent="StreetClutter/StorefrontCanopy"]
+visible = false
+position = Vector3(0, 0.52, -0.33)
+scale = Vector3(1.02, 0.1, 0.16)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="CanopyStripe2" type="MeshInstance3D" parent="StreetClutter/StorefrontCanopy"]
+visible = false
+position = Vector3(0, 0.52, 0)
+scale = Vector3(1.02, 0.1, 0.16)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="CanopyStripe3" type="MeshInstance3D" parent="StreetClutter/StorefrontCanopy"]
+visible = false
+position = Vector3(0, 0.52, 0.33)
+scale = Vector3(1.02, 0.1, 0.16)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="CanopyValance" type="MeshInstance3D" parent="StreetClutter/StorefrontCanopy"]
+visible = false
+position = Vector3(0.5, -0.8, 0)
+rotation = Vector3(0, 0, 0.35)
+scale = Vector3(0.06, 1.8, 1.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Teal")
+
+[node name="StorefrontSignboard" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-11.66, 2.7, -32.5)
+rotation = Vector3(0, 1.570796, 0)
+mesh = SubResource("Quad_Sign")
+material_override = SubResource("Mat_SumYungGaiSign")
+
+[node name="StorefrontSignLabel" type="Label3D" parent="StreetClutter"]
+visible = false
+position = Vector3(-11.75, 2.72, -32.5)
+rotation = Vector3(0, 1.570796, 0)
+text = "SUM YUNG GAI // MOTORS"
+modulate = Color(1, 0.95, 0.8, 1)
+outline_modulate = Color(0.9, 0.15, 0.1, 1)
+font_size = 32
+outline_size = 12
+pixel_size = 0.004
+
+[node name="AC_Unit" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-11.82, 3.4, -36.2)
+scale = Vector3(0.42, 0.54, 0.72)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_ACUnit")
+
+[node name="ConduitPipe" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-11.85, 2.0, -36.6)
+scale = Vector3(0.04, 3.8, 0.04)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+
+[node name="CommercialFacadeArchitecture" type="Node3D" parent="StreetClutter"]
+position = Vector3(-11.88, 0.0, 0.0)
+
+[node name="BeltCourseLedge" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture"]
+position = Vector3(0.04, 3.15, -33.0)
+scale = Vector3(0.22, 0.14, 16.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="RoofCornice" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture"]
+position = Vector3(0.06, 6.15, -33.0)
+scale = Vector3(0.34, 0.26, 16.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="DownspoutPipe" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture"]
+position = Vector3(0.06, 3.1, -26.0)
+scale = Vector3(0.08, 6.2, 0.08)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="Win2F_1" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture"]
+position = Vector3(0.02, 4.0, -35.2)
+scale = Vector3(0.12, 1.1, 0.95)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="Glass2F_1" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_1"]
+position = Vector3(0.05, 0, 0)
+scale = Vector3(0.6, 0.88, 0.85)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="Lintel2F_1" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_1"]
+position = Vector3(0.12, 0.58, 0)
+scale = Vector3(1.2, 0.14, 1.15)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Sill2F_1" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_1"]
+position = Vector3(0.14, -0.58, 0)
+scale = Vector3(1.3, 0.10, 1.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Win2F_2" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture"]
+position = Vector3(0.02, 4.0, -32.8)
+scale = Vector3(0.12, 1.1, 0.95)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="Glass2F_2" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_2"]
+position = Vector3(0.05, 0, 0)
+scale = Vector3(0.6, 0.88, 0.85)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="Lintel2F_2" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_2"]
+position = Vector3(0.12, 0.58, 0)
+scale = Vector3(1.2, 0.14, 1.15)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Sill2F_2" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_2"]
+position = Vector3(0.14, -0.58, 0)
+scale = Vector3(1.3, 0.10, 1.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Win2F_3" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture"]
+position = Vector3(0.02, 4.0, -30.4)
+scale = Vector3(0.12, 1.1, 0.95)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="Glass2F_3" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_3"]
+position = Vector3(0.05, 0, 0)
+scale = Vector3(0.6, 0.88, 0.85)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="Lintel2F_3" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_3"]
+position = Vector3(0.12, 0.58, 0)
+scale = Vector3(1.2, 0.14, 1.15)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Sill2F_3" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_3"]
+position = Vector3(0.14, -0.58, 0)
+scale = Vector3(1.3, 0.10, 1.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Win2F_4" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture"]
+position = Vector3(0.02, 4.0, -28.0)
+scale = Vector3(0.12, 1.1, 0.95)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="Glass2F_4" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_4"]
+position = Vector3(0.05, 0, 0)
+scale = Vector3(0.6, 0.88, 0.85)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="Lintel2F_4" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_4"]
+position = Vector3(0.12, 0.58, 0)
+scale = Vector3(1.2, 0.14, 1.15)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Sill2F_4" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win2F_4"]
+position = Vector3(0.14, -0.58, 0)
+scale = Vector3(1.3, 0.10, 1.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Win3F_1" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture"]
+position = Vector3(0.02, 5.35, -35.2)
+scale = Vector3(0.12, 0.95, 0.95)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="Glass3F_1" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win3F_1"]
+position = Vector3(0.05, 0, 0)
+scale = Vector3(0.6, 0.88, 0.85)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="Lintel3F_1" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win3F_1"]
+position = Vector3(0.12, 0.58, 0)
+scale = Vector3(1.2, 0.14, 1.15)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Sill3F_1" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win3F_1"]
+position = Vector3(0.14, -0.58, 0)
+scale = Vector3(1.3, 0.10, 1.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Win3F_2" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture"]
+position = Vector3(0.02, 5.35, -32.8)
+scale = Vector3(0.12, 0.95, 0.95)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="Glass3F_2" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win3F_2"]
+position = Vector3(0.05, 0, 0)
+scale = Vector3(0.6, 0.88, 0.85)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="Lintel3F_2" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win3F_2"]
+position = Vector3(0.12, 0.58, 0)
+scale = Vector3(1.2, 0.14, 1.15)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Sill3F_2" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win3F_2"]
+position = Vector3(0.14, -0.58, 0)
+scale = Vector3(1.3, 0.10, 1.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Win3F_3" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture"]
+position = Vector3(0.02, 5.35, -30.4)
+scale = Vector3(0.12, 0.95, 0.95)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="Glass3F_3" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win3F_3"]
+position = Vector3(0.05, 0, 0)
+scale = Vector3(0.6, 0.88, 0.85)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="Lintel3F_3" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win3F_3"]
+position = Vector3(0.12, 0.58, 0)
+scale = Vector3(1.2, 0.14, 1.15)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Sill3F_3" type="MeshInstance3D" parent="StreetClutter/CommercialFacadeArchitecture/Win3F_3"]
+position = Vector3(0.14, -0.58, 0)
+scale = Vector3(1.3, 0.10, 1.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Crosswalk" type="Node3D" parent="StreetClutter"]
+position = Vector3(-8.0, 0.015, -29.0)
+
+[node name="Zebra1" type="MeshInstance3D" parent="StreetClutter/Crosswalk"]
+position = Vector3(0, 0, -1.5)
+scale = Vector3(4.8, 0.01, 0.45)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Zebra2" type="MeshInstance3D" parent="StreetClutter/Crosswalk"]
+position = Vector3(0, 0, -0.75)
+scale = Vector3(4.8, 0.01, 0.45)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Zebra3" type="MeshInstance3D" parent="StreetClutter/Crosswalk"]
+position = Vector3(0, 0, 0)
+scale = Vector3(4.8, 0.01, 0.45)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Zebra4" type="MeshInstance3D" parent="StreetClutter/Crosswalk"]
+position = Vector3(0, 0, 0.75)
+scale = Vector3(4.8, 0.01, 0.45)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="Zebra5" type="MeshInstance3D" parent="StreetClutter/Crosswalk"]
+position = Vector3(0, 0, 1.5)
+scale = Vector3(4.8, 0.01, 0.45)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="DoubleYellowStripes" type="Node3D" parent="StreetClutter"]
+position = Vector3(-4.5, 0.02, -35.0)
+
+[node name="YellowStripe1" type="MeshInstance3D" parent="StreetClutter/DoubleYellowStripes"]
+position = Vector3(-0.12, 0, 0)
+scale = Vector3(0.08, 0.01, 26.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Amber")
+
+[node name="YellowStripe2" type="MeshInstance3D" parent="StreetClutter/DoubleYellowStripes"]
+position = Vector3(0.12, 0, 0)
+scale = Vector3(0.08, 0.01, 26.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Amber")
+
+[node name="OilStain" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-8.8, 0.018, -35.2)
+scale = Vector3(2.5, 1.0, 2.5)
+mesh = SubResource("Quad_Pool")
+material_override = ExtResource("4_stain")
+
+[node name="OilStain2" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-4.5, 0.018, -37.5)
+scale = Vector3(2.0, 1.0, 2.8)
+mesh = SubResource("Quad_Pool")
+material_override = ExtResource("4_stain")
+
+
+[node name="NorthDistrictTower" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-4.0, 8.0, -53.0)
+scale = Vector3(36.0, 16.0, 4.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Brick")
+
+[node name="NorthLitWindow1" type="MeshInstance3D" parent="StreetClutter/NorthDistrictTower"]
+position = Vector3(-0.25, 0.15, 0.52)
+scale = Vector3(0.08, 0.12, 0.05)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="NorthLitWindow2" type="MeshInstance3D" parent="StreetClutter/NorthDistrictTower"]
+position = Vector3(0.0, 0.15, 0.52)
+scale = Vector3(0.08, 0.12, 0.05)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="NorthLitWindow3" type="MeshInstance3D" parent="StreetClutter/NorthDistrictTower"]
+position = Vector3(0.25, 0.15, 0.52)
+scale = Vector3(0.08, 0.12, 0.05)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="NorthLitWindow4" type="MeshInstance3D" parent="StreetClutter/NorthDistrictTower"]
+position = Vector3(-0.15, -0.15, 0.52)
+scale = Vector3(0.08, 0.12, 0.05)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="NorthLitWindow5" type="MeshInstance3D" parent="StreetClutter/NorthDistrictTower"]
+position = Vector3(0.15, -0.15, 0.52)
+scale = Vector3(0.08, 0.12, 0.05)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="SouthWestTower" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-16.0, 7.0, -22.0)
+scale = Vector3(8.0, 14.0, 16.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Brick")
+
+[node name="SWLitWindow1" type="MeshInstance3D" parent="StreetClutter/SouthWestTower"]
+position = Vector3(0.52, 0.12, -0.2)
+scale = Vector3(0.05, 0.12, 0.1)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="SWLitWindow2" type="MeshInstance3D" parent="StreetClutter/SouthWestTower"]
+position = Vector3(0.52, 0.12, 0.2)
+scale = Vector3(0.05, 0.12, 0.1)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="EastFrontage" type="Node3D" parent="StreetClutter"]
+position = Vector3(0, 0, 0)
+
+[node name="EastSidewalk" type="MeshInstance3D" parent="StreetClutter/EastFrontage"]
+position = Vector3(0.75, 0.03, -35.0)
+scale = Vector3(1.5, 0.06, 26.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Concrete")
+
+[node name="EastCurb" type="MeshInstance3D" parent="StreetClutter/EastFrontage"]
+position = Vector3(0.0, 0.04, -35.0)
+scale = Vector3(0.12, 0.08, 26.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="EastUtilityPole" type="MeshInstance3D" parent="StreetClutter/EastFrontage"]
+position = Vector3(0.15, 2.6, -34.0)
+scale = Vector3(0.18, 5.2, 0.18)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="EastCrossarm" type="MeshInstance3D" parent="StreetClutter/EastFrontage"]
+position = Vector3(0.15, 4.8, -34.0)
+scale = Vector3(0.12, 0.12, 1.8)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_DarkMetal")
+
+[node name="EastLightPool" type="MeshInstance3D" parent="StreetClutter/EastFrontage"]
+position = Vector3(0.15, 0.02, -34.0)
+scale = Vector3(4.2, 1.0, 4.2)
+mesh = SubResource("Quad_Pool")
+material_override = SubResource("Mat_Pool")
+
+[node name="OverheadWires" type="Node3D" parent="StreetClutter"]
+
+[node name="WireSpan1" type="MeshInstance3D" parent="StreetClutter/OverheadWires"]
+position = Vector3(-5.5, 4.8, -36.0)
+scale = Vector3(12.5, 0.025, 0.025)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_UtilityWire")
+
+[node name="WireSpan2" type="MeshInstance3D" parent="StreetClutter/OverheadWires"]
+position = Vector3(-5.5, 4.6, -33.5)
+rotation = Vector3(0, 0.04, 0)
+scale = Vector3(12.5, 0.025, 0.025)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_UtilityWire")
+
+[node name="WireSpan3" type="MeshInstance3D" parent="StreetClutter/OverheadWires"]
+position = Vector3(-5.5, 4.9, -31.0)
+rotation = Vector3(0, -0.05, 0)
+scale = Vector3(12.5, 0.025, 0.025)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_UtilityWire")
+
+[node name="WireLongitudinal" type="MeshInstance3D" parent="StreetClutter/OverheadWires"]
+position = Vector3(-11.85, 4.4, -34.5)
+scale = Vector3(0.025, 0.025, 16.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_UtilityWire")
+
+[node name="HaulerHeadlightWash" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-4.5, 0.02, -31.5)
+scale = Vector3(3.5, 1.0, 5.0)
+mesh = SubResource("Quad_Pool")
+material_override = SubResource("Mat_Pool")
+
+[node name="NorthCityBackdrop" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-4.5, 6.0, -52.0)
+scale = Vector3(45.0, 12.0, 4.0)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Brick")
+
+[node name="NorthWindow1" type="MeshInstance3D" parent="StreetClutter/NorthCityBackdrop"]
+position = Vector3(-0.25, 0.1, 0.52)
+scale = Vector3(0.08, 0.15, 0.05)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="NorthWindow2" type="MeshInstance3D" parent="StreetClutter/NorthCityBackdrop"]
+position = Vector3(0.0, 0.1, 0.52)
+scale = Vector3(0.08, 0.15, 0.05)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="NorthWindow3" type="MeshInstance3D" parent="StreetClutter/NorthCityBackdrop"]
+position = Vector3(0.25, 0.1, 0.52)
+scale = Vector3(0.08, 0.15, 0.05)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_GlassLit")
+
+[node name="TireTracks" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-4.5, 0.022, -33.5)
+scale = Vector3(1.8, 1.0, 15.0)
+mesh = SubResource("Quad_Pool")
+material_override = ExtResource("4_stain")
+
+[node name="TireSkidTurn" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-4.8, 0.024, -34.0)
+rotation = Vector3(0, 0.45, 0)
+scale = Vector3(4.2, 1.0, 4.2)
+mesh = SubResource("Quad_Pool")
+material_override = SubResource("Mat_TireSkid")
+
+[node name="TireSkidBrake" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-3.8, 0.024, -30.5)
+rotation = Vector3(0, -0.2, 0)
+scale = Vector3(3.2, 1.0, 3.2)
+mesh = SubResource("Quad_Pool")
+material_override = SubResource("Mat_TireSkid")
+
+[node name="TarmacPatch" type="MeshInstance3D" parent="StreetClutter"]
+position = Vector3(-3.2, 0.02, -36.5)
+scale = Vector3(2.4, 0.01, 3.2)
+mesh = SubResource("Cube")
+material_override = SubResource("Mat_Soot")
+[node name="SecurityCheckpoint" parent="StreetClutter" instance=ExtResource("prop_security_checkpoint")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 0, -45.0)
+
+

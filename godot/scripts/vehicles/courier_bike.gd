@@ -43,7 +43,7 @@ enum BikeState {
 @export var steering_speed: float = 2.5
 @export var dismount_speed_limit: float = 1.5
 
-@onready var rider_socket: Node3D = $RiderSocket
+@onready var rider_socket: Node3D = $VisualRoot/RiderSocket if has_node("VisualRoot/RiderSocket") else $RiderSocket
 @onready var mount_interactable: InteractableBase = $MountInteractable
 @onready var visual_root: Node3D = $VisualRoot
 @onready var bike_mesh: MeshInstance3D = $VisualRoot/BikeMesh
@@ -74,6 +74,35 @@ const CONDITION_CRITICAL_LOAD: float = 1.50
 const CONDITION_MAX_LOAD: float = 1.50
 const CRITICAL_SPEED_MULTIPLIER: float = 0.52
 
+var tune_up_time_remaining: float = 0.0
+var tune_up_speed_mult: float = 1.35
+var tune_up_accel_mult: float = 1.40
+
+var is_tuned_up: bool:
+	get:
+		return tune_up_time_remaining > 0.0
+
+func apply_tune_up(duration: float = 8.0, speed_mult: float = 1.35, accel_mult: float = 1.40) -> void:
+	tune_up_time_remaining = duration
+	tune_up_speed_mult = speed_mult
+	tune_up_accel_mult = accel_mult
+
+func get_effective_max_speed() -> float:
+	return max_speed * (tune_up_speed_mult if tune_up_time_remaining > 0.0 else 1.0)
+
+func get_effective_acceleration() -> float:
+	return acceleration * (tune_up_accel_mult if tune_up_time_remaining > 0.0 else 1.0)
+
+var _mount_blend_time: float = 0.0
+var _mount_start_pos: Vector3 = Vector3.ZERO
+var _mount_start_basis: Basis = Basis.IDENTITY
+var _dismount_blend_time: float = 0.0
+var _dismount_start_pos: Vector3 = Vector3.ZERO
+var _dismount_start_basis: Basis = Basis.IDENTITY
+var _dismount_target_pos: Vector3 = Vector3.ZERO
+const MOUNT_BLEND_DURATION: float = 0.20
+const DISMOUNT_BLEND_DURATION: float = 0.20
+
 func _ready() -> void:
 	if mount_interactable:
 		mount_interactable.interaction_priority = 2.0
@@ -85,13 +114,15 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _brake_screech_cooldown > 0.0:
 		_brake_screech_cooldown -= delta
+	if tune_up_time_remaining > 0.0:
+		tune_up_time_remaining = maxf(0.0, tune_up_time_remaining - delta)
 	if _condition_contact_cooldown > 0.0:
 		_condition_contact_cooldown = maxf(_condition_contact_cooldown - delta, 0.0)
 		
 	if current_state == BikeState.DRIVING or current_state == BikeState.MOUNTING:
 		if current_state == BikeState.DRIVING:
 			# 1. Speed-sensitive steering yaw rate (high agility at low speed, stability at top speed)
-			var speed_ratio: float = clampf(abs(current_speed) / max_speed, 0.0, 1.0)
+			var speed_ratio: float = clampf(abs(current_speed) / get_effective_max_speed(), 0.0, 1.0)
 			var steer_rate: float = lerp(3.6, 1.35, speed_ratio)
 			if is_handbrake_active:
 				steer_rate *= 1.75 # Powerslide yaw agility
@@ -100,9 +131,9 @@ func _physics_process(delta: float) -> void:
 				var steer_sign: float = 1.0 if current_speed >= -0.05 else -1.0
 				rotate_y(-steering_angle * steer_rate * steer_sign * delta)
 				
-			# Subtle arcade lean into turn when steering (up to 12 degrees)
+			# Dynamic apex lean into turn when steering (up to 14 degrees)
 			if visual_root:
-				var target_lean := -steering_angle * clampf(abs(current_speed) / 5.0, 0.0, 1.0) * deg_to_rad(12.0)
+				var target_lean := -steering_angle * clampf(abs(current_speed) / 5.0, 0.0, 1.0) * deg_to_rad(14.0)
 				visual_root.rotation.z = lerpf(visual_root.rotation.z, target_lean, delta * 10.0)
 				
 			# 2. Arcade Lateral Grip & Drift Slip Model (Decoupled Heading & Velocity)
@@ -118,8 +149,8 @@ func _physics_process(delta: float) -> void:
 			var new_forward_vel: float = current_speed
 			
 			velocity = (forward_dir * new_forward_vel) + (right_dir * new_lateral_vel)
-			if velocity.length() > max_speed:
-				velocity = velocity.normalized() * max_speed
+			if velocity.length() > get_effective_max_speed():
+				velocity = velocity.normalized() * get_effective_max_speed()
 			move_and_slide()
 			
 			# 3. GTA-style Glance Collision Response (Glancing impacts slide along tangent; head-on sheds speed)
@@ -138,17 +169,35 @@ func _physics_process(delta: float) -> void:
 		_update_vehicle_feedback_presentation()
 		
 		if occupant:
-			occupant.global_position = to_global(rider_socket.position)
-			occupant.global_basis = global_basis
+			var speed_ratio: float = clampf(abs(current_speed) / 3.0, 0.0, 1.0)
+			var effective_steer: float = steering_angle * speed_ratio
+			occupant.set_vehicle_steering(effective_steer)
+			if current_state == BikeState.DRIVING:
+				occupant.global_position = rider_socket.global_position
+				occupant.global_basis = rider_socket.global_basis
 			occupant.velocity = Vector3.ZERO
 			occupant.is_input_locked = true
 	else:
 		_clear_vehicle_feedback_presentation()
 
-func _process(_delta: float) -> void:
-	if occupant:
-		occupant.global_position = to_global(rider_socket.position)
-		occupant.global_basis = global_basis
+func _process(delta: float) -> void:
+	if not occupant:
+		return
+	if current_state == BikeState.MOUNTING:
+		_mount_blend_time += delta
+		var t: float = clampf(_mount_blend_time / MOUNT_BLEND_DURATION, 0.0, 1.0)
+		var smooth_t: float = 0.5 - 0.5 * cos(t * PI)
+		occupant.global_position = _mount_start_pos.lerp(rider_socket.global_position, smooth_t)
+		occupant.global_basis = _mount_start_basis.slerp(rider_socket.global_basis, smooth_t)
+	elif current_state == BikeState.DISMOUNTING:
+		_dismount_blend_time += delta
+		var t: float = clampf(_dismount_blend_time / DISMOUNT_BLEND_DURATION, 0.0, 1.0)
+		var smooth_t: float = 0.5 - 0.5 * cos(t * PI)
+		occupant.global_position = _dismount_start_pos.lerp(_dismount_target_pos, smooth_t)
+		occupant.global_basis = _dismount_start_basis.slerp(Basis.IDENTITY, smooth_t)
+	elif current_state == BikeState.DRIVING:
+		occupant.global_position = rider_socket.global_position
+		occupant.global_basis = rider_socket.global_basis
 
 func can_mount(player: PlayerRunner) -> bool:
 	return current_state == BikeState.PARKED and occupant == null and mount_interactable.is_player_in_range
@@ -161,11 +210,13 @@ func request_mount(player: PlayerRunner) -> bool:
 	occupant = player
 	state_changed.emit("MOUNTING")
 	
+	_mount_blend_time = 0.0
+	_mount_start_pos = player.global_position
+	_mount_start_basis = player.global_basis
+
 	player.is_input_locked = true
 	player.velocity = Vector3.ZERO
 	player.set_mounted_posture(true)
-	player.global_position = to_global(rider_socket.position)
-	player.global_basis = global_basis
 	var p_col := player.get_node_or_null("CollisionShape3D") as CollisionShape3D
 	if p_col: p_col.set_deferred("disabled", true)
 	
@@ -197,6 +248,11 @@ func request_dismount() -> bool:
 	current_state = BikeState.DISMOUNTING
 	state_changed.emit("DISMOUNTING")
 	_clear_vehicle_feedback_presentation()
+
+	_dismount_blend_time = 0.0
+	_dismount_start_pos = occupant.global_position
+	_dismount_start_basis = occupant.global_basis
+	_dismount_target_pos = safe_pos
 	
 	if mount_interactable:
 		mount_interactable.is_powered = false
@@ -207,6 +263,7 @@ func request_dismount() -> bool:
 			if p_col: p_col.set_deferred("disabled", false)
 			occupant.set_mounted_posture(false)
 			occupant.global_position = safe_pos
+			occupant.global_basis = Basis()
 			occupant.is_input_locked = false
 			occupant.velocity = Vector3.ZERO
 			occupant = null
@@ -225,10 +282,13 @@ func request_dismount() -> bool:
 
 func force_dismount() -> void:
 	_clear_vehicle_feedback_presentation()
+	_mount_blend_time = 0.0
+	_dismount_blend_time = 0.0
 	if occupant:
 		var p_col := occupant.get_node_or_null("CollisionShape3D") as CollisionShape3D
 		if p_col: p_col.set_deferred("disabled", false)
 		occupant.set_mounted_posture(false)
+		occupant.global_basis = Basis()
 		occupant.is_input_locked = false
 		occupant.velocity = Vector3.ZERO
 		occupant = null
@@ -238,6 +298,7 @@ func force_dismount() -> void:
 	velocity = Vector3.ZERO
 	current_gear = GearState.FORWARD
 	is_handbrake_active = false
+	tune_up_time_remaining = 0.0
 	_feedback_throttle = 0.0
 	_gear_settle_timer = 0.0
 	if visual_root: visual_root.rotation = Vector3.ZERO
@@ -294,13 +355,15 @@ func set_drive_inputs(throttle: float, steering: float, delta: float, handbrake:
 		return
 		
 	steering_angle = clampf(steering, -1.0, 1.0)
+	if occupant:
+		occupant.set_vehicle_steering(steering_angle)
 	is_handbrake_active = handbrake
 	_feedback_throttle = clampf(throttle, -1.0, 1.0)
 	
 	if current_gear == GearState.FORWARD:
 		if throttle > 0.0:
 			_gear_settle_timer = 0.0
-			current_speed = clampf(current_speed + acceleration * throttle * delta, 0.0, get_usable_max_speed())
+			current_speed = clampf(current_speed + get_effective_acceleration() * throttle * delta, 0.0, get_usable_max_speed())
 		elif throttle < 0.0:
 			if current_speed > 0.05:
 				if current_speed > 6.0 and _brake_screech_cooldown <= 0.0:
@@ -458,7 +521,8 @@ func get_condition_load() -> float:
 	return _condition_load
 
 func get_usable_max_speed() -> float:
-	return max_speed * CRITICAL_SPEED_MULTIPLIER if _condition == VehicleCondition.CRITICAL else max_speed
+	var base := get_effective_max_speed()
+	return base * CRITICAL_SPEED_MULTIPLIER if _condition == VehicleCondition.CRITICAL else base
 
 func apply_collision_condition(head_on_ratio: float, impact_speed: float) -> bool:
 	if impact_speed < CONDITION_MIN_IMPACT_SPEED or _condition_contact_cooldown > 0.0:

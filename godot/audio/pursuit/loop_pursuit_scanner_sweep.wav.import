@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://393d4c791818"
-path="res://.godot/imported/loop_pursuit_scanner_sweep.wav-393d4c791818efc26212a88ca4e54442.sample"
+uid="uid://4a3d4c8a1818"
+path="res://.godot/imported/loop_pursuit_scanner_sweep.wav-1260c3829c3684bb1890b169a6f5a031.sample"
 
 [deps]
 
 source_file="res://audio/pursuit/loop_pursuit_scanner_sweep.wav"
-dest_files=["res://.godot/imported/loop_pursuit_scanner_sweep.wav-393d4c791818efc26212a88ca4e54442.sample"]
+dest_files=["res://.godot/imported/loop_pursuit_scanner_sweep.wav-1260c3829c3684bb1890b169a6f5a031.sample"]
 
 [params]
 

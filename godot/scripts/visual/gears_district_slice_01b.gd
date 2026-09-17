@@ -13,6 +13,7 @@ const APPROVED_TOON_SHADER_PATH := "res://materials/gears_toon.gdshader"
 const ADDITIVE_EXTENSION_PATHS := [
 	"CommercialFrontage/MayorBurnGarage",
 	"SilentCoreSite",
+	"StreetClutter",
 ]
 
 func _ready() -> void:

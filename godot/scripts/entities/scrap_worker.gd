@@ -21,6 +21,9 @@ enum WorkerState {
 @export var alarm_speed: float = 5.0
 @export var awareness_radius: float = 3.8
 
+@export var material_main: Material
+@export var material_optic: Material
+
 var current_state: WorkerState = WorkerState.AMBIENT
 var current_waypoint_idx: int = 0
 var _initial_position: Vector3 = Vector3.ZERO
@@ -48,11 +51,20 @@ func setup_audio(mgr: AudioManager) -> void:
 	_audio_mgr = mgr
 
 func _ready() -> void:
+	_setup_mesh_materials()
 	_initial_position = global_position
 	_initial_rotation_y = rotation.y
 	if patrol_waypoints.is_empty():
 		patrol_waypoints.append(_initial_position)
 		patrol_waypoints.append(_initial_position + Vector3(0, 0, -3.0))
+
+func _setup_mesh_materials() -> void:
+	var worker_mesh := find_child("ScrapWorker_Mesh", true, false) as MeshInstance3D
+	if worker_mesh:
+		if material_main:
+			worker_mesh.set_surface_override_material(0, material_main.duplicate())
+		if material_optic:
+			worker_mesh.set_surface_override_material(1, material_optic.duplicate())
 
 func reset_actor() -> void:
 	current_state = WorkerState.AMBIENT

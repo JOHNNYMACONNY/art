@@ -33,6 +33,7 @@ func _ready() -> void:
 	if highlight_ring:
 		highlight_ring.visible = false
 	if core_mesh:
+		core_mesh.visible = false
 		core_mesh.scale = Vector3(0.1, 0.1, 0.1)
 
 func power_on() -> void:
@@ -100,6 +101,7 @@ func progress_peel(amount: float) -> void:
 		if amount >= 0.85:
 			current_step = Step.EXPOSED
 			if core_mesh:
+				core_mesh.visible = true
 				core_mesh.scale = Vector3(1.0, 1.0, 1.0)
 			extraction_step_changed.emit("EXPOSE_CORE")
 			audio_event_triggered.emit("CORE_PULL", global_position)

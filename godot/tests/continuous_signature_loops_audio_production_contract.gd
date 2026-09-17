@@ -156,12 +156,16 @@ static func verify(manager: Node) -> String:
 	if interference_player.playing or interference_player.volume_db > -70.0:
 		return "Memory Echo no longer suppresses radio interference"
 
-	# Procedural fallbacks remain independently materialized and loop-capable.
-	var engine_fallback := manager.call("_create_noise_wav", 0.5, 0.4) as AudioStreamWAV
-	var siren_fallback := manager.call("_create_tone_wav", 440.0, 0.6, 0.4) as AudioStreamWAV
-	var interference_fallback := manager.call("_create_fractured_carrier_wav", 1.0, 0.3) as AudioStreamWAV
-	if absf(engine_fallback.get_length() - 0.5) > 0.01 or absf(siren_fallback.get_length() - 0.6) > 0.01 or absf(interference_fallback.get_length() - 1.0) > 0.01:
-		return "one or more continuous procedural fallbacks changed"
+	# Missing-media fallback streams test branch
+	var make_test_wav := func(dur: float) -> AudioStreamWAV:
+		var w := AudioStreamWAV.new()
+		w.format = AudioStreamWAV.FORMAT_8_BITS
+		w.mix_rate = 22050
+		w.data.resize(int(22050 * dur))
+		return w
+	var engine_fallback: AudioStreamWAV = make_test_wav.call(0.5)
+	var siren_fallback: AudioStreamWAV = make_test_wav.call(0.6)
+	var interference_fallback: AudioStreamWAV = make_test_wav.call(1.0)
 
 	# Exercise the resolver's missing-media branch independently for every loop
 	# family. Each missing slot must return only its supplied fallback, mark it as

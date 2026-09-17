@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/prototype/scrap_test_block.gd" id="1_root"]
 
+
 [ext_resource type="Script" path="res://scripts/camera/camera_3d.gd" id="2_camera"]
 
 [ext_resource type="PackedScene" uid="uid://c_player_runner_001" path="res://scenes/player/runner.tscn" id="3_runner"]
@@ -22,8 +23,12 @@
 [ext_resource type="PackedScene" path="res://scenes/world/gears_district_slice_01b.tscn" id="14_gears_district"]
 [ext_resource type="Script" path="res://scripts/world/fb13_thrum_world_event.gd" id="15_fb13_thrum"]
 [ext_resource type="Script" path="res://tests/gears_verification_capture.gd" id="16_verify_capture"]
-[ext_resource type="PackedScene" uid="uid://fb13companionbody001" path="res://scenes/entities/fb13_companion_body.tscn" id="17_fb13"]
-[ext_resource type="Script" path="res://scripts/world/burnside_companion_presence_runtime.gd" id="18_companion_runtime"]
+[ext_resource type="Script" path="res://scripts/world/security_checkpoint_world_event.gd" id="17_checkpoint_event"]
+[ext_resource type="Script" path="res://scripts/world/alley_contraband_drop_world_event.gd" id="18_contraband_event"]
+[ext_resource type="Script" path="res://scripts/world/utility_crawler_world_event.gd" id="19_crawler_event"]
+[ext_resource type="Script" path="res://scripts/world/vending_machine_world_event.gd" id="20_vending_event"]
+[ext_resource type="PackedScene" uid="uid://fb13companionbody001" path="res://scenes/entities/fb13_companion_body.tscn" id="21_fb13"]
+[ext_resource type="Script" path="res://scripts/world/burnside_companion_presence_runtime.gd" id="22_companion_runtime"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -224,13 +229,25 @@ visible = false
 
 [node name="GearsDistrictSlice01B" parent="." instance=ExtResource("14_gears_district")]
 
-[node name="FB13CompanionBody" parent="." instance=ExtResource("17_fb13")]
+[node name="FB13CompanionBody" parent="." instance=ExtResource("21_fb13")]
 
 [node name="FB13ThrumWorldEvent" type="Node" parent="."]
 script = ExtResource("15_fb13_thrum")
 
+[node name="SecurityCheckpointWorldEvent" type="Node" parent="."]
+script = ExtResource("17_checkpoint_event")
+
+[node name="AlleyContrabandDropWorldEvent" type="Node" parent="."]
+script = ExtResource("18_contraband_event")
+
+[node name="UtilityCrawlerWorldEvent" type="Node" parent="."]
+script = ExtResource("19_crawler_event")
+
+[node name="VendingMachineWorldEvent" type="Node" parent="."]
+script = ExtResource("20_vending_event")
+
 [node name="BurnsideCompanionPresenceRuntime" type="Node" parent="."]
-script = ExtResource("18_companion_runtime")
+script = ExtResource("22_companion_runtime")
 
 [node name="VerificationCaptureDriver" type="Node" parent="."]
 script = ExtResource("16_verify_capture")

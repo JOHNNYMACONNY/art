@@ -1,99 +1,105 @@
 [gd_scene format=3 uid="uid://dsworker01live"]
 
-[ext_resource type="Script" uid="uid://c6scrapwork01" path="res://scripts/entities/scrap_worker.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/entities/scrap_worker.gd" id="1_script"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="2_toon"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_clankers_atlas.png" id="3_atlas"]
+[ext_resource type="PackedScene" path="res://models/scrap_worker.glb" id="4_model"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_worker"]
 radius = 0.35
 height = 1.7
 
-[sub_resource type="StandardMaterial3D" id="Material_Workwear"]
-albedo_color = Color(0.24, 0.28, 0.22, 1)
-roughness = 0.8
+[sub_resource type="StandardMaterial3D" id="Mat_Outline"]
+cull_mode = 1
+shading_mode = 0
+albedo_color = Color(0.015, 0.015, 0.02, 1)
+grow = true
+grow_amount = 0.012
+
+[sub_resource type="ShaderMaterial" id="Mat_ClankerMain"]
+next_pass = SubResource("Mat_Outline")
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.65
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("3_atlas")
+shader_parameter/surface_noise_strength = 0.06
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_ClankerOptic"]
+shader = ExtResource("2_toon")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.2
+shader_parameter/emission_color = Color(1.0, 0.72, 0.12, 1)
+shader_parameter/emission_energy = 2.2
+shader_parameter/albedo_texture = ExtResource("3_atlas")
+shader_parameter/surface_noise_strength = 0.0
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = false
+shader_parameter/swap_uv = false
+shader_parameter/uv_scale = Vector2(1, 1)
+shader_parameter/emission_use_albedo = true
 
 [sub_resource type="BoxMesh" id="BoxMesh_Torso"]
-material = SubResource("Material_Workwear")
 size = Vector3(0.48, 0.6, 0.28)
 
-[sub_resource type="StandardMaterial3D" id="Material_Helmet"]
-albedo_color = Color(0.85, 0.55, 0.15, 1)
-roughness = 0.4
-
 [sub_resource type="SphereMesh" id="SphereMesh_Helmet"]
-material = SubResource("Material_Helmet")
 radius = 0.22
 height = 0.44
 
-[sub_resource type="StandardMaterial3D" id="Material_Visor"]
-albedo_color = Color(0.1, 0.12, 0.15, 1)
-metallic = 0.8
-roughness = 0.2
-
 [sub_resource type="BoxMesh" id="BoxMesh_Visor"]
-material = SubResource("Material_Visor")
 size = Vector3(0.25, 0.16, 0.12)
-
-[sub_resource type="StandardMaterial3D" id="Material_Pants"]
-albedo_color = Color(0.16, 0.18, 0.16, 1)
-roughness = 0.9
-
-[sub_resource type="BoxMesh" id="BoxMesh_Limb"]
-material = SubResource("Material_Pants")
-size = Vector3(0.14, 0.55, 0.14)
 
 [node name="ScrapWorker" type="CharacterBody3D"]
 collision_layer = 4
 collision_mask = 3
 script = ExtResource("1_script")
+material_main = SubResource("Mat_ClankerMain")
+material_optic = SubResource("Mat_ClankerOptic")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 shape = SubResource("CapsuleShape3D_worker")
 
 [node name="MeshPivot" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+
+[node name="Model" parent="MeshPivot" instance=ExtResource("4_model")]
 
 [node name="Torso" type="MeshInstance3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
 mesh = SubResource("BoxMesh_Torso")
 
 [node name="Helmet" type="MeshInstance3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.48, 0)
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 mesh = SubResource("SphereMesh_Helmet")
 
 [node name="Visor" type="MeshInstance3D" parent="MeshPivot/Helmet"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.16)
 mesh = SubResource("BoxMesh_Visor")
 
-[node name="LeftArm" type="Node3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.32, 0.25, 0)
 
-[node name="Mesh" type="MeshInstance3D" parent="MeshPivot/LeftArm"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, 0)
-mesh = SubResource("BoxMesh_Limb")
+
+[node name="LeftArm" type="Node3D" parent="MeshPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 1.2, 0)
 
 [node name="RightArm" type="Node3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.25, 0)
-
-[node name="Mesh" type="MeshInstance3D" parent="MeshPivot/RightArm"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, 0)
-mesh = SubResource("BoxMesh_Limb")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.32, 1.2, 0)
 
 [node name="LeftLeg" type="Node3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, -0.25, 0)
-
-[node name="Mesh" type="MeshInstance3D" parent="MeshPivot/LeftLeg"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
-mesh = SubResource("BoxMesh_Limb")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.16, 0.6, 0)
 
 [node name="RightLeg" type="Node3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, -0.25, 0)
-
-[node name="Mesh" type="MeshInstance3D" parent="MeshPivot/RightLeg"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
-mesh = SubResource("BoxMesh_Limb")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.16, 0.6, 0)
 
 [node name="TorchLight" type="OmniLight3D" parent="MeshPivot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, -0.1, -0.4)
-light_color = Color(0.65, 0.85, 1, 1)
-light_energy = 1.2
-omni_range = 3.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.9, -0.4)
+light_color = Color(1.0, 0.82, 0.45, 1)
+light_energy = 0.0
+omni_range = 3.5

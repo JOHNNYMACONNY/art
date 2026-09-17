@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://ci7l4kfiidj4f"
+path="res://.godot/imported/runner_torso.obj-3b8a925419dbc8a61169d806b4081648.mesh"
+
+[deps]
+
+files=["res://.godot/imported/runner_torso.obj-3b8a925419dbc8a61169d806b4081648.mesh"]
+
+source_file="res://models/runner/runner_torso.obj"
+dest_files=["res://.godot/imported/runner_torso.obj-3b8a925419dbc8a61169d806b4081648.mesh", "res://.godot/imported/runner_torso.obj-3b8a925419dbc8a61169d806b4081648.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

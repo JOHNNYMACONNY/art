@@ -1,19 +1,30 @@
-[gd_scene format=3 uid="uid://f00fence01modular"]
+[gd_scene load_steps=8 format=3 uid="uid://f00fence01modular"]
 
-[ext_resource type="Material" path="res://materials/mat_corrugated_metal.tres" id="1_metal"]
 [ext_resource type="Material" path="res://materials/mat_rusted_scrap.tres" id="2_rust"]
+[ext_resource type="Shader" path="res://materials/gears_toon.gdshader" id="toon_shader"]
+[ext_resource type="Texture2D" path="res://textures/urban_clutter/tex_corrugated_fence.png" id="tex_fence"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_post"]
 material = ExtResource("2_rust")
 size = Vector3(0.18, 2.2, 0.18)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sheet"]
-material = ExtResource("1_metal")
-size = Vector3(3.0, 1.8, 0.06)
-
 [sub_resource type="BoxMesh" id="BoxMesh_top_bar"]
 material = ExtResource("2_rust")
 size = Vector3(3.1, 0.1, 0.1)
+
+[sub_resource type="ShaderMaterial" id="Mat_FenceSheet"]
+shader = ExtResource("toon_shader")
+shader_parameter/base_color = Color(1, 1, 1, 1)
+shader_parameter/roughness_value = 0.75
+shader_parameter/emission_color = Color(0, 0, 0, 1)
+shader_parameter/emission_energy = 0.0
+shader_parameter/albedo_texture = ExtResource("tex_fence")
+shader_parameter/use_world_uv = false
+shader_parameter/use_box_uv = true
+shader_parameter/uv_scale = Vector2(1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_unit"]
+size = Vector3(1, 1, 1)
 
 [node name="CorrugatedFence" type="Node3D"]
 
@@ -26,8 +37,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 1.1, 0)
 mesh = SubResource("BoxMesh_post")
 
 [node name="CorrugatedSheet" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
-mesh = SubResource("BoxMesh_sheet")
+transform = Transform3D(3, 0, 0, 0, 1.8, 0, 0, 0, 0.06, 0, 1, 0)
+mesh = SubResource("BoxMesh_unit")
+material_override = SubResource("Mat_FenceSheet")
 
 [node name="TopCap" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.95, 0)

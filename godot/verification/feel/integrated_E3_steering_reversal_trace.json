@@ -1,0 +1,3578 @@
+{
+	"behavior_commit": "LOCAL_UNPINNED",
+	"fixed_hz": 60,
+	"samples": [
+		{
+			"camera_focus": [
+				219.999572753906,
+				0.0500000007450581,
+				199.987884521484
+			],
+			"camera_follow_error_m": 0.139538764953613,
+			"camera_fov_deg": 32.1902046203613,
+			"camera_look_ahead": [
+				-0.00330588896758854,
+				0.0,
+				-0.0927576348185539
+			],
+			"camera_position": [
+				231.5791015625,
+				18.0499992370605,
+				212.298263549805
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.0000000298023223876953,
+			"phase": "left_hold",
+			"position": [
+				219.994598388672,
+				0.0500000007450581,
+				199.848434448242
+			],
+			"pursuer_distance_m": 976.0224609375,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 1,
+			"throttle": 0.0,
+			"time_s": 0.0166666666666667,
+			"velocity": [
+				-0.324118942022324,
+				0.0,
+				-9.0942268371582
+			],
+			"yaw_deg": 2.04116211954035
+		},
+		{
+			"camera_focus": [
+				219.998672485352,
+				0.0500000007450581,
+				199.964614868164
+			],
+			"camera_follow_error_m": 0.267990320920944,
+			"camera_fov_deg": 32.3711318969727,
+			"camera_look_ahead": [
+				-0.00693313684314489,
+				0.0,
+				-0.180239677429199
+			],
+			"camera_position": [
+				231.184555053711,
+				18.0499992370605,
+				212.540588378906
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.274360775947571,
+			"phase": "left_hold",
+			"position": [
+				219.988357543945,
+				0.0500000007450581,
+				199.696823120117
+			],
+			"pursuer_distance_m": 976.135559082031,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 2,
+			"throttle": 0.0,
+			"time_s": 0.0333333333333333,
+			"velocity": [
+				-0.374161899089813,
+				0.0,
+				-9.09644317626953
+			],
+			"yaw_deg": 4.0823242390807
+		},
+		{
+			"camera_focus": [
+				219.997222900391,
+				0.0500000007450581,
+				199.931076049805
+			],
+			"camera_follow_error_m": 0.386314660310745,
+			"camera_fov_deg": 32.5432357788086,
+			"camera_look_ahead": [
+				-0.011297632008791,
+				0.0,
+				-0.262721002101898
+			],
+			"camera_position": [
+				230.817687988281,
+				18.0499992370605,
+				212.732543945312
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.506454825401306,
+			"phase": "left_hold",
+			"position": [
+				219.980575561523,
+				0.0500000007450581,
+				199.545120239258
+			],
+			"pursuer_distance_m": 976.249816894531,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 3,
+			"throttle": 0.0,
+			"time_s": 0.05,
+			"velocity": [
+				-0.467146933078766,
+				0.0,
+				-9.1021032333374
+			],
+			"yaw_deg": 6.12348614517763
+		},
+		{
+			"camera_focus": [
+				219.995101928711,
+				0.0500000007450581,
+				199.888076782227
+			],
+			"camera_follow_error_m": 0.495355993509293,
+			"camera_fov_deg": 32.7069473266602,
+			"camera_look_ahead": [
+				-0.0167254544794559,
+				0.0,
+				-0.34045198559761
+			],
+			"camera_position": [
+				230.479309082031,
+				18.0499992370605,
+				212.879180908203
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.702793598175049,
+			"phase": "left_hold",
+			"position": [
+				219.970626831055,
+				0.0500000007450581,
+				199.393325805664
+			],
+			"pursuer_distance_m": 976.36572265625,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 4,
+			"throttle": 0.0,
+			"time_s": 0.0666666666666667,
+			"velocity": [
+				-0.596695721149445,
+				0.0,
+				-9.10757350921631
+			],
+			"yaw_deg": 8.16464762438775
+		},
+		{
+			"camera_focus": [
+				219.992141723633,
+				0.0500000007450581,
+				199.836380004883
+			],
+			"camera_follow_error_m": 0.59587287902832,
+			"camera_fov_deg": 32.8626747131348,
+			"camera_look_ahead": [
+				-0.0234663225710392,
+				0.0,
+				-0.413657963275909
+			],
+			"camera_position": [
+				230.169738769531,
+				18.0499992370605,
+				212.985107421875
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.868885457515717,
+			"phase": "left_hold",
+			"position": [
+				219.9580078125,
+				0.0500000007450581,
+				199.241485595703
+			],
+			"pursuer_distance_m": 976.483459472656,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 5,
+			"throttle": 0.0,
+			"time_s": 0.0833333333333333,
+			"velocity": [
+				-0.75724184513092,
+				0.0,
+				-9.10997009277344
+			],
+			"yaw_deg": 10.2058103842583
+		},
+		{
+			"camera_focus": [
+				219.988159179688,
+				0.0500000007450581,
+				199.776672363281
+			],
+			"camera_follow_error_m": 0.688496530056,
+			"camera_fov_deg": 33.0108070373535,
+			"camera_look_ahead": [
+				-0.0317056365311146,
+				0.0,
+				-0.482540190219879
+			],
+			"camera_position": [
+				229.888977050781,
+				18.0499992370605,
+				213.054397583008
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.00938987731934,
+			"phase": "left_hold",
+			"position": [
+				219.942276000977,
+				0.0500000007450581,
+				199.089706420898
+			],
+			"pursuer_distance_m": 976.603332519531,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 6,
+			"throttle": 0.0,
+			"time_s": 0.1,
+			"velocity": [
+				-0.94392853975296,
+				0.0,
+				-9.10702419281006
+			],
+			"yaw_deg": 12.2469722903553
+		},
+		{
+			"camera_focus": [
+				219.982955932617,
+				0.0500000007450581,
+				199.709625244141
+			],
+			"camera_follow_error_m": 0.773851215839386,
+			"camera_fov_deg": 33.1517143249512,
+			"camera_look_ahead": [
+				-0.0415749549865723,
+				0.0,
+				-0.547277748584747
+			],
+			"camera_position": [
+				229.636642456055,
+				18.0499992370605,
+				213.090805053711
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.12824904918671,
+			"phase": "left_hold",
+			"position": [
+				219.923065185547,
+				0.0500000007450581,
+				198.938095092773
+			],
+			"pursuer_distance_m": 976.725463867188,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 7,
+			"throttle": 0.0,
+			"time_s": 0.116666666666667,
+			"velocity": [
+				-1.15251612663269,
+				0.0,
+				-9.09695911407471
+			],
+			"yaw_deg": 14.2881341964522
+		},
+		{
+			"camera_focus": [
+				219.976333618164,
+				0.0500000007450581,
+				199.635833740234
+			],
+			"camera_follow_error_m": 0.852463006973267,
+			"camera_fov_deg": 33.2857513427734,
+			"camera_look_ahead": [
+				-0.0531609617173672,
+				0.0,
+				-0.608029961585999
+			],
+			"camera_position": [
+				229.412216186523,
+				18.0499992370605,
+				213.097564697266
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.22879707813263,
+			"phase": "left_hold",
+			"position": [
+				219.90007019043,
+				0.0500000007450581,
+				198.78678894043
+			],
+			"pursuer_distance_m": 976.85009765625,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 8,
+			"throttle": 0.0,
+			"time_s": 0.133333333333333,
+			"velocity": [
+				-1.3793032169342,
+				0.0,
+				-9.07840728759766
+			],
+			"yaw_deg": 16.3292952487755
+		},
+		{
+			"camera_focus": [
+				219.968078613281,
+				0.0500000007450581,
+				199.555892944336
+			],
+			"camera_follow_error_m": 0.9248326420784,
+			"camera_fov_deg": 33.4132499694824,
+			"camera_look_ahead": [
+				-0.0665130764245987,
+				0.0,
+				-0.664938747882843
+			],
+			"camera_position": [
+				229.214920043945,
+				18.0499992370605,
+				213.077621459961
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.31385505199432,
+			"phase": "left_hold",
+			"position": [
+				219.873046875,
+				0.0500000007450581,
+				198.635955810547
+			],
+			"pursuer_distance_m": 976.977233886719,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 9,
+			"throttle": 0.0,
+			"time_s": 0.15,
+			"velocity": [
+				-1.62105453014374,
+				0.0,
+				-9.05032634735107
+			],
+			"yaw_deg": 18.3704563010988
+		},
+		{
+			"camera_focus": [
+				219.957977294922,
+				0.0500000007450581,
+				199.470336914062
+			],
+			"camera_follow_error_m": 0.991404354572296,
+			"camera_fov_deg": 33.5345306396484,
+			"camera_look_ahead": [
+				-0.0816498398780823,
+				0.0,
+				-0.718131005764008
+			],
+			"camera_position": [
+				229.043869018555,
+				18.0499992370605,
+				213.033538818359
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.38580942153931,
+			"phase": "left_hold",
+			"position": [
+				219.841796875,
+				0.0500000007450581,
+				198.485763549805
+			],
+			"pursuer_distance_m": 977.106811523438,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 10,
+			"throttle": 0.0,
+			"time_s": 0.166666666666667,
+			"velocity": [
+				-1.87493920326233,
+				0.0,
+				-9.01194095611572
+			],
+			"yaw_deg": 20.4116190609694
+		},
+		{
+			"camera_focus": [
+				219.945831298828,
+				0.0500000007450581,
+				199.379669189453
+			],
+			"camera_follow_error_m": 1.05259799957275,
+			"camera_fov_deg": 33.6498947143555,
+			"camera_look_ahead": [
+				-0.0985643267631531,
+				0.0,
+				-0.767720699310303
+			],
+			"camera_position": [
+				228.898071289062,
+				18.0499992370605,
+				212.967544555664
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.44667947292328,
+			"phase": "left_hold",
+			"position": [
+				219.80615234375,
+				0.0500000007450581,
+				198.336380004883
+			],
+			"pursuer_distance_m": 977.238891601562,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 11,
+			"throttle": 0.0,
+			"time_s": 0.183333333333333,
+			"velocity": [
+				-2.13847684860229,
+				0.0,
+				-8.96269035339355
+			],
+			"yaw_deg": 22.45278182084
+		},
+		{
+			"camera_focus": [
+				219.931457519531,
+				0.0500000007450581,
+				199.284393310547
+			],
+			"camera_follow_error_m": 1.10880553722382,
+			"camera_fov_deg": 33.7596321105957,
+			"camera_look_ahead": [
+				-0.117228664457798,
+				0.0,
+				-0.813811004161835
+			],
+			"camera_position": [
+				228.776489257812,
+				18.0499992370605,
+				212.881607055664
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.49817132949829,
+			"phase": "left_hold",
+			"position": [
+				219.765991210938,
+				0.0500000007450581,
+				198.188003540039
+			],
+			"pursuer_distance_m": 977.373413085938,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 12,
+			"throttle": 0.0,
+			"time_s": 0.2,
+			"velocity": [
+				-2.40949010848999,
+				0.0,
+				-8.90218448638916
+			],
+			"yaw_deg": 24.4939445807105
+		},
+		{
+			"camera_focus": [
+				219.914642333984,
+				0.0500000007450581,
+				199.184967041016
+			],
+			"camera_follow_error_m": 1.16036856174469,
+			"camera_fov_deg": 33.8640174865723,
+			"camera_look_ahead": [
+				-0.137597858905792,
+				0.0,
+				-0.856495797634125
+			],
+			"camera_position": [
+				228.677947998047,
+				18.0499992370605,
+				212.777481079102
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.54173135757446,
+			"phase": "left_hold",
+			"position": [
+				219.721221923828,
+				0.0500000007450581,
+				198.040832519531
+			],
+			"pursuer_distance_m": 977.51025390625,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 13,
+			"throttle": 0.0,
+			"time_s": 0.216666666666667,
+			"velocity": [
+				-2.68606352806091,
+				0.0,
+				-8.83017730712891
+			],
+			"yaw_deg": 26.5351056330338
+		},
+		{
+			"camera_focus": [
+				219.895217895508,
+				0.0500000007450581,
+				199.081832885742
+			],
+			"camera_follow_error_m": 1.20763254165649,
+			"camera_fov_deg": 33.9633140563965,
+			"camera_look_ahead": [
+				-0.159612953662872,
+				0.0,
+				-0.895861387252808
+			],
+			"camera_position": [
+				228.601333618164,
+				18.0499992370605,
+				212.656600952148
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.57858061790466,
+			"phase": "left_hold",
+			"position": [
+				219.671783447266,
+				0.0500000007450581,
+				197.895050048828
+			],
+			"pursuer_distance_m": 977.649353027344,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 14,
+			"throttle": 0.0,
+			"time_s": 0.233333333333333,
+			"velocity": [
+				-2.96650743484497,
+				0.0,
+				-8.7465295791626
+			],
+			"yaw_deg": 28.5762683929044
+		},
+		{
+			"camera_focus": [
+				219.873016357422,
+				0.0500000007450581,
+				198.97541809082
+			],
+			"camera_follow_error_m": 1.25089597702026,
+			"camera_fov_deg": 34.0577659606934,
+			"camera_look_ahead": [
+				-0.183203786611557,
+				0.0,
+				-0.931987702846527
+			],
+			"camera_position": [
+				228.545440673828,
+				18.0499992370605,
+				212.520233154297
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.60975289344788,
+			"phase": "left_hold",
+			"position": [
+				219.617630004883,
+				0.0500000007450581,
+				197.750869750977
+			],
+			"pursuer_distance_m": 977.79052734375,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 15,
+			"throttle": 0.0,
+			"time_s": 0.25,
+			"velocity": [
+				-3.24932813644409,
+				0.0,
+				-8.65119647979736
+			],
+			"yaw_deg": 30.6174328603223
+		},
+		{
+			"camera_focus": [
+				219.847885131836,
+				0.0500000007450581,
+				198.866119384766
+			],
+			"camera_follow_error_m": 1.29046881198883,
+			"camera_fov_deg": 34.1476135253906,
+			"camera_look_ahead": [
+				-0.208291187882423,
+				0.0,
+				-0.964949369430542
+			],
+			"camera_position": [
+				228.509078979492,
+				18.0499992370605,
+				212.369476318359
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.63612270355225,
+			"phase": "left_hold",
+			"position": [
+				219.558746337891,
+				0.0500000007450581,
+				197.608459472656
+			],
+			"pursuer_distance_m": 977.933776855469,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 16,
+			"throttle": 0.0,
+			"time_s": 0.266666666666667,
+			"velocity": [
+				-3.53319883346558,
+				0.0,
+				-8.54420471191406
+			],
+			"yaw_deg": 32.658590497551
+		},
+		{
+			"camera_focus": [
+				219.819686889648,
+				0.0500000007450581,
+				198.754333496094
+			],
+			"camera_follow_error_m": 1.32661414146423,
+			"camera_fov_deg": 34.2330780029297,
+			"camera_look_ahead": [
+				-0.234788939356804,
+				0.0,
+				-0.994816660881042
+			],
+			"camera_position": [
+				228.491088867188,
+				18.0499992370605,
+				212.205276489258
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.65843081474304,
+			"phase": "left_hold",
+			"position": [
+				219.495132446289,
+				0.0500000007450581,
+				197.468032836914
+			],
+			"pursuer_distance_m": 978.078918457031,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 17,
+			"throttle": 0.0,
+			"time_s": 0.283333333333333,
+			"velocity": [
+				-3.81693983078003,
+				0.0,
+				-8.42563915252686
+			],
+			"yaw_deg": 34.6997549649689
+		},
+		{
+			"camera_focus": [
+				219.788269042969,
+				0.0500000007450581,
+				198.640426635742
+			],
+			"camera_follow_error_m": 1.35958468914032,
+			"camera_fov_deg": 34.3143730163574,
+			"camera_look_ahead": [
+				-0.262605339288712,
+				0.0,
+				-1.02165639400482
+			],
+			"camera_position": [
+				228.490249633789,
+				18.0499992370605,
+				212.028366088867
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.67730164527893,
+			"phase": "left_hold",
+			"position": [
+				219.426803588867,
+				0.0500000007450581,
+				197.329772949219
+			],
+			"pursuer_distance_m": 978.225769042969,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 18,
+			"throttle": 0.0,
+			"time_s": 0.3,
+			"velocity": [
+				-4.09949541091919,
+				0.0,
+				-8.29563140869141
+			],
+			"yaw_deg": 36.7409194323867
+		},
+		{
+			"camera_focus": [
+				219.753524780273,
+				0.0500000007450581,
+				198.524765014648
+			],
+			"camera_follow_error_m": 1.38963162899017,
+			"camera_fov_deg": 34.3917045593262,
+			"camera_look_ahead": [
+				-0.29164457321167,
+				0.0,
+				-1.04553246498108
+			],
+			"camera_position": [
+				228.505401611328,
+				18.0499992370605,
+				211.839416503906
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.69326519966125,
+			"phase": "left_hold",
+			"position": [
+				219.353805541992,
+				0.0500000007450581,
+				197.193862915039
+			],
+			"pursuer_distance_m": 978.374145507812,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 19,
+			"throttle": 0.0,
+			"time_s": 0.316666666666667,
+			"velocity": [
+				-4.37991905212402,
+				0.0,
+				-8.15435314178467
+			],
+			"yaw_deg": 38.7820770696154
+		},
+		{
+			"camera_focus": [
+				219.715362548828,
+				0.0500000007450581,
+				198.407684326172
+			],
+			"camera_follow_error_m": 1.41696166992188,
+			"camera_fov_deg": 34.4652633666992,
+			"camera_look_ahead": [
+				-0.321807831525803,
+				0.0,
+				-1.06650650501251
+			],
+			"camera_position": [
+				228.535385131836,
+				18.0499992370605,
+				211.638961791992
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.7067699432373,
+			"phase": "left_hold",
+			"position": [
+				219.276184082031,
+				0.0500000007450581,
+				197.060501098633
+			],
+			"pursuer_distance_m": 978.523986816406,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 20,
+			"throttle": 0.0,
+			"time_s": 0.333333333333333,
+			"velocity": [
+				-4.65735816955566,
+				0.0,
+				-8.00200653076172
+			],
+			"yaw_deg": 40.8232381219387
+		},
+		{
+			"camera_focus": [
+				219.673675537109,
+				0.0500000007450581,
+				198.289520263672
+			],
+			"camera_follow_error_m": 1.4417964220047,
+			"camera_fov_deg": 34.5352363586426,
+			"camera_look_ahead": [
+				-0.352994233369827,
+				0.0,
+				-1.0846381187439
+			],
+			"camera_position": [
+				228.579055786133,
+				18.0499992370605,
+				211.427490234375
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.71819448471069,
+			"phase": "left_hold",
+			"position": [
+				219.194000244141,
+				0.0500000007450581,
+				196.92985534668
+			],
+			"pursuer_distance_m": 978.674987792969,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 21,
+			"throttle": 0.0,
+			"time_s": 0.35,
+			"velocity": [
+				-4.93104028701782,
+				0.0,
+				-7.83881759643555
+			],
+			"yaw_deg": 42.864399174262
+		},
+		{
+			"camera_focus": [
+				219.628387451172,
+				0.0500000007450581,
+				198.170593261719
+			],
+			"camera_follow_error_m": 1.46432590484619,
+			"camera_fov_deg": 34.6017951965332,
+			"camera_look_ahead": [
+				-0.385101675987244,
+				0.0,
+				-1.09998571872711
+			],
+			"camera_position": [
+				228.635284423828,
+				18.0499992370605,
+				211.205322265625
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.72785902023315,
+			"phase": "left_hold",
+			"position": [
+				219.107330322266,
+				0.0500000007450581,
+				196.802108764648
+			],
+			"pursuer_distance_m": 978.827087402344,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 22,
+			"throttle": 0.0,
+			"time_s": 0.366666666666667,
+			"velocity": [
+				-5.20026540756226,
+				0.0,
+				-7.66503524780273
+			],
+			"yaw_deg": 44.9055602265853
+		},
+		{
+			"camera_focus": [
+				219.579437255859,
+				0.0500000007450581,
+				198.051208496094
+			],
+			"camera_follow_error_m": 1.48473858833313,
+			"camera_fov_deg": 34.6651077270508,
+			"camera_look_ahead": [
+				-0.418027430772781,
+				0.0,
+				-1.11260640621185
+			],
+			"camera_position": [
+				228.702972412109,
+				18.0499992370605,
+				210.972793579102
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.73603439331055,
+			"phase": "left_hold",
+			"position": [
+				219.016250610352,
+				0.0500000007450581,
+				196.677429199219
+			],
+			"pursuer_distance_m": 978.97998046875,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 23,
+			"throttle": 0.0,
+			"time_s": 0.383333333333333,
+			"velocity": [
+				-5.46439361572266,
+				0.0,
+				-7.48092555999756
+			],
+			"yaw_deg": 46.9467212789086
+		},
+		{
+			"camera_focus": [
+				219.526779174805,
+				0.0500000007450581,
+				197.931655883789
+			],
+			"camera_follow_error_m": 1.5031965970993,
+			"camera_fov_deg": 34.7253341674805,
+			"camera_look_ahead": [
+				-0.451668798923492,
+				0.0,
+				-1.12255644798279
+			],
+			"camera_position": [
+				228.781036376953,
+				18.0499992370605,
+				210.730117797852
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.74294972419739,
+			"phase": "left_hold",
+			"position": [
+				218.920867919922,
+				0.0500000007450581,
+				196.55598449707
+			],
+			"pursuer_distance_m": 979.133605957031,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 24,
+			"throttle": 0.0,
+			"time_s": 0.4,
+			"velocity": [
+				-5.72283935546875,
+				0.0,
+				-7.2867693901062
+			],
+			"yaw_deg": 48.9878823312319
+		},
+		{
+			"camera_focus": [
+				219.470367431641,
+				0.0500000007450581,
+				197.812225341797
+			],
+			"camera_follow_error_m": 1.51985394954681,
+			"camera_fov_deg": 34.7826232910156,
+			"camera_look_ahead": [
+				-0.485923439264297,
+				0.0,
+				-1.12989163398743
+			],
+			"camera_position": [
+				228.868423461914,
+				18.0499992370605,
+				210.477508544922
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.74880003929138,
+			"phase": "left_hold",
+			"position": [
+				218.8212890625,
+				0.0500000007450581,
+				196.437942504883
+			],
+			"pursuer_distance_m": 979.287658691406,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 25,
+			"throttle": 0.0,
+			"time_s": 0.416666666666667,
+			"velocity": [
+				-5.97506523132324,
+				0.0,
+				-7.08286142349243
+			],
+			"yaw_deg": 51.0290433835552
+		},
+		{
+			"camera_focus": [
+				219.410186767578,
+				0.0500000007450581,
+				197.69319152832
+			],
+			"camera_follow_error_m": 1.53487610816956,
+			"camera_fov_deg": 34.8371200561523,
+			"camera_look_ahead": [
+				-0.520689845085144,
+				0.0,
+				-1.13466715812683
+			],
+			"camera_position": [
+				228.964065551758,
+				18.0499992370605,
+				210.215133666992
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.75374913215637,
+			"phase": "left_hold",
+			"position": [
+				218.71760559082,
+				0.0500000007450581,
+				196.323455810547
+			],
+			"pursuer_distance_m": 979.442016601562,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 26,
+			"throttle": 0.0,
+			"time_s": 0.433333333333333,
+			"velocity": [
+				-6.22057437896729,
+				0.0,
+				-6.86950731277466
+			],
+			"yaw_deg": 53.0702010207839
+		},
+		{
+			"camera_focus": [
+				219.346206665039,
+				0.0500000007450581,
+				197.574813842773
+			],
+			"camera_follow_error_m": 1.5483809709549,
+			"camera_fov_deg": 34.8889579772949,
+			"camera_look_ahead": [
+				-0.555867671966553,
+				0.0,
+				-1.13693809509277
+			],
+			"camera_position": [
+				229.066955566406,
+				18.0499992370605,
+				209.943115234375
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.75793671607971,
+			"phase": "left_hold",
+			"position": [
+				218.609954833984,
+				0.0500000007450581,
+				196.212677001953
+			],
+			"pursuer_distance_m": 979.596496582031,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 27,
+			"throttle": 0.0,
+			"time_s": 0.45,
+			"velocity": [
+				-6.45890665054321,
+				0.0,
+				-6.64702177047729
+			],
+			"yaw_deg": 55.1113689032964
+		},
+		{
+			"camera_focus": [
+				219.278427124023,
+				0.0500000007450581,
+				197.45735168457
+			],
+			"camera_follow_error_m": 1.56051123142242,
+			"camera_fov_deg": 34.9382667541504,
+			"camera_look_ahead": [
+				-0.591357946395874,
+				0.0,
+				-1.13675951957703
+			],
+			"camera_position": [
+				229.176086425781,
+				18.0499992370605,
+				209.661529541016
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.76147842407227,
+			"phase": "left_hold",
+			"position": [
+				218.498458862305,
+				0.0500000007450581,
+				196.105743408203
+			],
+			"pursuer_distance_m": 979.750915527344,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 28,
+			"throttle": 0.0,
+			"time_s": 0.466666666666667,
+			"velocity": [
+				-6.68963718414307,
+				0.0,
+				-6.41572999954224
+			],
+			"yaw_deg": 57.1525299556196
+		},
+		{
+			"camera_focus": [
+				219.206848144531,
+				0.0500000007450581,
+				197.341049194336
+			],
+			"camera_follow_error_m": 1.57136762142181,
+			"camera_fov_deg": 34.9851722717285,
+			"camera_look_ahead": [
+				-0.62706333398819,
+				0.0,
+				-1.13418626785278
+			],
+			"camera_position": [
+				229.290466308594,
+				18.0499992370605,
+				209.370498657227
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.76447463035583,
+			"phase": "left_hold",
+			"position": [
+				218.383255004883,
+				0.0500000007450581,
+				196.002807617188
+			],
+			"pursuer_distance_m": 979.904968261719,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 29,
+			"throttle": 0.0,
+			"time_s": 0.483333333333333,
+			"velocity": [
+				-6.91237020492554,
+				0.0,
+				-6.17596483230591
+			],
+			"yaw_deg": 59.1936910079429
+		},
+		{
+			"camera_focus": [
+				219.131500244141,
+				0.0500000007450581,
+				197.226150512695
+			],
+			"camera_follow_error_m": 1.58107137680054,
+			"camera_fov_deg": 35.0297889709473,
+			"camera_look_ahead": [
+				-0.662888288497925,
+				0.0,
+				-1.12927353382111
+			],
+			"camera_position": [
+				229.409133911133,
+				18.0499992370605,
+				209.070114135742
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.76700901985168,
+			"phase": "left_hold",
+			"position": [
+				218.26448059082,
+				0.0500000007450581,
+				195.904006958008
+			],
+			"pursuer_distance_m": 980.05859375,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 30,
+			"throttle": 0.0,
+			"time_s": 0.5,
+			"velocity": [
+				-7.12673711776733,
+				0.0,
+				-5.92806673049927
+			],
+			"yaw_deg": 61.2348520602662
+		},
+		{
+			"camera_focus": [
+				219.052398681641,
+				0.0500000007450581,
+				197.112884521484
+			],
+			"camera_follow_error_m": 1.58972799777985,
+			"camera_fov_deg": 35.0722312927246,
+			"camera_look_ahead": [
+				-0.698739111423492,
+				0.0,
+				-1.12207663059235
+			],
+			"camera_position": [
+				229.531143188477,
+				18.0499992370605,
+				208.760452270508
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.76915311813354,
+			"phase": "left_hold",
+			"position": [
+				218.142272949219,
+				0.0500000007450581,
+				195.809463500977
+			],
+			"pursuer_distance_m": 980.211547851562,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 31,
+			"throttle": 0.0,
+			"time_s": 0.516666666666667,
+			"velocity": [
+				-7.33239412307739,
+				0.0,
+				-5.67238426208496
+			],
+			"yaw_deg": 63.2760131125895
+		},
+		{
+			"camera_focus": [
+				218.969589233398,
+				0.0500000007450581,
+				197.00146484375
+			],
+			"camera_follow_error_m": 1.59741854667664,
+			"camera_fov_deg": 35.1126022338867,
+			"camera_look_ahead": [
+				-0.734524309635162,
+				0.0,
+				-1.11265110969543
+			],
+			"camera_position": [
+				229.65559387207,
+				18.0499992370605,
+				208.441558837891
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.77096700668335,
+			"phase": "left_hold",
+			"position": [
+				218.016784667969,
+				0.0500000007450581,
+				195.719314575195
+			],
+			"pursuer_distance_m": 980.363586425781,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 32,
+			"throttle": 0.0,
+			"time_s": 0.533333333333333,
+			"velocity": [
+				-7.52901983261108,
+				0.0,
+				-5.40927219390869
+			],
+			"yaw_deg": 65.3171741649128
+		},
+		{
+			"camera_focus": [
+				218.883117675781,
+				0.0500000007450581,
+				196.892105102539
+			],
+			"camera_follow_error_m": 1.60423195362091,
+			"camera_fov_deg": 35.1510047912598,
+			"camera_look_ahead": [
+				-0.770154476165771,
+				0.0,
+				-1.10105311870575
+			],
+			"camera_position": [
+				229.781555175781,
+				18.0499992370605,
+				208.113540649414
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.77250266075134,
+			"phase": "left_hold",
+			"position": [
+				217.88818359375,
+				0.0500000007450581,
+				195.633666992188
+			],
+			"pursuer_distance_m": 980.514526367188,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 33,
+			"throttle": 0.0,
+			"time_s": 0.55,
+			"velocity": [
+				-7.71631622314453,
+				0.0,
+				-5.13909196853638
+			],
+			"yaw_deg": 67.3583420474253
+		},
+		{
+			"camera_focus": [
+				218.793045043945,
+				0.0500000007450581,
+				196.785003662109
+			],
+			"camera_follow_error_m": 1.61025559902191,
+			"camera_fov_deg": 35.1875343322754,
+			"camera_look_ahead": [
+				-0.805542469024658,
+				0.0,
+				-1.08733904361725
+			],
+			"camera_position": [
+				229.908157348633,
+				18.0499992370605,
+				207.776489257812
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.77380037307739,
+			"phase": "left_hold",
+			"position": [
+				217.756622314453,
+				0.0500000007450581,
+				195.552627563477
+			],
+			"pursuer_distance_m": 980.664306640625,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 34,
+			"throttle": 0.0,
+			"time_s": 0.566666666666667,
+			"velocity": [
+				-7.89400482177734,
+				0.0,
+				-4.86221075057983
+			],
+			"yaw_deg": 69.3995030997486
+		},
+		{
+			"camera_focus": [
+				218.699432373047,
+				0.0500000007450581,
+				196.680374145508
+			],
+			"camera_follow_error_m": 1.61556959152222,
+			"camera_fov_deg": 35.222282409668,
+			"camera_look_ahead": [
+				-0.840603530406952,
+				0.0,
+				-1.07156574726105
+			],
+			"camera_position": [
+				230.034515380859,
+				18.0499992370605,
+				207.430511474609
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.77489852905273,
+			"phase": "left_hold",
+			"position": [
+				217.622253417969,
+				0.0500000007450581,
+				195.476318359375
+			],
+			"pursuer_distance_m": 980.812561035156,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 35,
+			"throttle": 0.0,
+			"time_s": 0.583333333333333,
+			"velocity": [
+				-8.06182670593262,
+				0.0,
+				-4.57900238037109
+			],
+			"yaw_deg": 71.4406641520718
+		},
+		{
+			"camera_focus": [
+				218.602355957031,
+				0.0500000007450581,
+				196.578384399414
+			],
+			"camera_follow_error_m": 1.62023663520813,
+			"camera_fov_deg": 35.2553367614746,
+			"camera_look_ahead": [
+				-0.875255107879639,
+				0.0,
+				-1.05379068851471
+			],
+			"camera_position": [
+				230.159820556641,
+				18.0499992370605,
+				207.07568359375
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.77582740783691,
+			"phase": "left_hold",
+			"position": [
+				217.485260009766,
+				0.0500000007450581,
+				195.404815673828
+			],
+			"pursuer_distance_m": 980.959289550781,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": -1.0,
+			"step": 36,
+			"throttle": 0.0,
+			"time_s": 0.6,
+			"velocity": [
+				-8.2195405960083,
+				0.0,
+				-4.28984594345093
+			],
+			"yaw_deg": 73.4818252043951
+		},
+		{
+			"camera_focus": [
+				218.502059936523,
+				0.0500000007450581,
+				196.479141235352
+			],
+			"camera_follow_error_m": 1.6235865354538,
+			"camera_fov_deg": 35.2867774963379,
+			"camera_look_ahead": [
+				-0.908908069133759,
+				0.0,
+				-1.03512108325958
+			],
+			"camera_position": [
+				230.247222900391,
+				18.0499992370605,
+				206.752182006836
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.22789144515991,
+			"phase": "right_reversal",
+			"position": [
+				217.347991943359,
+				0.0500000007450581,
+				195.337142944336
+			],
+			"pursuer_distance_m": 981.103332519531,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 37,
+			"throttle": 0.0,
+			"time_s": 0.616666666666667,
+			"velocity": [
+				-8.23593139648438,
+				0.0,
+				-4.06044292449951
+			],
+			"yaw_deg": 71.4406641520718
+		},
+		{
+			"camera_focus": [
+				218.398788452148,
+				0.0500000007450581,
+				196.382614135742
+			],
+			"camera_follow_error_m": 1.62659168243408,
+			"camera_fov_deg": 35.3166847229004,
+			"camera_look_ahead": [
+				-0.94124835729599,
+				0.0,
+				-1.01628136634827
+			],
+			"camera_position": [
+				230.300430297852,
+				18.0499992370605,
+				206.459579467773
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.764367580413818,
+			"phase": "right_reversal",
+			"position": [
+				217.210510253906,
+				0.0500000007450581,
+				195.271850585938
+			],
+			"pursuer_distance_m": 981.245910644531,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 38,
+			"throttle": 0.0,
+			"time_s": 0.633333333333334,
+			"velocity": [
+				-8.24917411804199,
+				0.0,
+				-3.91732549667358
+			],
+			"yaw_deg": 69.3995030997486
+		},
+		{
+			"camera_focus": [
+				218.292770385742,
+				0.0500000007450581,
+				196.288681030273
+			],
+			"camera_follow_error_m": 1.62987077236176,
+			"camera_fov_deg": 35.3451347351074,
+			"camera_look_ahead": [
+				-0.972044169902802,
+				0.0,
+				-0.997896909713745
+			],
+			"camera_position": [
+				230.322738647461,
+				18.0499992370605,
+				206.19709777832
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.372251987457275,
+			"phase": "right_reversal",
+			"position": [
+				217.07292175293,
+				0.0500000007450581,
+				195.207733154297
+			],
+			"pursuer_distance_m": 981.3876953125,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 39,
+			"throttle": 0.0,
+			"time_s": 0.65,
+			"velocity": [
+				-8.25536632537842,
+				0.0,
+				-3.84675931930542
+			],
+			"yaw_deg": 67.3583352172361
+		},
+		{
+			"camera_focus": [
+				218.184234619141,
+				0.0500000007450581,
+				196.197143554688
+			],
+			"camera_follow_error_m": 1.63375926017761,
+			"camera_fov_deg": 35.3721961975098,
+			"camera_look_ahead": [
+				-1.00112640857697,
+				0.0,
+				-0.980486571788788
+			],
+			"camera_position": [
+				230.317001342773,
+				18.0499992370605,
+				205.963775634766
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.040543794631958,
+			"phase": "right_reversal",
+			"position": [
+				216.935394287109,
+				0.0500000007450581,
+				195.143783569336
+			],
+			"pursuer_distance_m": 981.529296875,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 40,
+			"throttle": 0.0,
+			"time_s": 0.666666666666667,
+			"velocity": [
+				-8.25163650512695,
+				0.0,
+				-3.83695268630981
+			],
+			"yaw_deg": 65.3171741649128
+		},
+		{
+			"camera_focus": [
+				218.07341003418,
+				0.0500000007450581,
+				196.107757568359
+			],
+			"camera_follow_error_m": 1.63841009140015,
+			"camera_fov_deg": 35.3979377746582,
+			"camera_look_ahead": [
+				-1.02837204933167,
+				0.0,
+				-0.964465916156769
+			],
+			"camera_position": [
+				230.285781860352,
+				18.0499992370605,
+				205.758514404297
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.240063428878784,
+			"phase": "right_reversal",
+			"position": [
+				216.798126220703,
+				0.0500000007450581,
+				195.079147338867
+			],
+			"pursuer_distance_m": 981.671264648438,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 41,
+			"throttle": 0.0,
+			"time_s": 0.683333333333334,
+			"velocity": [
+				-8.23592567443848,
+				0.0,
+				-3.8777871131897
+			],
+			"yaw_deg": 63.2760131125895
+		},
+		{
+			"camera_focus": [
+				217.960510253906,
+				0.0500000007450581,
+				196.020233154297
+			],
+			"camera_follow_error_m": 1.64379668235779,
+			"camera_fov_deg": 35.4224243164062,
+			"camera_look_ahead": [
+				-1.05369114875793,
+				0.0,
+				-0.950155854225159
+			],
+			"camera_position": [
+				230.231216430664,
+				18.0499992370605,
+				205.580093383789
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.477441310882568,
+			"phase": "right_reversal",
+			"position": [
+				216.661346435547,
+				0.0500000007450581,
+				195.013137817383
+			],
+			"pursuer_distance_m": 981.813903808594,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 42,
+			"throttle": 0.0,
+			"time_s": 0.700000000000001,
+			"velocity": [
+				-8.20681381225586,
+				0.0,
+				-3.96058392524719
+			],
+			"yaw_deg": 61.2348520602662
+		},
+		{
+			"camera_focus": [
+				217.845748901367,
+				0.0500000007450581,
+				195.934280395508
+			],
+			"camera_follow_error_m": 1.64983546733856,
+			"camera_fov_deg": 35.4457168579102,
+			"camera_look_ahead": [
+				-1.07701730728149,
+				0.0,
+				-0.937793672084808
+			],
+			"camera_position": [
+				230.155288696289,
+				18.0499992370605,
+				205.427215576172
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.678250312805176,
+			"phase": "right_reversal",
+			"position": [
+				216.525283813477,
+				0.0500000007450581,
+				194.945175170898
+			],
+			"pursuer_distance_m": 981.957397460938,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 43,
+			"throttle": 0.0,
+			"time_s": 0.716666666666667,
+			"velocity": [
+				-8.1633825302124,
+				0.0,
+				-4.0779013633728
+			],
+			"yaw_deg": 59.1936910079429
+		},
+		{
+			"camera_focus": [
+				217.729370117188,
+				0.0500000007450581,
+				195.849563598633
+			],
+			"camera_follow_error_m": 1.65637350082397,
+			"camera_fov_deg": 35.4678726196289,
+			"camera_look_ahead": [
+				-1.0983008146286,
+				0.0,
+				-0.927544772624969
+			],
+			"camera_position": [
+				230.059661865234,
+				18.0499992370605,
+				205.298568725586
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.84812331199646,
+			"phase": "right_reversal",
+			"position": [
+				216.390197753906,
+				0.0500000007450581,
+				194.874786376953
+			],
+			"pursuer_distance_m": 982.101989746094,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 44,
+			"throttle": 0.0,
+			"time_s": 0.733333333333334,
+			"velocity": [
+				-8.10509872436523,
+				0.0,
+				-4.22335958480835
+			],
+			"yaw_deg": 57.1525299556196
+		},
+		{
+			"camera_focus": [
+				217.611587524414,
+				0.0500000007450581,
+				195.765777587891
+			],
+			"camera_follow_error_m": 1.66324210166931,
+			"camera_fov_deg": 35.4889488220215,
+			"camera_look_ahead": [
+				-1.11750435829163,
+				0.0,
+				-0.919513642787933
+			],
+			"camera_position": [
+				229.94580078125,
+				18.0499992370605,
+				205.192810058594
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 0.991826772689819,
+			"phase": "right_reversal",
+			"position": [
+				216.256332397461,
+				0.0500000007450581,
+				194.80158996582
+			],
+			"pursuer_distance_m": 982.247680664062,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 45,
+			"throttle": 0.0,
+			"time_s": 0.750000000000001,
+			"velocity": [
+				-8.0317268371582,
+				0.0,
+				-4.39148759841919
+			],
+			"yaw_deg": 55.1113723183909
+		},
+		{
+			"camera_focus": [
+				217.492645263672,
+				0.0500000007450581,
+				195.682586669922
+			],
+			"camera_follow_error_m": 1.67025148868561,
+			"camera_fov_deg": 35.5089950561523,
+			"camera_look_ahead": [
+				-1.13459992408752,
+				0.0,
+				-0.913753926753998
+			],
+			"camera_position": [
+				229.815017700195,
+				18.0499992370605,
+				205.10856628418
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.11339282989502,
+			"phase": "right_reversal",
+			"position": [
+				216.123947143555,
+				0.0500000007450581,
+				194.725296020508
+			],
+			"pursuer_distance_m": 982.394592285156,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 46,
+			"throttle": 0.0,
+			"time_s": 0.766666666666667,
+			"velocity": [
+				-7.94325828552246,
+				0.0,
+				-4.57759475708008
+			],
+			"yaw_deg": 53.0702112660677
+		},
+		{
+			"camera_focus": [
+				217.372756958008,
+				0.0500000007450581,
+				195.599685668945
+			],
+			"camera_follow_error_m": 1.67722237110138,
+			"camera_fov_deg": 35.5280647277832,
+			"camera_look_ahead": [
+				-1.14956700801849,
+				0.0,
+				-0.910277247428894
+			],
+			"camera_position": [
+				229.668350219727,
+				18.0499992370605,
+				205.044494628906
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.21623063087463,
+			"phase": "right_reversal",
+			"position": [
+				215.993286132812,
+				0.0500000007450581,
+				194.64567565918
+			],
+			"pursuer_distance_m": 982.542724609375,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 47,
+			"throttle": 0.0,
+			"time_s": 0.783333333333334,
+			"velocity": [
+				-7.83985376358032,
+				0.0,
+				-4.77765655517578
+			],
+			"yaw_deg": 51.0290467986498
+		},
+		{
+			"camera_focus": [
+				217.252166748047,
+				0.0500000007450581,
+				195.516754150391
+			],
+			"camera_follow_error_m": 1.68400514125824,
+			"camera_fov_deg": 35.5462036132812,
+			"camera_look_ahead": [
+				-1.1623911857605,
+				0.0,
+				-0.909060835838318
+			],
+			"camera_position": [
+				229.506790161133,
+				18.0499992370605,
+				204.999221801758
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.30322623252869,
+			"phase": "right_reversal",
+			"position": [
+				215.864593505859,
+				0.0500000007450581,
+				194.562545776367
+			],
+			"pursuer_distance_m": 982.691955566406,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 48,
+			"throttle": 0.0,
+			"time_s": 0.800000000000001,
+			"velocity": [
+				-7.72179889678955,
+				0.0,
+				-4.98821640014648
+			],
+			"yaw_deg": 48.9878823312319
+		},
+		{
+			"camera_focus": [
+				217.131103515625,
+				0.0500000007450581,
+				195.433517456055
+			],
+			"camera_follow_error_m": 1.69048690795898,
+			"camera_fov_deg": 35.5634574890137,
+			"camera_look_ahead": [
+				-1.17306339740753,
+				0.0,
+				-0.910054087638855
+			],
+			"camera_position": [
+				229.331146240234,
+				18.0499992370605,
+				204.971435546875
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.37682008743286,
+			"phase": "right_reversal",
+			"position": [
+				215.738098144531,
+				0.0500000007450581,
+				194.475769042969
+			],
+			"pursuer_distance_m": 982.842346191406,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 49,
+			"throttle": 0.0,
+			"time_s": 0.816666666666668,
+			"velocity": [
+				-7.58947324752808,
+				0.0,
+				-5.20630645751953
+			],
+			"yaw_deg": 46.9467212789086
+		},
+		{
+			"camera_focus": [
+				217.009811401367,
+				0.0500000007450581,
+				195.349700927734
+			],
+			"camera_follow_error_m": 1.69654512405396,
+			"camera_fov_deg": 35.5798721313477,
+			"camera_look_ahead": [
+				-1.18157935142517,
+				0.0,
+				-0.9131840467453
+			],
+			"camera_position": [
+				229.142135620117,
+				18.0499992370605,
+				204.959838867188
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.4390766620636,
+			"phase": "right_reversal",
+			"position": [
+				215.614044189453,
+				0.0500000007450581,
+				194.385284423828
+			],
+			"pursuer_distance_m": 982.993713378906,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 50,
+			"throttle": 0.0,
+			"time_s": 0.833333333333334,
+			"velocity": [
+				-7.44331645965576,
+				0.0,
+				-5.42937135696411
+			],
+			"yaw_deg": 44.9055568114907
+		},
+		{
+			"camera_focus": [
+				216.88850402832,
+				0.0500000007450581,
+				195.265060424805
+			],
+			"camera_follow_error_m": 1.70210313796997,
+			"camera_fov_deg": 35.5954856872559,
+			"camera_look_ahead": [
+				-1.18793928623199,
+				0.0,
+				-0.918360114097595
+			],
+			"camera_position": [
+				228.940338134766,
+				18.0499992370605,
+				204.963119506836
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.49174213409424,
+			"phase": "right_reversal",
+			"position": [
+				215.492645263672,
+				0.0500000007450581,
+				194.291030883789
+			],
+			"pursuer_distance_m": 983.145874023438,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 51,
+			"throttle": 0.0,
+			"time_s": 0.850000000000001,
+			"velocity": [
+				-7.28381538391113,
+				0.0,
+				-5.65521192550659
+			],
+			"yaw_deg": 42.864399174262
+		},
+		{
+			"camera_focus": [
+				216.767425537109,
+				0.0500000007450581,
+				195.179336547852
+			],
+			"camera_follow_error_m": 1.70709908008575,
+			"camera_fov_deg": 35.6103363037109,
+			"camera_look_ahead": [
+				-1.19214749336243,
+				0.0,
+				-0.925477981567383
+			],
+			"camera_position": [
+				228.726287841797,
+				18.0499992370605,
+				204.980041503906
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.53629422187805,
+			"phase": "right_reversal",
+			"position": [
+				215.374114990234,
+				0.0500000007450581,
+				194.192993164062
+			],
+			"pursuer_distance_m": 983.298706054688,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 52,
+			"throttle": 0.0,
+			"time_s": 0.866666666666668,
+			"velocity": [
+				-7.11148309707642,
+				0.0,
+				-5.88192987442017
+			],
+			"yaw_deg": 40.8232347068442
+		},
+		{
+			"camera_focus": [
+				216.646789550781,
+				0.0500000007450581,
+				195.092330932617
+			],
+			"camera_follow_error_m": 1.71147418022156,
+			"camera_fov_deg": 35.6244621276855,
+			"camera_look_ahead": [
+				-1.19421255588531,
+				0.0,
+				-0.934422731399536
+			],
+			"camera_position": [
+				228.500427246094,
+				18.0499992370605,
+				205.009353637695
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.57398343086243,
+			"phase": "right_reversal",
+			"position": [
+				215.258666992188,
+				0.0500000007450581,
+				194.091201782227
+			],
+			"pursuer_distance_m": 983.452209472656,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 53,
+			"throttle": 0.0,
+			"time_s": 0.883333333333334,
+			"velocity": [
+				-6.92685174942017,
+				0.0,
+				-6.10788440704346
+			],
+			"yaw_deg": 38.7820736545209
+		},
+		{
+			"camera_focus": [
+				216.526840209961,
+				0.0500000007450581,
+				195.003845214844
+			],
+			"camera_follow_error_m": 1.71523082256317,
+			"camera_fov_deg": 35.6379013061523,
+			"camera_look_ahead": [
+				-1.1941465139389,
+				0.0,
+				-0.945071816444397
+			],
+			"camera_position": [
+				228.263122558594,
+				18.0499992370605,
+				205.049865722656
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.6058657169342,
+			"phase": "right_reversal",
+			"position": [
+				215.146499633789,
+				0.0500000007450581,
+				193.98567199707
+			],
+			"pursuer_distance_m": 983.606079101562,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 54,
+			"throttle": 0.0,
+			"time_s": 0.900000000000001,
+			"velocity": [
+				-6.73045825958252,
+				0.0,
+				-6.33165407180786
+			],
+			"yaw_deg": 36.740909187103
+		},
+		{
+			"camera_focus": [
+				216.407775878906,
+				0.0500000007450581,
+				194.913711547852
+			],
+			"camera_follow_error_m": 1.71836185455322,
+			"camera_fov_deg": 35.6506843566895,
+			"camera_look_ahead": [
+				-1.19196534156799,
+				0.0,
+				-0.957297146320343
+			],
+			"camera_position": [
+				228.014694213867,
+				18.0499992370605,
+				205.100402832031
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.63283658027649,
+			"phase": "right_reversal",
+			"position": [
+				215.037780761719,
+				0.0500000007450581,
+				193.87646484375
+			],
+			"pursuer_distance_m": 983.760131835938,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 55,
+			"throttle": 0.0,
+			"time_s": 0.916666666666668,
+			"velocity": [
+				-6.5228443145752,
+				0.0,
+				-6.55200481414795
+			],
+			"yaw_deg": 34.6997447196851
+		},
+		{
+			"camera_focus": [
+				216.289840698242,
+				0.0500000007450581,
+				194.821762084961
+			],
+			"camera_follow_error_m": 1.72086083889008,
+			"camera_fov_deg": 35.662841796875,
+			"camera_look_ahead": [
+				-1.18768858909607,
+				0.0,
+				-0.970966994762421
+			],
+			"camera_position": [
+				227.755462646484,
+				18.0499992370605,
+				205.159805297852
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.65565299987793,
+			"phase": "right_reversal",
+			"position": [
+				214.932708740234,
+				0.0500000007450581,
+				193.763671875
+			],
+			"pursuer_distance_m": 983.914245605469,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 56,
+			"throttle": 0.0,
+			"time_s": 0.933333333333335,
+			"velocity": [
+				-6.3045482635498,
+				0.0,
+				-6.76786231994629
+			],
+			"yaw_deg": 32.6585836673618
+		},
+		{
+			"camera_focus": [
+				216.173233032227,
+				0.0500000007450581,
+				194.72785949707
+			],
+			"camera_follow_error_m": 1.72275304794312,
+			"camera_fov_deg": 35.6744079589844,
+			"camera_look_ahead": [
+				-1.18133878707886,
+				0.0,
+				-0.985947549343109
+			],
+			"camera_position": [
+				227.485641479492,
+				18.0499992370605,
+				205.226959228516
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.67495441436768,
+			"phase": "right_reversal",
+			"position": [
+				214.831436157227,
+				0.0500000007450581,
+				193.647369384766
+			],
+			"pursuer_distance_m": 984.068298339844,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 57,
+			"throttle": 0.0,
+			"time_s": 0.950000000000001,
+			"velocity": [
+				-6.07610464096069,
+				0.0,
+				-6.97829008102417
+			],
+			"yaw_deg": 30.6174226150385
+		},
+		{
+			"camera_focus": [
+				216.058166503906,
+				0.0500000007450581,
+				194.631896972656
+			],
+			"camera_follow_error_m": 1.72406506538391,
+			"camera_fov_deg": 35.6854095458984,
+			"camera_look_ahead": [
+				-1.17294192314148,
+				0.0,
+				-1.00210428237915
+			],
+			"camera_position": [
+				227.205444335938,
+				18.0499992370605,
+				205.30078125
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.69128179550171,
+			"phase": "right_reversal",
+			"position": [
+				214.734130859375,
+				0.0500000007450581,
+				193.52766418457
+			],
+			"pursuer_distance_m": 984.221923828125,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 58,
+			"throttle": 0.0,
+			"time_s": 0.966666666666668,
+			"velocity": [
+				-5.8380389213562,
+				0.0,
+				-7.18246793746948
+			],
+			"yaw_deg": 28.5762581476207
+		},
+		{
+			"camera_focus": [
+				215.944854736328,
+				0.0500000007450581,
+				194.533767700195
+			],
+			"camera_follow_error_m": 1.7248352766037,
+			"camera_fov_deg": 35.6958770751953,
+			"camera_look_ahead": [
+				-1.1625269651413,
+				0.0,
+				-1.01930284500122
+			],
+			"camera_position": [
+				226.915115356445,
+				18.0499992370605,
+				205.380187988281
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.70509481430054,
+			"phase": "right_reversal",
+			"position": [
+				214.64094543457,
+				0.0500000007450581,
+				193.404663085938
+			],
+			"pursuer_distance_m": 984.375122070312,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 59,
+			"throttle": 0.0,
+			"time_s": 0.983333333333335,
+			"velocity": [
+				-5.59087085723877,
+				0.0,
+				-7.37967586517334
+			],
+			"yaw_deg": 26.5350953877501
+		},
+		{
+			"camera_focus": [
+				215.83349609375,
+				0.0500000007450581,
+				194.433395385742
+			],
+			"camera_follow_error_m": 1.72508680820465,
+			"camera_fov_deg": 35.7058334350586,
+			"camera_look_ahead": [
+				-1.15012574195862,
+				0.0,
+				-1.03741002082825
+			],
+			"camera_position": [
+				226.614791870117,
+				18.0499992370605,
+				205.464157104492
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.71677923202515,
+			"phase": "right_reversal",
+			"position": [
+				214.552032470703,
+				0.0500000007450581,
+				193.278503417969
+			],
+			"pursuer_distance_m": 984.527587890625,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 60,
+			"throttle": 0.0,
+			"time_s": 1.0,
+			"velocity": [
+				-5.33511161804199,
+				0.0,
+				-7.56928253173828
+			],
+			"yaw_deg": 24.4939343354268
+		},
+		{
+			"camera_focus": [
+				215.724273681641,
+				0.0500000007450581,
+				194.330718994141
+			],
+			"camera_follow_error_m": 1.72486019134521,
+			"camera_fov_deg": 35.7153015136719,
+			"camera_look_ahead": [
+				-1.13577258586884,
+				0.0,
+				-1.05629432201385
+			],
+			"camera_position": [
+				226.304672241211,
+				18.0499992370605,
+				205.551696777344
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.72666382789612,
+			"phase": "right_reversal",
+			"position": [
+				214.467514038086,
+				0.0500000007450581,
+				193.149322509766
+			],
+			"pursuer_distance_m": 984.679138183594,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 61,
+			"throttle": 0.0,
+			"time_s": 1.01666666666667,
+			"velocity": [
+				-5.0712628364563,
+				0.0,
+				-7.75072717666626
+			],
+			"yaw_deg": 22.4527698680089
+		},
+		{
+			"camera_focus": [
+				215.617385864258,
+				0.0500000007450581,
+				194.225708007812
+			],
+			"camera_follow_error_m": 1.72422194480896,
+			"camera_fov_deg": 35.724308013916,
+			"camera_look_ahead": [
+				-1.119504570961,
+				0.0,
+				-1.07582664489746
+			],
+			"camera_position": [
+				225.984924316406,
+				18.0499992370605,
+				205.641799926758
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.73502564430237,
+			"phase": "right_reversal",
+			"position": [
+				214.387512207031,
+				0.0500000007450581,
+				193.01725769043
+			],
+			"pursuer_distance_m": 984.82958984375,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 62,
+			"throttle": 0.0,
+			"time_s": 1.03333333333333,
+			"velocity": [
+				-4.79982042312622,
+				0.0,
+				-7.92351865768433
+			],
+			"yaw_deg": 20.4116088156856
+		},
+		{
+			"camera_focus": [
+				215.513031005859,
+				0.0500000007450581,
+				194.118316650391
+			],
+			"camera_follow_error_m": 1.72318911552429,
+			"camera_fov_deg": 35.7328758239746,
+			"camera_look_ahead": [
+				-1.10136103630066,
+				0.0,
+				-1.09588074684143
+			],
+			"camera_position": [
+				225.655731201172,
+				18.0499992370605,
+				205.733489990234
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.74209856987,
+			"phase": "right_reversal",
+			"position": [
+				214.312164306641,
+				0.0500000007450581,
+				192.882476806641
+			],
+			"pursuer_distance_m": 984.978881835938,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 63,
+			"throttle": 0.0,
+			"time_s": 1.05,
+			"velocity": [
+				-4.5212721824646,
+				0.0,
+				-8.08721923828125
+			],
+			"yaw_deg": 18.3704477633623
+		},
+		{
+			"camera_focus": [
+				215.411376953125,
+				0.0500000007450581,
+				194.008514404297
+			],
+			"camera_follow_error_m": 1.72181296348572,
+			"camera_fov_deg": 35.7410278320312,
+			"camera_look_ahead": [
+				-1.08138370513916,
+				0.0,
+				-1.11633336544037
+			],
+			"camera_position": [
+				225.317245483398,
+				18.0499992370605,
+				205.825866699219
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.74808192253113,
+			"phase": "right_reversal",
+			"position": [
+				214.241561889648,
+				0.0500000007450581,
+				192.7451171875
+			],
+			"pursuer_distance_m": 985.126586914062,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 64,
+			"throttle": 0.0,
+			"time_s": 1.06666666666667,
+			"velocity": [
+				-4.23609924316406,
+				0.0,
+				-8.24144172668457
+			],
+			"yaw_deg": 16.3292832959444
+		},
+		{
+			"camera_focus": [
+				215.312591552734,
+				0.0500000007450581,
+				193.89631652832
+			],
+			"camera_follow_error_m": 1.72013700008392,
+			"camera_fov_deg": 35.748779296875,
+			"camera_look_ahead": [
+				-1.05961632728577,
+				0.0,
+				-1.13706481456757
+			],
+			"camera_position": [
+				224.969680786133,
+				18.0499992370605,
+				205.917984008789
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.75314402580261,
+			"phase": "right_reversal",
+			"position": [
+				214.175811767578,
+				0.0500000007450581,
+				192.605346679688
+			],
+			"pursuer_distance_m": 985.272766113281,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 65,
+			"throttle": 0.0,
+			"time_s": 1.08333333333333,
+			"velocity": [
+				-3.9447774887085,
+				0.0,
+				-8.38584232330322
+			],
+			"yaw_deg": 14.2881248049421
+		},
+		{
+			"camera_focus": [
+				215.216842651367,
+				0.0500000007450581,
+				193.78173828125
+			],
+			"camera_follow_error_m": 1.71818614006042,
+			"camera_fov_deg": 35.7561531066895,
+			"camera_look_ahead": [
+				-1.03610455989838,
+				0.0,
+				-1.15795886516571
+			],
+			"camera_position": [
+				224.613189697266,
+				18.0499992370605,
+				206.009002685547
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.75742602348328,
+			"phase": "right_reversal",
+			"position": [
+				214.115020751953,
+				0.0500000007450581,
+				192.463348388672
+			],
+			"pursuer_distance_m": 985.4169921875,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 66,
+			"throttle": 0.0,
+			"time_s": 1.1,
+			"velocity": [
+				-3.64777660369873,
+				0.0,
+				-8.52011585235596
+			],
+			"yaw_deg": 12.2469628988452
+		},
+		{
+			"camera_focus": [
+				215.124282836914,
+				0.0500000007450581,
+				193.664810180664
+			],
+			"camera_follow_error_m": 1.71602094173431,
+			"camera_fov_deg": 35.7631683349609,
+			"camera_look_ahead": [
+				-1.01089608669281,
+				0.0,
+				-1.17890310287476
+			],
+			"camera_position": [
+				224.247985839844,
+				18.0499992370605,
+				206.098022460938
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.76104807853699,
+			"phase": "right_reversal",
+			"position": [
+				214.059265136719,
+				0.0500000007450581,
+				192.319274902344
+			],
+			"pursuer_distance_m": 985.559204101562,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 67,
+			"throttle": 0.0,
+			"time_s": 1.11666666666667,
+			"velocity": [
+				-3.34556221961975,
+				0.0,
+				-8.64399242401123
+			],
+			"yaw_deg": 10.2058018465219
+		},
+		{
+			"camera_focus": [
+				215.035079956055,
+				0.0500000007450581,
+				193.545562744141
+			],
+			"camera_follow_error_m": 1.71366715431213,
+			"camera_fov_deg": 35.7698402404785,
+			"camera_look_ahead": [
+				-0.984040141105652,
+				0.0,
+				-1.19978892803192
+			],
+			"camera_position": [
+				223.874298095703,
+				18.0499992370605,
+				206.184265136719
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.76411259174347,
+			"phase": "right_reversal",
+			"position": [
+				214.00862121582,
+				0.0500000007450581,
+				192.173324584961
+			],
+			"pursuer_distance_m": 985.699279785156,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 68,
+			"throttle": 0.0,
+			"time_s": 1.13333333333333,
+			"velocity": [
+				-3.03859567642212,
+				0.0,
+				-8.75723266601562
+			],
+			"yaw_deg": 8.16463823287764
+		},
+		{
+			"camera_focus": [
+				214.949371337891,
+				0.0500000007450581,
+				193.424041748047
+			],
+			"camera_follow_error_m": 1.71115720272064,
+			"camera_fov_deg": 35.7761878967285,
+			"camera_look_ahead": [
+				-0.955587804317474,
+				0.0,
+				-1.22051191329956
+			],
+			"camera_position": [
+				223.49235534668,
+				18.0499992370605,
+				206.266876220703
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.76670479774475,
+			"phase": "right_reversal",
+			"position": [
+				213.963165283203,
+				0.0500000007450581,
+				192.025665283203
+			],
+			"pursuer_distance_m": 985.837036132812,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 69,
+			"throttle": 0.0,
+			"time_s": 1.15,
+			"velocity": [
+				-2.72733473777771,
+				0.0,
+				-8.85962772369385
+			],
+			"yaw_deg": 6.12347718055435
+		},
+		{
+			"camera_focus": [
+				214.867309570312,
+				0.0500000007450581,
+				193.300308227539
+			],
+			"camera_follow_error_m": 1.70853316783905,
+			"camera_fov_deg": 35.7822265625,
+			"camera_look_ahead": [
+				-0.925591647624969,
+				0.0,
+				-1.240971326828
+			],
+			"camera_position": [
+				223.102386474609,
+				18.0499992370605,
+				206.345062255859
+			],
+			"collision_event": false,
+			"collision_head_on_ratio": -1.0,
+			"collision_impact_speed_mps": -1.0,
+			"collision_position": [],
+			"gear": 0,
+			"handbrake_input": false,
+			"handbrake_state": false,
+			"lateral_slip_mps": 1.76889789104462,
+			"phase": "right_reversal",
+			"position": [
+				213.922958374023,
+				0.0500000007450581,
+				191.876480102539
+			],
+			"pursuer_distance_m": 985.972106933594,
+			"pursuer_position": [
+				900.0,
+				0.600000023841858,
+				900.0
+			],
+			"pursuit_state": 0,
+			"speed_mps": 9.1,
+			"steer": 1.0,
+			"step": 70,
+			"throttle": 0.0,
+			"time_s": 1.16666666666667,
+			"velocity": [
+				-2.41223430633545,
+				0.0,
+				-8.95099067687988
+			],
+			"yaw_deg": 4.08231527445741
+		}
+	],
+	"scenario": "E3_steering_reversal",
+	"schema_version": 3
+}

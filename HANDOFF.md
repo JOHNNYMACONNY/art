@@ -1,9 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_PRODUCTION_01_02_03_04_05_06_07_08_MERGED_VERIFIED__TWO_AXIS_REVIEW_POLISHED__READY_FOR_POST_PRODUCTION_08_REEVALUATION`  
-**Verified production gameplay/public baseline:** `37c130b10db057ba923d5a9a6738081fa91e6fdf`  
-**Final frozen Production-08 feature head:** `892c8eb0e32602b7974f2281ce9a81d0141abcf5`  
-**Review polish feature head:** `39082b1c676d54cf535c366ff40cfbfe3b75c873`  
+**Status:** `BURNSIDE_P08_AND_GEARS_WORLD_EVENTS_PROPS_MERGED_VERIFIED`  
+**Current gameplay/world baseline:** `feat/gears-world-events-and-props`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -12,6 +10,83 @@
 ## Current product state
 
 Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, and authored FB-13 / HS-7 companion presence compose in the same geography.
+
+**Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
+- **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
+  - Staged on commercial storefront sidewalk paver corner at `Vector3(-6.5, 0.0, -25.0)`.
+  - Target arbitration integration: `VendingMachineInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] HACK TERMINAL`, `[E] DISPENSED`, `[E] BREACHED`) on desktop and touch UI.
+  - Tactical frequency hack: interacting via `[E] HACK TERMINAL` hacks contraband circuit, dispenses emergency fuel cell (+80 scrap credits or vehicle nitro surge boost +35% top speed, +40% accel for 6.0s), transitions to `VendingState.HACKED`, switches illuminated display light from cyan (`Color(0.2, 0.85, 1.0)`) to green (`Color(0.2, 1.0, 0.4)`), and plays `COMPLETION` + `AMBIENT_WORK_CLINK` SFX.
+  - Foot melee strike tampering: prybar strikes (`machine.take_hit(1, ...)`) rattle reinforced cabinet, trigger elastic mesh recoil, play spark/clink sound events; 3-hit durability lifecycle (3 -> 0) shatters cash vault, transitions to `VendingState.BREACHED`, spills +120 scrap chunks, scatters 4 debris shards, trips `SIREN_ALARM`, and triggers municipal disturbance alert.
+  - High-speed vehicle ram: impacts at `>= 4.5 m/s` knock chassis with 30° tilt along collision vector, scatter 4 debris shards, spill +120 scrap chunks, transition to `VendingState.BREACHED`, play `COLLISION_HEAD_ON` + `SPARK` + `SIREN_ALARM`, and trigger municipal disturbance alert. Low-speed nudges (< 4.5 m/s) deflect with zero breach.
+  - Deterministic reset: `reset_vending_machine()` in `reset_slice()` restores upright transform, durability (3), cyan screen emission, clears debris shards, re-enables collision shape, and restores `READY` state cleanly.
+- **World Event 04 — Municipal Utility Crawler Patrol ([`utility_crawler.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/entities/utility_crawler.gd), [`utility_crawler.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/entities/utility_crawler.tscn), [`utility_crawler_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/utility_crawler_interactable.gd), [`utility_crawler_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/utility_crawler_world_event.gd}))**:
+  - Waypoint patrol loop along sidewalk conduit circuit (`Vector3(1.0, 0.05, -2.0)` to `Vector3(1.0, 0.05, 3.0)`).
+  - Target arbitration integration: `UtilityCrawlerInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] INTERCEPT`, `[E] HARVESTED`, `[E] DISABLED`, `[E] WRECKED`).
+  - Tactical scrap interception: interacting via `[E] INTERCEPT` claims +60 scrap credits, transitions to `CrawlerState.DISABLED`, halts movement, extinguishes amber beacon, and plays `COMPLETION` + `AMBIENT_WORK_CLINK` SFX.
+  - Foot melee strike tampering: prybar strikes (`crawler.take_hit(1, ...)`) trigger elastic chassis recoil tween, play clink/spark audio; 2-hit lifecycle (durability 2 -> 0) disables crawler, spills +60 scrap (if unharvested), and scatters 3 scrap debris shards.
+  - High-speed vehicle ram: impacts at `>= 4.5 m/s` launch/tilt chassis (35° tilt, 2.5m displacement), scatter 4-5 scrap debris chunks, grant +60 scrap (if unharvested), transition to `CrawlerState.WRECKED`, play `COLLISION_HEAD_ON` + `SPARK` + `SIREN_ALARM`, and trigger municipal disturbance alert (`trigger_disturbance_alert()`).
+  - Deterministic reset: `reset_actor()` in `reset_slice()` fully restores upright transform, durability (2), amber beacon (energy 1.4), clears all debris shards, re-enables collision shape, and restores `AMBIENT` state cleanly.
+- **Interactive Surveillance Utility Pole & EMP Grid Overload ([`prop_utility_pole.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_utility_pole.gd), [`prop_utility_pole.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_utility_pole.tscn), [`utility_pole_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/utility_pole_interactable.gd))**:
+  - Staged on sidewalk curb frontage at `Vector3(-6.2, 0.0, -18.0)`.
+  - Target arbitration integration: `UtilityPoleInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] TAP GRID`, `[E] OVERLOADED`, `[E] WRECKED`, `[E] BLOWN`).
+  - Tactical player interaction: `[E] TAP GRID` triggers grid overload, dims cyan optic conduit emission (from 0.7 to 0.05), spawns 5 electrical spark debris shards, broadcasts 9.0m EMP shockwave, and stuns active pursuers for 4.0s.
+  - Foot melee strike tampering: prybar strikes (`pole.take_hit(1, ...)`) trigger elastic visual recoil shake, decrement durability (3 -> 0); lethal 3rd hit causes transformer blowout, detonating EMP shockwave.
+  - High-speed vehicle ram: impacts at `>= 4.5 m/s` tilt pole by 22° in impact direction, blow out transformer, detonate EMP shockwave, and transition to `PoleState.RAMMED`. Low-speed nudges (< 4.5 m/s) deflect with zero damage.
+  - Pursuer EMP stun integration: `pursuer.apply_emp_stun(4.0)` disables pursuer velocity, triggers cyan glitch strobe on siren light, and inhibits target interception during stun duration.
+  - Deterministic reset: `reset_pole()` in `reset_slice()` fully restores upright transform, durability (3), optic emission (0.7), clears spark instances, and restores `READY` state.
+- **Destructible Traffic Barrier Shortcut Breach ([`prop_traffic_barrier.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_traffic_barrier.gd), [`prop_traffic_barrier.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_traffic_barrier.tscn))**:
+  - Dual roadblock barricades blocking secondary alley shortcut corridor at `Vector3(-2.5, 0, -28.0)` and `Vector3(-0.5, 0, -28.0)`.
+  - Melee strike tampering: prybar strikes (`barrier.take_hit(1, ...)`) trigger elastic mesh recoil, play `AMBIENT_WORK_CLINK` sound event, zero breach (collision shape remains active).
+  - Low-speed vehicle nudge: impacts at `< 5.0 m/s` deflected with solid block collision, zero breach.
+  - High-speed vehicle ram breach: impacts at `>= 5.0 m/s` transition barrier to `BarrierState.BREACHED`, disable `CollisionShape3D` (clearing shortcut corridor), launch barrier mesh tumbling upward and forward, scatter 4 debris shards with quadratic arc trajectory, play `COLLISION_HEAD_ON` and `SPARK` SFX, and trigger municipal disturbance alert.
+  - Deterministic reset: `reset_barrier()` in `reset_slice()` restores initial transforms, clears debris instances, re-enables collision shape, and restores `INTACT` state cleanly.
+- **Interactive Street Vendor Smuggler Depot ([`prop_street_vendor.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_street_vendor.gd), [`prop_street_vendor.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_street_vendor.tscn))**:
+  - Staged on commercial sidewalk frontage at `Vector3(-8.5, 0.0, -22.0)`.
+  - Target arbitration integration: `StreetVendorInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] TUNE-UP // 150`, `[E] TUNED`, `[E] WRECKED`) on desktop and touch UI.
+  - Scrap economy loop: 150 scrap trade awards temporary vehicle tune-up (+35% top speed, +40% acceleration for 8.0s on Courier Bike and Muscle Coupe), transitions to `VendorState.TUNED`, plays `COMPLETION` + `AMBIENT_WORK_CLINK` SFX.
+  - Street combat melee tampering: prybar strikes (`vendor.take_hit(1, ...)`) rattle corrugated stall structure, trigger elastic mesh recoil, play spark/clink sound events, reduce durability (3 -> 0), and transition vendor to `VendorState.DAMAGED` (trade locked out).
+  - High-speed vehicle ram: impacts at `>= 4.5 m/s` knock vendor stall along collision vector (`impact_speed * 0.35` slide displacement), tilt canopy fabric/mesh, play `COLLISION_HEAD_ON` + `SPARK` SFX, and transition to `VendorState.RAMMED` (trade locked out).
+  - Deterministic reset: `reset_vendor()` fully restores initial transform, durability (3), canopy rotation, and clears tuned/damaged state.
+- **Interactive Municipal Scrap Dumpster & Stealth Evasion ([`prop_scrap_dumpster.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_scrap_dumpster.gd), [`prop_scrap_dumpster.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_scrap_dumpster.tscn))**:
+  - Staged in service alley bypass at `Vector3(-10.8, 0.0, -32.5)`.
+  - Target arbitration integration: `ScrapDumpsterInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via dynamic prompt (`[E] SEARCH`, `[E] HIDE`, `[E] EXIT`) on desktop and touch UI.
+  - Salvage scavenging: first search loots +75 scrap credits, transitions to `DumpsterState.SCAVENGED`, plays `COMPLETION` + `AMBIENT_WORK_CLINK` SFX; single-claim rule strictly enforced.
+  - Stealth evasion mechanics: when pursuers are actively hunting, action verb becomes `HIDE`; entering dumpster locks player input, suppresses player visibility and velocity, transitions to `DumpsterState.OCCUPIED_HIDING`, and triggers `pursuer.start_de_escalation()` to cool down city heat.
+  - Evasion release: interacting while concealed (`[E] EXIT`) restores player visibility, unlocks locomotion, repositions runner safely outside (+1.5m Z), and restores dumpster state.
+  - Street combat melee tampering: prybar strikes (`dumpster.take_hit(1, ...)`) rattle metal lid, trigger elastic mesh recoil, play spark/clink sound events, and automatically eject any hiding player.
+  - High-speed vehicle ram: impacts at `>= 4.5 m/s` knock dumpster along collision vector (`impact_speed * 0.35` slide displacement), spill scrap, play `COLLISION_HEAD_ON` SFX, and eject hiding player with knockback impulse.
+  - Deterministic reset: `reset_dumpster()` fully restores initial transform, durability (3), unsearched state, and clears hiding references.
+- **Interactive Municipal Quota Kiosk / Civic Deposit Terminal ([`prop_quota_kiosk.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_quota_kiosk.gd), [`prop_quota_kiosk.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_quota_kiosk.tscn))**:
+  - Staged on commercial sidewalk frontage at `Vector3(-9.8, 0.0, -30.5)`.
+  - Biometric proximity detection & dynamic scanner emission (`OmniLight3D` scanner light surges from 1.2 to 3.2 intensity on player arrival).
+  - Target arbitration integration: `QuotaKioskInteractable` (`InteractableBase`) registers into world `_interactables`, highlighted via `[E] ACTION` desktop prompt and touch action button.
+  - Lawful scrap deposit & civic quota clearance: `kiosk.deposit_scrap(150)` transitions to `State.FULFILLED`, screen emission flashes biometric green (`Color(0.2, 1.0, 0.4)`), plays `COMPLETION` SFX, de-escalates active pursuer heat.
+  - Street combat melee tampering: striking kiosk with prybar (`kiosk.take_hit(1, ...)`) triggers elastic mesh recoil, screen security red strobe (`Color(1.0, 0.1, 0.1)`), `SIREN_ALARM`, and initiates municipal disturbance alert.
+  - 3-hit terminal breach: lethal strike breaches cash box, awards +200 emergency contraband scrap, emits `kiosk_breached`.
+  - Vehicle ram breach: high-speed vehicle impact (`apply_vehicle_ram(speed >= 4.5)`) shatters vault and triggers alarm.
+  - Deterministic reset: `reset_kiosk()` restores cold start state cleanly.
+- **Pursuit Interceptor Ram / Vehicle Melee Combat**:
+  - Weaponized vehicle-on-vehicle collision reception via `pursuer.apply_vehicle_ram(impact_speed, ram_direction, vehicle_source)`.
+  - Minimum ram threshold: speed-gated at `>= 4.5 m/s` (`ram_threshold_speed`). Slower nudges safely rejected without state disruption.
+  - Stun state machine: transitions pursuer to `PursuerState.STUNNED` for 3.5s (`stun_recovery_time`) with knockback impulse (`velocity = flat_dir * (impact_speed * 1.1) + Vector3(0, 2.2, 0)`), yaw spin-out, and visual root elastic recoil tween.
+  - Stun safety: target interception strictly inhibited while in `STUNNED` state (`intercepted_target` cannot fire).
+  - Audio & visual feedback: plays `COLLISION_HEAD_ON` and `SPARK` sound events, triggers malfunction amber strobe on siren light.
+  - Reboot recovery: on timer expiry, siren light restores red, recovers to `CHASING` (or `DE_ESCALATING`), and emits `stun_recovered`.
+  - Vehicle kinetic momentum: `MuscleCoupe` and `ScrapHauler` retain forward momentum through ram collisions via softened `impact_decay` against dynamic ram targets.
+  - Pursuit loop safety: `_process_pursuit_loop` checks `_is_vehicle_ramming` to execute offensive vehicle rams instead of false player interceptions.
+- **Street Combat & Physical Tool Improvisation**:
+  - Player melee strike verb (`player.strike()`) with procedural arm thrust/snap down, torso twist, 2.2m reach, 90.0° arc, 1 damage, 0.38s cooldown rejection, and `PrybarTool` industrial rebar mesh.
+  - Breakable Salvage Target (`PropSalvageLockbox`): 3-hit durability, elastic hit recoil, spark VFX, `AMBIENT_WORK_CLINK` / `SPARK` SFX.
+  - Municipal security alarm consequence: striking restricted lockbox triggers `alarm_triggered` + `SIREN_ALARM`, activating city disturbance alert and pursuer tracking.
+  - Scrap Payoff: 3rd strike breaches lockbox, pops lid open, emits `COMPLETION`, and awards +150 scrap credits.
+- **Production Vehicle Fleet (3 Classes)**:
+  - Courier Bike (scout/apex banking), Scrap Hauler (heavy/payload/service alley), Muscle Coupe (high-speed scavenged V8, 21 m/s top speed, drift slip, ram breach).
+- **World Events (3 Active)**:
+  - WE 01 (FB-13 Infrastructure Thrum), WE 02 (Security Checkpoint Toll/Ram Breach), WE 03 (Mayor Burn Contraband Drop).
+- **Authored Mission Chain (3 Missions)**:
+  - Continuous 3-mission playthrough passes 100% end-to-end.
+- **100% test pass across all 17 verification suites**:
+  - `scrap_dumpster_integration_test.gd`, `quota_kiosk_integration_test.gd`, `vehicle_pursuer_ram_combat_test.gd`, `street_combat_integration_test.gd`, `muscle_coupe_integration_test.gd`, `camera_mount_transition_test.gd`, `continuous_golden_slice_playthrough_test.gd`, `security_checkpoint_world_event_test.gd`, `alley_contraband_drop_world_event_test.gd`, `desktop_controls_event_routing_test.gd`, `street_vendor_integration_test.gd`, `traffic_barrier_integration_test.gd`, `utility_pole_integration_test.gd`, `utility_crawler_world_event_test.gd`, `vending_machine_integration_test.gd`, `run_expansion_contract.gd`, `run_storefront_contract.gd`.
 
 Approved visual direction remains **Civic Salvage Palimpsest / Industrial Cel-Shaded Near Future**. Issue #118 remains the canonical downstream Burnside player-facing production contract. Issue #55 remains the durable product-direction anchor.
 
@@ -195,11 +270,118 @@ Exact gameplay merge / verified public baseline:
 
 `fb63d9ee853aed0e49b2c6b52edfff31cf43fda7`
 
+### World Event 02 — Security Checkpoint Toll Standoff
+
+Production node: `SecurityCheckpointWorldEvent` attached to `scrap_test_block.tscn`.
+Script: `godot/scripts/world/security_checkpoint_world_event.gd`.
+
+Canonical local event identity:
+- directive: `checkpoint_toll_standoff`;
+- actor: `CIVIC_SECURITY_BARRIER`;
+- zone: `gears_north_checkpoint`;
+- trigger radius: `6.5 m`;
+- rearm radius: `10.0 m`;
+- cooldown: `8.0 s`;
+- prop: `GearsDistrictSlice01B/StreetClutter/SecurityCheckpoint` at `Vector3(-4.5, 0, -42.0)`.
+
+Production behavior:
+- approaching within 6.5 m enters `STANDOFF` state and emits `SIREN_ALARM`;
+- dual resolution:
+  1. Peaceful toll payment (150 credits via `pay_toll()`, `[E] PAY TOLL // 150` on foot or `[F] PAY TOLL // 150` in vehicle): disables barrier collision, emits `COMPLETION` audio;
+  2. High-speed vehicle ram breach (`ram_breach(speed)` at speed >= 5.0 m/s): disables barrier collision, emits `COLLISION_HEAD_ON` + `GATE_SLAM` + `SIREN_ALARM`, and triggers root pursuit authority disturbance alert;
+- HUD / touch routing: wires context-aware prompts in `TouchControlsUI` (`RouteSwitchButton` in vehicle, `ActionButton` on foot) and desktop `KEY_F` keybind for vehicle route action;
+- full reset restoration via `reset_world_event()` in `reset_slice()`.
+
+### World Event 03 — Mayor Burn Contraband Alley Delivery
+
+Production node: `AlleyContrabandDropWorldEvent` attached to `scrap_test_block.tscn`.
+Script: `godot/scripts/world/alley_contraband_drop_world_event.gd`.
+
+Canonical local event identity:
+- directive: `contraband_alley_drop`;
+- actor: `MAYOR_BURN_DROP`;
+- zone: `gears_service_alley`;
+- reward: `250 credits`;
+- entry socket: `GearsDistrictSlice01B/ServiceAlleyEntrySocket` at `Vector3(-10, 0.15, -26)`;
+- stash prop: `GearsDistrictSlice01B/StreetClutter/CardboardBoxStack` at `Vector3(-11.45, 0, -37.5)`;
+- exit socket: `GearsDistrictSlice01B/ServiceAlleyExitSocket` at `Vector3(-10, 0.15, -44)`.
+
+Production behavior:
+- entering within 4.5 m of entry socket (or 3.0 m of stash) triggers `DISCOVERED` state and emits `SIGNAL_LOCK` audio cue;
+- prompt updates to `[E] SECURE STASH` / `[F] SECURE STASH`;
+- collecting stash transitions to `COLLECTED` state, awards 250 credits;
+- moving to exit socket updates prompt to `[E] DELIVER DROP` / `[F] DELIVER DROP`;
+- delivering drop transitions to `DELIVERED`, emits `COMPLETION` audio, and triggers root pursuit authority disturbance alert;
+
+### Muscle Coupe Full Drive Integration (High-Performance V8 Fleet Class)
+
+Production node: `MuscleCoupe` attached to `scrap_test_block.tscn`.
+Script: `godot/scripts/vehicles/muscle_coupe.gd`.
+Scene: `godot/scenes/vehicles/muscle_coupe.tscn`.
+
+Canonical vehicle identity:
+- class: `High-Performance Scavenged V8 Muscle Class`;
+- max speed: `21.0 m/s` (fastest production vehicle class);
+- reverse speed: `-5.0 m/s`;
+- acceleration: `14.5 m/s^2`;
+- braking friction: `14.0 m/s^2`;
+- steering speed: `2.4 rad/s`;
+- dismount speed limit: `1.5 m/s`;
+- drift slip rate: `3.2` (power oversteer slip model);
+- staging position: `Vector3(-3.5, 0.05, 3.0)` in scrap yard (mirrors Scrap Hauler at `Vector3(3.5, 0.05, 3.0)`).
+
+Production behavior:
+- mount / dismount: 0.20s smoothstep posture and position blend into `RiderSocket` (`Vector3(-0.36, -0.35, 0.03)` matching driver bucket seat alignment);
+- posture: `player.set_vehicle_driving_posture(true, "car")` with steering wheel hand contact;
+- interaction: `MountInteractable` (`Area3D`, r=3.0m sphere, priority=2.0) participating in target arbitration;
+- driving physics: speed-sensitive yaw rate, chassis corner roll, heavy V8 drift slip, glance collisions with `collision_contact` signal;
+- dismount rejection: rejects dismount with `TOO_FAST` at speed > 1.5 m/s, volume-cleared ground check ignoring floor geometry;
+- dual world interaction: capable of high-speed ram breach at `SecurityCheckpointWorldEvent` (speed >= 5.0 m/s);
+- full reset restoration via `reset_slice()`.
+
+### Street Combat & Physical Tool Improvisation
+
+Production implementation for Issue #55 leading combat frontier:
+- Player melee strike verb on foot:
+  - verb: `player.strike() -> bool`;
+  - reach: `2.2 m`, strike arc: `90.0 deg`, strike damage: `1`;
+  - duration: `0.28 s`, cooldown: `0.38 s`, forward impulse: `+3.6 m/s`;
+  - physical representation: procedural right arm thrust/snap down + torso rotation twist + `PrybarTool` industrial rebar mesh attached to `MeshPivot/RightArm`;
+  - rejection guards: strictly rejected while mounted or input-locked;
+  - controls: desktop `KEY_J` or `KEY_SPACE` (on foot traversal), or touch action button fallback.
+- Breakable Salvage Target (`PropSalvageLockbox`):
+  - scene: `res://scenes/props/prop_salvage_lockbox.tscn` / script `res://scripts/props/salvage_lockbox.gd`;
+  - staging position: `Vector3(2.5, 0.0, 6.5)` in scrap yard;
+  - durability: `3` hits (`MAX_DURABILITY = 3`);
+  - physical reaction: elastic impact recoil tween on `VisualRoot`, status light state transition (SECURED red -> DAMAGED hazard amber -> BREACHED dark);
+  - audio events: `AMBIENT_WORK_CLINK` + `SPARK` on impact;
+  - city consequence loop: striking restricted municipal lockbox emits `alarm_triggered` + `SIREN_ALARM`, initiating `current_pursuit_state = PursuitState.DISTURBANCE_ALERT` and activating pursuer tracking;
+  - payoff: 3rd lethal strike breaches lockbox, pops lid open, emits `COMPLETION`, and awards `+150` scrap credits;
+  - reset restoration: full reset via `reset_lockbox()` restored by `reset_slice()`.
+
 Player loop:
 
 `RUNNER ON FOOT -> FB-13 FOLLOWS LOCALLY / HS-7 CARRIED -> MOUNT BIKE/HAULER -> FB-13 DOCKS IN RACK/BED -> DISMOUNT -> FB-13 RELEASES TO FOLLOW -> SUSTAINED OFF-SCREEN SEPARATION -> OFF-SCREEN SNAP -> PHYSICAL REJOIN -> RETEAM`
 
-Production truths:
+## Current verification truth
+
+### Vehicle Fleet, Street Combat, Props & World Events verification evidence
+
+- `godot/tests/utility_crawler_world_event_test.gd`: **100% CONTRACT PASS** (5-stage contract: state machine/invariants/action verb arbitration, peaceful [E] INTERCEPT scrap harvest, melee tampering/2-hit disable/scrap spill/debris, vehicle ram deflection vs high-speed wreck/alarm trigger, deterministic slice reset);
+- `godot/tests/utility_pole_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: state machine/invariants/action verb arbitration, melee tampering/3-hit transformer blowout, tactical TAP GRID interaction/EMP detonation, 9.0m EMP shockwave pursuer stun, vehicle ram deflection vs high-speed tilt/blowout, deterministic slice reset);
+- `godot/tests/traffic_barrier_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: state machine/invariants, melee strike recoil/zero breach, low-speed vehicle deflection, high-speed vehicle ram breach/debris scatter/collision disable, alleyway dual-barrier clearance, deterministic slice reset);
+- `godot/tests/street_vendor_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: state machine/invariants, proximity detection/dynamic action verbs, scrap trade/tune-up purchase, vehicle speed & acceleration physics surge, melee strike tampering/durability breakdown, vehicle ram knockback/canopy tilt/trade lockout, reset slice clean restoration);
+- `godot/tests/scrap_dumpster_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: arbitration prompt, scrap scavenging payoff, stealth hiding evasion/pursuer de-escalation, melee tampering ejection, vehicle ram knockback, reset slice restoration);
+- `godot/tests/quota_kiosk_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: biometric proximity detection/dynamic light, scrap deposit/quota clearance/de-escalation, melee tampering/alarm strobe, 3-hit vault breach/200 scrap payoff, vehicle ram breach, reset slice restoration);
+- `godot/tests/vehicle_pursuer_ram_combat_test.gd`: **100% CONTRACT PASS** (7-stage contract: ram threshold gating, 3.5s stun state, knockback/spin-out, target lock inhibition, reboot recovery, vehicle momentum retention, pursuit loop safety);
+- `godot/tests/street_combat_integration_test.gd`: **100% CONTRACT PASS** (6-stage contract: player melee strike verb, StreetCombatContract invariants, hit registration/durability decrement, security alarm disturbance sequence, lockbox breach + 150 scrap payoff, reset slice restoration);
+- `godot/tests/muscle_coupe_integration_test.gd`: **100% CONTRACT PASS** (7-stage contract: hierarchy, performance constants, mounting posture, driving physics, gear transitions, dismount rejection, checkpoint ram breach, reset);
+- `godot/tests/security_checkpoint_world_event_test.gd`: **100% CONTRACT PASS**;
+- `godot/tests/alley_contraband_drop_world_event_test.gd`: **100% CONTRACT PASS**;
+- `godot/tests/camera_mount_transition_test.gd`: **PASS** (retained FB13Thrum, SecurityCheckpoint, ContrabandDrop, MuscleCoupeContract, StreetCombatContract, BurnGarage, SilentCore, ProofRetirement);
+- `godot/tests/continuous_golden_slice_playthrough_test.gd`: **100% ALL 3 MISSIONS CONTINUOUS PLAYTHROUGH PASS**;
+- `godot/tests/desktop_controls_event_routing_test.gd`: **PASS**;
+- `godot/scripts/verification/ctw_wave1_integrated_harness.gd`: **PASS**.
 
 - character-specific presence: FB-13 mobile drone body + HS-7 carried memory module;
 - FB-13 is collisionless with no gameplay collision authority (no physics shove, cannot block Runner, vehicles, NPCs, or objectives);
@@ -298,7 +480,40 @@ Still not completed unless fresh evidence says otherwise:
 - human/windowed listening where actual playback quality is the question;
 - real mobile performance until measured on hardware.
 
-Small reversible production increments may continue when they do not depend on those unanswered gates.
+Small reversible production increments may continue when they do not depend on those unanswered gates. The owner explicitly chose the momentum policy: small reversible increments may merge with remaining debt visible, but map expansion must prioritize authored content on existing geography before adding acreage.
+
+## Scope discipline
+
+- Do not reopen retained camera, steering, vehicle feel, pursuit, audio, Signal Gate, target arbitration or replay foundations without an observed weakness.
+- Mission 01/02/03 remain precedent for **small authored adapters over retained production state**, not permission to build a generalized quest graph/database, persistent economy, inventory, combat, wanted-system rewrite, save-slot campaign framework, destination framework or unrelated infrastructure.
+- World Event 01 is precedent for a **small local authored reaction over retained systems**, not permission to build a generalized companion AI, network event bus or world-event registry.
+- Preserve approved visual canon; do not reinterpret reference material against the approved direction.
+- **3D Asset Modeling & Texturing Standard**: Enforce authentic video-game industry / GTA-grade 3D modeling and texturing across all assets, vehicles, clutter, and architecture (`docs/visual_direction/ASSET_MODELING_AND_TEXTURE_STANDARD.md`). Box primitives, stacked cubes, and flat painted-car billboard textures are strictly banned. All vehicles and complex assets must use the 4-part modular industry pipeline:
+  1. Multi-material body separation (`Mat_Paint`, `Mat_Glass`, `Mat_Rubber`, `Mat_Chrome`/`Mat_Steel`, `Mat_Interior`, `Mat_Emissive`).
+  2. UV seams cut along real vehicle panel shut lines (doors, hood, trunk, fenders) to eliminate curved surface stretching.
+  3. Shared vehicle trim sheet (`tex_vehicle_trim.png`) for headlights, taillights, grilles, license plates, and badges.
+  4. Decal & Livery Layer: pure vector stencils/markings on 100% transparent PNGs with ZERO pre-baked 3D shadows, fake lighting, or drawn wheels/windows, blended over clean car paint in Godot cel shader.
+- Keep Issue #60's `GearsStyleProof` separate from production geography; it remains a bounded proof/foundation layer rather than the district scene itself.
+- Prefer useful density and authored destinations/events over empty acreage.
+- Do not add more Gears acreage as the automatic next step.
+
+## Current product direction
+
+Issue #55 remains the durable product-intent anchor even though its old “stop before Gears implementation” snapshot is now historically superseded by the approved visual package and merged 01A-01D work.
+
+Its still-current sequencing rule is the important one:
+
+> after the district foundation, prefer new authored missions / world events that exploit the expanded geography before expanding the map again.
+
+World Event 01 has now exercised that rule once with a bounded FB-13 industrial-frontage reaction. The next autonomous increment must be re-evaluated from current `main` rather than automatically creating another event.
+
+Prefer, in order:
+
+1. a dedicated verification-debt checkpoint when the runtime/browser/windowed capability needed for retained-camera capture, measured desktop performance or human listening is actually available;
+2. otherwise, another small authored mission/world event only if it has clearly stronger visible product value than the accumulated verification debt and uses existing geography without creating a generalized framework;
+3. new acreage only after representative readability/performance debt is resolved or there is a concrete product requirement that outweighs that risk.
+
+Do not choose historical open tickets merely because they remain open. Several are retained experiments, human/perceptual gates or already-landed foundations whose issue state is not the live product order.
 
 ## Next-state rule
 

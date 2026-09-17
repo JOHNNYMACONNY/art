@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://458f89f707bd"
-path="res://.godot/imported/sfx_interaction_panel_pry.wav-458f89f707bdf9537493b4f568692711.sample"
+uid="uid://458gaaf707bd"
+path="res://.godot/imported/sfx_interaction_panel_pry.wav-221821f3572b5769b6c55bf2a6a306f0.sample"
 
 [deps]
 
 source_file="res://audio/interaction/sfx_interaction_panel_pry.wav"
-dest_files=["res://.godot/imported/sfx_interaction_panel_pry.wav-458f89f707bdf9537493b4f568692711.sample"]
+dest_files=["res://.godot/imported/sfx_interaction_panel_pry.wav-221821f3572b5769b6c55bf2a6a306f0.sample"]
 
 [params]
 

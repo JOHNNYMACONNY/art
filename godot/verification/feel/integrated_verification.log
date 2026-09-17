@@ -1,0 +1,8 @@
+CTW FEEL INTEGRATED RETENTION — Ticket #17
+integrated_behavior_sha=a10ac0ce235fa56ca8084cae05ad0959751a821b
+verification_commit=LOCAL_UNPINNED
+immutable_baseline_behavior_sha=09fa2b0ab8aebc8a2ae54b989bffad7720503e48
+repeatability_passed=true
+baseline_comparison_passed=true
+allowed_intentional_deltas=["scenarios.E7_pursuit_route.min_pursuer_distance_m","scenarios.E7_pursuit_route.max_pursuer_distance_m","scenarios.E7_pursuit_route.final_pursuer_distance_m","scenarios.E7_pursuit_route.pursuer_endpoint_position"]
+observed_pursuer_deltas={"final_pursuer_distance_m":{"baseline":39.1515502929688,"delta":0.0,"integrated":39.1515502929688},"max_pursuer_distance_m":{"baseline":39.1515502929688,"delta":0.0,"integrated":39.1515502929688},"min_pursuer_distance_m":{"baseline":12.1550760269165,"delta":0.0,"integrated":12.1550760269165}}

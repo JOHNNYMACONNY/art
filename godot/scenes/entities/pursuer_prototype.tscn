@@ -1,6 +1,7 @@
 [gd_scene load_steps=8 format=3 uid="uid://c_pursuer_prototype_001"]
 
 [ext_resource type="Script" path="res://scripts/entities/pursuer_prototype.gd" id="1_pursuer"]
+[ext_resource type="PackedScene" path="res://models/security_interceptor.glb" id="2_interceptor_model"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_pursuer"]
 size = Vector3(1.2, 1.4, 2.4)
@@ -30,6 +31,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 shape = SubResource("BoxShape3D_pursuer")
 
 [node name="VisualRoot" type="Node3D" parent="."]
+ 
+[node name="InterceptorModel" parent="VisualRoot" instance=ExtResource("2_interceptor_model")]
 
 [node name="BodyMesh" type="MeshInstance3D" parent="VisualRoot"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
