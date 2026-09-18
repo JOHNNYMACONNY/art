@@ -991,6 +991,11 @@ func _play_production_transient(event: SoundEvent, pos: Vector3) -> bool:
 
 ## Audible procedural synthesis remains the fallback contract for semantic slots
 ## that have not yet been promoted to production media.
+func _encode_pcm8_signed(sample: float) -> int:
+	# AudioStreamWAV.FORMAT_8_BITS is signed PCM. PackedByteArray stores the
+	# two's-complement byte representation, so digital silence is 0, not 127.
+	return int(round(clampf(sample, -1.0, 1.0) * 127.0)) & 0xFF
+
 func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
@@ -1001,7 +1006,7 @@ func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> Audi
 	for i in range(sample_count):
 		var t := float(i) / 22050.0
 		var sample := sin(2.0 * PI * freq * t) * volume
-		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+		data[i] = _encode_pcm8_signed(sample)
 	wav.data = data
 	return wav
 
@@ -1018,7 +1023,7 @@ func _create_sweep_wav(start_f: float, end_f: float, duration: float, volume: fl
 		var t: float = float(i) / 22050.0
 		var phase: float = 2.0 * PI * (start_f * t + (f_diff / (2.0 * safe_duration)) * t * t)
 		var sample: float = sin(phase) * volume
-		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+		data[i] = _encode_pcm8_signed(sample)
 	wav.data = data
 	return wav
 
@@ -1035,7 +1040,7 @@ func _create_dual_beep_wav(freq: float, duration: float, volume: float = 0.5) ->
 		var beep_t: float = float(i % half_count) / 22050.0
 		var envelope: float = 1.0 if (i % half_count) < int(float(half_count) * 0.7) else 0.0
 		var sample: float = sin(2.0 * PI * freq * beep_t) * volume * envelope
-		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+		data[i] = _encode_pcm8_signed(sample)
 	wav.data = data
 	return wav
 
@@ -1051,7 +1056,7 @@ func _create_harmonic_chime_wav(f1: float, f2: float, duration: float, volume: f
 		var t := float(i) / 22050.0
 		var decay: float = 1.0 - (t / safe_duration)
 		var sample: float = (sin(2.0 * PI * f1 * t) * 0.6 + sin(2.0 * PI * f2 * t) * 0.4) * volume * decay
-		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+		data[i] = _encode_pcm8_signed(sample)
 	wav.data = data
 	return wav
 
@@ -1097,7 +1102,7 @@ func _create_echo_onset_wav() -> AudioStreamWAV:
 		var sig := (sin(2.0 * PI * 220.0 * t) * 0.5
 			+ sin(2.0 * PI * 330.0 * t) * 0.3
 			+ (randf() * 2.0 - 1.0) * 0.2) * env * 0.55
-		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+		data[i] = _encode_pcm8_signed(sig)
 	wav.data = data
 	return wav
 
@@ -1122,7 +1127,7 @@ func _create_echo_peak_wav() -> AudioStreamWAV:
 		var am := 0.6 + 0.4 * sin(2.0 * PI * 3.0 * t)
 		var noise := (randf() * 2.0 - 1.0) * 0.15
 		var sig := (comb * am + noise) * env * 0.45
-		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+		data[i] = _encode_pcm8_signed(sig)
 	wav.data = data
 	return wav
 
@@ -1141,7 +1146,7 @@ func _create_echo_tail_wav() -> AudioStreamWAV:
 		var sig := (sin(2.0 * PI * 3400.0 * t) * 0.6
 			+ sin(2.0 * PI * 5100.0 * t) * 0.25
 			+ (randf() * 2.0 - 1.0) * 0.1) * env * 0.45
-		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+		data[i] = _encode_pcm8_signed(sig)
 	wav.data = data
 	return wav
 
