@@ -989,22 +989,77 @@ func _play_production_transient(event: SoundEvent, pos: Vector3) -> bool:
 	_play_transient_stream(stream, pos, unit_size)
 	return true
 
-## Bounded dummy waveform generator for missing-media contract test fallbacks
-func _create_dummy_wav(duration: float) -> AudioStreamWAV:
+## Audible procedural synthesis remains the fallback contract for semantic slots
+## that have not yet been promoted to production media.
+func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
 	wav.mix_rate = 22050
 	var sample_count := int(22050 * maxf(0.01, duration))
 	var data := PackedByteArray()
 	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var sample := sin(2.0 * PI * freq * t) * volume
+		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
 	wav.data = data
 	return wav
 
-func _play_synth_click(pos: Vector3, _freq: float = 320.0, duration: float = 0.04, _volume: float = 0.4) -> void:
-	_play_transient_stream(_create_dummy_wav(duration), pos, 8.0)
+func _create_sweep_wav(start_f: float, end_f: float, duration: float, volume: float = 0.4) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	var f_diff: float = end_f - start_f
+	for i in range(sample_count):
+		var t: float = float(i) / 22050.0
+		var phase: float = 2.0 * PI * (start_f * t + (f_diff / (2.0 * safe_duration)) * t * t)
+		var sample: float = sin(phase) * volume
+		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
+func _create_dual_beep_wav(freq: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	var half_count: int = maxi(1, sample_count / 2)
+	for i in range(sample_count):
+		var beep_t: float = float(i % half_count) / 22050.0
+		var envelope: float = 1.0 if (i % half_count) < int(float(half_count) * 0.7) else 0.0
+		var sample: float = sin(2.0 * PI * freq * beep_t) * volume * envelope
+		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
+func _create_harmonic_chime_wav(f1: float, f2: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var decay: float = 1.0 - (t / safe_duration)
+		var sample: float = (sin(2.0 * PI * f1 * t) * 0.6 + sin(2.0 * PI * f2 * t) * 0.4) * volume * decay
+		data[i] = int(clampf((sample + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
+func _play_synth_click(pos: Vector3, freq: float = 320.0, duration: float = 0.04, volume: float = 0.4) -> void:
+	_play_transient_stream(_create_tone_wav(freq, duration, volume), pos, 8.0)
 
 func _play_synth_rejection_buzz(pos: Vector3) -> void:
-	_play_transient_stream(_create_dummy_wav(0.16), pos, 10.0)
+	_play_transient_stream(_create_dual_beep_wav(160.0, 0.16, 0.5), pos, 10.0)
 
 func _play_gate_slam(pos: Vector3) -> void:
 	if _gate_slam_production_stream != null:
@@ -1019,11 +1074,11 @@ func _play_fb13_thrum(pos: Vector3) -> void:
 	_play_synth_sweep(pos, 92.0, 148.0, 0.55, 0.34)
 	_play_synth_click(pos, 310.0, 0.08, 0.16)
 
-func _play_synth_sweep(pos: Vector3, _start_f: float = 180.0, _end_f: float = 450.0, duration: float = 0.25, _volume: float = 0.4) -> void:
-	_play_transient_stream(_create_dummy_wav(duration), pos, 10.0)
+func _play_synth_sweep(pos: Vector3, start_f: float = 180.0, end_f: float = 450.0, duration: float = 0.25, volume: float = 0.4) -> void:
+	_play_transient_stream(_create_sweep_wav(start_f, end_f, duration, volume), pos, 10.0)
 
 func _play_synth_chime(pos: Vector3) -> void:
-	_play_transient_stream(_create_dummy_wav(0.45), pos, 12.0)
+	_play_transient_stream(_create_harmonic_chime_wav(880.0, 1320.0, 0.45, 0.5), pos, 12.0)
 
 func _play_echo_phase(event: SoundEvent, fallback_stream: AudioStream, volume_db: float, label: String) -> void:
 	if not _echo_voice:
