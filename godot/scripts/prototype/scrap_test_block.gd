@@ -413,6 +413,7 @@ func _ready() -> void:
 		player.footstep_triggered.connect(_on_player_footstep)
 		player.strike_triggered.connect(_on_player_strike_triggered)
 		player.vitals_changed.connect(_update_vitals_hud)
+		player.depleted.connect(_begin_soft_failure)
 		_ensure_vitals_hud()
 		_update_vitals_hud(player.current_health, player.current_armor)
 		
@@ -741,9 +742,10 @@ func _on_pursuer_intercepted() -> void:
 		return
 
 	if player:
-		var damage_result: Dictionary = player.apply_damage(PURSUER_INTERCEPT_DAMAGE)
-		if bool(damage_result.get("depleted", false)):
-			_begin_soft_failure()
+		player.apply_damage(PURSUER_INTERCEPT_DAMAGE)
+		# PlayerRunner.depleted is the generic Soft Failure seam. If this hit
+		# depleted Health, the synchronous signal already entered recovery.
+		if player.current_health <= 0.0:
 			return
 		
 	current_pursuit_state = PursuitState.INTERCEPTED
