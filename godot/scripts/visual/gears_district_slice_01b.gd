@@ -8,6 +8,7 @@ const GearsWorkZoneIncidentScript = preload("res://scripts/world/gears_work_zone
 const GearsScrapperToolRuntimeScript = preload("res://scripts/world/gears_scrapper_tool_runtime.gd")
 const GearsSurveyedServiceCutRuntimeScript = preload("res://scripts/world/gears_surveyed_service_cut_runtime.gd")
 const BurnGarageRepairRuntimeScript = preload("res://scripts/world/burn_garage_repair_runtime.gd")
+const MayorBurnContactServiceRuntimeScript = preload("res://scripts/world/mayor_burn_contact_service_runtime.gd")
 const RETAINED_NORTH_EDGE_Z := -20.0
 const APPROVED_TOON_SHADER_PATH := "res://materials/gears_toon.gdshader"
 const ADDITIVE_EXTENSION_PATHS := [
@@ -21,6 +22,7 @@ func _ready() -> void:
 	call_deferred("_mount_production_05_scrapper_tool")
 	call_deferred("_mount_production_06_surveyed_service_cut")
 	call_deferred("_mount_production_07_burn_garage_repair")
+	call_deferred("_mount_production_10_mayor_burn_contact")
 
 func _mount_production_04_work_zone() -> void:
 	var scene_root := get_parent()
@@ -85,6 +87,24 @@ func _mount_production_07_burn_garage_repair() -> void:
 	runtime.name = "BurnGarageRepairRuntime"
 	scene_root.add_child(runtime)
 	if not bool(runtime.call("configure", scene_root, self, wanted_runtime)):
+		runtime.queue_free()
+
+func _mount_production_10_mayor_burn_contact() -> void:
+	var scene_root := get_parent()
+	if scene_root == null or not (scene_root is Node3D):
+		return
+	if scene_root.get_node_or_null("MayorBurnContactServiceRuntime") != null:
+		return
+	var wanted_runtime := get_tree().root.get_node_or_null("BurnsideWantedRuntime")
+	var civic_runtime := scene_root.get_node_or_null("CivicRepossessionRuntime")
+	if wanted_runtime == null or civic_runtime == null:
+		return
+	var runtime := MayorBurnContactServiceRuntimeScript.new() as Node3D
+	if runtime == null:
+		return
+	runtime.name = "MayorBurnContactServiceRuntime"
+	scene_root.add_child(runtime)
+	if not bool(runtime.call("configure", scene_root, self, wanted_runtime, civic_runtime)):
 		runtime.queue_free()
 
 func _box_shape(node_path: String) -> BoxShape3D:

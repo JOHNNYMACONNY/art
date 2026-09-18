@@ -325,6 +325,16 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/player_survivability_integration_test.gd
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/mayor_burn_contact_progress_store_test.gd
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/mayor_burn_contact_integration_test.gd
 
       - name: Run and classify canonical 29-suite legacy matrix
         shell: bash

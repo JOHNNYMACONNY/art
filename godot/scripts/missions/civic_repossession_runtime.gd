@@ -9,6 +9,8 @@ const LEGACY_RETURN_ZONE_POSITION := Vector3(7.0, 0.08, 8.0)
 const DISTRICT_RETURN_ZONE_SOCKET_PATH := "GearsDistrictSlice01B/MissionDestinationSocket"
 const RETURN_ZONE_RADIUS := 2.6
 
+signal civic_repossession_completed
+
 var mission = MissionScript.new()
 var _root_controller: Node = null
 var _mission_one_runtime = null
@@ -66,6 +68,7 @@ func _process(_delta: float) -> void:
 		if mission.on_return_zone_entered():
 			changed = true
 			_set_return_zone_visible(false)
+			civic_repossession_completed.emit()
 
 	if changed:
 		_refresh_hud()
@@ -122,6 +125,9 @@ func _on_hauler_mounted(_player) -> void:
 		return
 
 	_awaiting_wanted_clear = true
+
+func is_complete() -> bool:
+	return mission.phase == MissionScript.Phase.COMPLETE
 
 func _wanted_is_clear() -> bool:
 	if _wanted_runtime == null:

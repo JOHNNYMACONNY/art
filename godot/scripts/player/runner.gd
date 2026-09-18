@@ -316,6 +316,13 @@ func reset_vitals(health: float = MAX_HEALTH, armor: float = DEFAULT_ARMOR) -> v
 	_depletion_emitted = current_health <= 0.0
 	vitals_changed.emit(current_health, current_armor)
 
+func restock_armor() -> bool:
+	if current_health <= 0.0 or current_armor >= MAX_ARMOR:
+		return false
+	current_armor = MAX_ARMOR
+	vitals_changed.emit(current_health, current_armor)
+	return true
+
 func apply_damage(amount: float) -> Dictionary:
 	var result := {
 		"accepted": false,
