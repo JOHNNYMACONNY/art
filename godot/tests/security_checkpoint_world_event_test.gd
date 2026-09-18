@@ -75,5 +75,25 @@ func _run() -> void:
 		await _finish(1)
 		return
 
+	# A reset issued before the deferred breach write executes must invalidate
+	# that stale disable rather than leaving ARMED state non-solid.
+	player.global_position = checkpoint.global_position + Vector3(0.0, 0.0, 4.0)
+	event.call("_process", 0.10)
+	if event.get("current_state") != 1:
+		push_error("[CHECKPOINT_WORLD_EVENT] FAIL: reset-race fixture did not enter STANDOFF")
+		await _finish(1)
+		return
+	if not bool(event.call("ram_breach", 8.5)):
+		push_error("[CHECKPOINT_WORLD_EVENT] FAIL: reset-race breach was rejected")
+		await _finish(1)
+		return
+	event.call("reset_world_event")
+	await process_frame
+	await physics_frame
+	if event.get("current_state") != 0 or barrier_col.disabled:
+		push_error("[CHECKPOINT_WORLD_EVENT] FAIL: stale deferred breach disable overrode reset")
+		await _finish(1)
+		return
+
 	print("[CHECKPOINT_WORLD_EVENT] 100% CONTRACT PASS")
 	await _finish(0)
