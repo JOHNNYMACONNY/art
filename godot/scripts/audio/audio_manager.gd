@@ -569,15 +569,19 @@ func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
 		_siren_player.pitch_scale = lerpf(1.0, 1.45, p)
 		_siren_player.volume_db = lerpf(-4.0, 3.0, p)
 
-	# Tension drone with hysteresis: engage < 14m, disengage > 18m
+	# Tension drone with hysteresis: engage < 14m, disengage > 18m.
+	# Re-assert playback while semantically active so a finite production asset
+	# cannot expire silently while pursuit pressure is still inside the band.
 	if not _tension_layer_active and distance < 14.0:
 		_tension_layer_active = true
-		if _tension_player and not _tension_player.playing:
-				_tension_player.play()
 	elif _tension_layer_active and distance > 18.0:
 		_tension_layer_active = false
-		if _tension_player and _tension_player.playing:
-				_tension_player.stop()
+
+	if _tension_player:
+		if _tension_layer_active and not _tension_player.playing:
+			_tension_player.play()
+		elif not _tension_layer_active and _tension_player.playing:
+			_tension_player.stop()
 
 	if _tension_player and _tension_layer_active and _tension_player.playing:
 		# Low-mid tension layer volume scales smoothly from -24dB to -6dB
