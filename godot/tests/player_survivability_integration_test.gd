@@ -154,6 +154,24 @@ func _run() -> void:
 		return
 	print("  [PASS] Soft Failure preserves horizontal progress")
 
+	print("--- Stage 4B: Non-pursuit depletion returns to CALM ---")
+	soft_started[0] = false
+	soft_recovered[0] = false
+	player.reset_vitals(10.0, 0.0)
+	_scene.current_pursuit_state = _scene.PursuitState.CALM
+	player.apply_damage(20.0)
+	if not soft_started[0] or _scene.current_pursuit_state != _scene.PursuitState.INTERCEPTED:
+		await _fail("Generic depleted signal did not enter Soft Failure from CALM")
+		return
+	await create_timer(0.85).timeout
+	if not soft_recovered[0] or _scene.current_pursuit_state != _scene.PursuitState.CALM:
+		await _fail("Non-pursuit Soft Failure incorrectly manufactured retry state")
+		return
+	if not bool(store.call("is_surveyed", route_id)) or int(mission_runtime.mission.phase) != mission_phase_before:
+		await _fail("Non-pursuit Soft Failure mutated horizontal progress")
+		return
+	print("  [PASS] Generic depletion preserves non-pursuit context")
+
 	print("--- Stage 5: Safe-area pointer-transparent HUD ---")
 	var hud := safe_root.get_node_or_null("VitalsHUD") as Control
 	var health_bar := hud.get_node_or_null("VitalsMargin/VitalsStack/HealthBar") as ProgressBar if hud != null else null
