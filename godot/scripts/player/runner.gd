@@ -350,6 +350,13 @@ func apply_damage(amount: float) -> Dictionary:
 		depleted.emit()
 	return result
 
+func restore_armor_to_max() -> bool:
+	if current_health <= 0.0 or current_armor >= MAX_ARMOR:
+		return false
+	current_armor = MAX_ARMOR
+	vitals_changed.emit(current_health, current_armor)
+	return true
+
 func _update_survivability(delta: float) -> void:
 	var safe_delta := maxf(delta, 0.0)
 	_damage_immunity_remaining = maxf(0.0, _damage_immunity_remaining - safe_delta)
