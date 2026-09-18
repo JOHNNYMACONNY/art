@@ -788,6 +788,7 @@ func _on_pursuer_intercepted() -> void:
 	)
 
 func _begin_soft_failure() -> void:
+	var recover_to_retry := current_pursuit_state != PursuitState.CALM
 	current_pursuit_state = PursuitState.INTERCEPTED
 	soft_failure_started.emit()
 	print("[SOFT_FAILURE] Runner depleted. Ending immediate danger without resetting durable progress...")
@@ -810,7 +811,7 @@ func _begin_soft_failure() -> void:
 	if audio_mgr:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED, player.global_position if player else Vector3.ZERO)
 	if touch_ui:
-		touch_ui.show_replay_overlay(true)
+		touch_ui.show_replay_overlay(recover_to_retry)
 		touch_ui.show_tension_hud("[ DOWN // RECOVERING ]")
 
 	get_tree().create_timer(0.8).timeout.connect(func():
@@ -827,7 +828,7 @@ func _begin_soft_failure() -> void:
 		if scrap_hauler:
 			scrap_hauler.global_position = _recovery_marker + Vector3(3.0, 0, 0)
 			scrap_hauler.rotation = Vector3.ZERO
-		current_pursuit_state = PursuitState.RETRY_READY
+		current_pursuit_state = PursuitState.RETRY_READY if recover_to_retry else PursuitState.CALM
 		if touch_ui:
 			touch_ui.hide_tension_hud()
 		if audio_mgr:
