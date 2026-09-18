@@ -8,6 +8,7 @@ const GearsWorkZoneIncidentScript = preload("res://scripts/world/gears_work_zone
 const GearsScrapperToolRuntimeScript = preload("res://scripts/world/gears_scrapper_tool_runtime.gd")
 const GearsSurveyedServiceCutRuntimeScript = preload("res://scripts/world/gears_surveyed_service_cut_runtime.gd")
 const BurnGarageRepairRuntimeScript = preload("res://scripts/world/burn_garage_repair_runtime.gd")
+const MayorBurnContactRuntimeScript = preload("res://scripts/world/mayor_burn_contact_runtime.gd")
 const RETAINED_NORTH_EDGE_Z := -20.0
 const APPROVED_TOON_SHADER_PATH := "res://materials/gears_toon.gdshader"
 const ADDITIVE_EXTENSION_PATHS := [
@@ -21,6 +22,7 @@ func _ready() -> void:
 	call_deferred("_mount_production_05_scrapper_tool")
 	call_deferred("_mount_production_06_surveyed_service_cut")
 	call_deferred("_mount_production_07_burn_garage_repair")
+	call_deferred("_mount_production_10_mayor_burn_contact")
 
 func _mount_production_04_work_zone() -> void:
 	var scene_root := get_parent()
@@ -83,6 +85,23 @@ func _mount_production_07_burn_garage_repair() -> void:
 	if runtime == null:
 		return
 	runtime.name = "BurnGarageRepairRuntime"
+	scene_root.add_child(runtime)
+	if not bool(runtime.call("configure", scene_root, self, wanted_runtime)):
+		runtime.queue_free()
+
+func _mount_production_10_mayor_burn_contact() -> void:
+	var scene_root := get_parent()
+	if scene_root == null or not (scene_root is Node3D):
+		return
+	if scene_root.get_node_or_null("MayorBurnContactRuntime") != null:
+		return
+	var wanted_runtime := get_tree().root.get_node_or_null("BurnsideWantedRuntime")
+	if wanted_runtime == null:
+		return
+	var runtime := MayorBurnContactRuntimeScript.new() as Node3D
+	if runtime == null:
+		return
+	runtime.name = "MayorBurnContactRuntime"
 	scene_root.add_child(runtime)
 	if not bool(runtime.call("configure", scene_root, self, wanted_runtime)):
 		runtime.queue_free()
