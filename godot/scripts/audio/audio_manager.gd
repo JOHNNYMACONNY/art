@@ -223,12 +223,12 @@ func _ready() -> void:
 			_ambient_wind_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_load_production_transient_streams()
 	_load_echo_production_streams()
-	_engine_stream = _load_registry_loop_or_fallback("vehicle.engine_rev")
-	_hum_stream = _load_registry_loop_or_fallback("world.fb13_thrum")
-	_static_stream = _load_registry_loop_or_fallback("echo.radio_interference")
-	_siren_stream = _load_registry_loop_or_fallback("pursuit.siren_alarm")
-	_tension_stream = _load_registry_loop_or_fallback("pursuit.pursuer_sweep")
-	_radio_interference_stream = _load_registry_loop_or_fallback("echo.radio_interference")
+	_engine_stream = _load_registry_loop_or_fallback("vehicle.engine_rev", _create_noise_wav(0.5, 0.4))
+	_hum_stream = _load_registry_loop_or_fallback("world.fb13_thrum", _create_tone_wav(120.0, 0.5, 0.3))
+	_static_stream = _load_registry_loop_or_fallback("echo.radio_interference", _create_noise_wav(0.5, 0.25))
+	_siren_stream = _load_registry_loop_or_fallback("pursuit.siren_alarm", _create_tone_wav(440.0, 0.6, 0.4))
+	_tension_stream = _load_registry_loop_or_fallback("pursuit.pursuer_sweep", _create_harmonic_drone_wav(110.0, 220.0, 1.0, 0.35))
+	_radio_interference_stream = _load_registry_loop_or_fallback("echo.radio_interference", _create_fractured_carrier_wav(1.0, 0.3))
 	
 	_hum_player = AudioStreamPlayer3D.new()
 	_hum_player.name = "ProximityHumPlayer"
@@ -1084,6 +1084,63 @@ func _play_synth_sweep(pos: Vector3, start_f: float = 180.0, end_f: float = 450.
 
 func _play_synth_chime(pos: Vector3) -> void:
 	_play_transient_stream(_create_harmonic_chime_wav(880.0, 1320.0, 0.45, 0.5), pos, 12.0)
+
+func _create_harmonic_drone_wav(f1: float, f2: float, duration: float, volume: float = 0.3) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var sample := (sin(2.0 * PI * f1 * t) * 0.7 + sin(2.0 * PI * f2 * t) * 0.3) * volume
+		data[i] = _encode_pcm8_signed(sample)
+	wav.data = data
+	return wav
+
+func _create_noise_wav(duration: float, volume: float = 0.3) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var sample := (randf() * 2.0 - 1.0) * volume
+		data[i] = _encode_pcm8_signed(sample)
+	wav.data = data
+	return wav
+
+func _create_fractured_carrier_wav(duration: float = 1.0, volume: float = 0.3) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var f1 := 175.0 + 3.0 * sin(2.0 * PI * 4.0 * t)
+		var carrier := sin(2.0 * PI * f1 * t) * 0.45 + sin(2.0 * PI * (f1 * 1.5) * t) * 0.25
+		var flutter := 0.7 + 0.3 * sin(2.0 * PI * 8.0 * t)
+		var crackle := (randf() * 2.0 - 1.0) * 0.12
+		var sig := (carrier * flutter + crackle) * volume
+		data[i] = _encode_pcm8_signed(sig)
+	wav.data = data
+	return wav
 
 # Memory Echo procedural fallbacks remain independently reachable when a
 # production media slot is unavailable.
