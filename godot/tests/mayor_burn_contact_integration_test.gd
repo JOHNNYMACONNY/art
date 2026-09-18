@@ -173,6 +173,9 @@ func _run() -> void:
 	if not is_equal_approx(player.current_health, health_before):
 		await _fail("Armor restock changed Health")
 		return
+	if String(contact_runtime.call("get_affordance_text")) != "ARMOR RESTOCKED":
+		await _fail("Successful Armor restock has no bounded confirmation")
+		return
 	if bool(contact_runtime.call("attempt_armor_restock", player)):
 		await _fail("Full Armor restocked more than once")
 		return
