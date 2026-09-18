@@ -346,6 +346,16 @@ func _run() -> void:
 		return
 
 	_stage = "mission3_action"
+	# The Mission-02 fixture triggers the retained mounted signal directly rather
+	# than running the vehicle's timed mount lifecycle. Mirror the corresponding
+	# real dismount before testing the on-foot Mission-03 interaction; otherwise
+	# the retained generic active-vehicle seam correctly keeps measuring
+	# interaction distance from the delivered Hauler.
+	hauler.dismounted.emit()
+	await process_frame
+	if _scene_under_test.call("_get_active_vehicle") != null:
+		await _fail("Mission 02 fixture did not release retained active-vehicle authority before on-foot Mission 03")
+		return
 	player.global_position = silent_core.global_position
 	silent_core.update_player_distance(player.global_position)
 	_scene_under_test.call("_evaluate_target_selection")
