@@ -427,8 +427,6 @@ func strike() -> bool:
 	# Hit detection
 	var hit_target: Node3D = null
 	var hit_position: Vector3 = global_position + facing_dir * STRIKE_REACH_M
-	var ray_blocked := false
-
 	if is_inside_tree():
 		var space_state := get_world_3d().direct_space_state
 		var query := PhysicsRayQueryParameters3D.create(
@@ -446,10 +444,8 @@ func strike() -> bool:
 				if strike_node is Node3D and strike_node.has_method("take_hit"):
 					hit_target = strike_node as Node3D
 					hit_position = ray_res["position"]
-				else:
-					ray_blocked = true
 
-	if (not hit_target or not hit_target.has_method("take_hit")) and not ray_blocked:
+	if not hit_target or not hit_target.has_method("take_hit"):
 		var candidates: Array[Node] = []
 		for c in get_tree().get_nodes_in_group("damageable"):
 			candidates.append(c)
