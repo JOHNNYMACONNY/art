@@ -5,7 +5,7 @@ const CivicMissionScript = preload("res://scripts/missions/civic_repossession_mi
 const StoreScript = preload("res://scripts/progress/mayor_burn_contact_progress_store.gd")
 
 const SCENE_PATH := "res://scenes/prototype/scrap_test_block.tscn"
-const TEST_PATH := "user://tests/p10_p10_mayor_burn_contact_integration_test.json"
+const TEST_PATH := "user://tests/p10_mayor_burn_contact_integration_test.json"
 
 var _scene: Node = null
 var _wanted_runtime: Node = null
