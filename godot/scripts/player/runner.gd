@@ -405,6 +405,7 @@ func strike() -> bool:
 	# Hit detection
 	var hit_target: Node3D = null
 	var hit_position: Vector3 = global_position + facing_dir * STRIKE_REACH_M
+	var ray_blocked := false
 
 	if is_inside_tree():
 		var space_state := get_world_3d().direct_space_state
@@ -416,11 +417,17 @@ func strike() -> bool:
 		var ray_res := space_state.intersect_ray(query)
 		if ray_res and ray_res.has("collider"):
 			var col = ray_res["collider"]
-			if col is Node3D:
-				hit_target = col
-				hit_position = ray_res["position"]
+			if col is Node:
+				var strike_node: Node = col
+				while strike_node != null and strike_node != self and not strike_node.has_method("take_hit"):
+					strike_node = strike_node.get_parent()
+				if strike_node is Node3D and strike_node.has_method("take_hit"):
+					hit_target = strike_node as Node3D
+					hit_position = ray_res["position"]
+				else:
+					ray_blocked = true
 
-	if not hit_target or not hit_target.has_method("take_hit"):
+	if (not hit_target or not hit_target.has_method("take_hit")) and not ray_blocked:
 		var candidates: Array[Node] = []
 		for c in get_tree().get_nodes_in_group("damageable"):
 			candidates.append(c)
