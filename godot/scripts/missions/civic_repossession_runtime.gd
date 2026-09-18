@@ -9,6 +9,8 @@ const LEGACY_RETURN_ZONE_POSITION := Vector3(7.0, 0.08, 8.0)
 const DISTRICT_RETURN_ZONE_SOCKET_PATH := "GearsDistrictSlice01B/MissionDestinationSocket"
 const RETURN_ZONE_RADIUS := 2.6
 
+signal mission_completed
+
 var mission = MissionScript.new()
 var _root_controller: Node = null
 var _mission_one_runtime = null
@@ -66,6 +68,7 @@ func _process(_delta: float) -> void:
 		if mission.on_return_zone_entered():
 			changed = true
 			_set_return_zone_visible(false)
+			mission_completed.emit()
 
 	if changed:
 		_refresh_hud()
