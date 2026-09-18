@@ -373,9 +373,9 @@ func _ready() -> void:
 		# The optional crawler patrol runs beside, not through, the retained
 		# Signal Tuner interaction lane. This keeps both authored interactions
 		# reachable without priority hacks.
-		utility_crawler.position = Vector3(6.5, 0.05, -2.0)
-		utility_crawler.patrol_waypoints = [Vector3(6.5, 0.05, -2.0), Vector3(6.5, 0.05, 3.0)]
-		utility_crawler.safe_anchor = Vector3(6.5, 0.05, -4.5)
+		utility_crawler.position = Vector3(3.5, 0.05, -2.0)
+		utility_crawler.patrol_waypoints = [Vector3(3.5, 0.05, -2.0), Vector3(3.5, 0.05, 3.0)]
+		utility_crawler.safe_anchor = Vector3(3.5, 0.05, -4.5)
 		utility_crawler.setup_audio(audio_mgr)
 		add_child(utility_crawler)
 		ambient_actors.append(utility_crawler)
