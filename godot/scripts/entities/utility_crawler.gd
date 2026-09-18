@@ -21,10 +21,10 @@ const DEBRIS_COUNT: int = 4
 
 @export var crawler_name: String = "UtilityCrawler"
 @export var patrol_waypoints: Array = [
-	Vector3(3.5, 0.05, -2.0),
-	Vector3(3.5, 0.05, 3.0)
+	Vector3(1.0, 0.05, 1.5),
+	Vector3(1.0, 0.05, 6.0)
 ]
-@export var safe_anchor: Vector3 = Vector3(3.5, 0.05, -4.5)
+@export var safe_anchor: Vector3 = Vector3(1.0, 0.05, 0.8)
 @export var move_speed: float = 2.0
 @export var awareness_radius: float = 4.0
 
