@@ -135,7 +135,6 @@ func _process(_delta: float) -> void:
 		return
 
 	var distance := _player.global_position.distance_to(_service_socket.global_position)
-	_service_interactable.update_player_distance(_player.global_position)
 	if distance > AFFORDANCE_RADIUS_M:
 		_service_interactable.is_powered = false
 		_set_affordance("", false)
@@ -151,7 +150,11 @@ func _process(_delta: float) -> void:
 		_set_affordance("WANTED // BURN WON'T OPEN", true)
 		return
 
+	# InteractableBase intentionally ignores range updates while unpowered.
+	# Power first, then refresh range, so the retained root selector sees one
+	# coherent eligible target on the following arbitration pass.
 	_service_interactable.is_powered = true
+	_service_interactable.update_player_distance(_player.global_position)
 	_set_affordance("RESTOCK ARMOR // ACTION", true)
 
 func handle_action_pressed() -> bool:
