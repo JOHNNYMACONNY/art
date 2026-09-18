@@ -51,8 +51,8 @@ func configure(root_controller: Node, district: Node3D, wanted_runtime: Node, ci
 	_progress_store.configure()
 
 	var completion_callable := Callable(self, "_on_civic_repossession_completed")
-	if not _civic_runtime.civic_repossession_completed.is_connected(completion_callable):
-		_civic_runtime.civic_repossession_completed.connect(completion_callable)
+	if not _civic_runtime.is_connected("civic_repossession_completed", completion_callable):
+		_civic_runtime.connect("civic_repossession_completed", completion_callable)
 	if bool(_civic_runtime.call("is_complete")):
 		_progress_store.mark_known()
 
@@ -93,8 +93,8 @@ func configure(root_controller: Node, district: Node3D, wanted_runtime: Node, ci
 func _exit_tree() -> void:
 	if _civic_runtime != null:
 		var completion_callable := Callable(self, "_on_civic_repossession_completed")
-		if _civic_runtime.civic_repossession_completed.is_connected(completion_callable):
-			_civic_runtime.civic_repossession_completed.disconnect(completion_callable)
+		if _civic_runtime.is_connected("civic_repossession_completed", completion_callable):
+			_civic_runtime.disconnect("civic_repossession_completed", completion_callable)
 	if _root_controller != null and _contact_interactable != null:
 		var interactables = _root_controller.get("_interactables")
 		if interactables is Array:
