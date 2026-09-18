@@ -373,9 +373,9 @@ func _ready() -> void:
 		# The optional crawler patrol runs beside, not through, the retained
 		# Signal Tuner interaction lane. This keeps both authored interactions
 		# reachable without priority hacks.
-		utility_crawler.position = Vector3(3.5, 0.05, -2.0)
-		utility_crawler.patrol_waypoints = [Vector3(3.5, 0.05, -2.0), Vector3(3.5, 0.05, 3.0)]
-		utility_crawler.safe_anchor = Vector3(3.5, 0.05, -4.5)
+		utility_crawler.position = Vector3(1.0, 0.05, 1.5)
+		utility_crawler.patrol_waypoints = [Vector3(1.0, 0.05, 1.5), Vector3(1.0, 0.05, 6.0)]
+		utility_crawler.safe_anchor = Vector3(1.0, 0.05, 0.8)
 		utility_crawler.setup_audio(audio_mgr)
 		add_child(utility_crawler)
 		ambient_actors.append(utility_crawler)
@@ -1475,7 +1475,7 @@ func reset_slice() -> void:
 		scrap_hauler.current_gear = ScrapHaulerScript.GearState.FORWARD
 		scrap_hauler.is_handbrake_active = false
 		scrap_hauler._gear_settle_timer = 0.0
-		scrap_hauler.global_position = Vector3(3.5, 0.05, 3.0)
+		scrap_hauler.global_position = Vector3(1.0, 0.05, 6.0)
 		scrap_hauler.rotation.y = 0.0
 		scrap_hauler.occupant = null
 		scrap_hauler.current_speed = 0.0
