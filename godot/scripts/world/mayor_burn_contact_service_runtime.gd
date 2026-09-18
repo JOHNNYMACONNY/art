@@ -111,31 +111,43 @@ func _process(_delta: float) -> void:
 	if not _bound or _contact_interactable == null or _service_socket == null or _player == null:
 		return
 
+	if not _progress_store.is_known() \
+	or _player.is_mounted \
+	or _player.is_input_locked \
+	or _get_active_vehicle() != null \
+	or _player.current_health <= 0.0:
+		_contact_interactable.is_powered = false
+		_set_affordance("", false)
+		return
+
+	var distance := _player.global_position.distance_to(_service_socket.global_position)
+	if distance > AFFORDANCE_RADIUS_M:
+		_contact_interactable.is_powered = false
+		_set_affordance("", false)
+		return
+
+	# Wanted authority outranks stale success presentation immediately.
+	if distance <= SERVICE_RADIUS_M and not _wanted_is_clear():
+		_contact_interactable.is_powered = false
+		_set_affordance("WANTED // BURN WON'T OPEN", true)
+		return
+
+	# Brief success feedback is valid only while the player remains in the
+	# on-foot Garage context. It never owns eligibility or blocks Wanted.
 	if Time.get_ticks_msec() < _success_until_msec:
 		_contact_interactable.is_powered = false
 		_set_affordance("ARMOR RESTOCKED", true)
 		return
 
-	if not _progress_store.is_known() \
-	or _player.is_mounted \
-	or _player.is_input_locked \
-	or _get_active_vehicle() != null \
-	or _player.current_health <= 0.0 \
-	or _player.current_armor >= PlayerRunner.MAX_ARMOR:
+	if _player.current_armor >= PlayerRunner.MAX_ARMOR:
 		_contact_interactable.is_powered = false
 		_set_affordance("", false)
 		return
 
 	_contact_interactable.is_powered = true
 	_contact_interactable.update_player_distance(_player.global_position)
-	var distance := _player.global_position.distance_to(_service_socket.global_position)
-	if distance > AFFORDANCE_RADIUS_M:
-		_set_affordance("", false)
-	elif distance <= SERVICE_RADIUS_M:
-		if not _wanted_is_clear():
-			_set_affordance("WANTED // BURN WON'T OPEN", true)
-		else:
-			_set_affordance("RESTOCK ARMOR // ACTION", true)
+	if distance <= SERVICE_RADIUS_M:
+		_set_affordance("RESTOCK ARMOR // ACTION", true)
 	else:
 		_set_affordance("BURN // ARMOR STASH", true)
 
