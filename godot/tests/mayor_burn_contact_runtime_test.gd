@@ -115,18 +115,35 @@ func _run() -> void:
 		await _fail("Completed mission duplicated Contact persistence")
 		return
 
-	# Known + on foot + CLEAR + in radius may restock Armor only.
+	# Known + on foot + CLEAR + in radius must route through the retained
+	# selector and Action signal, not only through a direct helper call.
 	_wanted_runtime.call("reset_runtime")
 	player.global_position = socket.global_position
 	player.set_vehicle_driving_posture(false)
 	_scene.set("active_vehicle", null)
 	player.reset_vitals(73.0, 10.0)
 	var health_before: float = player.current_health
-	if not bool(runtime.call("attempt_armor_restock")):
-		await _fail("Eligible Known Contact Armor restock failed")
+	runtime.call("_process", 0.0)
+	var service_interactable = runtime.call("get_service_interactable")
+	var root_interactables = _scene.get("_interactables")
+	if service_interactable == null or not (root_interactables is Array) or not root_interactables.has(service_interactable):
+		await _fail("Burn Contact service is not registered in retained target arbitration")
 		return
+	if not bool(service_interactable.get("is_powered")) or String(runtime.call("get_affordance_text")) != "RESTOCK ARMOR // ACTION":
+		await _fail("Eligible Burn Contact service did not expose its Action affordance")
+		return
+	_scene.call("_evaluate_target_selection")
+	if _scene.get("_active_target") != service_interactable:
+		await _fail("Burn Contact service did not win retained target selection when eligible")
+		return
+	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
+	if touch_ui == null:
+		await _fail("Retained TouchControlsUI is missing")
+		return
+	touch_ui.action_button_pressed.emit()
+	await process_frame
 	if not is_equal_approx(player.current_armor, player.MAX_ARMOR):
-		await _fail("Armor restock did not reach MAX_ARMOR")
+		await _fail("Action-routed Armor restock did not reach MAX_ARMOR")
 		return
 	if not is_equal_approx(player.current_health, health_before):
 		await _fail("Armor restock changed Health")
@@ -135,7 +152,8 @@ func _run() -> void:
 		await _fail("Full Armor restocked twice")
 		return
 
-	# Active Wanted must reject without mutating vitals or authority.
+	# Active Wanted must reject without mutating vitals or authority and must
+	# expose the authored locked-treatment affordance.
 	player.reset_vitals(73.0, 10.0)
 	var authority = _wanted_runtime.get("wanted_authority")
 	if authority == null or not bool(authority.call("submit_report", "p10_test", player.global_position, Vector3.FORWARD, "burn_test_observer")):
@@ -143,6 +161,10 @@ func _run() -> void:
 		return
 	var heat_before := int(_wanted_runtime.call("get_heat_level"))
 	var state_before := String(_wanted_runtime.call("get_wanted_state_name"))
+	runtime.call("_process", 0.0)
+	if String(runtime.call("get_affordance_text")) != "WANTED // BURN WON'T OPEN" or bool(service_interactable.get("is_powered")):
+		await _fail("Active Wanted did not visibly lock the Burn Contact service")
+		return
 	if bool(runtime.call("attempt_armor_restock")) or not is_equal_approx(player.current_armor, 10.0):
 		await _fail("Burn service restocked during active Wanted")
 		return
