@@ -36,6 +36,7 @@ var _audio: AudioManager = null
 var _checkpoint_prop: StaticBody3D = null
 var _barrier_collision: CollisionShape3D = null
 var _cooldown_remaining: float = 0.0
+var _barrier_collision_revision: int = 0
 
 func _ready() -> void:
 	_root_controller = get_parent()
@@ -125,6 +126,17 @@ func pay_toll() -> bool:
 	checkpoint_resolved.emit(last_event.duplicate(true))
 	return true
 
+func _defer_barrier_collision_disabled(disabled: bool) -> void:
+	_barrier_collision_revision += 1
+	var revision := _barrier_collision_revision
+	call_deferred("_apply_barrier_collision_disabled", disabled, revision)
+
+func _apply_barrier_collision_disabled(disabled: bool, revision: int) -> void:
+	if revision != _barrier_collision_revision:
+		return
+	if is_instance_valid(_barrier_collision):
+		_barrier_collision.disabled = disabled
+
 func ram_breach(speed: float) -> bool:
 	if current_state != State.STANDOFF and current_state != State.ARMED:
 		return false
@@ -134,7 +146,9 @@ func ram_breach(speed: float) -> bool:
 	current_state = State.BREACHED
 	_cooldown_remaining = COOLDOWN_SEC
 	if _barrier_collision != null:
-		_barrier_collision.disabled = true
+		# Vehicle collision callbacks can arrive while the physics server is flushing.
+		# Revision-gated deferral also lets reset invalidate a queued breach write.
+		_defer_barrier_collision_disabled(true)
 
 	if _audio != null:
 		_audio.play_event(AudioManager.SoundEvent.COLLISION_HEAD_ON, _checkpoint_prop.global_position)
@@ -159,5 +173,7 @@ func ram_breach(speed: float) -> bool:
 func reset_world_event() -> void:
 	current_state = State.ARMED
 	_cooldown_remaining = 0.0
+	# Invalidate any breach disable that has been queued but not applied yet.
+	_barrier_collision_revision += 1
 	if _barrier_collision != null:
 		_barrier_collision.disabled = false

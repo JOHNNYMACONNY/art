@@ -47,9 +47,20 @@ func _require_player(player: Node, label: String) -> bool:
 		return false
 	return true
 
+func _decode_pcm8_signed(sample_byte: int) -> int:
+	return sample_byte if sample_byte < 128 else sample_byte - 256
+
 func _pcm_span(stream: AudioStreamWAV) -> int:
 	if stream == null or stream.data.is_empty():
 		return 0
+	if stream.format == AudioStreamWAV.FORMAT_8_BITS:
+		var minimum_sample := 127
+		var maximum_sample := -128
+		for sample_byte in stream.data:
+			var signed_sample := _decode_pcm8_signed(int(sample_byte))
+			minimum_sample = mini(minimum_sample, signed_sample)
+			maximum_sample = maxi(maximum_sample, signed_sample)
+		return maximum_sample - minimum_sample
 	var minimum_byte := 255
 	var maximum_byte := 0
 	for sample_byte in stream.data:
@@ -230,6 +241,25 @@ func _run() -> void:
 		await _fail("Production stream has insufficient PCM amplitude")
 		return
 	test_stream = null
+
+	# Post-147 regression: semantic slots that intentionally remain procedural must
+	# still produce audible PCM rather than zero-filled placeholder buffers.
+	var core_pull_fallback := _manager.call("_create_sweep_wav", 600.0, 1200.0, 0.4, 0.45) as AudioStreamWAV
+	if _pcm_span(core_pull_fallback) < 32:
+		await _fail("CORE_PULL procedural fallback is silent or has insufficient PCM amplitude")
+		return
+	var panel_powered_fallback := _manager.call("_create_harmonic_chime_wav", 880.0, 1320.0, 0.45, 0.5) as AudioStreamWAV
+	if _pcm_span(panel_powered_fallback) < 32:
+		await _fail("PANEL_POWERED procedural fallback is silent or has insufficient PCM amplitude")
+		return
+	if _decode_pcm8_signed(int(core_pull_fallback.data[0])) != 0:
+		await _fail("CORE_PULL procedural fallback is not encoded around signed PCM zero")
+		return
+	if _decode_pcm8_signed(int(panel_powered_fallback.data[0])) != 0:
+		await _fail("PANEL_POWERED procedural fallback is not encoded around signed PCM zero")
+		return
+	core_pull_fallback = null
+	panel_powered_fallback = null
 
 	var probe_player := _play_test_master_probe(0.20)
 	if not await _require_player(probe_player, "Test output probe"):

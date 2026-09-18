@@ -35,8 +35,10 @@ const V7_BASELINE := {
 
 const CONTACT_COLUMNS := 3
 const CONTACT_ROWS := 3
-const CONTACT_CELL_WIDTH := 480
-const CONTACT_CELL_HEIGHT := 270
+# Preserve all nine 16:9 verification states while keeping the Web publication
+# payload below the existing 2 MB budget on software-rendered CI.
+const CONTACT_CELL_WIDTH := 384
+const CONTACT_CELL_HEIGHT := 216
 const CONTACT_WIDTH := CONTACT_COLUMNS * CONTACT_CELL_WIDTH
 const CONTACT_HEIGHT := CONTACT_ROWS * CONTACT_CELL_HEIGHT
 const MAX_CONTACT_BYTES := 2000000

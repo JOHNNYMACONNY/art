@@ -385,6 +385,28 @@ func _reset_standing_pose() -> void:
 		right_leg.position = Vector3(0.13, 0.85, -0.04)
 		right_leg.rotation = Vector3(deg_to_rad(6.0), 0, 0)
 
+func _has_clear_strike_path(candidate: Node3D) -> bool:
+	if candidate == null or not is_inside_tree():
+		return false
+	var origin := global_position + Vector3(0, 0.9, 0)
+	var target := candidate.global_position + Vector3(0, 0.6, 0)
+	var query := PhysicsRayQueryParameters3D.create(origin, target)
+	query.exclude = [get_rid()]
+	var ray_res := get_world_3d().direct_space_state.intersect_ray(query)
+	if ray_res.is_empty():
+		# Group-based targets are allowed to omit a physics collider; an empty
+		# path is therefore unobstructed.
+		return true
+	var collider = ray_res.get("collider")
+	if not (collider is Node):
+		return false
+	var node: Node = collider
+	while node != null:
+		if node == candidate:
+			return true
+		node = node.get_parent()
+	return false
+
 func strike() -> bool:
 	if is_input_locked or is_mounted or _strike_cooldown > 0.0 or is_striking:
 		return false
@@ -405,7 +427,6 @@ func strike() -> bool:
 	# Hit detection
 	var hit_target: Node3D = null
 	var hit_position: Vector3 = global_position + facing_dir * STRIKE_REACH_M
-
 	if is_inside_tree():
 		var space_state := get_world_3d().direct_space_state
 		var query := PhysicsRayQueryParameters3D.create(
@@ -416,9 +437,13 @@ func strike() -> bool:
 		var ray_res := space_state.intersect_ray(query)
 		if ray_res and ray_res.has("collider"):
 			var col = ray_res["collider"]
-			if col is Node3D:
-				hit_target = col
-				hit_position = ray_res["position"]
+			if col is Node:
+				var strike_node: Node = col
+				while strike_node != null and strike_node != self and not strike_node.has_method("take_hit"):
+					strike_node = strike_node.get_parent()
+				if strike_node is Node3D and strike_node.has_method("take_hit"):
+					hit_target = strike_node as Node3D
+					hit_position = ray_res["position"]
 
 	if not hit_target or not hit_target.has_method("take_hit"):
 		var candidates: Array[Node] = []
@@ -442,7 +467,7 @@ func strike() -> bool:
 				var cand_dir := to_cand.normalized()
 				var angle_deg := rad_to_deg(facing_dir.angle_to(cand_dir))
 				if angle_deg <= STRIKE_ARC_DEG * 0.5:
-					if dist < best_dist:
+					if dist < best_dist and _has_clear_strike_path(cand as Node3D):
 						best_dist = dist
 						best_candidate = cand
 

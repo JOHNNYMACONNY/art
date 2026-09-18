@@ -228,7 +228,9 @@ func _ready() -> void:
 	if lockbox_scene:
 		salvage_lockbox = lockbox_scene.instantiate() as StaticBody3D
 		salvage_lockbox.name = "PropSalvageLockbox"
-		salvage_lockbox.position = Vector3(2.5, 0.0, 6.5)
+		# Keep the optional combat prop clear of the retained Signal Gate pursuer
+		# detour corridor (first waypoint is around x=2.5, z=8.0).
+		salvage_lockbox.position = Vector3(5.5, 0.0, 7.0)
 		add_child(salvage_lockbox)
 		salvage_lockbox.hit_received.connect(_on_lockbox_hit_received)
 		salvage_lockbox.lockbox_breached.connect(_on_lockbox_breached)
@@ -368,9 +370,12 @@ func _ready() -> void:
 	if crawler_scene:
 		utility_crawler = crawler_scene.instantiate() as CharacterBody3D
 		utility_crawler.name = "UtilityCrawler"
-		utility_crawler.position = Vector3(1.0, 0.05, -2.0)
-		utility_crawler.patrol_waypoints = [Vector3(1.0, 0.05, -2.0), Vector3(1.0, 0.05, 3.0)]
-		utility_crawler.safe_anchor = Vector3(1.0, 0.05, -4.5)
+		# The optional crawler patrol runs beside, not through, the retained
+		# Signal Tuner interaction lane. This keeps both authored interactions
+		# reachable without priority hacks.
+		utility_crawler.position = Vector3(1.0, 0.05, 1.5)
+		utility_crawler.patrol_waypoints = [Vector3(1.0, 0.05, 1.5), Vector3(1.0, 0.05, 6.0)]
+		utility_crawler.safe_anchor = Vector3(1.0, 0.05, 0.8)
 		utility_crawler.setup_audio(audio_mgr)
 		add_child(utility_crawler)
 		ambient_actors.append(utility_crawler)
@@ -1470,7 +1475,7 @@ func reset_slice() -> void:
 		scrap_hauler.current_gear = ScrapHaulerScript.GearState.FORWARD
 		scrap_hauler.is_handbrake_active = false
 		scrap_hauler._gear_settle_timer = 0.0
-		scrap_hauler.global_position = Vector3(3.5, 0.05, 3.0)
+		scrap_hauler.global_position = Vector3(1.0, 0.05, 6.0)
 		scrap_hauler.rotation.y = 0.0
 		scrap_hauler.occupant = null
 		scrap_hauler.current_speed = 0.0

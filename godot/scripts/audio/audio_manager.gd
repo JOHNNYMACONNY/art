@@ -223,12 +223,12 @@ func _ready() -> void:
 			_ambient_wind_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	_load_production_transient_streams()
 	_load_echo_production_streams()
-	_engine_stream = _load_registry_loop_or_fallback("vehicle.engine_rev")
-	_hum_stream = _load_registry_loop_or_fallback("world.fb13_thrum")
-	_static_stream = _load_registry_loop_or_fallback("echo.radio_interference")
-	_siren_stream = _load_registry_loop_or_fallback("pursuit.siren_alarm")
-	_tension_stream = _load_registry_loop_or_fallback("pursuit.pursuer_sweep")
-	_radio_interference_stream = _load_registry_loop_or_fallback("echo.radio_interference")
+	_engine_stream = _load_registry_loop_or_fallback("vehicle.engine_rev", _create_noise_wav(0.5, 0.4))
+	_hum_stream = _load_registry_loop_or_fallback("world.fb13_thrum", _create_tone_wav(120.0, 0.5, 0.3))
+	_static_stream = _load_registry_loop_or_fallback("echo.radio_interference", _create_noise_wav(0.5, 0.25))
+	_siren_stream = _load_registry_loop_or_fallback("pursuit.siren_alarm", _create_tone_wav(440.0, 0.6, 0.4))
+	_tension_stream = _load_registry_loop_or_fallback("pursuit.pursuer_sweep", _create_harmonic_drone_wav(110.0, 220.0, 1.0, 0.35))
+	_radio_interference_stream = _load_registry_loop_or_fallback("echo.radio_interference", _create_fractured_carrier_wav(1.0, 0.3))
 	
 	_hum_player = AudioStreamPlayer3D.new()
 	_hum_player.name = "ProximityHumPlayer"
@@ -569,15 +569,19 @@ func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
 		_siren_player.pitch_scale = lerpf(1.0, 1.45, p)
 		_siren_player.volume_db = lerpf(-4.0, 3.0, p)
 
-	# Tension drone with hysteresis: engage < 14m, disengage > 18m
+	# Tension drone with hysteresis: engage < 14m, disengage > 18m.
+	# Re-assert playback while semantically active so a finite production asset
+	# cannot expire silently while pursuit pressure is still inside the band.
 	if not _tension_layer_active and distance < 14.0:
 		_tension_layer_active = true
-		if _tension_player and not _tension_player.playing:
-				_tension_player.play()
 	elif _tension_layer_active and distance > 18.0:
 		_tension_layer_active = false
-		if _tension_player and _tension_player.playing:
-				_tension_player.stop()
+
+	if _tension_player:
+		if _tension_layer_active and not _tension_player.playing:
+			_tension_player.play()
+		elif not _tension_layer_active and _tension_player.playing:
+			_tension_player.stop()
 
 	if _tension_player and _tension_layer_active and _tension_player.playing:
 		# Low-mid tension layer volume scales smoothly from -24dB to -6dB
@@ -989,22 +993,84 @@ func _play_production_transient(event: SoundEvent, pos: Vector3) -> bool:
 	_play_transient_stream(stream, pos, unit_size)
 	return true
 
-## Bounded dummy waveform generator for missing-media contract test fallbacks
-func _create_dummy_wav(duration: float) -> AudioStreamWAV:
+## Audible procedural synthesis remains the fallback contract for semantic slots
+## that have not yet been promoted to production media.
+func _encode_pcm8_signed(sample: float) -> int:
+	# AudioStreamWAV.FORMAT_8_BITS is signed PCM. PackedByteArray stores the
+	# two's-complement byte representation, so digital silence is 0, not 127.
+	return int(round(clampf(sample, -1.0, 1.0) * 127.0)) & 0xFF
+
+func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
 	wav.mix_rate = 22050
 	var sample_count := int(22050 * maxf(0.01, duration))
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
 	var data := PackedByteArray()
 	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var sample := sin(2.0 * PI * freq * t) * volume
+		data[i] = _encode_pcm8_signed(sample)
 	wav.data = data
 	return wav
 
-func _play_synth_click(pos: Vector3, _freq: float = 320.0, duration: float = 0.04, _volume: float = 0.4) -> void:
-	_play_transient_stream(_create_dummy_wav(duration), pos, 8.0)
+func _create_sweep_wav(start_f: float, end_f: float, duration: float, volume: float = 0.4) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	var f_diff: float = end_f - start_f
+	for i in range(sample_count):
+		var t: float = float(i) / 22050.0
+		var phase: float = 2.0 * PI * (start_f * t + (f_diff / (2.0 * safe_duration)) * t * t)
+		var sample: float = sin(phase) * volume
+		data[i] = _encode_pcm8_signed(sample)
+	wav.data = data
+	return wav
+
+func _create_dual_beep_wav(freq: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	var half_count: int = maxi(1, sample_count / 2)
+	for i in range(sample_count):
+		var beep_t: float = float(i % half_count) / 22050.0
+		var envelope: float = 1.0 if (i % half_count) < int(float(half_count) * 0.7) else 0.0
+		var sample: float = sin(2.0 * PI * freq * beep_t) * volume * envelope
+		data[i] = _encode_pcm8_signed(sample)
+	wav.data = data
+	return wav
+
+func _create_harmonic_chime_wav(f1: float, f2: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var decay: float = 1.0 - (t / safe_duration)
+		var sample: float = (sin(2.0 * PI * f1 * t) * 0.6 + sin(2.0 * PI * f2 * t) * 0.4) * volume * decay
+		data[i] = _encode_pcm8_signed(sample)
+	wav.data = data
+	return wav
+
+func _play_synth_click(pos: Vector3, freq: float = 320.0, duration: float = 0.04, volume: float = 0.4) -> void:
+	_play_transient_stream(_create_tone_wav(freq, duration, volume), pos, 8.0)
 
 func _play_synth_rejection_buzz(pos: Vector3) -> void:
-	_play_transient_stream(_create_dummy_wav(0.16), pos, 10.0)
+	_play_transient_stream(_create_dual_beep_wav(160.0, 0.16, 0.5), pos, 10.0)
 
 func _play_gate_slam(pos: Vector3) -> void:
 	if _gate_slam_production_stream != null:
@@ -1019,11 +1085,133 @@ func _play_fb13_thrum(pos: Vector3) -> void:
 	_play_synth_sweep(pos, 92.0, 148.0, 0.55, 0.34)
 	_play_synth_click(pos, 310.0, 0.08, 0.16)
 
-func _play_synth_sweep(pos: Vector3, _start_f: float = 180.0, _end_f: float = 450.0, duration: float = 0.25, _volume: float = 0.4) -> void:
-	_play_transient_stream(_create_dummy_wav(duration), pos, 10.0)
+func _play_synth_sweep(pos: Vector3, start_f: float = 180.0, end_f: float = 450.0, duration: float = 0.25, volume: float = 0.4) -> void:
+	_play_transient_stream(_create_sweep_wav(start_f, end_f, duration, volume), pos, 10.0)
 
 func _play_synth_chime(pos: Vector3) -> void:
-	_play_transient_stream(_create_dummy_wav(0.45), pos, 12.0)
+	_play_transient_stream(_create_harmonic_chime_wav(880.0, 1320.0, 0.45, 0.5), pos, 12.0)
+
+func _create_harmonic_drone_wav(f1: float, f2: float, duration: float, volume: float = 0.3) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var sample := (sin(2.0 * PI * f1 * t) * 0.7 + sin(2.0 * PI * f2 * t) * 0.3) * volume
+		data[i] = _encode_pcm8_signed(sample)
+	wav.data = data
+	return wav
+
+func _create_noise_wav(duration: float, volume: float = 0.3) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var sample := (randf() * 2.0 - 1.0) * volume
+		data[i] = _encode_pcm8_signed(sample)
+	wav.data = data
+	return wav
+
+func _create_fractured_carrier_wav(duration: float = 1.0, volume: float = 0.3) -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	var safe_duration := maxf(0.01, duration)
+	var sample_count := int(22050 * safe_duration)
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var f1 := 175.0 + 3.0 * sin(2.0 * PI * 4.0 * t)
+		var carrier := sin(2.0 * PI * f1 * t) * 0.45 + sin(2.0 * PI * (f1 * 1.5) * t) * 0.25
+		var flutter := 0.7 + 0.3 * sin(2.0 * PI * 8.0 * t)
+		var crackle := (randf() * 2.0 - 1.0) * 0.12
+		var sig := (carrier * flutter + crackle) * volume
+		data[i] = _encode_pcm8_signed(sig)
+	wav.data = data
+	return wav
+
+# Memory Echo procedural fallbacks remain independently reachable when a
+# production media slot is unavailable.
+func _create_echo_onset_wav() -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var duration := 0.28
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var norm_t := t / duration
+		var env := (1.0 - norm_t) * (1.0 - norm_t)
+		var sig := (sin(2.0 * PI * 220.0 * t) * 0.5
+			+ sin(2.0 * PI * 330.0 * t) * 0.3
+			+ (randf() * 2.0 - 1.0) * 0.2) * env * 0.55
+		data[i] = _encode_pcm8_signed(sig)
+	wav.data = data
+	return wav
+
+func _create_echo_peak_wav() -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var duration := 1.1
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var norm_t := t / duration
+		var env := 0.0
+		if norm_t < 0.15:
+			env = norm_t / 0.15
+		else:
+			env = 1.0 - ((norm_t - 0.15) / 0.85)
+		env = maxf(0.0, env)
+		var comb := sin(2.0 * PI * 185.0 * t) * 0.4 + sin(2.0 * PI * 187.0 * t) * 0.4
+		var am := 0.6 + 0.4 * sin(2.0 * PI * 3.0 * t)
+		var noise := (randf() * 2.0 - 1.0) * 0.15
+		var sig := (comb * am + noise) * env * 0.45
+		data[i] = _encode_pcm8_signed(sig)
+	wav.data = data
+	return wav
+
+func _create_echo_tail_wav() -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var duration := 0.45
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var norm_t := t / duration
+		var env := exp(-norm_t * 5.0)
+		var sig := (sin(2.0 * PI * 3400.0 * t) * 0.6
+			+ sin(2.0 * PI * 5100.0 * t) * 0.25
+			+ (randf() * 2.0 - 1.0) * 0.1) * env * 0.45
+		data[i] = _encode_pcm8_signed(sig)
+	wav.data = data
+	return wav
 
 func _play_echo_phase(event: SoundEvent, fallback_stream: AudioStream, volume_db: float, label: String) -> void:
 	if not _echo_voice:
@@ -1042,13 +1230,13 @@ func _play_echo_phase(event: SoundEvent, fallback_stream: AudioStream, volume_db
 ## M04 — Memory Echo audio signature helpers
 ## ECHO_ONSET: low electrical crackle — authentic packed-bank asset
 func _play_echo_onset() -> void:
-	_play_echo_phase(SoundEvent.ECHO_ONSET, null, -8.0, "Onset")
+	_play_echo_phase(SoundEvent.ECHO_ONSET, _create_echo_onset_wav(), -8.0, "Onset")
 
-## ECHO_PEAK: fractured signal ghost — authentic packed-bank asset
+## ECHO_PEAK: fractured signal ghost — authentic packed-bank asset with procedural fallback
 func _play_echo_peak() -> void:
-	_play_echo_phase(SoundEvent.ECHO_PEAK, null, -4.0, "Peak")
+	_play_echo_phase(SoundEvent.ECHO_PEAK, _create_echo_peak_wav(), -4.0, "Peak")
 
-## ECHO_TAIL: electrical high-frequency tail — authentic packed-bank asset
+## ECHO_TAIL: electrical high-frequency tail — authentic packed-bank asset with procedural fallback
 func _play_echo_tail() -> void:
-	_play_echo_phase(SoundEvent.ECHO_TAIL, null, -12.0, "Tail")
+	_play_echo_phase(SoundEvent.ECHO_TAIL, _create_echo_tail_wav(), -12.0, "Tail")
 
