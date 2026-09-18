@@ -1001,6 +1001,8 @@ func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> Audi
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
 	wav.mix_rate = 22050
 	var sample_count := int(22050 * maxf(0.01, duration))
+	wav.loop_begin = 0
+	wav.loop_end = sample_count
 	var data := PackedByteArray()
 	data.resize(sample_count)
 	for i in range(sample_count):
