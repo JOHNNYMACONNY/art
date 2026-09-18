@@ -141,7 +141,7 @@ func _run() -> void:
 	player.is_mounted = false
 	_scene.set("active_vehicle", null)
 	player.reset_vitals(83.0, 5.0)
-	var health_before := player.current_health
+	var health_before: float = float(player.current_health)
 	contact_runtime.call("_process", 0.0)
 	if not bool(contact_runtime.call("attempt_armor_restock", player)):
 		await _fail("Eligible known/CLEAR/on-foot Armor restock failed")
