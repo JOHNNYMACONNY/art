@@ -12,6 +12,7 @@ const ContactStoreScript = preload("res://scripts/progress/mayor_burn_contact_pr
 const SERVICE_SOCKET_PATH := "MissionDestinationSocket"
 const SERVICE_RADIUS_M := 2.6
 const AFFORDANCE_RADIUS_M := 8.0
+const SUCCESS_FEEDBACK_MSEC := 1200
 
 var _root_controller: Node = null
 var _district: Node3D = null
@@ -23,6 +24,7 @@ var _contact_interactable: InteractableBase = null
 var _affordance_label: Label3D = null
 var _affordance_text: String = ""
 var _progress_store = ContactStoreScript.new()
+var _success_until_msec: int = 0
 var _bound: bool = false
 
 func configure(root_controller: Node, district: Node3D, wanted_runtime: Node, civic_runtime: Node) -> bool:
@@ -109,6 +111,11 @@ func _process(_delta: float) -> void:
 	if not _bound or _contact_interactable == null or _service_socket == null or _player == null:
 		return
 
+	if Time.get_ticks_msec() < _success_until_msec:
+		_contact_interactable.is_powered = false
+		_set_affordance("ARMOR RESTOCKED", true)
+		return
+
 	if not _progress_store.is_known() \
 	or _player.is_mounted \
 	or _player.is_input_locked \
@@ -155,7 +162,12 @@ func attempt_armor_restock(candidate: Node) -> bool:
 		return false
 	if not _wanted_is_clear():
 		return false
-	return _player.restock_armor()
+	if not _player.restock_armor():
+		return false
+	_success_until_msec = Time.get_ticks_msec() + SUCCESS_FEEDBACK_MSEC
+	_contact_interactable.is_powered = false
+	_set_affordance("ARMOR RESTOCKED", true)
+	return true
 
 func is_player_in_service_radius(candidate: Node) -> bool:
 	return candidate is Node3D and _service_socket != null \
