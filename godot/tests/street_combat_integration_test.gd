@@ -172,7 +172,10 @@ func _run() -> void:
 		await process_frame
 	blocker.queue_free()
 	await physics_frame
-	player.global_position = lockbox.global_position + Vector3(0, 0, 1.2)
+	# Keep the target off-axis after removing the blocker. The center ray should
+	# miss, so this proves the proximity fallback can hit a visible candidate
+	# through its own LOS query.
+	player.global_position = lockbox.global_position + Vector3(-0.65, 0, 1.2)
 	player.mesh_pivot.rotation.y = 0.0
 	await physics_frame
 
