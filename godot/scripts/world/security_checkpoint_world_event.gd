@@ -134,7 +134,9 @@ func ram_breach(speed: float) -> bool:
 	current_state = State.BREACHED
 	_cooldown_remaining = COOLDOWN_SEC
 	if _barrier_collision != null:
-		_barrier_collision.disabled = true
+		# Vehicle collision callbacks can arrive while the physics server is flushing.
+		# Defer the shape mutation so a successful ram cannot leave the barrier solid.
+		_barrier_collision.set_deferred("disabled", true)
 
 	if _audio != null:
 		_audio.play_event(AudioManager.SoundEvent.COLLISION_HEAD_ON, _checkpoint_prop.global_position)
