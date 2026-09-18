@@ -231,6 +231,19 @@ func _run() -> void:
 		return
 	test_stream = null
 
+	# Post-147 regression: semantic slots that intentionally remain procedural must
+	# still produce audible PCM rather than zero-filled placeholder buffers.
+	var core_pull_fallback := _manager.call("_create_sweep_wav", 600.0, 1200.0, 0.4, 0.45) as AudioStreamWAV
+	if _pcm_span(core_pull_fallback) < 32:
+		await _fail("CORE_PULL procedural fallback is silent or has insufficient PCM amplitude")
+		return
+	var panel_powered_fallback := _manager.call("_create_harmonic_chime_wav", 880.0, 1320.0, 0.45, 0.5) as AudioStreamWAV
+	if _pcm_span(panel_powered_fallback) < 32:
+		await _fail("PANEL_POWERED procedural fallback is silent or has insufficient PCM amplitude")
+		return
+	core_pull_fallback = null
+	panel_powered_fallback = null
+
 	var probe_player := _play_test_master_probe(0.20)
 	if not await _require_player(probe_player, "Test output probe"):
 		return
