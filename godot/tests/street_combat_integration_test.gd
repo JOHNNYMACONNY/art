@@ -140,8 +140,38 @@ func _run() -> void:
 	strike_triggered_emitted[0] = false
 	last_hit_target[0] = null
 
+	# Post-147 regression: a non-damageable wall between the runner and lockbox
+	# must block both the forward ray and the proximity fallback.
+	var blocker := StaticBody3D.new()
+	blocker.name = "StrikeLineOfSightBlocker"
+	var blocker_shape := CollisionShape3D.new()
+	var blocker_box := BoxShape3D.new()
+	blocker_box.size = Vector3(1.4, 1.8, 0.25)
+	blocker_shape.shape = blocker_box
+	blocker.add_child(blocker_shape)
+	_scene.add_child(blocker)
+	blocker.global_position = Vector3(
+		lockbox.global_position.x,
+		player.global_position.y + 0.9,
+		(lockbox.global_position.z + player.global_position.z) * 0.5
+	)
+	await physics_frame
+	var durability_before_blocked_strike: int = lockbox.current_durability
+	var blocked_strike_ok: bool = player.strike()
+	if not blocked_strike_ok:
+		await _fail("STAGE 3 FAIL: blocked strike could not execute")
+		return
+	await physics_frame
+	if lockbox.current_durability != durability_before_blocked_strike:
+		await _fail("STAGE 3 FAIL: melee damaged lockbox through a blocking collider")
+		return
 	while player._strike_cooldown > 0.0 or player.is_striking:
 		await process_frame
+	blocker.queue_free()
+	await physics_frame
+	player.global_position = lockbox.global_position + Vector3(0, 0, 1.2)
+	player.mesh_pivot.rotation.y = 0.0
+	await physics_frame
 
 	var hit_strike_ok: bool = player.strike()
 	if not hit_strike_ok:
