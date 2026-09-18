@@ -65,7 +65,7 @@ func _run() -> void:
 	var verify := FileAccess.open(TEST_PATH, FileAccess.READ)
 	var raw := verify.get_as_text()
 	verify.close()
-	if '"version":999' not in raw.replace(" ", ""):
+	if not raw.replace(" ", "").contains('"version":999'):
 		_fail("Unsupported data was silently overwritten")
 		return
 
