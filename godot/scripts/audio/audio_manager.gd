@@ -1080,6 +1080,71 @@ func _play_synth_sweep(pos: Vector3, start_f: float = 180.0, end_f: float = 450.
 func _play_synth_chime(pos: Vector3) -> void:
 	_play_transient_stream(_create_harmonic_chime_wav(880.0, 1320.0, 0.45, 0.5), pos, 12.0)
 
+# Memory Echo procedural fallbacks remain independently reachable when a
+# production media slot is unavailable.
+func _create_echo_onset_wav() -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var duration := 0.28
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var norm_t := t / duration
+		var env := (1.0 - norm_t) * (1.0 - norm_t)
+		var sig := (sin(2.0 * PI * 220.0 * t) * 0.5
+			+ sin(2.0 * PI * 330.0 * t) * 0.3
+			+ (randf() * 2.0 - 1.0) * 0.2) * env * 0.55
+		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
+func _create_echo_peak_wav() -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var duration := 1.1
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var norm_t := t / duration
+		var env := 0.0
+		if norm_t < 0.15:
+			env = norm_t / 0.15
+		else:
+			env = 1.0 - ((norm_t - 0.15) / 0.85)
+		env = maxf(0.0, env)
+		var comb := sin(2.0 * PI * 185.0 * t) * 0.4 + sin(2.0 * PI * 187.0 * t) * 0.4
+		var am := 0.6 + 0.4 * sin(2.0 * PI * 3.0 * t)
+		var noise := (randf() * 2.0 - 1.0) * 0.15
+		var sig := (comb * am + noise) * env * 0.45
+		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
+func _create_echo_tail_wav() -> AudioStreamWAV:
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_8_BITS
+	wav.mix_rate = 22050
+	var duration := 0.45
+	var sample_count := int(22050 * duration)
+	var data := PackedByteArray()
+	data.resize(sample_count)
+	for i in range(sample_count):
+		var t := float(i) / 22050.0
+		var norm_t := t / duration
+		var env := exp(-norm_t * 5.0)
+		var sig := (sin(2.0 * PI * 3400.0 * t) * 0.6
+			+ sin(2.0 * PI * 5100.0 * t) * 0.25
+			+ (randf() * 2.0 - 1.0) * 0.1) * env * 0.45
+		data[i] = int(clampf((sig + 1.0) * 127.5, 0.0, 255.0))
+	wav.data = data
+	return wav
+
 func _play_echo_phase(event: SoundEvent, fallback_stream: AudioStream, volume_db: float, label: String) -> void:
 	if not _echo_voice:
 		return
@@ -1097,13 +1162,13 @@ func _play_echo_phase(event: SoundEvent, fallback_stream: AudioStream, volume_db
 ## M04 — Memory Echo audio signature helpers
 ## ECHO_ONSET: low electrical crackle — authentic packed-bank asset
 func _play_echo_onset() -> void:
-	_play_echo_phase(SoundEvent.ECHO_ONSET, null, -8.0, "Onset")
+	_play_echo_phase(SoundEvent.ECHO_ONSET, _create_echo_onset_wav(), -8.0, "Onset")
 
-## ECHO_PEAK: fractured signal ghost — authentic packed-bank asset
+## ECHO_PEAK: fractured signal ghost — authentic packed-bank asset with procedural fallback
 func _play_echo_peak() -> void:
-	_play_echo_phase(SoundEvent.ECHO_PEAK, null, -4.0, "Peak")
+	_play_echo_phase(SoundEvent.ECHO_PEAK, _create_echo_peak_wav(), -4.0, "Peak")
 
-## ECHO_TAIL: electrical high-frequency tail — authentic packed-bank asset
+## ECHO_TAIL: electrical high-frequency tail — authentic packed-bank asset with procedural fallback
 func _play_echo_tail() -> void:
-	_play_echo_phase(SoundEvent.ECHO_TAIL, null, -12.0, "Tail")
+	_play_echo_phase(SoundEvent.ECHO_TAIL, _create_echo_tail_wav(), -12.0, "Tail")
 
