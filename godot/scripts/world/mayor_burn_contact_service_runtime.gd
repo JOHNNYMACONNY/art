@@ -133,11 +133,14 @@ func _process(_delta: float) -> void:
 		return
 
 	# Brief success feedback is valid only while the player remains in the
-	# on-foot Garage context. It never owns eligibility or blocks Wanted.
-	if Time.get_ticks_msec() < _success_until_msec:
+	# on-foot Garage context and Armor is still full. Fresh damage immediately
+	# cancels stale confirmation so the service can become eligible again.
+	if Time.get_ticks_msec() < _success_until_msec and _player.current_armor >= PlayerRunner.MAX_ARMOR:
 		_contact_interactable.is_powered = false
 		_set_affordance("ARMOR RESTOCKED", true)
 		return
+	if _player.current_armor < PlayerRunner.MAX_ARMOR:
+		_success_until_msec = 0
 
 	if _player.current_armor >= PlayerRunner.MAX_ARMOR:
 		_contact_interactable.is_powered = false
