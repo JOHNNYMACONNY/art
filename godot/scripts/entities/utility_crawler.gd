@@ -24,7 +24,7 @@ const DEBRIS_COUNT: int = 4
 	Vector3(6.5, 0.05, -2.0),
 	Vector3(6.5, 0.05, 3.0)
 ]
-@export var safe_anchor: Vector3 = Vector3(1.0, 0.05, -4.5)
+@export var safe_anchor: Vector3 = Vector3(6.5, 0.05, -4.5)
 @export var move_speed: float = 2.0
 @export var awareness_radius: float = 4.0
 
