@@ -97,23 +97,44 @@ func _run() -> void:
 		await _fail("Rejected unknown-contact restock mutated Armor")
 		return
 
-	# Complete the real Mission-02 delivery transition through CivicRepossessionRuntime.
-	mission_one.mission.phase = ScrapJobMissionScript.Phase.COMPLETE
-	civic.mission.phase = CivicMissionScript.Phase.DELIVERY
+	# Complete the retained Mission-02 delivery transition synchronously through
+	# its own authored state-machine seam. Do not yield between synthetic Mission-01
+	# prerequisite setup and completion, or Mission-01's live replay reconciler will
+	# correctly restore its world-derived state before this deterministic fixture runs.
+	var mission_one_state = mission_one.get("mission")
+	if mission_one_state == null:
+		await _fail("Mission 01 state is unavailable")
+		return
+	mission_one_state.set("phase", ScrapJobMissionScript.Phase.COMPLETE)
+	civic.call("_try_bind_runtime")
+	var civic_mission = civic.get("mission")
+	if civic_mission == null:
+		await _fail("Mission 02 state is unavailable")
+		return
+	if int(civic_mission.get("phase")) == CivicMissionScript.Phase.LOCKED:
+		if not bool(civic_mission.call("unlock_after_scrap_job")):
+			await _fail("Mission 02 could not unlock for Contact fixture")
+			return
+	if not bool(civic_mission.call("on_vehicle_mounted", "ScrapHauler")):
+		await _fail("Mission 02 could not enter ESCAPE for Contact fixture")
+		return
+	if not bool(civic_mission.call("on_clean_take")):
+		await _fail("Mission 02 could not enter DELIVERY for Contact fixture")
+		return
+
 	var completion_count := [0]
 	civic.civic_repossession_completed.connect(func(): completion_count[0] += 1)
 	var hauler = _scene.get("scrap_hauler")
 	hauler.global_position = socket.global_position
 	civic.call("_process", 0.0)
-	await process_frame
-	if civic.mission.phase != CivicMissionScript.Phase.COMPLETE or civic.mission.reward_credits != CivicMissionScript.PAYOFF_CREDITS:
+	if int(civic_mission.get("phase")) != CivicMissionScript.Phase.COMPLETE \
+	or int(civic_mission.get("reward_credits")) != CivicMissionScript.PAYOFF_CREDITS:
 		await _fail("Mission 02 completion/payoff changed while establishing Contact")
 		return
 	if completion_count[0] != 1 or not bool(store.call("is_known")) or int(store.call("get_write_count")) != 1:
 		await _fail("Mission 02 completion did not record KNOWN exactly once")
 		return
 	civic.call("_process", 0.0)
-	await process_frame
 	if completion_count[0] != 1 or int(store.call("get_write_count")) != 1:
 		await _fail("Duplicate completed mission processing duplicated Contact write")
 		return
