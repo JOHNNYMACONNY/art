@@ -89,12 +89,13 @@ func configure(root_controller: Node, district: Node3D, wanted_runtime: Node, pr
 	if not touch_ui.action_button_pressed.is_connected(action_callable):
 		touch_ui.action_button_pressed.connect(action_callable)
 	var completion_callable := Callable(self, "_on_civic_repossession_completed")
-	if not _civic_runtime.mission_completed.is_connected(completion_callable):
-		_civic_runtime.mission_completed.connect(completion_callable)
+	if not _civic_runtime.is_connected("mission_completed", completion_callable):
+		_civic_runtime.connect("mission_completed", completion_callable)
 
 	# If this runtime binds after the completion frame, reconcile the retained
 	# mission state exactly once rather than requiring the signal to be replayed.
-	if _civic_runtime.get("mission") != null and int(_civic_runtime.mission.phase) == int(CivicMissionScript.Phase.COMPLETE):
+	var retained_mission = _civic_runtime.get("mission")
+	if retained_mission != null and int(retained_mission.phase) == int(CivicMissionScript.Phase.COMPLETE):
 		_progress_store.call("mark_known")
 
 	_bound = true
