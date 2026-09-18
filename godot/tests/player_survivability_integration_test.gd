@@ -121,11 +121,23 @@ func _run() -> void:
 	_scene.soft_failure_started.connect(func(): soft_started[0] = true)
 	_scene.soft_failure_recovered.connect(func(): soft_recovered[0] = true)
 
-	player.reset_vitals(10.0, 0.0)
+	# Continue from Stage 3's real 90 Health / 0 Armor state. Two more
+	# nonlethal catches should leave 55 then 20; the following catch depletes.
+	for expected_health in [55.0, 20.0]:
+		_scene.current_pursuit_state = _scene.PursuitState.PURSUIT_ACTIVE
+		_scene._on_pursuer_intercepted()
+		if not is_equal_approx(player.current_health, expected_health) or soft_started[0]:
+			await _fail("Repeated interception damage did not accumulate predictably")
+			return
+		await create_timer(0.85).timeout
+		if _scene.current_pursuit_state != _scene.PursuitState.RETRY_READY:
+			await _fail("Repeated nonlethal interception lost retained retry authority")
+			return
+
 	_scene.current_pursuit_state = _scene.PursuitState.PURSUIT_ACTIVE
 	_scene._on_pursuer_intercepted()
 	if not soft_started[0] or player.current_health != 0.0 or _scene.current_pursuit_state != _scene.PursuitState.INTERCEPTED:
-		await _fail("Lethal interception did not enter Soft Failure")
+		await _fail("Repeated lethal interception did not enter Soft Failure")
 		return
 	await create_timer(0.85).timeout
 	if not soft_recovered[0] or _scene.current_pursuit_state != _scene.PursuitState.RETRY_READY:
