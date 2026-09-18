@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P08_AND_GEARS_WORLD_EVENTS_PROPS_MERGED_VERIFIED`  
-**Current gameplay/world baseline:** `feat/gears-world-events-and-props`  
+**Status:** `BURNSIDE_P09_PLAYER_SURVIVABILITY_MERGED_VERIFIED`  
+**Current gameplay/world baseline:** `069e7f3c504cc5a088577bcd1c5efc21b125f23f`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -9,7 +9,7 @@
 
 ## Current product state
 
-Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, and authored FB-13 / HS-7 companion presence compose in the same geography.
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, and authored FB-13 / HS-7 companion presence compose in the same geography.
 
 **Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
 - **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
@@ -102,6 +102,7 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 06** — #134 / PR #135 — Gears Surveyed Service Cut / Durable Map-Knowledge Tracer — `cfe82d2580a7300e3ebb2bf3257d08a4300bf2a4`.
 - **Production 07** — #137 / PR #138 — Gears Vehicle Condition / Burn Garage Repair Tracer — `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`.
 - **Production 08** — #141 / PR #143 / PR #145 (review polish) — FB-13 / HS-7 Authored Companion Presence Tracer — `37c130b10db057ba923d5a9a6738081fa91e6fdf`.
+- **Production 09** — #149 / PR #150 — Player Health / Armor / Soft Failure Tracer — `069e7f3c504cc5a088577bcd1c5efc21b125f23f`.
 
 ## Retained authority truths
 
@@ -130,7 +131,7 @@ Key boundaries retained:
 - Tool Action is dedicated touch + desktop input and yields to retained gesture/input ownership.
 - Forcing the authored ServiceAlley access changes physical traversal only through retained P04/P05 seams.
 - Scrapper contact only creates a brief pursuer stagger/displacement window.
-- No Player Health/Armor, firearms, weapon roster, generic NPC damage/death, generalized hostile combat AI, inventory/loot/RPG stats, Heat 2–5, generalized witness/crime framework, or unrelated Audio scope exists from P05.
+- P05 itself introduced no Player Health/Armor. Production 09 now supplies the separate retained PlayerRunner survivability authority. Firearms, weapon roster, generic NPC damage/death, generalized hostile combat AI, inventory/loot/RPG stats, Heat 2–5, generalized witness/crime framework, and unrelated Audio scope remain absent.
 
 ## Production 06 retained result
 
@@ -444,25 +445,68 @@ Public source stamp:
 
 `playtest-web/PLAYTEST_BUILD.txt = 37c130b10db057ba923d5a9a6738081fa91e6fdf`
 
-## Post-Production-08 re-evaluation state
+## Production 09 — verified player-facing result
 
-Production 08 grounds FB-13 and HS-7 as visible, physical companions in ordinary Gears play. FB-13 follows, navigates local clearance, docks in both vehicles, reacts to the civic Thrum, and recovers off-screen without pop-in. HS-7 remains physically carried with Runner across on-foot and mounted postures. All of this was accomplished without a generalized companion AI, navmesh, save schema, or audio changes.
+Issue #149 / PR #150: **COMPLETE / MERGED / VERIFIED**.
 
-**Production 09 is not selected yet.** Re-evaluate from exact runnable behavior rather than numbering momentum.
+Exact gameplay merge:
+
+`069e7f3c504cc5a088577bcd1c5efc21b125f23f`
+
+Player-facing contract:
+
+`DANGER -> ARMOR ABSORBS FIRST -> HEALTH TAKES READABLE DAMAGE -> ESCAPE / RECOVER -> RE-ENGAGE`
+
+At Health depletion:
+
+`SOFT FAILURE -> IMMEDIATE DANGER ENDS -> SAFE RECOVERY -> HORIZONTAL PROGRESS REMAINS TRUSTWORTHY`
+
+Retained truths:
+
+- `PlayerRunner` is the single Health / Armor arithmetic authority;
+- Health is bounded to 100 and Armor to 50; current tracer begins with 25 Armor;
+- Armor absorbs incoming damage first; remainder spills into Health;
+- a 0.55 s damage-immunity window prevents one contact from frame-spamming damage;
+- pursuer interception is the first retained real damage source at 35 damage per accepted catch;
+- safe passive Health recovery begins only after 3.0 s out of immediate danger, restores 12 HP/s, caps at 65, and never restores Armor;
+- repeated real catches are verified through `90 -> 55 -> 20 -> 0`;
+- Soft Failure restores 60 Health / 0 Armor at retained recovery geography without calling the broad slice reset;
+- pursuit-context Soft Failure returns to `RETRY_READY`; non-pursuit depletion returns to `CALM`;
+- surveyed route knowledge and authored mission phase survive Soft Failure;
+- `VitalsHUD` is mounted under retained `SafeAreaRoot` and is pointer-transparent;
+- full manual Replay may reset default vitals, while Soft Failure preserves horizontal progression;
+- no firearms, enemy shooting, generalized NPC health/death, medical inventory, armor rarity, perks, levels, loot system, or generalized damage framework entered P09.
+
+Verification on final feature head `979f006b346931e75ff80a67953774602b625811`:
+
+- Production 09 exact-source Health / Armor / Soft Failure gate: **PASS**;
+- repeated-interception and non-pursuit-context falsification: **PASS**;
+- retained street combat / touch routing / mapped-route persistence: **PASS**;
+- Camera Feel, Wanted, Production 04/05/07/08 workflows: **PASS**;
+- literal-head Web export: **PASS**;
+- synthetic-merge Web export: **PASS**;
+- canonical exact-head 29-suite compatibility matrix: **PASS**;
+- direct self-review: **PASS**; no Codex review was requested.
+
+## Post-Production-09 re-evaluation state
+
+Production 09 closes the highest-ranked post-P08 danger/depth gap without expanding combat into an RPG or generalized hostile-AI framework. The strongest next bounded product gap is now **authored relationship / Standing consequence**.
+
+The canonical Factions & Reputation Contract (#107) keeps this simple: meaningful Contacts and a few organizations may change concrete treatment/access; no universal morality meter, global faction matrix, point farming, territory conquest, or hidden reputation grind.
 
 Leading credible next gaps to compare:
 
-1. **next bounded Street-Combat danger/depth** — P05 proves committed physical counterplay with the Scrapper Tool, but production still has no Player Health/Armor or escalating pursuer danger;
-2. **authored relationship / Standing consequence** — one small local outcome that visibly changes later interactions or gate/access decisions without a broad reputation authority system;
-3. **vehicle claiming / identity** — P07 gives condition and repair meaning, but vehicle ownership/claiming remains unaddressed;
-4. **deeper authored city mastery** — another deliberately authored shortcut/knowledge payoff only if it adds a distinct decision rather than generalizing into a GPS layer;
-5. **moment-to-moment vehicle feel / authored escape pressure** — handling/encounter pressure improvements under Heat-1 pursuit.
+1. **authored relationship / Standing consequence** — one meaningful completed job should visibly change later treatment, service, access, or route opportunity; Mayor Burn and his existing Garage are the strongest retained seam;
+2. **vehicle claiming / identity** — P07 gives vehicle condition and repair meaning, but ownership/claiming remains unaddressed and carries more persistence/schema/UX cost;
+3. **deeper authored city mastery** — another learned shortcut/access payoff only if it creates a distinct decision rather than GPS expansion;
+4. **moment-to-moment vehicle feel / authored escape pressure** — improve retained Heat-1 chase feel only from observed weakness;
+5. **next combat breadth** — firearms/enemy ranged danger remain canonical later possibilities, but should not outrank the smaller relationship consequence by momentum alone.
 
-Heat escalation, generalized witnesses/surveillance, transit, broader geography, generalized persistence, Garage networks, economy, companion navigation, and generalized vehicle/damage architecture remain later candidates unless current play proves they outrank smaller authored gains.
+Heat 2–5, generalized witnesses/surveillance, transit, broader geography, generalized faction/reputation architecture, generalized persistence, Garage networks, broad economy, companion navigation, generalized hostile AI, and weapon inventories remain later candidates unless current play proves they outrank smaller authored gains.
 
 ## Retained foundations / deferred lanes
 
-Do not recreate retained Feel tickets #12–#16, Missions 01–03, Open World Expansion 01A–01D, World Event 01 / PR #68, or Productions 01–08 because older roadmaps describe them historically.
+Do not recreate retained Feel tickets #12–#16, Missions 01–03, Open World Expansion 01A–01D, World Event 01 / PR #68, or Productions 01–09 because older roadmaps describe them historically.
 
 FB-13 / HS-7 companion presence is now embodied in production gameplay. Do not add generalized companion AI or navmesh frameworks.
 
@@ -522,8 +566,8 @@ Next production session:
 1. refresh exact `main`, open PRs/issues, CI, public playtest, and concurrent Audio/shared-scene state;
 2. read `START_HERE.md`, issue #55, issue #118, and this continuity file;
 3. verify local repo/branch/HEAD/upstream/dirty state before local code mutation;
-4. re-evaluate post-P08 player-facing gaps by **fun / feel / clarity / cohesion / value / cost / risk**;
-5. select exactly one bounded next production increment only after evidence supports it;
+4. re-evaluate post-P09 player-facing gaps by **fun / feel / clarity / cohesion / value / cost / risk**;
+5. treat one bounded authored relationship / Standing consequence as the leading candidate, while still comparing it against vehicle claiming, city mastery, vehicle feel, and combat breadth before implementation;
 6. create the JIT ticket/spec for that increment;
 7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW (independent when available, or explicitly owner-waived if the owner changes the gate) -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
 8. update continuity only after verified changes land.
