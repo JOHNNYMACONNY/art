@@ -41,6 +41,12 @@ enum PursuitState {
 	RETRY_READY
 }
 
+const PURSUER_INTERCEPT_DAMAGE: float = 35.0
+const SOFT_FAILURE_RECOVERY_HEALTH: float = 60.0
+
+signal soft_failure_started
+signal soft_failure_recovered
+
 @onready var player: PlayerRunner = $Runner
 @onready var camera: ChinatownCamera3D = $ChinatownCamera3D
 @onready var corroded_panel: CorrodedPanel = $CorrodedPanel
@@ -90,6 +96,10 @@ var _is_retrying_chase: bool = false
 var _radio_enabled: bool = true
 var _radio_station_id: String = RadioStationCatalogScript.DEFAULT_STATION_ID
 var _radio_owner: Node3D = null
+
+var _vitals_hud: PanelContainer = null
+var _health_bar: ProgressBar = null
+var _armor_bar: ProgressBar = null
 
 func get_radio_owner() -> Node3D:
 	return _radio_owner
@@ -402,6 +412,10 @@ func _ready() -> void:
 		camera.set_target(player)
 		player.footstep_triggered.connect(_on_player_footstep)
 		player.strike_triggered.connect(_on_player_strike_triggered)
+		player.vitals_changed.connect(_update_vitals_hud)
+		player.depleted.connect(_begin_soft_failure)
+		_ensure_vitals_hud()
+		_update_vitals_hud(player.current_health, player.current_armor)
 		
 	if touch_ui:
 		touch_ui.joystick_vector_updated.connect(_on_joystick_vector_updated)
@@ -521,6 +535,12 @@ func _get_active_vehicle() -> Node3D:
 	return null
 
 func _process(delta: float) -> void:
+	if player:
+		player.set_safe_recovery_enabled(
+			current_pursuit_state == PursuitState.CALM
+			or current_pursuit_state == PursuitState.EVADED
+			or current_pursuit_state == PursuitState.RETRY_READY
+		)
 	var active_veh := _get_active_vehicle()
 	var active_pos: Vector3 = active_veh.global_position if active_veh else player.global_position
 	for item in _interactables:
@@ -720,6 +740,13 @@ func _on_signal_gate_triggered() -> void:
 func _on_pursuer_intercepted() -> void:
 	if current_pursuit_state == PursuitState.INTERCEPTED or current_pursuit_state == PursuitState.RETRY_READY:
 		return
+
+	if player:
+		player.apply_damage(PURSUER_INTERCEPT_DAMAGE)
+		# PlayerRunner.depleted is the generic Soft Failure seam. If this hit
+		# depleted Health, the synchronous signal already entered recovery.
+		if player.current_health <= 0.0:
+			return
 		
 	current_pursuit_state = PursuitState.INTERCEPTED
 	print("[PURSUIT] TARGET INTERCEPTED! Resetting to recovery marker...")
@@ -758,6 +785,56 @@ func _on_pursuer_intercepted() -> void:
 		if audio_mgr:
 			audio_mgr.clear_radio_duck()
 		print("[PURSUIT] Recovery complete. Transitioned to RETRY_READY.")
+	)
+
+func _begin_soft_failure() -> void:
+	var recover_to_retry := current_pursuit_state != PursuitState.CALM
+	current_pursuit_state = PursuitState.INTERCEPTED
+	soft_failure_started.emit()
+	print("[SOFT_FAILURE] Runner depleted. Ending immediate danger without resetting durable progress...")
+
+	_last_pursuit_vehicle = _get_active_vehicle() if _get_active_vehicle() else _last_pursuit_vehicle
+	_steer_input = 0.0
+	_throttle_input = 0.0
+	_handbrake_input = false
+	if player:
+		player.is_input_locked = true
+	if courier_bike:
+		courier_bike.force_dismount()
+	if scrap_hauler:
+		scrap_hauler.force_dismount()
+	if muscle_coupe:
+		muscle_coupe.force_dismount()
+	if audio_mgr:
+		audio_mgr.clear_radio_interference()
+	_end_pursuit_common(true)
+	if audio_mgr:
+		audio_mgr.play_event(AudioManagerScript.SoundEvent.PURSUIT_INTERCEPTED, player.global_position if player else Vector3.ZERO)
+	if touch_ui:
+		touch_ui.show_replay_overlay(recover_to_retry)
+		touch_ui.show_tension_hud("[ DOWN // RECOVERING ]")
+
+	get_tree().create_timer(0.8).timeout.connect(func():
+		if current_pursuit_state != PursuitState.INTERCEPTED:
+			return
+		if player:
+			player.global_position = _recovery_marker + Vector3(-1.5, 0, 0)
+			player.velocity = Vector3.ZERO
+			player.reset_vitals(SOFT_FAILURE_RECOVERY_HEALTH, 0.0)
+			player.is_input_locked = false
+		if courier_bike:
+			courier_bike.global_position = _recovery_marker
+			courier_bike.rotation = Vector3.ZERO
+		if scrap_hauler:
+			scrap_hauler.global_position = _recovery_marker + Vector3(3.0, 0, 0)
+			scrap_hauler.rotation = Vector3.ZERO
+		current_pursuit_state = PursuitState.RETRY_READY if recover_to_retry else PursuitState.CALM
+		if touch_ui:
+			touch_ui.hide_tension_hud()
+		if audio_mgr:
+			audio_mgr.clear_radio_duck()
+		soft_failure_recovered.emit()
+		print("[SOFT_FAILURE] Recovery complete. Durable progress preserved; retry authority ready.")
 	)
 
 func retry_chase() -> void:
@@ -1393,6 +1470,88 @@ func _on_vending_machine_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
 	if vending_event and vending_event.has_method("notify_rammed"):
 		vending_event.notify_rammed(impact_speed, _ram_dir)
 
+func _set_hud_input_transparent(control: Control) -> void:
+	control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+func _ensure_vitals_hud() -> void:
+	if _vitals_hud != null:
+		return
+	var safe_root := get_node_or_null("CanvasLayer/TouchControlsUI/SafeAreaRoot") as Control
+	if safe_root == null:
+		return
+
+	_vitals_hud = PanelContainer.new()
+	_vitals_hud.name = "VitalsHUD"
+	_set_hud_input_transparent(_vitals_hud)
+	_vitals_hud.z_index = 38
+	_vitals_hud.offset_left = 24.0
+	_vitals_hud.offset_top = 174.0
+	_vitals_hud.offset_right = 244.0
+	_vitals_hud.offset_bottom = 258.0
+
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.03, 0.035, 0.045, 0.72)
+	panel_style.corner_radius_top_left = 4
+	panel_style.corner_radius_top_right = 4
+	panel_style.corner_radius_bottom_left = 4
+	panel_style.corner_radius_bottom_right = 4
+	panel_style.content_margin_left = 8
+	panel_style.content_margin_top = 6
+	panel_style.content_margin_right = 8
+	panel_style.content_margin_bottom = 6
+	_vitals_hud.add_theme_stylebox_override("panel", panel_style)
+	safe_root.add_child(_vitals_hud)
+
+	var margin := MarginContainer.new()
+	margin.name = "VitalsMargin"
+	_set_hud_input_transparent(margin)
+	_vitals_hud.add_child(margin)
+
+	var stack := VBoxContainer.new()
+	stack.name = "VitalsStack"
+	_set_hud_input_transparent(stack)
+	stack.add_theme_constant_override("separation", 2)
+	margin.add_child(stack)
+
+	var health_label := Label.new()
+	health_label.name = "HealthLabel"
+	health_label.text = "HEALTH"
+	health_label.add_theme_font_size_override("font_size", 11)
+	_set_hud_input_transparent(health_label)
+	stack.add_child(health_label)
+
+	_health_bar = ProgressBar.new()
+	_health_bar.name = "HealthBar"
+	_health_bar.min_value = 0.0
+	_health_bar.max_value = PlayerRunner.MAX_HEALTH
+	_health_bar.show_percentage = false
+	_health_bar.custom_minimum_size = Vector2(196.0, 10.0)
+	_set_hud_input_transparent(_health_bar)
+	stack.add_child(_health_bar)
+
+	var armor_label := Label.new()
+	armor_label.name = "ArmorLabel"
+	armor_label.text = "ARMOR"
+	armor_label.add_theme_font_size_override("font_size", 10)
+	_set_hud_input_transparent(armor_label)
+	stack.add_child(armor_label)
+
+	_armor_bar = ProgressBar.new()
+	_armor_bar.name = "ArmorBar"
+	_armor_bar.min_value = 0.0
+	_armor_bar.max_value = PlayerRunner.MAX_ARMOR
+	_armor_bar.show_percentage = false
+	_armor_bar.custom_minimum_size = Vector2(196.0, 8.0)
+	_set_hud_input_transparent(_armor_bar)
+	stack.add_child(_armor_bar)
+
+func _update_vitals_hud(health: float, armor: float) -> void:
+	_ensure_vitals_hud()
+	if _health_bar:
+		_health_bar.value = health
+	if _armor_bar:
+		_armor_bar.value = armor
+
 func _on_radio_toggle_pressed() -> void:
 	var veh := _get_active_vehicle()
 	if not veh or not audio_mgr:
@@ -1450,6 +1609,7 @@ func reset_slice() -> void:
 		player.velocity = Vector3.ZERO
 		player.visible = true
 		player.is_input_locked = false
+		player.reset_vitals()
 		var player_col = player.get_node_or_null("CollisionShape3D") as CollisionShape3D
 		if player_col:
 			player_col.disabled = false

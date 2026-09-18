@@ -306,7 +306,7 @@ jobs:
             --path godot \
             --script res://tests/camera_mount_transition_test.gd
 
-      - name: Run post-147 combat and checkpoint regressions
+      - name: Run combat, checkpoint, and player survivability regressions
         shell: bash
         run: |
           set -euo pipefail
@@ -320,6 +320,11 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/security_checkpoint_world_event_test.gd
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/player_survivability_integration_test.gd
 
       - name: Run and classify canonical 29-suite legacy matrix
         shell: bash

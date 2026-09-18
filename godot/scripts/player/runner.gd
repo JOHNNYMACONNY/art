@@ -32,6 +32,23 @@ const STRIKE_REACH_M: float = 2.2
 const STRIKE_ARC_DEG: float = 90.0
 const STRIKE_DAMAGE: int = 1
 
+# Production 09 — bounded Street Combat survivability. These are tracer tuning
+# values, not a generalized RPG stat framework.
+const MAX_HEALTH: float = 100.0
+const MAX_ARMOR: float = 50.0
+const DEFAULT_ARMOR: float = 25.0
+const HIT_INVULNERABILITY_SEC: float = 0.55
+const SAFE_RECOVERY_DELAY_SEC: float = 3.0
+const SAFE_RECOVERY_RATE: float = 12.0
+const SAFE_RECOVERY_CAP: float = 65.0
+
+var current_health: float = MAX_HEALTH
+var current_armor: float = DEFAULT_ARMOR
+var _damage_immunity_remaining: float = 0.0
+var _time_since_damage: float = 0.0
+var _safe_recovery_enabled: bool = false
+var _depletion_emitted: bool = false
+
 var is_striking: bool = false
 var _strike_timer: float = 0.0
 var _strike_cooldown: float = 0.0
@@ -39,6 +56,9 @@ var _strike_cooldown: float = 0.0
 signal footstep_triggered
 signal strike_triggered(hit_target: Node3D, hit_pos: Vector3)
 signal strike_performed
+signal vitals_changed(health: float, armor: float)
+signal damage_taken(raw_damage: float, health_damage: float, armor_damage: float)
+signal depleted
 
 var _step_timer: float = 0.0
 var _anim_time: float = 0.0
@@ -141,6 +161,7 @@ func set_vehicle_steering(steer: float) -> void:
 	target_steering = clampf(steer, -1.0, 1.0)
 
 func _physics_process(delta: float) -> void:
+	_update_survivability(delta)
 	if _strike_cooldown > 0.0:
 		_strike_cooldown = maxf(0.0, _strike_cooldown - delta)
 
@@ -283,6 +304,65 @@ func _physics_process(delta: float) -> void:
 				anim_player.speed_scale = 1.0
 
 	move_and_slide()
+
+func set_safe_recovery_enabled(enabled: bool) -> void:
+	_safe_recovery_enabled = enabled
+
+func reset_vitals(health: float = MAX_HEALTH, armor: float = DEFAULT_ARMOR) -> void:
+	current_health = clampf(health, 0.0, MAX_HEALTH)
+	current_armor = clampf(armor, 0.0, MAX_ARMOR)
+	_damage_immunity_remaining = 0.0
+	_time_since_damage = 0.0
+	_depletion_emitted = current_health <= 0.0
+	vitals_changed.emit(current_health, current_armor)
+
+func apply_damage(amount: float) -> Dictionary:
+	var result := {
+		"accepted": false,
+		"raw_damage": maxf(amount, 0.0),
+		"armor_damage": 0.0,
+		"health_damage": 0.0,
+		"depleted": current_health <= 0.0,
+	}
+	if amount <= 0.0 or current_health <= 0.0 or _damage_immunity_remaining > 0.0:
+		return result
+
+	var remaining := amount
+	var armor_damage := minf(current_armor, remaining)
+	current_armor = clampf(current_armor - armor_damage, 0.0, MAX_ARMOR)
+	remaining -= armor_damage
+
+	var health_before := current_health
+	current_health = clampf(current_health - remaining, 0.0, MAX_HEALTH)
+	var health_damage := health_before - current_health
+
+	_damage_immunity_remaining = HIT_INVULNERABILITY_SEC
+	_time_since_damage = 0.0
+	result["accepted"] = true
+	result["armor_damage"] = armor_damage
+	result["health_damage"] = health_damage
+	result["depleted"] = current_health <= 0.0
+	damage_taken.emit(amount, health_damage, armor_damage)
+	vitals_changed.emit(current_health, current_armor)
+
+	if current_health <= 0.0 and not _depletion_emitted:
+		_depletion_emitted = true
+		depleted.emit()
+	return result
+
+func _update_survivability(delta: float) -> void:
+	var safe_delta := maxf(delta, 0.0)
+	_damage_immunity_remaining = maxf(0.0, _damage_immunity_remaining - safe_delta)
+	_time_since_damage += safe_delta
+	if not _safe_recovery_enabled or current_health <= 0.0 or current_health >= SAFE_RECOVERY_CAP:
+		return
+	if _time_since_damage < SAFE_RECOVERY_DELAY_SEC:
+		return
+
+	var previous_health := current_health
+	current_health = minf(SAFE_RECOVERY_CAP, current_health + SAFE_RECOVERY_RATE * safe_delta)
+	if not is_equal_approx(previous_health, current_health):
+		vitals_changed.emit(current_health, current_armor)
 
 func set_joystick_input(vec: Vector2) -> void:
 	joystick_vector = vec
