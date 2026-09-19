@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P09_PLAYER_SURVIVABILITY_MERGED_VERIFIED`  
-**Current gameplay/world baseline:** `069e7f3c504cc5a088577bcd1c5efc21b125f23f`  
+**Status:** `BURNSIDE_P10_MAYOR_BURN_CONTACT_MERGED_PUBLIC_VERIFIED`  
+**Current gameplay/world baseline:** `86a05de0a9adaf4a8e81aa5e8a299b03ed99ed63`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -9,7 +9,7 @@
 
 ## Current product state
 
-Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, and authored FB-13 / HS-7 companion presence compose in the same geography.
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, a durable Mayor Burn known-contact privilege, and authored FB-13 / HS-7 companion presence compose in the same geography.
 
 **Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
 - **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
@@ -103,6 +103,7 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 07** — #137 / PR #138 — Gears Vehicle Condition / Burn Garage Repair Tracer — `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`.
 - **Production 08** — #141 / PR #143 / PR #145 (review polish) — FB-13 / HS-7 Authored Companion Presence Tracer — `37c130b10db057ba923d5a9a6738081fa91e6fdf`.
 - **Production 09** — #149 / PR #150 — Player Health / Armor / Soft Failure Tracer — `069e7f3c504cc5a088577bcd1c5efc21b125f23f`.
+- **Production 10** — #152 / PR #154 — Mayor Burn Known Contact / Garage Armor Restock Tracer — gameplay merge `668e760b7da48df33552e182ff3af8bab9d53640`; exact public verified baseline after publication migration PR #155: `86a05de0a9adaf4a8e81aa5e8a299b03ed99ed63`.
 
 ## Retained authority truths
 
@@ -488,25 +489,118 @@ Verification on final feature head `979f006b346931e75ff80a67953774602b625811`:
 - canonical exact-head 29-suite compatibility matrix: **PASS**;
 - direct self-review: **PASS**; no Codex review was requested.
 
-## Post-Production-09 re-evaluation state
+## Production 10 — verified player-facing result
 
-Production 09 closes the highest-ranked post-P08 danger/depth gap without expanding combat into an RPG or generalized hostile-AI framework. The strongest next bounded product gap is now **authored relationship / Standing consequence**.
+Issue #152 / gameplay PR #154: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED** pending only this docs continuity merge and issue closure.
 
-The canonical Factions & Reputation Contract (#107) keeps this simple: meaningful Contacts and a few organizations may change concrete treatment/access; no universal morality meter, global faction matrix, point farming, territory conquest, or hidden reputation grind.
+Gameplay merge:
 
-Leading credible next gaps to compare:
+`668e760b7da48df33552e182ff3af8bab9d53640`
 
-1. **authored relationship / Standing consequence** — one meaningful completed job should visibly change later treatment, service, access, or route opportunity; Mayor Burn and his existing Garage are the strongest retained seam;
-2. **vehicle claiming / identity** — P07 gives vehicle condition and repair meaning, but ownership/claiming remains unaddressed and carries more persistence/schema/UX cost;
-3. **deeper authored city mastery** — another learned shortcut/access payoff only if it creates a distinct decision rather than GPS expansion;
-4. **moment-to-moment vehicle feel / authored escape pressure** — improve retained Heat-1 chase feel only from observed weakness;
-5. **next combat breadth** — firearms/enemy ranged danger remain canonical later possibilities, but should not outrank the smaller relationship consequence by momentum alone.
+Exact public verified baseline after publication-infrastructure migration PR #155:
 
-Heat 2–5, generalized witnesses/surveillance, transit, broader geography, generalized faction/reputation architecture, generalized persistence, Garage networks, broad economy, companion navigation, generalized hostile AI, and weapon inventories remain later candidates unless current play proves they outrank smaller authored gains.
+`86a05de0a9adaf4a8e81aa5e8a299b03ed99ed63`
+
+Player-facing loop:
+
+`COMPLETE CIVIC REPOSSESSION -> BURN KNOWS YOU -> RETURN TO BURN GARAGE ON FOOT -> ARMOR STASH AVAILABLE -> RESTOCK EXPENDABLE ARMOR -> LEAVE`
+
+Wanted remains authoritative:
+
+`ACTIVE WANTED -> BURN SERVICE LOCKED`
+
+Retained truths:
+
+- `MayorBurnContactProgressStore` owns exactly `UNESTABLISHED` and `KNOWN`;
+- Civic Repossession completion marks Burn `KNOWN` exactly once;
+- Contact state survives full Replay and store reconstruction/relaunch;
+- malformed or unsupported/newer Contact data fails closed and is not silently overwritten;
+- the Contact service is mounted at the retained Burn Garage / `MissionDestinationSocket`;
+- service eligibility requires `KNOWN`, Runner on foot, Armor below `PlayerRunner.MAX_ARMOR`, authoritative Wanted Heat 0 / `CLEAR`, and physical presence inside the Garage service radius;
+- accepted service restores Armor exactly to `MAX_ARMOR` while leaving Health unchanged;
+- service is free, creates no inventory item, and remains quiet at full Armor;
+- `CONTACT` / `SEARCH` Wanted states reject service; mounted and unknown-Contact states reject service;
+- retained P07 vehicle repair remains a separate Garage interaction with independent eligibility;
+- no generalized Contact database, faction/reputation matrix, morality points, social graph, Garage network, economy, inventory, or broad persistence framework entered P10.
+
+Feature-head verification on PR #154 head `ab6b6661a636cd47c93de0efff551bc448e24ecf`:
+
+- Production 10 exact-source Contact / Armor Stash gate: **PASS**;
+- Production 09 Health / Armor / Soft Failure regression: **PASS**;
+- retained P07 Garage semantics/runtime: **PASS**;
+- retained P01–P06 regressions: **PASS**;
+- literal-head and synthetic-merge Web exports/static-host smoke: **PASS**;
+- canonical compatibility matrix: **PASS**.
+
+### Public playtest publication migration
+
+The retained `playtest-web` branch publication mechanism became invalid after the asset-heavy Gears expansion because the generated Web `index.pck` reached 237,995,244 bytes (~227 MiB), above GitHub's normal Git-object file ceiling. This was publication-infrastructure debt, not a gameplay/Web-export regression.
+
+PR #155 migrated only generated public publication to GitHub Pages Actions artifacts:
+
+- frozen final PR head: `6d288943b88c37995301fe65008a183829bf42e0`;
+- exact-source P09/P10: **PASS**;
+- literal-head Web: **PASS**;
+- synthetic-merge Web: **PASS**;
+- canonical 29-suite compatibility matrix: **PASS**;
+- exact Pages tar-payload envelope check: **PASS**;
+- privileged Pages actions pinned to immutable commit SHAs;
+- CodeRabbit final review: **PASS**, no unresolved threads;
+- exact-head-protected squash merge: `86a05de0a9adaf4a8e81aa5e8a299b03ed99ed63`.
+
+Exact-main Godot Web Playtest run `35433857979`:
+
+- mobile touch routing: **PASS**;
+- desktop controls / alias ownership / vehicle authority / interaction cancel: **PASS**;
+- Web export: **PASS**;
+- static-host smoke: **PASS**;
+- Pages artifact packaging: **PASS**;
+- GitHub Pages deployment: **PASS**;
+- live source-stamp verification: **PASS**;
+- live `index.html` and `index.pck` reachability: **PASS**.
+
+Public playtest:
+
+`https://johnnymaconny.github.io/art/`
+
+Public source stamp:
+
+`PLAYTEST_BUILD.txt = 86a05de0a9adaf4a8e81aa5e8a299b03ed99ed63`
+
+## Post-Production-10 re-evaluation state
+
+Production 10 closes the smallest authored relationship / Standing consequence gap: a completed job now changes later treatment at a memorable authored place without introducing a generalized reputation system.
+
+The strongest next bounded product gap is **Claimed Vehicle ownership / identity**, using the retained Courier Bike and Mayor Burn Garage rather than adding more geography or broad combat/system breadth.
+
+Selected design frontier for Production 11:
+
+`KNOWN BURN CONTACT -> BRING COURIER BIKE TO GARAGE -> CLAIM FAVORITE -> OWNERSHIP SURVIVES REPLAY/RELAUNCH -> LOST BIKE BECOMES RECOVERABLE THROUGH GARAGE`
+
+Why this leads now:
+
+- the canonical Vehicle Sandbox Contract promises a deliberate distinction between disposable Street Vehicles and Garage-owned Claimed Vehicles;
+- P07 already made vehicle condition and Burn Garage repair meaningful;
+- P10 now provides the relationship/access seam that makes Garage ownership fictionally earned rather than automatic;
+- current implementation still has no Claimed Vehicle persistence or ownership authority;
+- one Bike-only tracer can prove attachment, recovery, and durable identity without a fleet manager, collection UI, customization tree, economy, property system, or generalized vehicle persistence framework.
+
+Production-11 design boundary before implementation:
+
+- exactly one claimable production vehicle: Courier Bike;
+- claiming occurs only at Mayor Burn Garage through a clear authored Action;
+- Burn Contact must already be `KNOWN`;
+- claiming must never happen merely because the player mounted/stole the Bike;
+- ownership is Durable Progress and must survive full Replay/relaunch;
+- ordinary sandbox loss must not permanently delete the claimed Bike; Garage recovery is the bounded payoff;
+- current condition/repair, Wanted, mission, companion docking, and control authority remain separate;
+- no slot counts, prices, insurance, impound timer, vehicle catalog, customization modules, summoned personal-car behavior, fleet UI, or broad save architecture in the tracer.
+
+Do not begin implementation from this continuity paragraph alone: create one JIT Production-11 issue/spec against fresh `main`, verify the exact Bike/Garage/reset/persistence seams, then execute TDD.
 
 ## Retained foundations / deferred lanes
 
-Do not recreate retained Feel tickets #12–#16, Missions 01–03, Open World Expansion 01A–01D, World Event 01 / PR #68, or Productions 01–09 because older roadmaps describe them historically.
+Do not recreate retained Feel tickets #12–#16, Missions 01–03, Open World Expansion 01A–01D, World Event 01 / PR #68, or Productions 01–10 because older roadmaps describe them historically.
 
 FB-13 / HS-7 companion presence is now embodied in production gameplay. Do not add generalized companion AI or navmesh frameworks.
 
@@ -566,8 +660,8 @@ Next production session:
 1. refresh exact `main`, open PRs/issues, CI, public playtest, and concurrent Audio/shared-scene state;
 2. read `START_HERE.md`, issue #55, issue #118, and this continuity file;
 3. verify local repo/branch/HEAD/upstream/dirty state before local code mutation;
-4. re-evaluate post-P09 player-facing gaps by **fun / feel / clarity / cohesion / value / cost / risk**;
-5. treat one bounded authored relationship / Standing consequence as the leading candidate, while still comparing it against vehicle claiming, city mastery, vehicle feel, and combat breadth before implementation;
+4. re-evaluate post-P10 player-facing gaps by **fun / feel / clarity / cohesion / value / cost / risk**;
+5. treat one bounded Claimed Courier Bike / Burn Garage ownership tracer as the selected next design frontier, while re-verifying current implementation seams before authorizing implementation;
 6. create the JIT ticket/spec for that increment;
 7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW (independent when available, or explicitly owner-waived if the owner changes the gate) -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
 8. update continuity only after verified changes land.
