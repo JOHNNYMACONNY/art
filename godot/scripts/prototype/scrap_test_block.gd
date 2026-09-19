@@ -822,7 +822,7 @@ func _begin_soft_failure() -> void:
 			player.velocity = Vector3.ZERO
 			player.reset_vitals(SOFT_FAILURE_RECOVERY_HEALTH, 0.0)
 			player.is_input_locked = false
-		if courier_bike:
+		if courier_bike and not _is_courier_bike_claimed():
 			courier_bike.global_position = _recovery_marker
 			courier_bike.rotation = Vector3.ZERO
 		if scrap_hauler:
@@ -836,6 +836,15 @@ func _begin_soft_failure() -> void:
 		soft_failure_recovered.emit()
 		print("[SOFT_FAILURE] Recovery complete. Durable progress preserved; retry authority ready.")
 	)
+
+func _is_courier_bike_claimed() -> bool:
+	var claim_runtime := get_node_or_null("BurnGarageCourierBikeClaimRuntime")
+	if claim_runtime == null or not claim_runtime.has_method("get_progress_store"):
+		return false
+	var claim_store = claim_runtime.call("get_progress_store")
+	return claim_store != null \
+		and claim_store.has_method("is_claimed") \
+		and bool(claim_store.call("is_claimed"))
 
 func retry_chase() -> void:
 	if current_pursuit_state != PursuitState.RETRY_READY:
@@ -1661,6 +1670,10 @@ func reset_slice() -> void:
 			muscle_coupe.mount_interactable.is_powered = true
 			muscle_coupe.mount_interactable.visible = true
 		
+	var claim_runtime := get_node_or_null("BurnGarageCourierBikeClaimRuntime")
+	if claim_runtime != null and claim_runtime.has_method("restore_claimed_bike_after_replay"):
+		claim_runtime.call("restore_claimed_bike_after_replay")
+
 	if camera:
 		camera.reset_camera_instant(player)
 		

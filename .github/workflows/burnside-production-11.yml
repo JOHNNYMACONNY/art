@@ -1,0 +1,105 @@
+name: Burnside Production 11
+
+on:
+  push:
+    branches:
+      - feat/production-11-claimed-courier-bike
+    paths:
+      - "contracts/burnside_production_11_claimed_courier_bike_spec.md"
+      - ".github/workflows/burnside-production-11.yml"
+      - ".github/workflows/godot-web-playtest.yml"
+      - "godot/scripts/progress/courier_bike_claim_progress_store.gd"
+      - "godot/scripts/world/burn_garage_courier_bike_claim_runtime.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scenes/world/gears_district_slice_01b.tscn"
+      - "godot/scripts/vehicles/courier_bike.gd"
+      - "godot/tests/courier_bike_claim_progress_store_test.gd"
+      - "godot/tests/courier_bike_claim_integration_test.gd"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_11_claimed_courier_bike_spec.md"
+      - ".github/workflows/burnside-production-11.yml"
+      - ".github/workflows/godot-web-playtest.yml"
+      - "godot/scripts/progress/courier_bike_claim_progress_store.gd"
+      - "godot/scripts/world/burn_garage_courier_bike_claim_runtime.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scenes/world/gears_district_slice_01b.tscn"
+      - "godot/scripts/vehicles/courier_bike.gd"
+      - "godot/tests/courier_bike_claim_progress_store_test.gd"
+      - "godot/tests/courier_bike_claim_integration_test.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_RELEASE: "4.7.1-stable"
+  GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+
+jobs:
+  claimed-courier-bike:
+    name: Exact-source Claimed Courier Bike / Garage Recovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: Claimed Courier Bike persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 45s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/courier_bike_claim_progress_store_test.gd
+
+      - name: Claimed Courier Bike composition
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 75s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/courier_bike_claim_integration_test.gd
+
+      - name: Retained Garage / companion / survivability regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in burn_garage_repair_runtime_test.gd companion_vehicle_docking_test.gd player_survivability_integration_test.gd mayor_burn_contact_integration_test.gd burn_garage_mission02_composition_test.gd; do
+            timeout --signal=TERM 75s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
+          done
