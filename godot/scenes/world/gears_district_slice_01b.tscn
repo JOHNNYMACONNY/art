@@ -789,7 +789,7 @@ position = Vector3(0, 0.15, 0.55)
 position = Vector3(-10, 0.2, -41.5)
 
 [node name="CourierBikeClaimSocket" type="Marker3D" parent="."]
-position = Vector3(-8.0, 0.2, -44.0)
+position = Vector3(-8.0, 0.05, -44.0)
 
 [node name="PracticalLights" type="Node3D" parent="."]
 

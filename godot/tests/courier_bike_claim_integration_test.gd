@@ -164,7 +164,7 @@ func _run() -> void:
 		await _fail("Duplicate claim duplicated persistence")
 		return
 
-	var bike_id := bike.get_instance_id()
+	var bike_id: int = int(bike.get_instance_id())
 	var far_position := claim_socket.global_position + Vector3(30.0, 0.0, 0.0)
 	bike.global_position = far_position
 	bike.current_speed = 0.0
