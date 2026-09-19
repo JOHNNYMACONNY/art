@@ -563,13 +563,12 @@ Do not choose historical open tickets merely because they remain open. Several a
 
 Next production session:
 
-1. refresh exact `main`, open PRs/issues, CI, public playtest, and concurrent Audio/shared-scene state;
-2. read `START_HERE.md`, issue #55, issue #118, and this continuity file;
+1. refresh exact `main`, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene state;
+2. read `START_HERE.md`, issue #55, issue #118, the Vehicle Sandbox Contract (#103 resolution), and this continuity file;
 3. verify local repo/branch/HEAD/upstream/dirty state before local code mutation;
-4. re-evaluate post-P09 player-facing gaps by **fun / feel / clarity / cohesion / value / cost / risk**;
-5. treat one bounded authored relationship / Standing consequence as the leading candidate, while still comparing it against vehicle claiming, city mastery, vehicle feel, and combat breadth before implementation;
-6. create the JIT ticket/spec for that increment;
-7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW (independent when available, or explicitly owner-waived if the owner changes the gate) -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
-8. update continuity only after verified changes land.
+4. create the just-in-time Production 11 ticket/spec for one bounded **Claimed Courier Bike / Burn Garage ownership tracer**;
+5. resolve ownership identity, claim eligibility, ordinary-loss recovery, Replay/relaunch durability, and explicit interactions with P07 condition / P10 Contact without generalizing persistence;
+6. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
+7. update continuity only after verified changes land.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
