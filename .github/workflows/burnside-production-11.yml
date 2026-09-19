@@ -49,6 +49,7 @@ jobs:
       - name: Checkout exact source
         uses: actions/checkout@v4
         with:
+          persist-credentials: false
           ref: ${{ env.SOURCE_SHA }}
           fetch-depth: 1
 

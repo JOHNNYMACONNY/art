@@ -61,9 +61,10 @@ func _run() -> void:
 	var repair_runtime := _scene.get_node_or_null("BurnGarageRepairRuntime")
 	var district := _scene.get_node_or_null("GearsDistrictSlice01B")
 	var player := _scene.get_node_or_null("Runner")
+	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var bike = _scene.get("courier_bike")
 	var claim_socket := district.get_node_or_null("CourierBikeClaimSocket") as Marker3D if district != null else null
-	if runtime == null or contact_runtime == null or repair_runtime == null or player == null or bike == null or claim_socket == null:
+	if runtime == null or contact_runtime == null or repair_runtime == null or player == null or touch_ui == null or bike == null or claim_socket == null:
 		await _fail("P11 production composition is incomplete")
 		return
 
@@ -148,8 +149,23 @@ func _run() -> void:
 
 	var health_before: float = float(player.current_health)
 	var armor_before: float = float(player.current_armor)
-	if not bool(runtime.call("attempt_claim")):
-		await _fail("Eligible known/CLEAR/stopped Bike claim failed")
+	runtime.call("_process", 0.0)
+	var claim_interactable = runtime.call("get_claim_interactable")
+	if claim_interactable == null:
+		await _fail("Claim interactable is missing")
+		return
+	claim_interactable.call("update_player_distance", player.global_position)
+	_scene.call("_evaluate_target_selection")
+	if _scene.get("_active_target") != claim_interactable:
+		await _fail("Claim bay lost retained Action target arbitration")
+		return
+	if String(runtime.call("get_affordance_text")) != "CLAIM COURIER BIKE // ACTION":
+		await _fail("Eligible claim affordance is incorrect")
+		return
+	touch_ui.action_button_pressed.emit()
+	await process_frame
+	if not bool(store.call("is_claimed")):
+		await _fail("Eligible claim did not complete through retained Action routing")
 		return
 	if not bool(store.call("is_claimed")) or int(store.call("get_write_count")) != 1:
 		await _fail("Claim did not persist exactly once")
@@ -184,8 +200,20 @@ func _run() -> void:
 		return
 	bike.occupant = null
 
-	if not bool(runtime.call("attempt_recovery")):
-		await _fail("Eligible claimed Bike recovery failed")
+	runtime.set("_success_until_msec", 0)
+	runtime.call("_process", 0.0)
+	claim_interactable.call("update_player_distance", player.global_position)
+	_scene.call("_evaluate_target_selection")
+	if _scene.get("_active_target") != claim_interactable:
+		await _fail("Recovery bay lost retained Action target arbitration")
+		return
+	if String(runtime.call("get_affordance_text")) != "RECOVER COURIER BIKE // ACTION":
+		await _fail("Eligible recovery affordance is incorrect")
+		return
+	touch_ui.action_button_pressed.emit()
+	await process_frame
+	if bike.global_position.distance_to(claim_socket.global_position) > 0.01:
+		await _fail("Eligible claimed Bike recovery did not complete through retained Action routing")
 		return
 	if bike.get_instance_id() != bike_id:
 		await _fail("Recovery replaced/duplicated the production Bike")
@@ -229,7 +257,7 @@ func _run() -> void:
 	bike.global_position = far_position
 	player.current_health = 0.0
 	_scene.call("_begin_soft_failure")
-	await process_frame
+	await create_timer(0.9).timeout
 	await process_frame
 	if not bool(store.call("is_claimed")):
 		await _fail("Soft Failure erased claim")
