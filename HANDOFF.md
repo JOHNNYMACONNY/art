@@ -559,6 +559,106 @@ Prefer, in order:
 
 Do not choose historical open tickets merely because they remain open. Several are retained experiments, human/perceptual gates or already-landed foundations whose issue state is not the live product order.
 
+## Production 10 — verified player-facing result
+
+Issue #152 / PR #154: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED** pending only this continuity merge and issue closure.
+
+Exact gameplay merge:
+
+`668e760b7da48df33552e182ff3af8bab9d53640`
+
+Player-facing loop:
+
+`COMPLETE CIVIC REPOSSESSION -> BURN KNOWS YOU -> RETURN TO BURN GARAGE ON FOOT -> ARMOR STASH AVAILABLE -> RESTOCK EXPENDABLE ARMOR -> LEAVE`
+
+Wanted remains authoritative:
+
+`ACTIVE WANTED -> BURN SERVICE LOCKED`
+
+Retained truths:
+
+- `MayorBurnContactProgressStore` owns one versioned durable relationship milestone: `UNESTABLISHED` -> `KNOWN`;
+- Civic Repossession completion marks Burn `KNOWN` exactly once and leaves persistence/service authority outside the mission;
+- `KNOWN` survives Replay and relaunch/store reconstruction;
+- malformed or newer unsupported Contact data fails safe and is not silently overwritten;
+- the existing Burn Garage `MissionDestinationSocket` owns the bounded armor-stash service seam;
+- service requires Burn `KNOWN`, Runner on foot, Armor below `PlayerRunner.MAX_ARMOR`, Wanted heat 0/state `CLEAR`, and physical presence inside the Garage service radius;
+- accepted service sets Armor exactly to MAX while leaving Health unchanged, charges no money and creates no inventory item;
+- unknown Contact, mounted state, full Armor, Wanted CONTACT and Wanted SEARCH reject service;
+- existing P07 vehicle repair remains separate and unchanged;
+- bounded `ARMOR RESTOCKED` confirmation yields to fresh Wanted state and is cancelled by fresh damage;
+- no generalized Standing/faction/reputation/contact database, economy, armor inventory, medical service, firearms or new acreage entered P10.
+
+Feature-head verification on PR #154:
+
+- exact-source Burn Contact / Armor Stash: **PASS**;
+- exact-source P09 Health / Armor / Soft Failure: **PASS**;
+- P07 semantics/runtime and retained P01-P06 regressions: **PASS**;
+- Mission 02 composition: **PASS**;
+- literal-head and synthetic-merge Web export/static-host smoke: **PASS**;
+- exact-head canonical compatibility matrix: **PASS**.
+
+### Public Web publication migration and exact-main verification
+
+The retained generated-build force-push to `playtest-web` became invalid once the production Web payload exceeded GitHub's normal Git-object limit:
+
+- `index.pck`: 237,995,244 bytes (~227 MiB);
+- unpacked Web site: 279,587,872 bytes (~267 MiB).
+
+PR #155 migrated generated public publication only to GitHub Pages Actions artifacts. No gameplay, canon, save, audio, asset or runtime code changed.
+
+Current verified public baseline:
+
+`86a05de0a9adaf4a8e81aa5e8a299b03ed99ed63`
+
+Godot Web Playtest main-push run `35433857979` at that exact SHA:
+
+- main Web export: **PASS**;
+- static-host smoke: **PASS**;
+- source revision stamp before packaging: **PASS**;
+- public payload envelope: **PASS**;
+- GitHub Pages artifact upload: **PASS**;
+- Pages deployment: **PASS**;
+- public `PLAYTEST_BUILD.txt` convergence to exact main SHA: **PASS**;
+- public `index.html` and `index.pck` reachability check: **PASS**.
+
+Current public provenance:
+
+`PLAYTEST_BUILD.txt = 86a05de0a9adaf4a8e81aa5e8a299b03ed99ed63`
+
+The newer SHA is CI/publication-only relative to P10 gameplay. Exact P10 gameplay remains `668e760b7da48df33552e182ff3af8bab9d53640`.
+
+## Post-Production-10 re-evaluation state
+
+Production 10 closes the smallest authored relationship/Standing consequence: completing meaningful work for Burn now produces a durable later privilege at the Garage without introducing a generalized reputation system.
+
+Fresh current-main inspection selects **one bounded Claimed Vehicle / Garage ownership tracer** as the leading next gameplay frontier.
+
+Why it leads:
+
+- the canonical Vehicle Sandbox Contract distinguishes disposable Street Vehicles from deliberately Garage-owned Claimed Vehicles;
+- P07 already made the Courier Bike and Scrap Hauler materially damageable/repairable at Burn's Garage;
+- P10 gives Burn a durable authored relationship state and makes the Garage a stronger progression seam;
+- current runtime still has no claimed-vehicle ownership/recovery persistence;
+- the Courier Bike is the smallest credible first ownership proof because it is retained production, has strong player identity, integrates with FB-13 docking, and avoids Mission-02 Scrap Hauler ownership ambiguity.
+
+Leading bounded P11 design target:
+
+`BURN KNOWN -> BRING COURIER BIKE TO GARAGE -> CLAIM -> DURABLE OWNERSHIP -> REPLAY / RELAUNCH -> CLAIM REMAINS -> ORDINARY LOSS -> RECOVERABLE AT GARAGE`
+
+Guardrails:
+
+- one Courier Bike only for the first tracer;
+- claim intentionally at Burn's Garage rather than on first mount;
+- preserve spontaneous Street Vehicle use and swapping;
+- no fleet manager, garage slot UI, vehicle catalog, broad economy, customization tree, insurance, generalized save framework or vehicle-base rewrite;
+- do not silently persist ordinary P07 condition unless the approved claim/recovery contract explicitly requires a narrow rule;
+- claimed ownership remains Durable Progress across Replay/Soft Failure and ordinary sandbox loss;
+- Wanted, mission, companion docking, P07 repair and P10 Contact authority remain independent;
+- no new acreage required.
+
+Vehicle claiming is **SELECTED FOR JIT DESIGN / NOT YET IMPLEMENTATION-LOCKED** until the narrow P11 ticket/spec is created from refreshed main.
+
 ## Next-state rule
 
 Next production session:
