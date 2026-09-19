@@ -2,6 +2,7 @@ extends SceneTree
 
 const SCENE_PATH := "res://scenes/prototype/scrap_test_block.tscn"
 const TEST_PATH := "user://tests/p11_courier_bike_claim_integration_test.json"
+const CONTACT_TEST_PATH := "user://tests/p10_courier_bike_claim_integration_test.json"
 
 var _scene: Node = null
 var _wanted_runtime: Node = null
@@ -10,7 +11,7 @@ func _init() -> void:
 	call_deferred("_run")
 
 func _cleanup() -> void:
-	for path in [TEST_PATH, TEST_PATH + ".tmp"]:
+	for path in [TEST_PATH, TEST_PATH + ".tmp", CONTACT_TEST_PATH, CONTACT_TEST_PATH + ".tmp"]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 

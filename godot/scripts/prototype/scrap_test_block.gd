@@ -1661,6 +1661,10 @@ func reset_slice() -> void:
 			muscle_coupe.mount_interactable.is_powered = true
 			muscle_coupe.mount_interactable.visible = true
 		
+	var claim_runtime := get_node_or_null("BurnGarageCourierBikeClaimRuntime")
+	if claim_runtime != null and claim_runtime.has_method("restore_claimed_bike_after_replay"):
+		claim_runtime.call("restore_claimed_bike_after_replay")
+
 	if camera:
 		camera.reset_camera_instant(player)
 		

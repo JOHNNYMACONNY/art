@@ -639,3 +639,30 @@ func _refresh_condition_presentation() -> void:
 			_condition_smoke.amount = 12
 			_condition_smoke.speed_scale = 1.15
 			_condition_smoke.emitting = true
+
+
+func recover_to_garage(target_position: Vector3) -> bool:
+	if occupant != null:
+		return false
+	_clear_vehicle_feedback_presentation()
+	_mount_blend_time = 0.0
+	_dismount_blend_time = 0.0
+	current_state = BikeState.PARKED
+	current_gear = GearState.FORWARD
+	is_handbrake_active = false
+	current_speed = 0.0
+	steering_angle = 0.0
+	velocity = Vector3.ZERO
+	tune_up_time_remaining = 0.0
+	_feedback_throttle = 0.0
+	_gear_settle_timer = 0.0
+	global_position = target_position
+	rotation = Vector3.ZERO
+	if visual_root:
+		visual_root.rotation = Vector3.ZERO
+	reset_condition()
+	if mount_interactable:
+		mount_interactable.is_powered = true
+		mount_interactable.visible = true
+	state_changed.emit("PARKED")
+	return true

@@ -788,6 +788,9 @@ position = Vector3(0, 0.15, 0.55)
 [node name="MissionDestinationSocket" type="Marker3D" parent="."]
 position = Vector3(-10, 0.2, -41.5)
 
+[node name="CourierBikeClaimSocket" type="Marker3D" parent="."]
+position = Vector3(-8.0, 0.2, -44.0)
+
 [node name="PracticalLights" type="Node3D" parent="."]
 
 [node name="StoreWorkLamp" type="OmniLight3D" parent="PracticalLights"]
