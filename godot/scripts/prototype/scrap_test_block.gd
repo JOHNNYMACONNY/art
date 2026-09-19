@@ -774,7 +774,7 @@ func _on_pursuer_intercepted() -> void:
 			player.global_position = _recovery_marker + Vector3(-1.5, 0, 0)
 			player.is_input_locked = false
 			player.velocity = Vector3.ZERO
-		if courier_bike and not _is_courier_bike_claimed():
+		if courier_bike:
 			courier_bike.global_position = _recovery_marker
 			courier_bike.rotation = Vector3.ZERO
 		if scrap_hauler:
@@ -822,7 +822,7 @@ func _begin_soft_failure() -> void:
 			player.velocity = Vector3.ZERO
 			player.reset_vitals(SOFT_FAILURE_RECOVERY_HEALTH, 0.0)
 			player.is_input_locked = false
-		if courier_bike:
+		if courier_bike and not _is_courier_bike_claimed():
 			courier_bike.global_position = _recovery_marker
 			courier_bike.rotation = Vector3.ZERO
 		if scrap_hauler:
