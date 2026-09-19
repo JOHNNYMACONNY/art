@@ -477,14 +477,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          site_bytes="$(du -sb publish | cut -f1)"
+          payload_tar="${RUNNER_TEMP}/public-playtest-size-check.tar"
+          rm -f "$payload_tar"
+          tar \
+            --dereference --hard-dereference \
+            --directory publish \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=".[^/]*" \
+            -cf "$payload_tar" \
+            .
+          site_bytes="$(stat -c %s "$payload_tar")"
           largest_file="$(find publish -type f -printf '%s %p\n' | sort -nr | head -n1)"
-          printf 'public payload bytes: %s\n' "$site_bytes"
+          printf 'public payload tar bytes: %s\n' "$site_bytes"
           printf 'largest public file: %s\n' "$largest_file"
           test "$site_bytes" -lt 1073741824
 
       - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0 # v4
         with:
           path: publish
 
@@ -503,11 +513,11 @@ jobs:
 
     steps:
       - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
 
       - name: Deploy verified Web build
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
       - name: Verify public source revision stamp
         shell: bash
