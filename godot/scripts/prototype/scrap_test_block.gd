@@ -102,6 +102,8 @@ var _radio_owner: Node3D = null
 var _vitals_hud: PanelContainer = null
 var _health_bar: ProgressBar = null
 var _armor_bar: ProgressBar = null
+var _cash_notice_label: Label = null
+var _cash_notice_until_msec: int = 0
 
 func get_radio_owner() -> Node3D:
 	return _radio_owner
@@ -428,6 +430,7 @@ func _ready() -> void:
 		player.depleted.connect(_begin_soft_failure)
 		_ensure_vitals_hud()
 		_update_vitals_hud(player.current_health, player.current_armor)
+		_ensure_cash_notice()
 		
 	if touch_ui:
 		touch_ui.joystick_vector_updated.connect(_on_joystick_vector_updated)
@@ -547,6 +550,8 @@ func _get_active_vehicle() -> Node3D:
 	return null
 
 func _process(delta: float) -> void:
+	if _cash_notice_label != null and _cash_notice_label.visible and Time.get_ticks_msec() >= _cash_notice_until_msec:
+		_cash_notice_label.visible = false
 	if player:
 		player.set_safe_recovery_enabled(
 			current_pursuit_state == PursuitState.CALM
@@ -1131,10 +1136,12 @@ func _on_action_pressed() -> void:
 		if _active_target.has_method("set_vehicle_reference"):
 			_active_target.call("set_vehicle_reference", active_veh)
 		_active_target.begin_interaction(active_pos)
-		if cash_economy_runtime != null and cash_economy_runtime.has_method("get_last_feedback") and status_label:
+		if cash_economy_runtime != null and cash_economy_runtime.has_method("get_last_feedback"):
 			var feedback := String(cash_economy_runtime.call("get_last_feedback"))
 			if not feedback.is_empty():
-				status_label.text = "[STREET VENDOR] " + feedback
+				_show_cash_notice(feedback)
+				if status_label:
+					status_label.text = "[STREET VENDOR] " + feedback
 	elif utility_pole and (_active_target == utility_pole.get_node_or_null("UtilityPoleInteractable") or (is_instance_valid(utility_pole) and _active_target != null and _active_target.get_parent() == utility_pole)):
 		if _active_target.has_method("set_player_reference"):
 			_active_target.set_player_reference(player)
@@ -1475,11 +1482,13 @@ func _on_crawler_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
 func _on_vending_machine_hacked(reward: int, _pos: Vector3) -> void:
 	if cash_economy_runtime != null and cash_economy_runtime.has_method("award_vending_hack"):
 		cash_economy_runtime.call("award_vending_hack", reward)
-	if status_label:
-		if cash_economy_runtime != null and cash_economy_runtime.has_method("get_last_feedback"):
-			status_label.text = "[TERMINAL HACKED] " + String(cash_economy_runtime.call("get_last_feedback"))
-		else:
-			status_label.text = "[TERMINAL HACKED] +%d CONTRABAND SCRAP DISPENSED" % reward
+	if cash_economy_runtime != null and cash_economy_runtime.has_method("get_last_feedback"):
+		var feedback := String(cash_economy_runtime.call("get_last_feedback"))
+		_show_cash_notice(feedback)
+		if status_label:
+			status_label.text = "[TERMINAL HACKED] " + feedback
+	elif status_label:
+		status_label.text = "[TERMINAL HACKED] +%d CONTRABAND SCRAP DISPENSED" % reward
 	var vending_event = get_node_or_null("VendingMachineWorldEvent")
 	if vending_event and vending_event.has_method("notify_hacked"):
 		vending_event.notify_hacked(reward, _pos)
@@ -1492,11 +1501,13 @@ func _on_vending_machine_breached(reward: int, _pos: Vector3) -> void:
 	trigger_disturbance_alert()
 	if cash_economy_runtime != null and cash_economy_runtime.has_method("award_vending_breach"):
 		cash_economy_runtime.call("award_vending_breach", reward)
-	if status_label:
-		if cash_economy_runtime != null and cash_economy_runtime.has_method("get_last_feedback"):
-			status_label.text = "[VENDING BREACHED] " + String(cash_economy_runtime.call("get_last_feedback"))
-		else:
-			status_label.text = "[VENDING BREACHED] VAULT SHATTERED // +%d SCRAP SPILLED" % reward
+	if cash_economy_runtime != null and cash_economy_runtime.has_method("get_last_feedback"):
+		var feedback := String(cash_economy_runtime.call("get_last_feedback"))
+		_show_cash_notice(feedback)
+		if status_label:
+			status_label.text = "[VENDING BREACHED] " + feedback
+	elif status_label:
+		status_label.text = "[VENDING BREACHED] VAULT SHATTERED // +%d SCRAP SPILLED" % reward
 	var vending_event = get_node_or_null("VendingMachineWorldEvent")
 	if vending_event and vending_event.has_method("notify_breached"):
 		vending_event.notify_breached(reward, _pos)
@@ -1583,6 +1594,40 @@ func _ensure_vitals_hud() -> void:
 	_armor_bar.custom_minimum_size = Vector2(196.0, 8.0)
 	_set_hud_input_transparent(_armor_bar)
 	stack.add_child(_armor_bar)
+
+func _ensure_cash_notice() -> void:
+	if _cash_notice_label != null:
+		return
+	var safe_root := get_node_or_null("CanvasLayer/TouchControlsUI/SafeAreaRoot") as Control
+	if safe_root == null:
+		return
+	_cash_notice_label = Label.new()
+	_cash_notice_label.name = "CashNotice"
+	_cash_notice_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_cash_notice_label.z_index = 39
+	_cash_notice_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_cash_notice_label.offset_left = -190.0
+	_cash_notice_label.offset_top = 104.0
+	_cash_notice_label.offset_right = 190.0
+	_cash_notice_label.offset_bottom = 136.0
+	_cash_notice_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cash_notice_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_cash_notice_label.add_theme_font_size_override("font_size", 14)
+	_cash_notice_label.add_theme_constant_override("outline_size", 5)
+	_cash_notice_label.add_theme_color_override("font_outline_color", Color(0.03, 0.035, 0.045, 0.94))
+	_cash_notice_label.visible = false
+	safe_root.add_child(_cash_notice_label)
+
+func _show_cash_notice(text: String, duration_msec: int = 1800) -> void:
+	_ensure_cash_notice()
+	if _cash_notice_label == null:
+		return
+	_cash_notice_label.text = text
+	_cash_notice_label.visible = true
+	_cash_notice_until_msec = Time.get_ticks_msec() + maxi(duration_msec, 1)
+
+func get_cash_notice_text() -> String:
+	return _cash_notice_label.text if _cash_notice_label != null and _cash_notice_label.visible else ""
 
 func _update_vitals_hud(health: float, armor: float) -> void:
 	_ensure_vitals_hud()

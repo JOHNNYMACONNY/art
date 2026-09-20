@@ -44,8 +44,8 @@ func _run() -> void:
 	var vending = _scene.get("vending_machine")
 	var bike = _scene.get("courier_bike")
 	var coupe = _scene.get("muscle_coupe")
-	var status_label = _scene.get("status_label")
-	if runtime == null or player == null or vendor == null or vending == null or bike == null or coupe == null or status_label == null:
+	var cash_notice := _scene.get_node_or_null("CanvasLayer/TouchControlsUI/SafeAreaRoot/CashNotice") as Label
+	if runtime == null or player == null or vendor == null or vending == null or bike == null or coupe == null or cash_notice == null:
 		await _fail("P12 production composition is incomplete")
 		return
 
@@ -65,8 +65,8 @@ func _run() -> void:
 	if int(runtime.call("get_balance")) != 120:
 		await _fail("First physical vending breach did not credit 120 Cash")
 		return
-	if not String(status_label.text).contains("120"):
-		await _fail("Breach feedback did not expose real Cash balance")
+	if not cash_notice.visible or not String(cash_notice.text).contains("120"):
+		await _fail("Breach Cash notice did not expose real balance")
 		return
 
 	vendor.call("reset_vendor")
@@ -98,8 +98,8 @@ func _run() -> void:
 	if int(runtime.call("get_balance")) != 200:
 		await _fail("First physical vending hack did not bring durable Cash to 200")
 		return
-	if not String(status_label.text).contains("200"):
-		await _fail("Hack feedback did not expose Cash 200")
+	if not cash_notice.visible or not String(cash_notice.text).contains("200"):
+		await _fail("Hack Cash notice did not expose Cash 200")
 		return
 
 	# Replayed/reset terminal cannot pay hack receipt again.
@@ -114,7 +114,7 @@ func _run() -> void:
 	if int(runtime.call("get_balance")) != 200:
 		await _fail("Repeated terminal hack duplicated durable Cash")
 		return
-	if String(status_label.text).contains("+80"):
+	if String(cash_notice.text).contains("+80"):
 		await _fail("Paid receipt replay falsely advertised +80 Cash")
 		return
 
@@ -144,8 +144,8 @@ func _run() -> void:
 	if coupe.is_tuned_up or not is_equal_approx(float(coupe.get_effective_max_speed()), coupe_speed_before):
 		await _fail("Inactive Muscle Coupe was incorrectly tuned")
 		return
-	if not String(status_label.text).contains("50"):
-		await _fail("Successful vendor feedback did not expose Cash 50")
+	if not cash_notice.visible or not String(cash_notice.text).contains("50"):
+		await _fail("Successful vendor Cash notice did not expose Cash 50")
 		return
 
 	# Already-active tune-up cannot double-debit.

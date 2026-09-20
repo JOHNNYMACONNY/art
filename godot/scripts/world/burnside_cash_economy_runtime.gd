@@ -57,6 +57,6 @@ func attempt_vendor_tune_up(vendor: Node, vehicle: Node3D) -> bool:
 	if not _progress_store.try_spend(VENDOR_TUNE_UP_COST):
 		_last_feedback = "PAYMENT FAILED // CASH %d" % get_balance()
 		return false
-	vendor.call("complete_authorized_tune_up", VENDOR_TUNE_UP_COST, vehicle)
 	_last_feedback = "TUNE-UP ACQUIRED // -%d // CASH %d" % [VENDOR_TUNE_UP_COST, get_balance()]
+	vendor.call("complete_authorized_tune_up", VENDOR_TUNE_UP_COST, vehicle)
 	return true
