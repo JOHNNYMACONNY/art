@@ -659,16 +659,127 @@ Guardrails:
 
 Vehicle claiming is **SELECTED FOR JIT DESIGN / NOT YET IMPLEMENTATION-LOCKED** until the narrow P11 ticket/spec is created from refreshed main.
 
+## Production 11 — verified player-facing result
+
+Issue #158 / PR #159: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED** pending only this continuity merge and issue closure.
+
+Exact reviewed feature head:
+
+`f56119aea0431050ea96cc3f5bb48917c3381728`
+
+Exact gameplay/public main:
+
+`af5eaa77101163293bd0e8cefff8ee80605306d3`
+
+Player-facing loop:
+
+`BURN KNOWN -> BRING COURIER BIKE TO BURN GARAGE -> PARK / DISMOUNT -> CLAIM -> OWNERSHIP PERSISTS -> BIKE LEFT AWAY -> RETURN TO GARAGE -> RECOVER -> RIDE OUT`
+
+Retained truths:
+
+- one versioned `CourierBikeClaimProgressStore` owns exactly `UNCLAIMED` / `CLAIMED`;
+- deliberate claim requires Burn `KNOWN`, Wanted `CLEAR`, Runner on foot, and the stopped Courier Bike in the authored claim bay;
+- claim is free in P11 and writes exactly once;
+- claiming does not repair existing P07 vehicle condition or mutate vitals/Wanted/missions/mapped knowledge/Burn Contact;
+- the authored `CourierBikeClaimSocket` is spatially distinct from the retained P07/P10 Garage service seam;
+- recovery reuses the same production Courier Bike instance, requires the claimed Bike to be unoccupied and materially away from the Garage, and restores a legal `PARKED / ROADWORTHY` state;
+- full Replay and fresh store reconstruction retain ownership and restore Reliable Access at Burn's Garage;
+- Soft Failure retains ownership **without summoning the claimed Bike**;
+- the strengthened P11 integration test waits through the real 0.8 s Soft Failure recovery callback and exercises retained Action target arbitration for both claim and recovery;
+- ordinary Street Vehicle freedom remains intact; no fleet manager, garage slots, wallet, vehicle catalog, insurance, remote summon, customization tree, generic identity registry or generic save framework entered P11;
+- Mission-02 Scrap Hauler ownership remains intentionally untouched.
+
+TDD / frozen-review evidence:
+
+- observed RED run `35456618741`: exact-source setup passed and the missing P11 persistence seam failed as intended;
+- initial GREEN exposed a test parse error, repaired;
+- frozen review correctly found a false-positive Soft Failure test and a checkout-credential hardening gap;
+- repaired exact-source run `35462593934` at final head: persistence **PASS**, strengthened claim/recovery composition **PASS**, retained Garage/FB-13/survivability/P10/Mission-02 regressions **PASS**;
+- CodeRabbit security finding addressed with `persist-credentials: false`;
+- all review threads resolved before merge.
+
+Final feature-head PR matrix at `f56119aea0431050ea96cc3f5bb48917c3381728`:
+
+- exact-source P11: **PASS**;
+- P07 semantics/runtime + rendered proof: **PASS**;
+- P08 semantics/runtime: **PASS**;
+- P09 Health / Armor / Soft Failure: **PASS**;
+- P10 Burn Contact / Armor Stash: **PASS**;
+- retained P01-P07 regression matrices: **PASS**;
+- Wanted Heat-1 / work-zone / surveyed-service-cut / scrapper-tool: **PASS**;
+- literal-head Web export/static-host smoke: **PASS**;
+- synthetic-merge Web export/static-host smoke: **PASS**;
+- Web persistence head + merge: **PASS**;
+- Pages artifact packaging: **PASS**;
+- exact-head canonical 29-suite compatibility matrix: **PASS**;
+- CodeRabbit final status: **PASS**.
+
+### Exact-main and public verification
+
+The merge commit is one commit ahead of the fully-tested feature head with **no file diff**, proving exact merged content matches the frozen reviewed head.
+
+Godot Web Playtest main-push run `35462826584` at `af5eaa77101163293bd0e8cefff8ee80605306d3`:
+
+- exact source revision checkout: **PASS**;
+- mobile touch / desktop controls / alias ownership / vehicle authority / interaction cancel: **PASS**;
+- Web export: **PASS**;
+- static-host smoke: **PASS**;
+- browser artifact upload: **PASS**;
+- public payload envelope: **PASS**;
+- GitHub Pages artifact upload: **PASS**;
+- Pages deployment: **PASS**;
+- public source revision stamp verification: **PASS**.
+
+Current public provenance:
+
+`PLAYTEST_BUILD.txt = af5eaa77101163293bd0e8cefff8ee80605306d3`
+
+## Post-Production-11 re-evaluation state
+
+Production 11 closes the first Claimed Vehicle / Reliable Access ownership proof. The strongest next bounded progression gap is now **real Cash authority and one honest spend loop**.
+
+Fresh implementation inspection shows a concrete inconsistency worth fixing before broader economy work:
+
+- no wallet/Cash authority exists in the repo;
+- `PropStreetVendor` advertises `TUNE_UP_COST = 150` and emits a purchase signal, but currently performs no debit/check;
+- `PropVendingMachine` emits nominal scrap rewards of 80 for hacking and 120 for breach/ram, but no authoritative balance is credited;
+- vehicle tune-up physics already exist and are verified on Courier Bike / Muscle Coupe;
+- therefore the world currently presents an economy-shaped loop that is not economically real.
+
+Leading bounded P12 design target:
+
+`EARN REAL CASH -> BALANCE CHANGES -> APPROACH STREET VENDOR WITH VEHICLE -> PAY 150 -> BALANCE DECREASES -> TUNE-UP APPLIES -> INSUFFICIENT CASH REJECTS CLEANLY`
+
+P12 must resolve, before implementation lock:
+
+- whether first Cash is Durable Progress across Replay/relaunch or attempt-local disposable resource;
+- if durable, how existing 80/120 vending rewards avoid replay/reset farming;
+- which single earning source gives the clearest first proof without creating a generalized loot/economy framework;
+- where the minimal balance presentation lives and when it recedes;
+- whether the vendor transaction owns only the payment seam while retained tune-up physics stay unchanged.
+
+Guardrails:
+
+- one authoritative Cash balance only;
+- one earning path + one Street Vendor spend path for the first tracer;
+- no XP, levels, rarity tiers, shop catalog, inventory, dynamic prices, rent, fuel, maintenance chores, loot tables, broad merchant framework or economy simulation;
+- do not make P07 repair or P10 relationship armor service paid retroactively;
+- do not turn nominal prop reward signals into authority without anti-duplication semantics;
+- no new acreage required.
+
+P12 is **SELECTED FOR JIT DESIGN / NOT YET IMPLEMENTATION-LOCKED**.
+
 ## Next-state rule
 
 Next production session:
 
 1. refresh exact `main`, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene state;
-2. read `START_HERE.md`, issue #55, issue #118, the Vehicle Sandbox Contract (#103 resolution), and this continuity file;
+2. read `START_HERE.md`, #55, #118, the Progression & Economy Contract (#105 resolution), and this continuity file;
 3. verify local repo/branch/HEAD/upstream/dirty state before local code mutation;
-4. create the just-in-time Production 11 ticket/spec for one bounded **Claimed Courier Bike / Burn Garage ownership tracer**;
-5. resolve ownership identity, claim eligibility, ordinary-loss recovery, Replay/relaunch durability, and explicit interactions with P07 condition / P10 Contact without generalizing persistence;
-6. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
-7. update continuity only after verified changes land.
+4. create/refine one just-in-time Production 12 ticket for the bounded **Cash authority / Street Vendor transaction tracer**;
+5. resolve Cash durability + anti-farming semantics before GREEN implementation;
+6. preserve existing tune-up physics and convert only the minimum fake-economy presentation into real authoritative earn/spend behavior;
+7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
+8. update continuity only after verified changes land.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
