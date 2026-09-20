@@ -15,6 +15,7 @@ const UtilityCrawlerScript = preload("res://scripts/entities/utility_crawler.gd"
 const PropStreetVendorScript = preload("res://scripts/props/prop_street_vendor.gd")
 const PropUtilityPoleScript = preload("res://scripts/props/prop_utility_pole.gd")
 const PropVendingMachineScript = preload("res://scripts/props/prop_vending_machine.gd")
+const BurnsideCashEconomyRuntimeScript = preload("res://scripts/world/burnside_cash_economy_runtime.gd")
 const AudioRegistryScript = preload("res://scripts/audio/audio_registry.gd")
 const AudioReferenceResolverScript = preload("res://scripts/audio/audio_reference_resolver.gd")
 const RadioStationCatalogScript = preload("res://scripts/audio/radio/radio_station_catalog.gd")
@@ -68,6 +69,7 @@ var scrap_dumpster: StaticBody3D = null
 var street_vendor: StaticBody3D = null
 var utility_pole: PropUtilityPole = null
 var vending_machine: StaticBody3D = null
+var cash_economy_runtime: Node = null
 var traffic_barriers: Array[PropTrafficBarrier] = []
 var scrap_worker_1: CharacterBody3D = null
 var scrap_worker_2: CharacterBody3D = null
@@ -355,6 +357,16 @@ func _ready() -> void:
 		var vending_area := vending_machine.get_node_or_null("VendingMachineInteractable") as InteractableBase
 		if vending_area:
 			_interactables.append(vending_area)
+
+	cash_economy_runtime = BurnsideCashEconomyRuntimeScript.new()
+	if cash_economy_runtime:
+		cash_economy_runtime.name = "BurnsideCashEconomyRuntime"
+		add_child(cash_economy_runtime)
+		cash_economy_runtime.call("configure")
+		if street_vendor:
+			var cash_vendor_area = street_vendor.get_node_or_null("StreetVendorInteractable")
+			if cash_vendor_area != null and cash_vendor_area.has_method("set_cash_runtime"):
+				cash_vendor_area.call("set_cash_runtime", cash_economy_runtime)
 
 	var worker_scene: PackedScene = load("res://scenes/entities/scrap_worker.tscn")
 	if worker_scene:
@@ -1116,7 +1128,13 @@ func _on_action_pressed() -> void:
 	elif street_vendor and (_active_target == street_vendor.get_node_or_null("StreetVendorInteractable") or (is_instance_valid(street_vendor) and _active_target != null and _active_target.get_parent() == street_vendor)):
 		if _active_target.has_method("set_player_reference"):
 			_active_target.set_player_reference(player)
+		if _active_target.has_method("set_vehicle_reference"):
+			_active_target.call("set_vehicle_reference", active_veh)
 		_active_target.begin_interaction(active_pos)
+		if cash_economy_runtime != null and cash_economy_runtime.has_method("get_last_feedback") and status_label:
+			var feedback := String(cash_economy_runtime.call("get_last_feedback"))
+			if not feedback.is_empty():
+				status_label.text = "[STREET VENDOR] " + feedback
 	elif utility_pole and (_active_target == utility_pole.get_node_or_null("UtilityPoleInteractable") or (is_instance_valid(utility_pole) and _active_target != null and _active_target.get_parent() == utility_pole)):
 		if _active_target.has_method("set_player_reference"):
 			_active_target.set_player_reference(player)
@@ -1384,16 +1402,18 @@ func _on_dumpster_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
 	if status_label:
 		status_label.text = "[DUMPSTER RAMMED] IMPACT AT %.1f M/S" % impact_speed
 
-func _on_vendor_tune_up_purchased(cost: int, duration: float, pos: Vector3) -> void:
+func _on_vendor_tune_up_purchased(_cost: int, duration: float, pos: Vector3) -> void:
 	if audio_mgr:
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.COMPLETION, pos)
 		audio_mgr.play_event(AudioManagerScript.SoundEvent.AMBIENT_WORK_CLINK, pos)
-	if courier_bike and courier_bike.has_method("apply_tune_up"):
-		courier_bike.apply_tune_up(duration)
-	if muscle_coupe and muscle_coupe.has_method("apply_tune_up"):
-		muscle_coupe.apply_tune_up(duration)
 	if status_label:
-		status_label.text = "[STREET VENDOR] TUNE-UP ACQUIRED! (+35%% SPEED // %.0fs SURGE)" % duration
+		var feedback := ""
+		if cash_economy_runtime != null and cash_economy_runtime.has_method("get_last_feedback"):
+			feedback = String(cash_economy_runtime.call("get_last_feedback"))
+		if feedback.is_empty():
+			status_label.text = "[STREET VENDOR] TUNE-UP ACQUIRED! (+35%% SPEED // %.0fs SURGE)" % duration
+		else:
+			status_label.text = "[STREET VENDOR] " + feedback
 
 func _on_vendor_hit_received(remaining_durability: int, hit_pos: Vector3, _impulse_dir: Vector3) -> void:
 	if audio_mgr:
@@ -1453,8 +1473,13 @@ func _on_crawler_rammed(impact_speed: float, _ram_dir: Vector3) -> void:
 		status_label.text = "[CRAWLER WRECKED] HIGH-SPEED IMPACT AT %.1f M/S // ALARM ACTIVE" % impact_speed
 
 func _on_vending_machine_hacked(reward: int, _pos: Vector3) -> void:
+	if cash_economy_runtime != null and cash_economy_runtime.has_method("award_vending_hack"):
+		cash_economy_runtime.call("award_vending_hack", reward)
 	if status_label:
-		status_label.text = "[TERMINAL HACKED] +%d CONTRABAND SCRAP DISPENSED" % reward
+		if cash_economy_runtime != null and cash_economy_runtime.has_method("get_last_feedback"):
+			status_label.text = "[TERMINAL HACKED] " + String(cash_economy_runtime.call("get_last_feedback"))
+		else:
+			status_label.text = "[TERMINAL HACKED] +%d CONTRABAND SCRAP DISPENSED" % reward
 	var vending_event = get_node_or_null("VendingMachineWorldEvent")
 	if vending_event and vending_event.has_method("notify_hacked"):
 		vending_event.notify_hacked(reward, _pos)
@@ -1465,8 +1490,13 @@ func _on_vending_machine_hit_received(remaining_durability: int, _hit_pos: Vecto
 
 func _on_vending_machine_breached(reward: int, _pos: Vector3) -> void:
 	trigger_disturbance_alert()
+	if cash_economy_runtime != null and cash_economy_runtime.has_method("award_vending_breach"):
+		cash_economy_runtime.call("award_vending_breach", reward)
 	if status_label:
-		status_label.text = "[VENDING BREACHED] VAULT SHATTERED // +%d SCRAP SPILLED" % reward
+		if cash_economy_runtime != null and cash_economy_runtime.has_method("get_last_feedback"):
+			status_label.text = "[VENDING BREACHED] " + String(cash_economy_runtime.call("get_last_feedback"))
+		else:
+			status_label.text = "[VENDING BREACHED] VAULT SHATTERED // +%d SCRAP SPILLED" % reward
 	var vending_event = get_node_or_null("VendingMachineWorldEvent")
 	if vending_event and vending_event.has_method("notify_breached"):
 		vending_event.notify_breached(reward, _pos)

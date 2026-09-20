@@ -75,18 +75,25 @@ func can_trade() -> bool:
 func is_tune_up_active() -> bool:
 	return current_state == VendorState.TUNED or tune_up_timer > 0.0
 
+func complete_authorized_tune_up(cost: int, vehicle: Node3D) -> void:
+	current_state = VendorState.TUNED
+	tune_up_timer = TUNE_UP_DURATION
+	vehicle.apply_tune_up(TUNE_UP_DURATION, SPEED_BOOST_MULT, ACCEL_BOOST_MULT)
+	_trigger_impact_reaction(Vector3.UP * 0.3)
+	tune_up_purchased.emit(cost, TUNE_UP_DURATION, global_position)
+
 func purchase_tune_up(cost: int = TUNE_UP_COST, vehicle: Node3D = null) -> Dictionary:
 	if not can_trade():
 		return {"success": false, "reason": "RAMMED"}
 	if is_tune_up_active():
 		return {"success": true, "already_active": true, "remaining": tune_up_timer}
+	if vehicle != null and not vehicle.has_method("apply_tune_up"):
+		return {"success": false, "reason": "UNSUPPORTED_VEHICLE"}
 
 	current_state = VendorState.TUNED
 	tune_up_timer = TUNE_UP_DURATION
-
-	if vehicle and vehicle.has_method("apply_tune_up"):
+	if vehicle != null:
 		vehicle.apply_tune_up(TUNE_UP_DURATION, SPEED_BOOST_MULT, ACCEL_BOOST_MULT)
-
 	_trigger_impact_reaction(Vector3.UP * 0.3)
 	tune_up_purchased.emit(cost, TUNE_UP_DURATION, global_position)
 	return {
