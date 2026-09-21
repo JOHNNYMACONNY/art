@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P11_CLAIMED_COURIER_BIKE_MERGED_VERIFIED_PUBLIC`  
-**Current gameplay/world baseline:** `af5eaa77101163293bd0e8cefff8ee80605306d3`  
+**Status:** `BURNSIDE_P12_DURABLE_CASH_MERGED_VERIFIED_PUBLIC`  
+**Current gameplay/world baseline:** `a7abf55282cff8d7daad81a9a8624ee61364d528`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -105,6 +105,7 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 09** — #149 / PR #150 — Player Health / Armor / Soft Failure Tracer — `069e7f3c504cc5a088577bcd1c5efc21b125f23f`.
 - **Production 10** — #152 / PR #154 — Mayor Burn Known Contact / Garage Armor Stash Tracer — `668e760b7da48df33552e182ff3af8bab9d53640`.
 - **Production 11** — #158 / PR #159 — Claimed Courier Bike / Burn Garage Recovery Tracer — `af5eaa77101163293bd0e8cefff8ee80605306d3`.
+- **Production 12** — #161 / PR #162 — Durable Cash / Street Vendor Transaction Tracer — `a7abf55282cff8d7daad81a9a8624ee61364d528`.
 
 ## Retained authority truths
 
@@ -771,6 +772,119 @@ Guardrails:
 
 P12 is **SELECTED FOR JIT DESIGN / NOT YET IMPLEMENTATION-LOCKED**.
 
+## Production 12 — verified player-facing result
+
+Issue #161 / PR #162: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED** pending only this continuity merge and issue closure.
+
+Final reviewed feature head:
+
+`00357dab13786a4eae1b1a7198906316178414d7`
+
+Exact gameplay/public main:
+
+`a7abf55282cff8d7daad81a9a8624ee61364d528`
+
+Player-facing loop:
+
+`HACK / BREACH UNIQUE TERMINAL -> REAL DURABLE CASH -> STREET VENDOR -> PAY 150 -> ACTIVE VEHICLE TUNE-UP -> REAL BALANCE`
+
+Retained truths:
+
+- one versioned `BurnsideCashProgressStore` owns a non-negative integer Cash balance plus two durable one-time receipts for the unique vending terminal;
+- first valid hack pays exactly **80 Cash** once;
+- first valid breach pays exactly **120 Cash** once;
+- invalid reward amounts are rejected before any balance mutation or receipt consumption;
+- Cash and receipts survive Replay, Soft Failure and fresh store reconstruction;
+- the physical vending machine may reset for sandbox repeatability, but already-paid receipts yield no duplicate Cash and no false “+Cash” feedback;
+- the Street Vendor now requires and debits exactly **150 Cash** before applying retained tune-up physics;
+- insufficient Cash, no supported active vehicle, rammed/untradeable vendor and already-active tune-up reject without debit;
+- successful purchase tunes only the actual active vehicle and leaves inactive retained vehicles unchanged;
+- Cash feedback uses a short-lived player-visible notice rather than relying on debug telemetry;
+- P07 repair, P10 armor restock and P11 vehicle recovery remain free and independent;
+- no XP, levels, inventory, shop catalog, loot economy, dynamic pricing, recurring costs, bank/debt, multiple currencies or broad reward registry entered P12.
+
+TDD / review evidence:
+
+- observed RED run `35501458355`: exact-source setup passed; Durable Cash persistence failed because the store did not exist;
+- first GREEN established real Cash authority but exposed a player-feedback defect because the debug status label was overwritten;
+- repaired branch run `35501748893`: persistence, physical earn/spend composition, truthful Cash notice and retained vendor/vending/P08–P11 regressions **PASS**;
+- CodeRabbit review found the store accepted arbitrary positive reward amounts, which could consume a one-time receipt incorrectly;
+- final repair `00357dab13786a4eae1b1a7198906316178414d7` added fixed 80/120 store-level reward contracts plus tests proving invalid 81/119 inputs neither mutate balance nor consume receipts;
+- the stale P09 canonical header/sequence identified by the earlier P11 continuity review was also corrected on the same final branch;
+- all review threads are resolved; CodeRabbit final status is **PASS**.
+
+Final feature-head matrix:
+
+- P12 exact-source Durable Cash / Street Vendor: **PASS**;
+- P11 Claimed Courier Bike / Garage Recovery: **PASS**;
+- P10 Burn Contact / Armor Stash: **PASS**;
+- P09 Health / Armor / Soft Failure: **PASS**;
+- P08 companion semantics/runtime: **PASS**;
+- P07 semantics/runtime + rendered proof: **PASS**;
+- retained P01–P07 regression matrices / Wanted / work-zone: **PASS**;
+- literal-head Web export/static-host smoke: **PASS**;
+- synthetic-merge Web export/static-host smoke: **PASS**;
+- Pages artifact packaging: **PASS**;
+- exact-head canonical 29-suite compatibility matrix: **PASS**.
+
+### Exact-main and public verification
+
+The squash merge and fully tested feature head have the exact same Git tree:
+
+`5ac85615a33243cb6857615debc5697768e24146`
+
+Godot Web Playtest main-push run `35552778723` at `a7abf55282cff8d7daad81a9a8624ee61364d528`:
+
+- exact source revision checkout: **PASS**;
+- retained mobile touch / desktop controls / alias ownership / vehicle authority / interaction cancel: **PASS**;
+- Web export: **PASS**;
+- static-host smoke: **PASS**;
+- browser artifact upload: **PASS**;
+- public payload envelope: **PASS**;
+- GitHub Pages artifact upload: **PASS**;
+- Pages deployment: **PASS**;
+- public source revision stamp verification: **PASS**.
+
+Current public provenance:
+
+`PLAYTEST_BUILD.txt = a7abf55282cff8d7daad81a9a8624ee61364d528`
+
+## Post-Production-12 re-evaluation state
+
+Production 12 establishes the first honest authoritative Cash earn/spend loop. The next high-value economy gap is **authored mission payoffs that still advertise credits without crediting the durable Cash authority**.
+
+Verified retained mission values:
+
+- Scrap Job / Mission 01: **320** credits;
+- Civic Repossession / Mission 02: **450** credits;
+- The City That Forgot / Mission 03: intentionally **0**.
+
+The preferred next bounded frontier is therefore **durable one-time Mission 01 + Mission 02 Cash receipts**, not broad conversion of every resettable street prop reward.
+
+Leading P13 design target:
+
+`COMPLETE AUTHORED JOB -> CREDIT CONTRACT PAYOUT ONCE -> CASH PERSISTS -> REPLAY MISSION FOR GAMEPLAY -> NO DUPLICATE PAYOUT / NO FALSE PAYMENT CLAIM`
+
+Why this leads:
+
+- mission payouts are already authored and visible to the player;
+- missions are better primary Cash sources than repeatable street farming under the Progression & Economy Contract;
+- durable payout receipts can prevent Replay/relaunch farming while preserving mission replayability;
+- Mission 03’s zero-pay narrative scope stays intact;
+- utility crawler, dumpster, lockbox and kiosk “scrap” semantics remain separate until intentionally reconciled rather than silently becoming Cash.
+
+Guardrails for P13 JIT design:
+
+- exactly the existing Mission 01 and Mission 02 authored payouts first;
+- one durable paid receipt per mission;
+- Replay may reset mission gameplay but never pays the same authored contract twice;
+- payment presentation must distinguish contract completion from an already-cleared payout;
+- no generalized quest ledger, repeatable-job economy, loot conversion, shop framework or reward registry;
+- do not change Mission 03’s zero-Cash narrative completion;
+- no new geography or unrelated Audio changes.
+
+P13 is **SELECTED FOR JIT DESIGN / NOT YET IMPLEMENTATION-LOCKED**.
+
 ## Next-state rule
 
 Next production session:
@@ -778,9 +892,9 @@ Next production session:
 1. refresh exact `main`, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene state;
 2. read `START_HERE.md`, #55, #118, the Progression & Economy Contract (#105 resolution), and this continuity file;
 3. verify local repo/branch/HEAD/upstream/dirty state before local code mutation;
-4. create/refine one just-in-time Production 12 ticket for the bounded **Cash authority / Street Vendor transaction tracer**;
-5. resolve Cash durability + anti-farming semantics before GREEN implementation;
-6. preserve existing tune-up physics and convert only the minimum fake-economy presentation into real authoritative earn/spend behavior;
+4. create/refine one just-in-time Production 13 ticket for **durable Mission 01 / Mission 02 Cash payout receipts**;
+5. resolve payout receipt ownership, replay presentation and exact mission-completion integration before GREEN implementation;
+6. keep Mission 03 at zero Cash and leave resettable street-prop scrap semantics intentionally separate;
 7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
 8. update continuity only after verified changes land.
 
