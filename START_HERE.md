@@ -20,8 +20,8 @@ Always refresh current `main`, open PRs/issues and relevant CI/runtime evidence 
 
 ### NEXT
 
-- **Production 12 JIT design — real Cash authority / Street Vendor transaction tracer.** Turn one existing reward source and the existing 150-credit Street Vendor tune-up into an honest authoritative earn/spend loop.
-- Resolve Cash durability and replay anti-farming before implementation lock. Preserve existing tune-up physics; do not generalize into a shop/economy framework.
+- **Production 13 JIT design — durable Mission 01 / Mission 02 Cash payout receipts.** Make the existing 320/450 authored contract payoffs credit the real Cash authority exactly once while preserving Replay for gameplay.
+- Keep Mission 03 at zero Cash. Do not convert every resettable street-prop “scrap” reward into Cash without a separate product decision.
 
 ### DEFERRED
 
@@ -48,7 +48,7 @@ These gates do not automatically block unrelated code-first work.
 - Open World Expansion 01D / PR #66 — Silent Core infrastructure integration, merged.
 - World Event 01 / PR #68 — bounded FB-13 infrastructure-thrum use of existing geography, merged.
 - Issue #89 / Open World Expansion 01E — Gears retained-camera readability & performance checkpoint, complete (`VISUAL_PERF_CHECKPOINT_PASS`).
-- Productions 01–11 — merged and verified through the Production 11 Claimed Courier Bike / Burn Garage Recovery tracer; current public Web publication uses GitHub Pages Actions artifacts.
+- Productions 01–12 — merged and verified through the Production 12 Durable Cash / Street Vendor Transaction tracer; current public Web publication uses GitHub Pages Actions artifacts.
 
 Do not recreate completed 01A–01D work because an older roadmap still describes it as future work.
 
