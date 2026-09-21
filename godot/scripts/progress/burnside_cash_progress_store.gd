@@ -6,6 +6,8 @@ const PRODUCTION_PATH := "user://burnside_cash_progress.json"
 const TEST_DIRECTORY := "user://tests"
 const STAGING_SUFFIX := ".tmp"
 const MAX_CASH := 2000000000
+const VENDING_HACK_REWARD := 80
+const VENDING_BREACH_REWARD := 120
 
 var _storage_path: String = ""
 var _cash: int = 0
@@ -153,9 +155,13 @@ func _credit_receipt(amount: int, is_hack: bool) -> int:
 	return amount
 
 func credit_vending_hack(amount: int) -> int:
+	if amount != VENDING_HACK_REWARD:
+		return 0
 	return _credit_receipt(amount, true)
 
 func credit_vending_breach(amount: int) -> int:
+	if amount != VENDING_BREACH_REWARD:
+		return 0
 	return _credit_receipt(amount, false)
 
 func can_afford(amount: int) -> bool:

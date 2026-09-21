@@ -47,6 +47,13 @@ func _run() -> void:
 		_fail("Clean Cash store began with paid receipts")
 		return
 
+	if int(store.credit_vending_hack(81)) != 0 or int(store.get_balance()) != 0 or store.has_vending_hack_receipt():
+		_fail("Invalid hack reward mutated Cash or consumed receipt")
+		return
+	if int(store.credit_vending_breach(119)) != 0 or int(store.get_balance()) != 0 or store.has_vending_breach_receipt():
+		_fail("Invalid breach reward mutated Cash or consumed receipt")
+		return
+
 	if int(store.credit_vending_hack(80)) != 80 or int(store.get_balance()) != 80:
 		_fail("First hack did not credit exactly 80")
 		return
