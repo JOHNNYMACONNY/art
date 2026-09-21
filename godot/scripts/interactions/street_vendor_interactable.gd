@@ -6,6 +6,8 @@ extends InteractableBase
 
 @onready var vendor: Node = get_parent()
 var _current_player: CharacterBody3D = null
+var _current_vehicle: Node3D = null
+var _cash_runtime: Node = null
 
 func _ready() -> void:
 	interaction_priority = 1.8
@@ -15,6 +17,12 @@ func _ready() -> void:
 
 func set_player_reference(player: CharacterBody3D) -> void:
 	_current_player = player
+
+func set_vehicle_reference(vehicle: Node3D) -> void:
+	_current_vehicle = vehicle
+
+func set_cash_runtime(runtime: Node) -> void:
+	_cash_runtime = runtime
 
 func get_action_verb() -> String:
 	if not vendor:
@@ -39,7 +47,13 @@ func begin_interaction(_player_pos: Vector3) -> bool:
 		return false
 	if "is_rammed" in vendor and vendor.is_rammed:
 		return false
-	
+
+	if _cash_runtime != null and _cash_runtime.has_method("attempt_vendor_tune_up"):
+		var success := bool(_cash_runtime.call("attempt_vendor_tune_up", vendor, _current_vehicle))
+		if success:
+			interaction_completed.emit()
+		return success
+
 	if vendor.has_method("purchase_tune_up"):
 		var res: Dictionary = vendor.purchase_tune_up()
 		interaction_completed.emit()

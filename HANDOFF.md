@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P09_PLAYER_SURVIVABILITY_MERGED_VERIFIED`  
-**Current gameplay/world baseline:** `069e7f3c504cc5a088577bcd1c5efc21b125f23f`  
+**Status:** `BURNSIDE_P11_CLAIMED_COURIER_BIKE_MERGED_VERIFIED_PUBLIC`  
+**Current gameplay/world baseline:** `af5eaa77101163293bd0e8cefff8ee80605306d3`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -103,6 +103,8 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 07** — #137 / PR #138 — Gears Vehicle Condition / Burn Garage Repair Tracer — `3deb1cccafdaeb9f3d6b1629e94f2a262cf3259d`.
 - **Production 08** — #141 / PR #143 / PR #145 (review polish) — FB-13 / HS-7 Authored Companion Presence Tracer — `37c130b10db057ba923d5a9a6738081fa91e6fdf`.
 - **Production 09** — #149 / PR #150 — Player Health / Armor / Soft Failure Tracer — `069e7f3c504cc5a088577bcd1c5efc21b125f23f`.
+- **Production 10** — #152 / PR #154 — Mayor Burn Known Contact / Garage Armor Stash Tracer — `668e760b7da48df33552e182ff3af8bab9d53640`.
+- **Production 11** — #158 / PR #159 — Claimed Courier Bike / Burn Garage Recovery Tracer — `af5eaa77101163293bd0e8cefff8ee80605306d3`.
 
 ## Retained authority truths
 
