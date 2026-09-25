@@ -1,0 +1,399 @@
+name: Burnside Production 13
+
+on:
+  push:
+    branches:
+      - main
+      - feat/production-13-mission-cash-receipts
+    paths:
+      - "contracts/burnside_production_13_mission_cash_receipts_spec.md"
+      - ".github/workflows/burnside-production-13.yml"
+      - ".github/workflows/godot-web-playtest.yml"
+      - "godot/scripts/progress/burnside_cash_progress_store.gd"
+      - "godot/scripts/world/burnside_cash_economy_runtime.gd"
+      - "godot/scripts/missions/scrap_job_mission_runtime.gd"
+      - "godot/scripts/missions/civic_repossession_runtime.gd"
+      - "godot/tests/burnside_mission_cash_progress_store_test.gd"
+      - "godot/tests/burnside_mission_cash_payout_integration_test.gd"
+      - "godot/tests/burnside_mission_cash_web_probe.gd"
+      - "godot/tests/burnside_mission_cash_web_probe.tscn"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_13_mission_cash_receipts_spec.md"
+      - ".github/workflows/burnside-production-13.yml"
+      - ".github/workflows/godot-web-playtest.yml"
+      - "godot/scripts/progress/burnside_cash_progress_store.gd"
+      - "godot/scripts/world/burnside_cash_economy_runtime.gd"
+      - "godot/scripts/missions/scrap_job_mission_runtime.gd"
+      - "godot/scripts/missions/civic_repossession_runtime.gd"
+      - "godot/tests/burnside_mission_cash_progress_store_test.gd"
+      - "godot/tests/burnside_mission_cash_payout_integration_test.gd"
+      - "godot/tests/burnside_mission_cash_web_probe.gd"
+      - "godot/tests/burnside_mission_cash_web_probe.tscn"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_RELEASE: "4.7.1-stable"
+  GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+
+jobs:
+  durable-mission-cash:
+    name: Exact-source Mission Cash receipts
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: P13 schema v2 / migration / receipt tracer
+        id: p13_store
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 60s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_mission_cash_progress_store_test.gd
+
+      - name: P13 production mission payout / replay tracer
+        id: p13_runtime
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 120s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_mission_cash_payout_integration_test.gd
+
+      - name: Retained P12 Cash earn / spend regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in burnside_cash_progress_store_test.gd burnside_cash_economy_integration_test.gd; do
+            timeout --signal=TERM 120s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
+          done
+
+      - name: Retained mission / service regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in mission_scrap_job_runtime_test.gd mayor_burn_contact_integration_test.gd city_that_forgot_mission_contract_test.gd courier_bike_claim_integration_test.gd player_survivability_integration_test.gd burn_garage_mission02_composition_test.gd; do
+            timeout --signal=TERM 120s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
+          done
+
+      - name: Require P13 GREEN
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "p13_store=${{ steps.p13_store.outcome }}"
+          echo "p13_runtime=${{ steps.p13_runtime.outcome }}"
+          test "${{ steps.p13_store.outcome }}" = "success"
+          test "${{ steps.p13_runtime.outcome }}" = "success"
+
+  web-persistence:
+    name: Mission Cash Web persistence (${{ matrix.source }})
+    needs: durable-mission-cash
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        source: ${{ fromJSON(github.event_name == 'pull_request' && '["merge","head"]' || '["head"]') }}
+    env:
+      GODOT_VERSION: "4.7.1"
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      WEB_PROJECT: "${{ github.workspace }}/.godot-p13-web-project"
+      SOURCE_SHA: ${{ matrix.source == 'head' && github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout verified source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          printf 'verification target: %s\n' "${{ matrix.source }}"
+          printf 'expected source SHA: %s\n' "$SOURCE_SHA"
+          printf 'checked out SHA: %s\n' "$actual_sha"
+          test "$actual_sha" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor and export templates
+        id: godot-cache-web
+        uses: actions/cache@v4
+        with:
+          path: |
+            .godot-bin
+            ~/.local/share/godot/export_templates/4.7.1.stable
+          key: godot-4.7.1-linux-web-templates-v1
+
+      - name: Install Godot 4.7.1 editor
+        if: steps.godot-cache-web.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Install Godot 4.7.1 export templates
+        if: steps.godot-cache-web.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output export_templates.tpz https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz
+          template_dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          rm -rf "$template_dir"
+          mkdir -p "$template_dir" "${RUNNER_TEMP}/godot-export-templates"
+          unzip -q export_templates.tpz -d "${RUNNER_TEMP}/godot-export-templates"
+          cp -R "${RUNNER_TEMP}/godot-export-templates/templates/." "$template_dir/"
+          test -s "$template_dir/web_release.zip"
+
+      - name: Prepare isolated Web Cash persistence project
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$WEB_PROJECT"
+          cp -a godot "$WEB_PROJECT"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          project = Path(os.environ["WEB_PROJECT"]) / "project.godot"
+          text = project.read_text()
+          feature = 'config/features=PackedStringArray("4.7", "Forward Plus")'
+          if feature not in text:
+              raise SystemExit("Expected Forward Plus project feature was not found")
+          text = text.replace(feature, 'config/features=PackedStringArray("4.7", "GL Compatibility")', 1)
+
+          main_scene = 'run/main_scene="res://scenes/prototype/scrap_test_block.tscn"'
+          if main_scene not in text:
+              raise SystemExit("Expected production main scene was not found")
+          text = text.replace(main_scene, 'run/main_scene="res://tests/burnside_mission_cash_web_probe.tscn"', 1)
+
+          rendering = "[rendering]\n"
+          if rendering not in text:
+              raise SystemExit("[rendering] section not found")
+          text = text.replace(
+              rendering,
+              rendering
+              + 'renderer/rendering_method="gl_compatibility"\n'
+              + 'renderer/rendering_method.mobile="gl_compatibility"\n'
+              + 'textures/vram_compression/import_etc2_astc=true\n',
+              1,
+          )
+          project.write_text(text)
+          PY
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path "$WEB_PROJECT" --quit
+          test -s "$WEB_PROJECT/.godot/global_script_class_cache.cfg"
+
+      - name: Export isolated Web Cash persistence probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf build/p13-web
+          mkdir -p build/p13-web
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path "$WEB_PROJECT" --export-release "Web Playtest" "$GITHUB_WORKSPACE/build/p13-web/index.html"
+          test -s build/p13-web/index.html
+          test -s build/p13-web/index.js
+          test -s build/p13-web/index.wasm
+          test -s build/p13-web/index.pck
+
+      - name: Install Chromium automation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check playwright==1.55.0
+          python3 -m playwright install --with-deps chromium
+
+      - name: Prove same-origin browser relaunch persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8097 --directory build/p13-web >p13-web-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for _ in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8097/index.html >/dev/null; then
+              break
+            fi
+            sleep 0.5
+          done
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8097/index.html
+
+          rm -rf "${RUNNER_TEMP}/p13-chromium-profile"
+          mkdir -p godot/verification/production13
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+          from playwright.sync_api import sync_playwright
+
+          expected_storage = "user://p13_web_cash_probe.json"
+          url = "http://127.0.0.1:8097/"
+          profile = Path(os.environ["RUNNER_TEMP"]) / "p13-chromium-profile"
+          verification_dir = Path("godot/verification/production13")
+
+          def write_diagnostic(page, label, console_messages, page_errors):
+              try:
+                  state = page.evaluate("window.P13_WEB_PROBE || null")
+              except Exception as exc:
+                  state = {"evaluation_error": str(exc)}
+              try:
+                  body_text = page.locator("body").inner_text(timeout=5_000)
+              except Exception as exc:
+                  body_text = "<body read failed: %s>" % exc
+              diagnostic = {
+                  "label": label,
+                  "source_sha": os.environ["SOURCE_SHA"],
+                  "verification_target": os.environ.get("P13_MATRIX_SOURCE", "head"),
+                  "url": page.url,
+                  "state": state,
+                  "body_text": body_text[:4000],
+                  "console": console_messages[-200:],
+                  "page_errors": page_errors[-100:],
+              }
+              path = verification_dir / ("web_%s_diagnostic.json" % label)
+              path.write_text(json.dumps(diagnostic, indent=2, sort_keys=True) + "\n")
+              try:
+                  page.screenshot(path=str(verification_dir / ("web_%s.png" % label)), full_page=True)
+              except Exception:
+                  pass
+              print("P13_BROWSER_DIAGNOSTIC %s" % json.dumps(diagnostic, sort_keys=True))
+              return diagnostic
+
+          def observe(p, expected_status, label):
+              context = p.chromium.launch_persistent_context(
+                  str(profile),
+                  headless=True,
+                  args=["--disable-dev-shm-usage"],
+              )
+              console_messages = []
+              page_errors = []
+              try:
+                  page = context.pages[0] if context.pages else context.new_page()
+                  page.on("console", lambda msg: console_messages.append({"type": msg.type, "text": msg.text}))
+                  page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+                  page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+                  try:
+                      page.wait_for_function(
+                          "expected => window.P13_WEB_PROBE?.status === expected || window.P13_WEB_PROBE?.status === 'P13_FAIL'",
+                          arg=expected_status,
+                          timeout=60_000,
+                      )
+                  except PlaywrightTimeoutError:
+                      write_diagnostic(page, label, console_messages, page_errors)
+                      raise
+                  diagnostic = write_diagnostic(page, label, console_messages, page_errors)
+                  state = diagnostic["state"]
+                  if isinstance(state, dict) and state.get("status") == "P13_FAIL":
+                      raise AssertionError("Probe reported P13_FAIL: %s" % state)
+                  return state
+              finally:
+                  context.close()
+
+          with sync_playwright() as p:
+              pass_a = observe(p, "P13_WRITE_OK", "pass_a")
+              assert pass_a["status"] == "P13_WRITE_OK", pass_a
+              assert pass_a["storage_path"] == expected_storage, pass_a
+              assert pass_a["load_status"] == "CLEAN", pass_a
+              assert pass_a["cash"] == 770, pass_a
+              assert pass_a["mission_01_paid"] is True, pass_a
+              assert pass_a["mission_02_paid"] is True, pass_a
+              assert pass_a["write_count"] == 2, pass_a
+              assert pass_a["write_blocked"] is False, pass_a
+
+              pass_b = observe(p, "P13_RELOAD_OK", "pass_b")
+              assert pass_b["status"] == "P13_RELOAD_OK", pass_b
+              assert pass_b["storage_path"] == expected_storage, pass_b
+              assert pass_b["load_status"] == "LOADED", pass_b
+              assert pass_b["cash"] == 770, pass_b
+              assert pass_b["mission_01_paid"] is True, pass_b
+              assert pass_b["mission_02_paid"] is True, pass_b
+              assert pass_b["write_count"] == 0, pass_b
+              assert pass_b["write_blocked"] is False, pass_b
+
+              report = {
+                  "source_sha": os.environ["SOURCE_SHA"],
+                  "verification_target": os.environ.get("P13_MATRIX_SOURCE", "head"),
+                  "origin": url,
+                  "pass_a": pass_a,
+                  "pass_b": pass_b,
+                  "same_persistent_profile_relaunched": True,
+                  "manual_persistence_mutation": False,
+                  "storage_backend_under_test": "Godot user:// Web filesystem",
+              }
+              output = verification_dir / "web_persistence_report.json"
+              output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+              print(json.dumps(report, indent=2, sort_keys=True))
+          PY
+        env:
+          P13_MATRIX_SOURCE: ${{ matrix.source }}
+
+      - name: Print Web persistence diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          cat p13-web-server.log
+          for file in godot/verification/production13/web_*_diagnostic.json; do
+            test -f "$file" && { echo "--- $file"; cat "$file"; }
+          done
+
+      - name: Upload Web persistence proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production13-web-persistence-${{ matrix.source }}-${{ env.SOURCE_SHA }}
+          path: |
+            godot/verification/production13/web_persistence_report.json
+            godot/verification/production13/web_*_diagnostic.json
+            godot/verification/production13/web_*.png
+            p13-web-server.log
+          if-no-files-found: warn
+          retention-days: 14
