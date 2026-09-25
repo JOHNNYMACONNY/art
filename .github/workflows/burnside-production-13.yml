@@ -113,7 +113,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for test_file in mission_scrap_job_runtime_test.gd mayor_burn_contact_integration_test.gd city_that_forgot_mission_contract_test.gd courier_bike_claim_integration_test.gd player_survivability_integration_test.gd burn_garage_mission02_composition_test.gd; do
+          for test_file in mission_scrap_job_runtime_test.gd mayor_burn_contact_integration_test.gd companion_thrum_replay_mission03_test.gd courier_bike_claim_integration_test.gd player_survivability_integration_test.gd burn_garage_mission02_composition_test.gd; do
             timeout --signal=TERM 120s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
           done
 
