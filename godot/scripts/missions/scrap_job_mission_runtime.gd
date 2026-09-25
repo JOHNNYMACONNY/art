@@ -1,5 +1,7 @@
 extends Node
 
+signal scrap_job_completed
+
 ## Thin adapter from the retained golden-slice runtime into the authored
 ## Mission/Narrative 01 state. It observes existing production signals/state and
 ## does not take ownership of vehicle, pursuit, camera, interaction or audio logic.
@@ -17,6 +19,7 @@ var _corroded_panel = null
 var _signal_gate = null
 var _pursuer = null
 var _bound: bool = false
+var _completion_emitted_for_run: bool = false
 
 var _mission_panel: PanelContainer = null
 var _objective_label: Label = null
@@ -112,6 +115,9 @@ func _on_gate_triggered() -> void:
 func _on_escape_complete() -> void:
 	if mission.on_escape_complete():
 		_refresh_hud()
+		if not _completion_emitted_for_run:
+			_completion_emitted_for_run = true
+			scrap_job_completed.emit()
 
 func _maybe_restart_after_full_slice_reset() -> void:
 	if mission.phase != MissionScript.Phase.COMPLETE and mission.phase != MissionScript.Phase.FAILED:
@@ -125,6 +131,7 @@ func _maybe_restart_after_full_slice_reset() -> void:
 		return
 	mission = MissionScript.new()
 	mission.start()
+	_completion_emitted_for_run = false
 	_refresh_hud()
 	print("[MISSION_NARRATIVE_01] Full slice reset detected; authored job restarted")
 
