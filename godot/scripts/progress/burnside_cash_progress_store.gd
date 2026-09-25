@@ -1,31 +1,41 @@
 class_name BurnsideCashProgressStore
 extends RefCounted
 
-const SCHEMA_VERSION := 1
+const SCHEMA_VERSION := 2
+const LEGACY_SCHEMA_VERSION := 1
 const PRODUCTION_PATH := "user://burnside_cash_progress.json"
 const TEST_DIRECTORY := "user://tests"
 const STAGING_SUFFIX := ".tmp"
 const MAX_CASH := 2000000000
 const VENDING_HACK_REWARD := 80
 const VENDING_BREACH_REWARD := 120
+const MISSION_01_REWARD := 320
+const MISSION_02_REWARD := 450
 
 var _storage_path: String = ""
 var _cash: int = 0
 var _vending_hack_paid: bool = false
 var _vending_breach_paid: bool = false
+var _mission_01_paid: bool = false
+var _mission_02_paid: bool = false
 var _write_blocked: bool = false
 var _write_count: int = 0
 var _load_status: String = "UNCONFIGURED"
 
 func configure(storage_path_override: String = "") -> void:
 	_storage_path = storage_path_override if not storage_path_override.is_empty() else _resolve_default_storage_path()
-	_cash = 0
-	_vending_hack_paid = false
-	_vending_breach_paid = false
+	_reset_state()
 	_write_blocked = false
 	_write_count = 0
 	_load_status = "CLEAN"
 	_load_from_disk()
+
+func _reset_state() -> void:
+	_cash = 0
+	_vending_hack_paid = false
+	_vending_breach_paid = false
+	_mission_01_paid = false
+	_mission_02_paid = false
 
 func _resolve_default_storage_path() -> String:
 	for arg in OS.get_cmdline_args():
@@ -53,40 +63,84 @@ func _load_from_disk() -> void:
 		_fail_load("MALFORMED")
 		return
 	var document: Dictionary = parsed
-	for key in ["version", "cash", "vending_hack_paid", "vending_breach_paid"]:
-		if not document.has(key):
-			_fail_load("MALFORMED")
-			return
+	if not document.has("version"):
+		_fail_load("MALFORMED")
+		return
 	var version_value = document["version"]
 	if typeof(version_value) != TYPE_INT and typeof(version_value) != TYPE_FLOAT:
 		_fail_load("MALFORMED")
 		return
-	if int(version_value) != SCHEMA_VERSION or float(version_value) != float(SCHEMA_VERSION):
-		_fail_load("UNSUPPORTED_VERSION")
+	if float(version_value) != float(int(version_value)):
+		_fail_load("MALFORMED")
 		return
+
+	var version := int(version_value)
+	if version == LEGACY_SCHEMA_VERSION:
+		_load_v1_and_migrate(document)
+	elif version == SCHEMA_VERSION:
+		_load_v2(document)
+	else:
+		_fail_load("UNSUPPORTED_VERSION")
+
+func _read_common_fields(document: Dictionary) -> Dictionary:
+	for key in ["cash", "vending_hack_paid", "vending_breach_paid"]:
+		if not document.has(key):
+			return {}
 	var cash_value = document["cash"]
 	if typeof(cash_value) != TYPE_INT and typeof(cash_value) != TYPE_FLOAT:
-		_fail_load("MALFORMED")
-		return
+		return {}
 	if float(cash_value) != float(int(cash_value)):
-		_fail_load("MALFORMED")
-		return
+		return {}
 	var loaded_cash := int(cash_value)
 	if loaded_cash < 0 or loaded_cash > MAX_CASH:
-		_fail_load("MALFORMED")
-		return
+		return {}
 	if typeof(document["vending_hack_paid"]) != TYPE_BOOL or typeof(document["vending_breach_paid"]) != TYPE_BOOL:
+		return {}
+	return {
+		"cash": loaded_cash,
+		"vending_hack_paid": bool(document["vending_hack_paid"]),
+		"vending_breach_paid": bool(document["vending_breach_paid"]),
+	}
+
+func _apply_common_fields(common: Dictionary) -> void:
+	_cash = int(common["cash"])
+	_vending_hack_paid = bool(common["vending_hack_paid"])
+	_vending_breach_paid = bool(common["vending_breach_paid"])
+
+func _load_v1_and_migrate(document: Dictionary) -> void:
+	var common := _read_common_fields(document)
+	if common.is_empty():
 		_fail_load("MALFORMED")
 		return
-	_cash = loaded_cash
-	_vending_hack_paid = bool(document["vending_hack_paid"])
-	_vending_breach_paid = bool(document["vending_breach_paid"])
+	_apply_common_fields(common)
+	_mission_01_paid = false
+	_mission_02_paid = false
+
+	# _persist writes a complete v2 document to a staging file and only then
+	# atomically replaces the v1 path. A failed migration therefore leaves the
+	# valid P12 document intact on disk.
+	if not _persist():
+		_write_blocked = true
+		_load_status = "MIGRATION_WRITE_ERROR"
+		return
+	_load_status = "MIGRATED_V1_TO_V2"
+
+func _load_v2(document: Dictionary) -> void:
+	var common := _read_common_fields(document)
+	if common.is_empty():
+		_fail_load("MALFORMED")
+		return
+	for key in ["mission_01_paid", "mission_02_paid"]:
+		if not document.has(key) or typeof(document[key]) != TYPE_BOOL:
+			_fail_load("MALFORMED")
+			return
+	_apply_common_fields(common)
+	_mission_01_paid = bool(document["mission_01_paid"])
+	_mission_02_paid = bool(document["mission_02_paid"])
 	_load_status = "LOADED"
 
 func _fail_load(status: String) -> void:
-	_cash = 0
-	_vending_hack_paid = false
-	_vending_breach_paid = false
+	_reset_state()
 	_write_blocked = true
 	_load_status = status
 
@@ -114,6 +168,8 @@ func _persist() -> bool:
 		"cash": _cash,
 		"vending_hack_paid": _vending_hack_paid,
 		"vending_breach_paid": _vending_breach_paid,
+		"mission_01_paid": _mission_01_paid,
+		"mission_02_paid": _mission_02_paid,
 	}
 	var wrote := file.store_string(JSON.stringify(payload) + "\n")
 	file.flush()
@@ -132,7 +188,7 @@ func _persist() -> bool:
 	_write_count += 1
 	return true
 
-func _credit_receipt(amount: int, is_hack: bool) -> int:
+func _credit_vending_receipt(amount: int, is_hack: bool) -> int:
 	if _write_blocked or amount <= 0:
 		return 0
 	if (is_hack and _vending_hack_paid) or (not is_hack and _vending_breach_paid):
@@ -154,15 +210,49 @@ func _credit_receipt(amount: int, is_hack: bool) -> int:
 		return 0
 	return amount
 
+func _credit_mission_01_receipt(amount: int) -> int:
+	if _write_blocked or _mission_01_paid or amount <= 0 or _cash > MAX_CASH - amount:
+		return 0
+	var old_cash := _cash
+	_cash += amount
+	_mission_01_paid = true
+	if not _persist():
+		_cash = old_cash
+		_mission_01_paid = false
+		return 0
+	return amount
+
+func _credit_mission_02_receipt(amount: int) -> int:
+	if _write_blocked or _mission_02_paid or amount <= 0 or _cash > MAX_CASH - amount:
+		return 0
+	var old_cash := _cash
+	_cash += amount
+	_mission_02_paid = true
+	if not _persist():
+		_cash = old_cash
+		_mission_02_paid = false
+		return 0
+	return amount
+
 func credit_vending_hack(amount: int) -> int:
 	if amount != VENDING_HACK_REWARD:
 		return 0
-	return _credit_receipt(amount, true)
+	return _credit_vending_receipt(amount, true)
 
 func credit_vending_breach(amount: int) -> int:
 	if amount != VENDING_BREACH_REWARD:
 		return 0
-	return _credit_receipt(amount, false)
+	return _credit_vending_receipt(amount, false)
+
+func credit_mission_01(amount: int) -> int:
+	if amount != MISSION_01_REWARD:
+		return 0
+	return _credit_mission_01_receipt(amount)
+
+func credit_mission_02(amount: int) -> int:
+	if amount != MISSION_02_REWARD:
+		return 0
+	return _credit_mission_02_receipt(amount)
 
 func can_afford(amount: int) -> bool:
 	return amount >= 0 and _cash >= amount
@@ -185,6 +275,12 @@ func has_vending_hack_receipt() -> bool:
 
 func has_vending_breach_receipt() -> bool:
 	return _vending_breach_paid
+
+func has_mission_01_receipt() -> bool:
+	return _mission_01_paid
+
+func has_mission_02_receipt() -> bool:
+	return _mission_02_paid
 
 func get_storage_path() -> String:
 	return _storage_path
