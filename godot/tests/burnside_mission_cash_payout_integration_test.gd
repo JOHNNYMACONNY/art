@@ -188,39 +188,64 @@ func _run() -> void:
 		await _fail("Fresh store reconstruction lost mission payout state")
 		return
 
-	# Full Replay resets missions but preserves durable Cash and receipts.
-	_scene.call("reset_slice")
+	# Fresh relaunch proof: destroy the production scene and reconstruct the real
+	# Cash runtime against the persisted v2 document. Replay must remain playable,
+	# but the newly configured runtime must honor both paid receipts.
+	if _wanted_runtime.has_method("reset_runtime"):
+		_wanted_runtime.call("reset_runtime")
+	_scene.queue_free()
 	await process_frame
 	await process_frame
-	mission_one.call("_process", 0.0)
-	mission_two.call("_process", 0.0)
-	if int(cash_runtime.call("get_balance")) != 770:
-		await _fail("Full Replay changed durable Cash before replay completion")
+
+	_scene = packed.instantiate()
+	root.add_child(_scene)
+	await process_frame
+	await physics_frame
+	await process_frame
+	await process_frame
+
+	cash_runtime = _scene.get_node_or_null("BurnsideCashEconomyRuntime")
+	mission_one = _scene.get_node_or_null("MissionScrapJobRuntime")
+	mission_two = _scene.get_node_or_null("CivicRepossessionRuntime")
+	cash_notice = _scene.get_node_or_null("CanvasLayer/TouchControlsUI/SafeAreaRoot/CashNotice") as Label
+	if cash_runtime == null or mission_one == null or mission_two == null or cash_notice == null:
+		await _fail("Fresh relaunch did not reconstruct P13 production composition")
 		return
+	var reloaded_store = cash_runtime.call("get_progress_store")
+	if reloaded_store == null \
+	or String(reloaded_store.call("get_storage_path")) != CASH_TEST_PATH \
+	or int(cash_runtime.call("get_balance")) != 770 \
+	or not bool(reloaded_store.call("has_mission_01_receipt")) \
+	or not bool(reloaded_store.call("has_mission_02_receipt")):
+		await _fail("Fresh production Cash runtime did not reload durable payout state")
+		return
+
+	var relaunch_completion_count := [0]
+	mission_one.connect("scrap_job_completed", func(): relaunch_completion_count[0] += 1)
 
 	error = _complete_mission_one_production(mission_one)
 	if not error.is_empty():
-		await _fail("Mission 01 replay: " + error)
+		await _fail("Mission 01 relaunch replay: " + error)
 		return
-	if completion_count[0] != 2:
-		await _fail("Mission 01 replay did not remain playable/re-arm its runtime signal")
+	if relaunch_completion_count[0] != 1:
+		await _fail("Mission 01 relaunch replay did not emit its bounded completion signal")
 		return
 	if int(cash_runtime.call("get_balance")) != 770:
-		await _fail("Mission 01 replay duplicated durable payout")
+		await _fail("Mission 01 relaunch replay duplicated durable payout")
 		return
 	if String(cash_notice.text) != "PAYMENT ALREADY CLEARED // BALANCE 770" or String(cash_notice.text).contains("+320"):
-		await _fail("Mission 01 replay falsely advertised a new Cash payment")
+		await _fail("Mission 01 relaunch replay falsely advertised a new Cash payment")
 		return
 
 	error = _complete_mission_two_production(mission_two)
 	if not error.is_empty():
-		await _fail("Mission 02 replay: " + error)
+		await _fail("Mission 02 relaunch replay: " + error)
 		return
 	if int(cash_runtime.call("get_balance")) != 770:
-		await _fail("Mission 02 replay duplicated durable payout")
+		await _fail("Mission 02 relaunch replay duplicated durable payout")
 		return
 	if String(cash_notice.text) != "PAYMENT ALREADY CLEARED // BALANCE 770" or String(cash_notice.text).contains("+450"):
-		await _fail("Mission 02 replay falsely advertised a new Cash payment")
+		await _fail("Mission 02 relaunch replay falsely advertised a new Cash payment")
 		return
 
 	print("[P13_MISSION_CASH_RUNTIME] PASS")
