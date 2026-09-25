@@ -67,9 +67,38 @@ func _run_probe() -> void:
 		_publish(FAIL, store, "WRITE_STATE_MISMATCH")
 		return
 
-	JavaScriptBridge.force_fs_sync()
-	await get_tree().create_timer(1.0).timeout
+	var sync_error := await _sync_web_userfs()
+	if not sync_error.is_empty():
+		_publish(FAIL, store, sync_error)
+		return
 	_publish(WRITE_OK, store, "")
+
+func _sync_web_userfs() -> String:
+	JavaScriptBridge.eval("""
+window.P13_FS_SYNC_DONE = false;
+window.P13_FS_SYNC_ERROR = "";
+try {
+	FS.syncfs(false, function(error) {
+		window.P13_FS_SYNC_ERROR = error ? String(error) : "";
+		window.P13_FS_SYNC_DONE = true;
+	});
+} catch (error) {
+	window.P13_FS_SYNC_ERROR = String(error);
+	window.P13_FS_SYNC_DONE = true;
+}
+""", false)
+	var started_ms := Time.get_ticks_msec()
+	while not bool(JavaScriptBridge.eval("window.P13_FS_SYNC_DONE === true", true)):
+		if Time.get_ticks_msec() - started_ms > 15000:
+			return "FS_SYNC_TIMEOUT"
+		await get_tree().process_frame
+	var sync_error = JavaScriptBridge.eval("String(window.P13_FS_SYNC_ERROR || '')", true)
+	if sync_error == null:
+		return "FS_SYNC_RESULT_UNAVAILABLE"
+	var sync_error_text := String(sync_error)
+	if not sync_error_text.is_empty():
+		return "FS_SYNC_ERROR: " + sync_error_text
+	return ""
 
 func _publish(status: String, store, reason: String) -> void:
 	var payload := {
