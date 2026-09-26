@@ -852,7 +852,7 @@ Current public provenance:
 
 ## Production 13 — verified player-facing result
 
-Issue #164 / PR #165: **GAMEPLAY COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED** pending only this continuity merge and issue closure.
+Issue #164 / PR #165: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY UPDATED / ISSUE CLOSED**.
 
 Final reviewed feature head:
 
@@ -950,22 +950,58 @@ GitHub Pages deployment URL:
 
 `https://johnnymaconny.github.io/art/`
 
-## Post-Production-13 re-evaluation gate
+## Post-Production-13 re-evaluation state
 
-Close #164 only after this docs-only continuity merge is verified. The exact runnable/gameplay/public baseline remains `3225b00318351f351c76d4ce3dc2894766ce654c` even though the continuity merge will make repository `main` newer.
+Production 13 closes the authored mission-payment inconsistency. The player can now earn durable Cash from the two paid authored missions, but the durable spend / identity / capability side remains thin: the only real Cash spend is the retained temporary 150-Cash Street Vendor tune-up.
 
-After P13 closure, refresh #55, #118, #105, current implementation seams, open work, and public provenance; then select exactly one next bounded Burnside production frontier. Do not extend P13 under numbering momentum.
+Fresh canon + implementation inspection selects:
+
+**Production 14 — #167 — Claimed Courier Bike / Burn Garage Scrapper Customization**
+
+Status:
+
+`PRODUCT_SELECTED__JIT_DESIGN_REQUIRED__NOT_IMPLEMENTATION_LOCKED`
+
+Why this leads:
+
+- #105 says Cash should buy freedom, vehicles, customization, equipment and services without survival pressure or repeatable grind;
+- #118 makes Burn's Garage the emotional/mechanical anchor for claiming, repair, recovery and scrapper customization;
+- #118 also prefers customization with visible, audible/high-perceptibility changes and tradeoffs instead of broad invisible stat trees;
+- P11 already provides one durably Claimed Courier Bike + authored Garage claim/recovery bay;
+- P07 already provides real Bike collision/condition consequences;
+- P12/P13 now provide one authoritative durable Cash authority and meaningful first-time earning;
+- current production code has no vehicle-customization runtime or catalog;
+- therefore one paid durable mod can compose existing ownership, Cash, Garage, collision/condition and world-interaction systems without new geography or a generalized customization framework.
+
+Leading P14 player-facing target:
+
+`DO PAID WORK -> BUILD CASH -> CLAIM COURIER BIKE -> RETURN TO BURN GARAGE -> BUY ONE SCRAPPER MOD -> BIKE CHANGES VISIBLY + GAINS ONE MATERIAL CAPABILITY / TRADEOFF -> REPLAY / RELAUNCH -> CLAIMED BIKE RETAINS THE MOD`
+
+The strongest current experiment candidate is a salvage-built impact/ram modification (working concept: **Scrap Bash Bar / crash cage**) because the Courier Bike already has real collision telemetry, P07 condition, world-prop ramming and a strong readable silhouette. This concept is **NOT DESIGN LOCKED**; reject it during JIT design if the player-facing effect reduces to hidden threshold/stat tuning.
+
+P14 must resolve before implementation lock:
+
+- exactly one modification and one observable gameplay effect/tradeoff;
+- one fixed authored Cash price that creates choice against the temporary 150-Cash tune-up without requiring grind;
+- durable state ownership/migration while preserving existing P11/P12/P13 saves;
+- atomic purchase semantics so persistence failure cannot lose Cash or grant an unpaid mod;
+- Garage interaction arbitration alongside retained repair, armor service and claim/recovery;
+- fresh Replay/relaunch/recovery proof with the same claimed modified Bike;
+- retained P07 repair, P10 armor, P11 recovery, P12 tune-up and P13 mission receipts/payouts;
+- no Audio change unless separately justified by fresh evidence.
+
+P14 explicit non-goals remain: multiple mods, customization menu/catalog/tree, cosmetic inventory, arbitrary vehicle IDs, additional claimed vehicle classes, fleet manager, generic mod/equipment framework, repeatable jobs/payouts, street-scrap-to-Cash conversion, property economy, maintenance/fuel/insurance, XP/levels/rarity, Heat 2–5, new geography, unrelated Audio, and PR #44.
 
 ## Next-state rule
 
 Next production session:
 
-1. refresh exact `main`, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene state;
-2. distinguish the docs-only continuity HEAD from exact gameplay/public baseline `3225b00318351f351c76d4ce3dc2894766ce654c`;
-3. read `START_HERE.md`, #55, #118, the #105 Progression & Economy resolution, and this continuity file;
-4. re-evaluate the highest-value current player-facing gap from verified implementation truth;
-5. create/refine only the one just-in-time ticket actually selected;
-6. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
-7. update continuity only after verified changes land.
+1. refresh exact repo/main, #167 state, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene work;
+2. keep exact runnable/gameplay/public P13 baseline `3225b00318351f351c76d4ce3dc2894766ce654c` distinct from later docs-only continuity HEADs;
+3. read `START_HERE.md`, #55, #118, #105 resolution, #167, and the P07/P11/P12/P13 retained contracts;
+4. JIT-design exactly one P14 Scrapper modification, price, persistence transaction and Garage interaction seam;
+5. reject the candidate if its main payoff is an invisible stat bump or if it requires generalized customization architecture;
+6. once design is locked, write the narrow spec/plan and execute `RED -> GREEN -> exact-head VERIFY -> frozen REVIEW -> REPAIR -> MERGE -> exact-main VERIFY -> PUBLIC VERIFY -> CONTINUITY -> CLOSE -> RE-EVALUATE`;
+7. preserve unrelated/concurrent work; do not touch Audio or PR #44 absent fresh concrete need.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
