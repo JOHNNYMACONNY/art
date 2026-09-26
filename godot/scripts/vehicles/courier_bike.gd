@@ -166,9 +166,10 @@ func _physics_process(delta: float) -> void:
 					if abs(normal.y) < 0.5: # Vertical wall/obstacle
 						var head_on_ratio: float = abs(forward_dir.dot(normal))
 						var pre_impact_speed: float = abs(current_speed)
+						var is_forward_impact: bool = current_speed > 0.0
 						var impact_decay: float = lerpf(2.0, 32.0, head_on_ratio * head_on_ratio)
 						current_speed = move_toward(current_speed, 0.0, impact_decay * delta)
-						apply_collision_condition(head_on_ratio, pre_impact_speed)
+						apply_collision_condition(head_on_ratio, pre_impact_speed, is_forward_impact)
 						collision_contact.emit(head_on_ratio, pre_impact_speed, col.get_position())
 						
 		_update_vehicle_feedback_presentation()
@@ -529,13 +530,13 @@ func get_usable_max_speed() -> float:
 	var base := get_effective_max_speed()
 	return base * CRITICAL_SPEED_MULTIPLIER if _condition == VehicleCondition.CRITICAL else base
 
-func apply_collision_condition(head_on_ratio: float, impact_speed: float) -> bool:
+func apply_collision_condition(head_on_ratio: float, impact_speed: float, is_forward_impact: bool = true) -> bool:
 	if impact_speed < CONDITION_MIN_IMPACT_SPEED or _condition_contact_cooldown > 0.0:
 		return false
 	var speed_severity := clampf((impact_speed - 3.5) / 7.5, 0.0, 1.0)
 	var direction_weight := lerpf(0.50, 1.0, clampf(head_on_ratio, 0.0, 1.0))
 	var load_delta := speed_severity * direction_weight
-	if _scrap_bash_bar_installed and head_on_ratio >= SCRAP_BASH_BAR_HEAD_ON_THRESHOLD:
+	if _scrap_bash_bar_installed and is_forward_impact and head_on_ratio >= SCRAP_BASH_BAR_HEAD_ON_THRESHOLD:
 		load_delta *= SCRAP_BASH_BAR_CONDITION_LOAD_MULTIPLIER
 	if load_delta <= 0.0:
 		return false
