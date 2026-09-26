@@ -21,6 +21,7 @@ on:
       - "godot/scenes/prototype/scrap_test_block.tscn"
       - "godot/tests/burnside_courier_bike_scrap_bash_bar_store_test.gd"
       - "godot/tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_direction_test.gd"
       - "godot/tests/burnside_production14_scrap_bash_bar_render_capture.gd"
       - "godot/tests/burnside_cash_progress_store_test.gd"
       - "godot/tests/burnside_cash_economy_integration_test.gd"
@@ -48,6 +49,7 @@ on:
       - "godot/scenes/prototype/scrap_test_block.tscn"
       - "godot/tests/burnside_courier_bike_scrap_bash_bar_store_test.gd"
       - "godot/tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_direction_test.gd"
       - "godot/tests/burnside_production14_scrap_bash_bar_render_capture.gd"
       - "godot/tests/burnside_cash_progress_store_test.gd"
       - "godot/tests/burnside_cash_economy_integration_test.gd"
@@ -129,6 +131,14 @@ jobs:
           set -euo pipefail
           timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd
 
+      - name: P14 physical forward / rear impact direction tracer
+        id: p14_direction
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 120s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_courier_bike_scrap_bash_bar_direction_test.gd
+
       - name: Retained P07 / P10 / P11 regressions
         shell: bash
         run: |
@@ -152,8 +162,10 @@ jobs:
           set -euo pipefail
           echo "p14_store=${{ steps.p14_store.outcome }}"
           echo "p14_runtime=${{ steps.p14_runtime.outcome }}"
+          echo "p14_direction=${{ steps.p14_direction.outcome }}"
           test "${{ steps.p14_store.outcome }}" = "success"
           test "${{ steps.p14_runtime.outcome }}" = "success"
+          test "${{ steps.p14_direction.outcome }}" = "success"
 
   rendered-proof:
     name: Windowed P14 Scrap Bash Bar before-after proof
