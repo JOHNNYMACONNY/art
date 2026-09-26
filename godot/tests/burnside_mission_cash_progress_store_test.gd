@@ -50,13 +50,13 @@ func _run() -> void:
 		_fail("Cash store could not load")
 		return
 
-	# Clean v2.
+	# Clean current schema.
 	var store = script.new()
 	store.configure(TEST_PATH)
 	if not _require_api(store):
 		return
 	if int(store.get_balance()) != 0:
-		_fail("Clean v2 store did not start at 0 Cash")
+		_fail("Clean current-schema store did not start at 0 Cash")
 		return
 	if store.has_vending_hack_receipt() or store.has_vending_breach_receipt():
 		_fail("Clean v2 store began with vending receipts")
@@ -96,7 +96,7 @@ func _run() -> void:
 		_fail("Fresh store reconstruction lost mission Cash/receipts")
 		return
 
-	# Exact P12 v1 -> P13 v2 migration. Preserve Cash + vending receipts exactly.
+	# Exact P12 v1 -> current v3 migration. Preserve Cash + vending receipts exactly.
 	_cleanup()
 	var v1 := "{\"version\":1,\"cash\":137,\"vending_hack_paid\":true,\"vending_breach_paid\":false}\n"
 	if not _write_raw(v1):
@@ -123,13 +123,14 @@ func _run() -> void:
 		return
 	var migrated_document = JSON.parse_string(_read_raw())
 	if typeof(migrated_document) != TYPE_DICTIONARY \
-	or int(migrated_document.get("version", -1)) != 2 \
+	or int(migrated_document.get("version", -1)) != 3 \
 	or int(migrated_document.get("cash", -1)) != 137 \
 	or migrated_document.get("vending_hack_paid", null) != true \
 	or migrated_document.get("vending_breach_paid", null) != false \
 	or migrated_document.get("mission_01_paid", null) != false \
-	or migrated_document.get("mission_02_paid", null) != false:
-		_fail("Migration did not persist the exact v2 document")
+	or migrated_document.get("mission_02_paid", null) != false \
+	or migrated_document.get("courier_bike_bash_bar_paid", null) != false:
+		_fail("Migration did not persist the exact v3 document")
 		return
 
 	# Existing P12 Cash remains additive after migration.
@@ -137,7 +138,7 @@ func _run() -> void:
 		_fail("Mission 01 payout was not additive to migrated P12 Cash")
 		return
 
-	# Existing P12 vending contracts remain exact and one-time in schema v2.
+	# Existing P12 vending contracts remain exact and one-time in the current schema.
 	if int(migrated.credit_vending_hack(80)) != 0 or int(migrated.get_balance()) != 457:
 		_fail("Migrated paid vending-hack receipt paid again")
 		return
