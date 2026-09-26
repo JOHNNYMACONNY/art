@@ -5,6 +5,7 @@ const CashStoreScript = preload("res://scripts/progress/burnside_cash_progress_s
 const ScrapJobMissionScript = preload("res://scripts/missions/scrap_job_mission.gd")
 const CivicRepossessionMissionScript = preload("res://scripts/missions/civic_repossession_mission.gd")
 const VENDOR_TUNE_UP_COST := 150
+const COURIER_BIKE_BASH_BAR_COST := CashStoreScript.COURIER_BIKE_BASH_BAR_COST
 
 var _progress_store = CashStoreScript.new()
 var _last_feedback: String = ""
@@ -107,6 +108,19 @@ func award_vending_breach(reward: int) -> int:
 	else:
 		_last_feedback = "CASH CACHE EMPTY // BALANCE %d" % get_balance()
 	return credited
+
+func attempt_courier_bike_bash_bar_purchase() -> bool:
+	if bool(_progress_store.has_courier_bike_bash_bar_receipt()):
+		_last_feedback = "BASH BAR ALREADY FITTED // CASH %d" % get_balance()
+		return false
+	if get_balance() < COURIER_BIKE_BASH_BAR_COST:
+		_last_feedback = "NEED %d // CASH %d" % [COURIER_BIKE_BASH_BAR_COST, get_balance()]
+		return false
+	if not bool(_progress_store.purchase_courier_bike_bash_bar(COURIER_BIKE_BASH_BAR_COST)):
+		_last_feedback = "PAYMENT FAILED // CASH %d" % get_balance()
+		return false
+	_last_feedback = "BASH BAR FITTED // -%d // CASH %d" % [COURIER_BIKE_BASH_BAR_COST, get_balance()]
+	return true
 
 func attempt_vendor_tune_up(vendor: Node, vehicle: Node3D) -> bool:
 	if vendor == null or not vendor.has_method("can_trade") or not vendor.has_method("is_tune_up_active"):
