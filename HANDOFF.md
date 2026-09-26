@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P12_DURABLE_CASH_MERGED_VERIFIED_PUBLIC`  
-**Current gameplay/world baseline:** `a7abf55282cff8d7daad81a9a8624ee61364d528`  
+**Status:** `BURNSIDE_P13_MISSION_CASH_RECEIPTS_MERGED_VERIFIED_PUBLIC`  
+**Current gameplay/world baseline:** `3225b00318351f351c76d4ce3dc2894766ce654c`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -9,7 +9,7 @@
 
 ## Current product state
 
-Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, and authored FB-13 / HS-7 companion presence compose in the same geography.
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, and one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts compose in the same geography.
 
 **Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
 - **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
@@ -106,6 +106,7 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 10** — #152 / PR #154 — Mayor Burn Known Contact / Garage Armor Stash Tracer — `668e760b7da48df33552e182ff3af8bab9d53640`.
 - **Production 11** — #158 / PR #159 — Claimed Courier Bike / Burn Garage Recovery Tracer — `af5eaa77101163293bd0e8cefff8ee80605306d3`.
 - **Production 12** — #161 / PR #162 — Durable Cash / Street Vendor Transaction Tracer — `a7abf55282cff8d7daad81a9a8624ee61364d528`.
+- **Production 13** — #164 / PR #165 — Durable Mission 01 / Mission 02 Cash Payout Receipts — `3225b00318351f351c76d4ce3dc2894766ce654c`.
 
 ## Retained authority truths
 
@@ -849,53 +850,122 @@ Current public provenance:
 
 `PLAYTEST_BUILD.txt = a7abf55282cff8d7daad81a9a8624ee61364d528`
 
-## Post-Production-12 re-evaluation state
+## Production 13 — verified player-facing result
 
-Production 12 establishes the first honest authoritative Cash earn/spend loop. The next high-value economy gap is **authored mission payoffs that still advertise credits without crediting the durable Cash authority**.
+Issue #164 / PR #165: **GAMEPLAY COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED** pending only this continuity merge and issue closure.
 
-Verified retained mission values:
+Final reviewed feature head:
 
-- Scrap Job / Mission 01: **320** credits;
-- Civic Repossession / Mission 02: **450** credits;
-- The City That Forgot / Mission 03: intentionally **0**.
+`8bdc08ecba0526e0f72ee7b53a1a1c771fe9b575`
 
-The preferred next bounded frontier is therefore **durable one-time Mission 01 + Mission 02 Cash receipts**, not broad conversion of every resettable street prop reward.
+Exact gameplay/public main:
 
-Leading P13 design target:
+`3225b00318351f351c76d4ce3dc2894766ce654c`
 
-`COMPLETE AUTHORED JOB -> CREDIT CONTRACT PAYOUT ONCE -> CASH PERSISTS -> REPLAY MISSION FOR GAMEPLAY -> NO DUPLICATE PAYOUT / NO FALSE PAYMENT CLAIM`
+Exact source tree shared by the final reviewed feature head and squash merge:
 
-Why this leads:
+`611d22e8963860d763c1d27aaa451c41eacd8796`
 
-- mission payouts are already authored and visible to the player;
-- missions are better primary Cash sources than repeatable street farming under the Progression & Economy Contract;
-- durable payout receipts can prevent Replay/relaunch farming while preserving mission replayability;
-- Mission 03’s zero-pay narrative scope stays intact;
-- utility crawler, dumpster, lockbox and kiosk “scrap” semantics remain separate until intentionally reconciled rather than silently becoming Cash.
+Player-facing loop:
 
-Guardrails for P13 JIT design:
+`COMPLETE MISSION 01 -> +320 CASH ONCE -> COMPLETE MISSION 02 -> +450 CASH ONCE -> CASH PERSISTS -> REPLAY / RELAUNCH -> MISSIONS REMAIN PLAYABLE -> PAYOUT DOES NOT REPEAT`
 
-- exactly the existing Mission 01 and Mission 02 authored payouts first;
-- one durable paid receipt per mission;
-- Replay may reset mission gameplay but never pays the same authored contract twice;
-- payment presentation must distinguish contract completion from an already-cleared payout;
-- no generalized quest ledger, repeatable-job economy, loot conversion, shop framework or reward registry;
-- do not change Mission 03’s zero-Cash narrative completion;
-- no new geography or unrelated Audio changes.
+Retained truths:
 
-P13 is **SELECTED FOR JIT DESIGN / NOT YET IMPLEMENTATION-LOCKED**.
+- `BurnsideCashProgressStore` remains the only durable Cash authority;
+- its schema evolves from v1 to v2 by adding exactly `mission_01_paid` and `mission_02_paid` beside retained `cash`, `vending_hack_paid`, and `vending_breach_paid`;
+- valid v1 migration preserves existing Cash and vending receipts exactly, initializes the two mission receipts false, and persists through the retained staging + atomic-rename path;
+- malformed data fails closed; unsupported newer schema fails closed and is not overwritten;
+- Mission 01 / Scrap Job pays exactly **320 Cash once**;
+- Mission 02 / Civic Repossession pays exactly **450 Cash once**;
+- first-time completion of both authored paid missions therefore yields **770 Cash** total;
+- Mission 03 / The City That Forgot remains intentionally **0 Cash**;
+- Mission 01 adds one bounded production completion signal; Mission 02 reuses retained `civic_repossession_completed`;
+- mission runtimes retain mission authority; Cash runtime owns only payout validation, durable receipt consumption, balance mutation, and payout feedback;
+- first payment notices remain `JOB PAID // +320 CASH // BALANCE X` and `BURN PAID // +450 CASH // BALANCE X`;
+- replay/relaunch after a durable receipt reports `PAYMENT ALREADY CLEARED // BALANCE X` and never falsely presents another +320 or +450;
+- a fresh production scene and newly configured Cash runtime reload 770 + both receipts and reject both duplicate payouts;
+- invalid mission reward values cannot mutate Cash or consume receipts;
+- manual/test-only Mission 01 phase mutation does not independently grant Cash;
+- P12 vending hack remains +80 once, vending breach +120 once, and Street Vendor tune-up exactly 150 debit;
+- P07 Garage repair, P10 Burn armor restock, and P11 claimed Courier Bike recovery remain free;
+- Mayor Burn Contact remains independent of Mission 02 Cash payout;
+- Full Replay and Soft Failure preserve durable Cash mission receipts;
+- no repeatable mission economy, generalized reward/quest ledger, XP/levels, inventory, extra currency, new shop/geography, or unrelated Audio change entered P13;
+- PR #44 remains deferred.
+
+### TDD / frozen review truth
+
+Observed intended RED workflow run `36087421215` failed because the P13 Cash-store Mission 01 API and bounded Mission 01 completion signal did not yet exist. A retained Mission 03 contract was also initially invoked through the wrong SceneTree harness shape; that was a test-harness/configuration issue, not a Mission 03 regression.
+
+Frozen review then found and repaired three concrete issues before the final head:
+
+1. P13 workflow dependency/path coverage was broadened to include relevant mission constants, composition sources, and retained tests;
+2. browser persistence proof now waits for actual `FS.syncfs` completion before publishing `P13_WRITE_OK`;
+3. the replay proof now destroys the original production scene, instantiates a fresh scene/runtime, reloads durable receipts, and replays both missions through fresh production runtimes.
+
+Final frozen-head evidence:
+
+- Burnside Production 13 run `36126903937`: **SUCCESS**;
+- retained Burnside Production 12 regression run `36126903938`: **SUCCESS**;
+- Godot Web Playtest run `36126903993`: **SUCCESS**, including literal-head and synthetic-merge Web, current camera contracts, canonical compatibility matrix, retained combat/checkpoint/survivability, and Pages packaging;
+- CodeRabbit final status: **SUCCESS**;
+- previously posted inline review threads: **RESOLVED**;
+- Copilot review was unavailable because its review quota was exhausted; this is neither an approval nor a blocker.
+
+### Exact-main and public verification
+
+The final reviewed feature head `8bdc08ecba0526e0f72ee7b53a1a1c771fe9b575` and squash merge `3225b00318351f351c76d4ce3dc2894766ce654c` resolve to the exact same Git tree:
+
+`611d22e8963860d763c1d27aaa451c41eacd8796`
+
+Burnside Production 13 main-push run `36127323010` at the exact gameplay merge:
+
+- exact source checkout: **PASS**;
+- P13 schema v2 / migration / receipt tracer: **PASS**;
+- production mission payout / replay tracer: **PASS**;
+- retained P12 Cash earn/spend regressions: **PASS**;
+- retained mission/service regressions: **PASS**;
+- same-origin browser relaunch persistence: **PASS**.
+
+Godot Web Playtest main-push run `36127322961` at the same gameplay SHA:
+
+- exact source checkout: **PASS**;
+- retained mobile touch / desktop controls / alias ownership / vehicle authority / interaction cancel: **PASS**;
+- Web export: **PASS**;
+- static-host smoke: **PASS**;
+- browser artifact upload: **PASS**;
+- public payload envelope: **PASS**;
+- GitHub Pages artifact upload: **PASS**;
+- Pages deployment: **PASS**;
+- deployment-time public HTTP source-stamp verification: **PASS**.
+
+The canonical 29-suite compatibility job is intentionally pull-request-only in the retained Web workflow, so it is **SKIPPED on main push by workflow design**, not reported as an exact-main execution. It passed on the frozen P13 source tree in run `36126903993`; exact Git-tree equality proves the same reviewed source tree was squash-merged.
+
+Latest verified public provenance:
+
+`PLAYTEST_BUILD.txt = 3225b00318351f351c76d4ce3dc2894766ce654c`
+
+GitHub Pages deployment URL:
+
+`https://johnnymaconny.github.io/art/`
+
+## Post-Production-13 re-evaluation gate
+
+Close #164 only after this docs-only continuity merge is verified. The exact runnable/gameplay/public baseline remains `3225b00318351f351c76d4ce3dc2894766ce654c` even though the continuity merge will make repository `main` newer.
+
+After P13 closure, refresh #55, #118, #105, current implementation seams, open work, and public provenance; then select exactly one next bounded Burnside production frontier. Do not extend P13 under numbering momentum.
 
 ## Next-state rule
 
 Next production session:
 
 1. refresh exact `main`, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene state;
-2. read `START_HERE.md`, #55, #118, the Progression & Economy Contract (#105 resolution), and this continuity file;
-3. verify local repo/branch/HEAD/upstream/dirty state before local code mutation;
-4. create/refine one just-in-time Production 13 ticket for **durable Mission 01 / Mission 02 Cash payout receipts**;
-5. resolve payout receipt ownership, replay presentation and exact mission-completion integration before GREEN implementation;
-6. keep Mission 03 at zero Cash and leave resettable street-prop scrap semantics intentionally separate;
-7. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
-8. update continuity only after verified changes land.
+2. distinguish the docs-only continuity HEAD from exact gameplay/public baseline `3225b00318351f351c76d4ce3dc2894766ce654c`;
+3. read `START_HERE.md`, #55, #118, the #105 Progression & Economy resolution, and this continuity file;
+4. re-evaluate the highest-value current player-facing gap from verified implementation truth;
+5. create/refine only the one just-in-time ticket actually selected;
+6. execute `SPEC -> RED -> GREEN -> exact-head VERIFY -> frozen REVIEW -> REPAIR if needed -> MERGE -> exact-main VERIFY -> PUBLIC STAMP`;
+7. update continuity only after verified changes land.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
