@@ -20,8 +20,8 @@ Always refresh current `main`, open PRs/issues and relevant CI/runtime evidence 
 
 ### NEXT
 
-- **Production 13 JIT design — durable Mission 01 / Mission 02 Cash payout receipts.** Make the existing 320/450 authored contract payoffs credit the real Cash authority exactly once while preserving Replay for gameplay.
-- Keep Mission 03 at zero Cash. Do not convert every resettable street-prop “scrap” reward into Cash without a separate product decision.
+- **Production 14 JIT design — #167 Claimed Courier Bike / Burn Garage Scrapper Customization.** Select exactly one paid, durable, high-perceptibility modification for the already-claimed Courier Bike that creates one observable gameplay capability/tradeoff.
+- Resolve one fixed Cash price, the smallest safe durable-state/atomic-purchase boundary, and Garage interaction arbitration before implementation lock. Do not generalize this into a customization catalog, upgrade tree, vehicle-mod framework, or new Cash source.
 
 ### DEFERRED
 
@@ -48,7 +48,7 @@ These gates do not automatically block unrelated code-first work.
 - Open World Expansion 01D / PR #66 — Silent Core infrastructure integration, merged.
 - World Event 01 / PR #68 — bounded FB-13 infrastructure-thrum use of existing geography, merged.
 - Issue #89 / Open World Expansion 01E — Gears retained-camera readability & performance checkpoint, complete (`VISUAL_PERF_CHECKPOINT_PASS`).
-- Productions 01–12 — merged and verified through the Production 12 Durable Cash / Street Vendor Transaction tracer; current public Web publication uses GitHub Pages Actions artifacts.
+- Productions 01–13 — merged and verified through Production 13 Durable Mission 01 / Mission 02 Cash Payout Receipts. Exact runnable/gameplay/public P13 baseline: `3225b00318351f351c76d4ce3dc2894766ce654c`; current public Web publication uses GitHub Pages Actions artifacts.
 
 Do not recreate completed 01A–01D work because an older roadmap still describes it as future work.
 
