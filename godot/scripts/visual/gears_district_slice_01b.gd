@@ -10,6 +10,7 @@ const GearsSurveyedServiceCutRuntimeScript = preload("res://scripts/world/gears_
 const BurnGarageRepairRuntimeScript = preload("res://scripts/world/burn_garage_repair_runtime.gd")
 const MayorBurnContactServiceRuntimeScript = preload("res://scripts/world/mayor_burn_contact_service_runtime.gd")
 const BurnGarageCourierBikeClaimRuntimeScript = preload("res://scripts/world/burn_garage_courier_bike_claim_runtime.gd")
+const BurnGarageCourierBikeScrapperModRuntimeScript = preload("res://scripts/world/burn_garage_courier_bike_scrapper_mod_runtime.gd")
 const RETAINED_NORTH_EDGE_Z := -20.0
 const APPROVED_TOON_SHADER_PATH := "res://materials/gears_toon.gdshader"
 const ADDITIVE_EXTENSION_PATHS := [
@@ -25,6 +26,7 @@ func _ready() -> void:
 	call_deferred("_mount_production_07_burn_garage_repair")
 	call_deferred("_mount_production_10_mayor_burn_contact")
 	call_deferred("_mount_production_11_claimed_courier_bike")
+	call_deferred("_mount_production_14_courier_bike_scrapper_mod")
 
 func _mount_production_04_work_zone() -> void:
 	var scene_root := get_parent()
@@ -126,6 +128,27 @@ func _mount_production_11_claimed_courier_bike() -> void:
 	runtime.name = "BurnGarageCourierBikeClaimRuntime"
 	scene_root.add_child(runtime)
 	if not bool(runtime.call("configure", scene_root, self, wanted_runtime, contact_runtime, bike)):
+		runtime.queue_free()
+
+func _mount_production_14_courier_bike_scrapper_mod() -> void:
+	var scene_root := get_parent()
+	if scene_root == null or not (scene_root is Node3D):
+		return
+	if scene_root.get_node_or_null("BurnGarageCourierBikeScrapperModRuntime") != null:
+		return
+	var wanted_runtime := get_tree().root.get_node_or_null("BurnsideWantedRuntime")
+	var contact_runtime := scene_root.get_node_or_null("MayorBurnContactServiceRuntime")
+	var claim_runtime := scene_root.get_node_or_null("BurnGarageCourierBikeClaimRuntime")
+	var cash_runtime := scene_root.get_node_or_null("BurnsideCashEconomyRuntime")
+	var bike = scene_root.get("courier_bike")
+	if wanted_runtime == null or contact_runtime == null or claim_runtime == null 	or cash_runtime == null or not (bike is CourierBike):
+		return
+	var runtime := BurnGarageCourierBikeScrapperModRuntimeScript.new() as Node3D
+	if runtime == null:
+		return
+	runtime.name = "BurnGarageCourierBikeScrapperModRuntime"
+	scene_root.add_child(runtime)
+	if not bool(runtime.call("configure", scene_root, self, wanted_runtime, contact_runtime, claim_runtime, cash_runtime, bike)):
 		runtime.queue_free()
 
 func _box_shape(node_path: String) -> BoxShape3D:
