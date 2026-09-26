@@ -20,7 +20,8 @@ on:
       - "godot/scripts/prototype/scrap_test_block.gd"
       - "godot/scenes/prototype/scrap_test_block.tscn"
       - "godot/tests/burnside_courier_bike_scrap_bash_bar_store_test.gd"
-      - "godot/tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd"\n      - "godot/tests/burnside_production14_scrap_bash_bar_render_capture.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd"
+      - "godot/tests/burnside_production14_scrap_bash_bar_render_capture.gd"
       - "godot/tests/burnside_cash_progress_store_test.gd"
       - "godot/tests/burnside_cash_economy_integration_test.gd"
       - "godot/tests/burnside_mission_cash_progress_store_test.gd"
@@ -46,7 +47,8 @@ on:
       - "godot/scripts/prototype/scrap_test_block.gd"
       - "godot/scenes/prototype/scrap_test_block.tscn"
       - "godot/tests/burnside_courier_bike_scrap_bash_bar_store_test.gd"
-      - "godot/tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd"\n      - "godot/tests/burnside_production14_scrap_bash_bar_render_capture.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd"
+      - "godot/tests/burnside_production14_scrap_bash_bar_render_capture.gd"
       - "godot/tests/burnside_cash_progress_store_test.gd"
       - "godot/tests/burnside_cash_economy_integration_test.gd"
       - "godot/tests/burnside_mission_cash_progress_store_test.gd"
@@ -219,4 +221,4 @@ jobs:
           path: godot/verification/production14
           if-no-files-found: error
           retention-days: 14
-\n
+
