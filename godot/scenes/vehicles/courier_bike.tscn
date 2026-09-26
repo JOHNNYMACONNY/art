@@ -224,29 +224,29 @@ mesh = SubResource("BoxMesh_Compat")
 visible = false
 
 [node name="UpperGuard" type="MeshInstance3D" parent="VisualRoot/ScrapBashBar"]
-position = Vector3(0, 0.66, -1.18)
+position = Vector3(0, 0.66, -1.03)
 mesh = SubResource("BoxMesh_BashHorizontal")
 material_override = SubResource("Mat_BashBar")
 
 [node name="LowerGuard" type="MeshInstance3D" parent="VisualRoot/ScrapBashBar"]
-position = Vector3(0, 0.38, -1.14)
+position = Vector3(0, 0.38, -1.03)
 mesh = SubResource("BoxMesh_BashHorizontal")
 material_override = SubResource("Mat_BashBar")
 
 [node name="LeftRail" type="MeshInstance3D" parent="VisualRoot/ScrapBashBar"]
-position = Vector3(-0.46, 0.52, -1.14)
+position = Vector3(-0.46, 0.52, -1.03)
 rotation = Vector3(0, 0, -0.10)
 mesh = SubResource("BoxMesh_BashVertical")
 material_override = SubResource("Mat_BashBar")
 
 [node name="RightRail" type="MeshInstance3D" parent="VisualRoot/ScrapBashBar"]
-position = Vector3(0.46, 0.52, -1.14)
+position = Vector3(0.46, 0.52, -1.03)
 rotation = Vector3(0, 0, 0.10)
 mesh = SubResource("BoxMesh_BashVertical")
 material_override = SubResource("Mat_BashBar")
 
 [node name="HazardPlate" type="MeshInstance3D" parent="VisualRoot/ScrapBashBar"]
-position = Vector3(0, 0.52, -1.255)
+position = Vector3(0, 0.52, -1.05)
 mesh = SubResource("BoxMesh_BashPlate")
 material_override = SubResource("Mat_BashAmber")
 
