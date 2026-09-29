@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P13_MISSION_CASH_RECEIPTS_MERGED_VERIFIED_PUBLIC`  
-**Current gameplay/world baseline:** `3225b00318351f351c76d4ce3dc2894766ce654c`  
+**Status:** `BURNSIDE_P14_SCRAP_BASH_BAR_MERGED_VERIFIED_PUBLIC`  
+**Current gameplay/world baseline:** `4b563ff66d0e65f787e710af53d1c9d81209cbe3`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -9,7 +9,7 @@
 
 ## Current product state
 
-Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, and one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts compose in the same geography.
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts, and one durable claimed-Courier-Bike Scrap Bash Bar modification compose in the same geography.
 
 **Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
 - **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
@@ -107,6 +107,7 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 11** — #158 / PR #159 — Claimed Courier Bike / Burn Garage Recovery Tracer — `af5eaa77101163293bd0e8cefff8ee80605306d3`.
 - **Production 12** — #161 / PR #162 — Durable Cash / Street Vendor Transaction Tracer — `a7abf55282cff8d7daad81a9a8624ee61364d528`.
 - **Production 13** — #164 / PR #165 — Durable Mission 01 / Mission 02 Cash Payout Receipts — `3225b00318351f351c76d4ce3dc2894766ce654c`.
+- **Production 14** — #167 / PR #170 — Claimed Courier Bike / Burn Garage Scrap Bash Bar — `4b563ff66d0e65f787e710af53d1c9d81209cbe3`.
 
 ## Retained authority truths
 
@@ -950,58 +951,139 @@ GitHub Pages deployment URL:
 
 `https://johnnymaconny.github.io/art/`
 
-## Post-Production-13 re-evaluation state
+## Production 14 — verified player-facing result
 
-Production 13 closes the authored mission-payment inconsistency. The player can now earn durable Cash from the two paid authored missions, but the durable spend / identity / capability side remains thin: the only real Cash spend is the retained temporary 150-Cash Street Vendor tune-up.
+Issue #167 / PR #170: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY RECORDED; ISSUE CLOSE NEXT**.
 
-Fresh canon + implementation inspection selects:
+Final reviewed feature head:
 
-**Production 14 — #167 — Claimed Courier Bike / Burn Garage Scrapper Customization**
+`a534d7a0e945e9330c7ab6bc84ce37ac159ecc01`
 
-Status:
+Exact gameplay/public main:
 
-`PRODUCT_SELECTED__JIT_DESIGN_REQUIRED__NOT_IMPLEMENTATION_LOCKED`
+`4b563ff66d0e65f787e710af53d1c9d81209cbe3`
 
-Why this leads:
+Exact Git tree shared by the final reviewed feature head and squash merge:
 
-- #105 says Cash should buy freedom, vehicles, customization, equipment and services without survival pressure or repeatable grind;
-- #118 makes Burn's Garage the emotional/mechanical anchor for claiming, repair, recovery and scrapper customization;
-- #118 also prefers customization with visible, audible/high-perceptibility changes and tradeoffs instead of broad invisible stat trees;
-- P11 already provides one durably Claimed Courier Bike + authored Garage claim/recovery bay;
-- P07 already provides real Bike collision/condition consequences;
-- P12/P13 now provide one authoritative durable Cash authority and meaningful first-time earning;
-- current production code has no vehicle-customization runtime or catalog;
-- therefore one paid durable mod can compose existing ownership, Cash, Garage, collision/condition and world-interaction systems without new geography or a generalized customization framework.
+`40b3af0a6d8e92e218e234e8cbbfe2681250a70e`
 
-Leading P14 player-facing target:
+Player-facing loop:
 
-`DO PAID WORK -> BUILD CASH -> CLAIM COURIER BIKE -> RETURN TO BURN GARAGE -> BUY ONE SCRAPPER MOD -> BIKE CHANGES VISIBLY + GAINS ONE MATERIAL CAPABILITY / TRADEOFF -> REPLAY / RELAUNCH -> CLAIMED BIKE RETAINS THE MOD`
+`DO PAID WORK -> BUILD CASH -> CLAIM COURIER BIKE -> RETURN TO BURN GARAGE -> FIT SCRAP BASH BAR FOR 500 CASH -> BIKE CHANGES VISIBLY -> QUALIFYING FORWARD FRONTAL IMPACTS DAMAGE CONDITION LESS -> REPLAY / RECOVERY / RELAUNCH -> CLAIMED BIKE RETAINS MOD`
 
-The strongest current experiment candidate is a salvage-built impact/ram modification (working concept: **Scrap Bash Bar / crash cage**) because the Courier Bike already has real collision telemetry, P07 condition, world-prop ramming and a strong readable silhouette. This concept is **NOT DESIGN LOCKED**; reject it during JIT design if the player-facing effect reduces to hidden threshold/stat tuning.
+Retained truths:
 
-P14 must resolve before implementation lock:
+- Scrap Bash Bar costs exactly **500 Cash once**;
+- durable Cash schema is **v3** with exactly one new receipt: `courier_bike_bash_bar_paid`;
+- v1 and v2 migrate to v3; malformed or unsupported-newer documents fail closed and are not silently overwritten;
+- purchase is atomic through the retained staged-file write: success debits 500 and grants the receipt together; persistence failure rolls back Cash and receipt in memory;
+- Bike ownership and bash-bar ownership remain separate durable facts;
+- P11 retains initial claim, recovery and claimed-bike lifecycle authority;
+- P14 owns only modification eligibility, purchase request, durable entitlement application and modification feedback;
+- the Scrap Bash Bar is physically composed into the production Courier Bike as a welded salvage front cage with hazard-amber center plate;
+- qualifying protection requires the bar installed, `is_forward_impact == true`, and `head_on_ratio >= 0.70`;
+- qualifying condition load multiplier is exactly **0.35**;
+- glancing, side and reverse/rear impacts remain unchanged;
+- P07 vehicle condition remains authoritative and Garage repair remains free;
+- P10 Burn armor restock remains free;
+- P11 Courier Bike recovery remains free;
+- P12 vending hack remains +80 Cash once, vending breach +120 Cash once, and Street Vendor tune-up remains exactly 150 Cash;
+- P13 Mission 01 remains +320 Cash once, Mission 02 +450 Cash once, Mission 03 zero Cash, and mission payout receipts persist;
+- Full Replay, Soft Failure and fresh relaunch preserve durable Cash receipts;
+- Audio is unchanged;
+- PR #44 remains deferred;
+- P14 did not introduce generalized vehicle customization, upgrade catalogs/trees, multiple Bike mods, vehicle HP, XP, levels, additional currencies, repeatable mission payouts, new shops, new Garage geography or generalized entitlement registries.
 
-- exactly one modification and one observable gameplay effect/tradeoff;
-- one fixed authored Cash price that creates choice against the temporary 150-Cash tune-up without requiring grind;
-- durable state ownership/migration while preserving existing P11/P12/P13 saves;
-- atomic purchase semantics so persistence failure cannot lose Cash or grant an unpaid mod;
-- Garage interaction arbitration alongside retained repair, armor service and claim/recovery;
-- fresh Replay/relaunch/recovery proof with the same claimed modified Bike;
-- retained P07 repair, P10 armor, P11 recovery, P12 tune-up and P13 mission receipts/payouts;
-- no Audio change unless separately justified by fresh evidence.
+### Frozen review truth
 
-P14 explicit non-goals remain: multiple mods, customization menu/catalog/tree, cosmetic inventory, arbitrary vehicle IDs, additional claimed vehicle classes, fleet manager, generic mod/equipment framework, repeatable jobs/payouts, street-scrap-to-Cash conversion, property economy, maintenance/fuel/insurance, XP/levels/rarity, Heat 2–5, new geography, unrelated Audio, and PR #44.
+The earlier Codex review on `6e749efa39` identified one legitimate P2: reversing squarely into a wall could receive front-bash-bar protection because collision alignment was absolute-valued.
+
+Repair on final head `a534d7a0e945e9330c7ab6bc84ce37ac159ecc01`:
+
+- collision condition application gained explicit forward-impact authority;
+- bash-bar protection now additionally requires `is_forward_impact`;
+- `godot/tests/burnside_courier_bike_scrap_bash_bar_direction_test.gd` proves real physical square forward collision receives protection while the equivalent reverse/rear collision remains BATTERED;
+- the stale inline review thread was replied to with exact repair evidence and resolved;
+- fresh Codex review on `a534d7a0e9` found no major issues;
+- CodeRabbit reviewed through the exact final head with no actionable comments;
+- Copilot review quota remained unavailable and was not treated as approval or a blocker.
+
+Final frozen-head evidence:
+
+- Burnside Production 14 PR run `36279985596`: **SUCCESS**, including schema v3 / atomic purchase, production Garage / visual / capability / relaunch, physical forward/rear direction regression, retained P07/P10/P11 and retained P12/P13 regressions, plus rendered stock/fitted proof;
+- Godot Web Playtest PR run `36279985565`: **SUCCESS**;
+- P04/P05/P06/P07/P08/P10/P11/P12/P13 PR compatibility workflows on the final P14 line: **SUCCESS**;
+- canonical compatibility matrix passed on the frozen PR source tree;
+- rendered artifact `production14-rendered-proof-a534d7a0e945e9330c7ab6bc84ce37ac159ecc01` was produced from the exact final feature head.
+
+### Exact-main and public verification
+
+The final reviewed feature head and squash merge resolve to the same Git tree `40b3af0a6d8e92e218e234e8cbbfe2681250a70e`. The 14-file PR patch set also matches the squash-merge patch set exactly.
+
+Burnside Production 14 main-push run `36541872852` at exact gameplay merge `4b563ff66d0e65f787e710af53d1c9d81209cbe3`:
+
+- exact source checkout: **PASS**;
+- P14 schema v3 / atomic purchase tracer: **PASS**;
+- P14 production Garage / visual / capability / relaunch tracer: **PASS**;
+- P14 physical forward / rear impact direction tracer: **PASS**;
+- retained P07 / P10 / P11 regressions: **PASS**;
+- retained P12 / P13 Cash regressions: **PASS**;
+- rendered before/after Scrap Bash Bar proof: **PASS**.
+
+Retained main-push evidence:
+
+- Burnside Production 13 run `36541872866`: **SUCCESS**, including same-origin browser Cash persistence;
+- Burnside Production 06 run `36541872894`: **SUCCESS**, including retained P01–P05 authority regressions and Web persistence;
+- Burnside Production 04 / 05 exact-main runs: **SUCCESS**.
+
+Godot Web Playtest main-push run `36541872845`:
+
+- exact source checkout: **PASS**;
+- retained touch / desktop controls / alias ownership / vehicle authority / interaction cancel: **PASS**;
+- Web export: **PASS**;
+- static-host smoke: **PASS**;
+- browser artifact upload: **PASS**;
+- public payload envelope: **PASS**;
+- GitHub Pages artifact upload: **PASS**;
+- Pages deployment: **PASS**;
+- deployment-time public HTTP source-stamp verification: **PASS**.
+
+The canonical compatibility matrix is intentionally pull-request-only in the retained Web workflow, so it is **SKIPPED on main push by workflow design**. It passed on the frozen P14 source tree, and exact Git-tree equality establishes source equivalence to the squash merge.
+
+Latest verified public provenance:
+
+`PLAYTEST_BUILD.txt = 4b563ff66d0e65f787e710af53d1c9d81209cbe3`
+
+The publish job created the Pages deployment for that exact SHA and then fetched the public `PLAYTEST_BUILD.txt`, which returned that exact SHA.
+
+GitHub Pages deployment URL:
+
+`https://johnnymaconny.github.io/art/`
+
+No manual interactive public play smoke is claimed in this closeout; public verification here is deployment, payload and live source-stamp evidence plus exact-main runtime/Web verification.
+
+## Post-Production-14 re-evaluation state
+
+P14 is now technically complete and publicly verified. Do **not** automatically extend the Cash/customization thread.
+
+The next product action is a fresh playable-game re-evaluation after #167 closeout, asking which smallest bounded slice most improves:
+
+`I AM INHABITING A BEAUTIFUL, DECAYING, NEAR-FUTURE CITY THAT NOTICES WHAT I DO.`
+
+Inspect street-level consequences / heat / pursuit, NPC/world reactivity, mission drama, strange civic systems, world mystery, physical vehicle play, violence/property consequences, systemic encounters, authored characters/dialogue, traversal reasons, ambient events, environmental storytelling, useful Cash sinks, player vulnerability/recovery, and faction/municipal pressure.
+
+Selection rule: prioritize **FUN / FEEL / CLARITY / COHESION / IDENTITY / MYSTERY / WORLD REACTIVITY / PLAYER AGENCY / AUTHORED CRIME-FICTION CHARACTER**, not the easiest adjacent system to extend.
 
 ## Next-state rule
 
 Next production session:
 
-1. refresh exact repo/main, #167 state, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene work;
-2. keep exact runnable/gameplay/public P13 baseline `3225b00318351f351c76d4ce3dc2894766ce654c` distinct from later docs-only continuity HEADs;
-3. read `START_HERE.md`, #55, #118, #105 resolution, #167, and the P07/P11/P12/P13 retained contracts;
-4. JIT-design exactly one P14 Scrapper modification, price, persistence transaction and Garage interaction seam;
-5. reject the candidate if its main payoff is an invisible stat bump or if it requires generalized customization architecture;
-6. once design is locked, write the narrow spec/plan and execute `RED -> GREEN -> exact-head VERIFY -> frozen REVIEW -> REPAIR -> MERGE -> exact-main VERIFY -> PUBLIC VERIFY -> CONTINUITY -> CLOSE -> RE-EVALUATE`;
+1. refresh exact repo/main, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene work;
+2. keep exact runnable/gameplay/public P14 baseline `4b563ff66d0e65f787e710af53d1c9d81209cbe3` distinct from any later docs-only continuity HEAD;
+3. confirm #167 closeout is complete;
+4. read `START_HERE.md`, #55, #118, #105 and the retained P07/P10/P11/P12/P13/P14 contracts;
+5. re-evaluate the actual playable game before selecting P15;
+6. select the smallest bounded P15 production slice that materially strengthens the city-notices-you fantasy, rather than extending economy/customization by inertia;
 7. preserve unrelated/concurrent work; do not touch Audio or PR #44 absent fresh concrete need.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
