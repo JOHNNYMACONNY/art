@@ -1,8 +1,9 @@
 class_name BurnsideCashProgressStore
 extends RefCounted
 
-const SCHEMA_VERSION := 2
+const SCHEMA_VERSION := 3
 const LEGACY_SCHEMA_VERSION := 1
+const PREVIOUS_SCHEMA_VERSION := 2
 const PRODUCTION_PATH := "user://burnside_cash_progress.json"
 const TEST_DIRECTORY := "user://tests"
 const STAGING_SUFFIX := ".tmp"
@@ -11,6 +12,7 @@ const VENDING_HACK_REWARD := 80
 const VENDING_BREACH_REWARD := 120
 const MISSION_01_REWARD := 320
 const MISSION_02_REWARD := 450
+const COURIER_BIKE_BASH_BAR_COST := 500
 
 var _storage_path: String = ""
 var _cash: int = 0
@@ -18,6 +20,7 @@ var _vending_hack_paid: bool = false
 var _vending_breach_paid: bool = false
 var _mission_01_paid: bool = false
 var _mission_02_paid: bool = false
+var _courier_bike_bash_bar_paid: bool = false
 var _write_blocked: bool = false
 var _write_count: int = 0
 var _load_status: String = "UNCONFIGURED"
@@ -36,6 +39,7 @@ func _reset_state() -> void:
 	_vending_breach_paid = false
 	_mission_01_paid = false
 	_mission_02_paid = false
+	_courier_bike_bash_bar_paid = false
 
 func _resolve_default_storage_path() -> String:
 	for arg in OS.get_cmdline_args():
@@ -77,8 +81,10 @@ func _load_from_disk() -> void:
 	var version := int(version_value)
 	if version == LEGACY_SCHEMA_VERSION:
 		_load_v1_and_migrate(document)
+	elif version == PREVIOUS_SCHEMA_VERSION:
+		_load_v2_and_migrate(document)
 	elif version == SCHEMA_VERSION:
-		_load_v2(document)
+		_load_v3(document)
 	else:
 		_fail_load("UNSUPPORTED_VERSION")
 
@@ -115,17 +121,18 @@ func _load_v1_and_migrate(document: Dictionary) -> void:
 	_apply_common_fields(common)
 	_mission_01_paid = false
 	_mission_02_paid = false
+	_courier_bike_bash_bar_paid = false
 
-	# _persist writes a complete v2 document to a staging file and only then
+	# _persist writes a complete v3 document to a staging file and only then
 	# atomically replaces the v1 path. A failed migration therefore leaves the
 	# valid P12 document intact on disk.
 	if not _persist():
 		_write_blocked = true
 		_load_status = "MIGRATION_WRITE_ERROR"
 		return
-	_load_status = "MIGRATED_V1_TO_V2"
+	_load_status = "MIGRATED_V1_TO_V3"
 
-func _load_v2(document: Dictionary) -> void:
+func _load_v2_and_migrate(document: Dictionary) -> void:
 	var common := _read_common_fields(document)
 	if common.is_empty():
 		_fail_load("MALFORMED")
@@ -137,6 +144,26 @@ func _load_v2(document: Dictionary) -> void:
 	_apply_common_fields(common)
 	_mission_01_paid = bool(document["mission_01_paid"])
 	_mission_02_paid = bool(document["mission_02_paid"])
+	_courier_bike_bash_bar_paid = false
+	if not _persist():
+		_write_blocked = true
+		_load_status = "MIGRATION_WRITE_ERROR"
+		return
+	_load_status = "MIGRATED_V2_TO_V3"
+
+func _load_v3(document: Dictionary) -> void:
+	var common := _read_common_fields(document)
+	if common.is_empty():
+		_fail_load("MALFORMED")
+		return
+	for key in ["mission_01_paid", "mission_02_paid", "courier_bike_bash_bar_paid"]:
+		if not document.has(key) or typeof(document[key]) != TYPE_BOOL:
+			_fail_load("MALFORMED")
+			return
+	_apply_common_fields(common)
+	_mission_01_paid = bool(document["mission_01_paid"])
+	_mission_02_paid = bool(document["mission_02_paid"])
+	_courier_bike_bash_bar_paid = bool(document["courier_bike_bash_bar_paid"])
 	_load_status = "LOADED"
 
 func _fail_load(status: String) -> void:
@@ -170,6 +197,7 @@ func _persist() -> bool:
 		"vending_breach_paid": _vending_breach_paid,
 		"mission_01_paid": _mission_01_paid,
 		"mission_02_paid": _mission_02_paid,
+		"courier_bike_bash_bar_paid": _courier_bike_bash_bar_paid,
 	}
 	var wrote := file.store_string(JSON.stringify(payload) + "\n")
 	file.flush()
@@ -254,6 +282,18 @@ func credit_mission_02(amount: int) -> int:
 		return 0
 	return _credit_mission_02_receipt(amount)
 
+func purchase_courier_bike_bash_bar(cost: int) -> bool:
+	if cost != COURIER_BIKE_BASH_BAR_COST or _write_blocked or _courier_bike_bash_bar_paid or _cash < cost:
+		return false
+	var old_cash := _cash
+	_cash -= cost
+	_courier_bike_bash_bar_paid = true
+	if not _persist():
+		_cash = old_cash
+		_courier_bike_bash_bar_paid = false
+		return false
+	return true
+
 func can_afford(amount: int) -> bool:
 	return amount >= 0 and _cash >= amount
 
@@ -281,6 +321,9 @@ func has_mission_01_receipt() -> bool:
 
 func has_mission_02_receipt() -> bool:
 	return _mission_02_paid
+
+func has_courier_bike_bash_bar_receipt() -> bool:
+	return _courier_bike_bash_bar_paid
 
 func get_storage_path() -> String:
 	return _storage_path

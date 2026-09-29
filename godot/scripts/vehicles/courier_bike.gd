@@ -48,6 +48,7 @@ enum BikeState {
 @onready var visual_root: Node3D = $VisualRoot
 @onready var bike_mesh: MeshInstance3D = $VisualRoot/BikeMesh
 @onready var outline_mesh: MeshInstance3D = $VisualRoot/OutlineMesh
+@onready var scrap_bash_bar_visual: Node3D = get_node_or_null("VisualRoot/ScrapBashBar") as Node3D
 
 var current_state: BikeState = BikeState.PARKED
 var current_gear: GearState = GearState.FORWARD
@@ -66,6 +67,7 @@ var _condition_load: float = 0.0
 var _condition_contact_cooldown: float = 0.0
 var _condition_smoke: GPUParticles3D = null
 var _condition_tag: Label3D = null
+var _scrap_bash_bar_installed: bool = false
 const GEAR_SETTLE_DURATION: float = 0.12
 const CONDITION_MIN_IMPACT_SPEED: float = 4.0
 const CONDITION_CONTACT_COOLDOWN_SECONDS: float = 0.50
@@ -73,6 +75,8 @@ const CONDITION_BATTERED_LOAD: float = 0.75
 const CONDITION_CRITICAL_LOAD: float = 1.50
 const CONDITION_MAX_LOAD: float = 1.50
 const CRITICAL_SPEED_MULTIPLIER: float = 0.52
+const SCRAP_BASH_BAR_HEAD_ON_THRESHOLD: float = 0.70
+const SCRAP_BASH_BAR_CONDITION_LOAD_MULTIPLIER: float = 0.35
 
 var tune_up_time_remaining: float = 0.0
 var tune_up_speed_mult: float = 1.35
@@ -110,6 +114,7 @@ func _ready() -> void:
 	_ensure_slip_dust()
 	_ensure_condition_presentation()
 	_refresh_condition_presentation()
+	_refresh_scrap_bash_bar_presentation()
 
 func _physics_process(delta: float) -> void:
 	if _brake_screech_cooldown > 0.0:
@@ -161,9 +166,10 @@ func _physics_process(delta: float) -> void:
 					if abs(normal.y) < 0.5: # Vertical wall/obstacle
 						var head_on_ratio: float = abs(forward_dir.dot(normal))
 						var pre_impact_speed: float = abs(current_speed)
+						var is_forward_impact: bool = current_speed > 0.0
 						var impact_decay: float = lerpf(2.0, 32.0, head_on_ratio * head_on_ratio)
 						current_speed = move_toward(current_speed, 0.0, impact_decay * delta)
-						apply_collision_condition(head_on_ratio, pre_impact_speed)
+						apply_collision_condition(head_on_ratio, pre_impact_speed, is_forward_impact)
 						collision_contact.emit(head_on_ratio, pre_impact_speed, col.get_position())
 						
 		_update_vehicle_feedback_presentation()
@@ -524,18 +530,31 @@ func get_usable_max_speed() -> float:
 	var base := get_effective_max_speed()
 	return base * CRITICAL_SPEED_MULTIPLIER if _condition == VehicleCondition.CRITICAL else base
 
-func apply_collision_condition(head_on_ratio: float, impact_speed: float) -> bool:
+func apply_collision_condition(head_on_ratio: float, impact_speed: float, is_forward_impact: bool = true) -> bool:
 	if impact_speed < CONDITION_MIN_IMPACT_SPEED or _condition_contact_cooldown > 0.0:
 		return false
 	var speed_severity := clampf((impact_speed - 3.5) / 7.5, 0.0, 1.0)
 	var direction_weight := lerpf(0.50, 1.0, clampf(head_on_ratio, 0.0, 1.0))
 	var load_delta := speed_severity * direction_weight
+	if _scrap_bash_bar_installed and is_forward_impact and head_on_ratio >= SCRAP_BASH_BAR_HEAD_ON_THRESHOLD:
+		load_delta *= SCRAP_BASH_BAR_CONDITION_LOAD_MULTIPLIER
 	if load_delta <= 0.0:
 		return false
 	_condition_load = minf(_condition_load + load_delta, CONDITION_MAX_LOAD)
 	_condition_contact_cooldown = CONDITION_CONTACT_COOLDOWN_SECONDS
 	_refresh_condition_state()
 	return true
+
+func has_scrap_bash_bar() -> bool:
+	return _scrap_bash_bar_installed
+
+func set_scrap_bash_bar_installed(installed: bool) -> void:
+	_scrap_bash_bar_installed = installed
+	_refresh_scrap_bash_bar_presentation()
+
+func _refresh_scrap_bash_bar_presentation() -> void:
+	if scrap_bash_bar_visual != null:
+		scrap_bash_bar_visual.visible = _scrap_bash_bar_installed
 
 func repair_condition() -> bool:
 	if _condition == VehicleCondition.ROADWORTHY:

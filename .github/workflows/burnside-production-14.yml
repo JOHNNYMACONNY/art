@@ -1,0 +1,236 @@
+name: Burnside Production 14
+
+on:
+  push:
+    branches:
+      - main
+      - feat/production-14-courier-bike-scrap-bash-bar
+    paths:
+      - "contracts/burnside_production_14_courier_bike_scrap_bash_bar_spec.md"
+      - "docs/superpowers/plans/2026-09-26-burnside-production-14-scrap-bash-bar.md"
+      - ".github/workflows/burnside-production-14.yml"
+      - "godot/scripts/progress/burnside_cash_progress_store.gd"
+      - "godot/scripts/world/burnside_cash_economy_runtime.gd"
+      - "godot/scripts/world/burn_garage_courier_bike_scrapper_mod_runtime.gd"
+      - "godot/scripts/world/burn_garage_courier_bike_claim_runtime.gd"
+      - "godot/scripts/vehicles/courier_bike.gd"
+      - "godot/scenes/vehicles/courier_bike.tscn"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scenes/world/gears_district_slice_01b.tscn"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scenes/prototype/scrap_test_block.tscn"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_store_test.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_direction_test.gd"
+      - "godot/tests/burnside_production14_scrap_bash_bar_render_capture.gd"
+      - "godot/tests/burnside_cash_progress_store_test.gd"
+      - "godot/tests/burnside_cash_economy_integration_test.gd"
+      - "godot/tests/burnside_mission_cash_progress_store_test.gd"
+      - "godot/tests/burnside_mission_cash_payout_integration_test.gd"
+      - "godot/tests/courier_bike_claim_integration_test.gd"
+      - "godot/tests/burn_garage_repair_runtime_test.gd"
+      - "godot/tests/mayor_burn_contact_integration_test.gd"
+      - "godot/tests/vehicle_condition_semantics_test.gd"
+      - "godot/tests/vehicle_condition_runtime_collision_test.gd"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_14_courier_bike_scrap_bash_bar_spec.md"
+      - "docs/superpowers/plans/2026-09-26-burnside-production-14-scrap-bash-bar.md"
+      - ".github/workflows/burnside-production-14.yml"
+      - "godot/scripts/progress/burnside_cash_progress_store.gd"
+      - "godot/scripts/world/burnside_cash_economy_runtime.gd"
+      - "godot/scripts/world/burn_garage_courier_bike_scrapper_mod_runtime.gd"
+      - "godot/scripts/world/burn_garage_courier_bike_claim_runtime.gd"
+      - "godot/scripts/vehicles/courier_bike.gd"
+      - "godot/scenes/vehicles/courier_bike.tscn"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scenes/world/gears_district_slice_01b.tscn"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scenes/prototype/scrap_test_block.tscn"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_store_test.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_direction_test.gd"
+      - "godot/tests/burnside_production14_scrap_bash_bar_render_capture.gd"
+      - "godot/tests/burnside_cash_progress_store_test.gd"
+      - "godot/tests/burnside_cash_economy_integration_test.gd"
+      - "godot/tests/burnside_mission_cash_progress_store_test.gd"
+      - "godot/tests/burnside_mission_cash_payout_integration_test.gd"
+      - "godot/tests/courier_bike_claim_integration_test.gd"
+      - "godot/tests/burn_garage_repair_runtime_test.gd"
+      - "godot/tests/mayor_burn_contact_integration_test.gd"
+      - "godot/tests/vehicle_condition_semantics_test.gd"
+      - "godot/tests/vehicle_condition_runtime_collision_test.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_RELEASE: "4.7.1-stable"
+  GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+
+jobs:
+  scrap-bash-bar:
+    name: Exact-source Claimed Bike Scrap Bash Bar
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: P14 schema v3 / atomic purchase tracer
+        id: p14_store
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 90s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_courier_bike_scrap_bash_bar_store_test.gd
+
+      - name: P14 production Garage / visual / capability / relaunch tracer
+        id: p14_runtime
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd
+
+      - name: P14 physical forward / rear impact direction tracer
+        id: p14_direction
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 120s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_courier_bike_scrap_bash_bar_direction_test.gd
+
+      - name: Retained P07 / P10 / P11 regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in vehicle_condition_semantics_test.gd vehicle_condition_runtime_collision_test.gd burn_garage_repair_runtime_test.gd mayor_burn_contact_integration_test.gd courier_bike_claim_integration_test.gd; do
+            timeout --signal=TERM 150s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
+          done
+
+      - name: Retained P12 / P13 Cash regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in burnside_cash_progress_store_test.gd burnside_cash_economy_integration_test.gd burnside_mission_cash_progress_store_test.gd burnside_mission_cash_payout_integration_test.gd; do
+            timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
+          done
+
+      - name: Require P14 GREEN
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "p14_store=${{ steps.p14_store.outcome }}"
+          echo "p14_runtime=${{ steps.p14_runtime.outcome }}"
+          echo "p14_direction=${{ steps.p14_direction.outcome }}"
+          test "${{ steps.p14_store.outcome }}" = "success"
+          test "${{ steps.p14_runtime.outcome }}" = "success"
+          test "${{ steps.p14_direction.outcome }}" = "success"
+
+  rendered-proof:
+    name: Windowed P14 Scrap Bash Bar before-after proof
+    needs: scrap-bash-bar
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache-render
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache-render.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: Capture Production 14 claimed stock / fitted comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf godot/verification/production14
+          SOURCE_SHA="$SOURCE_SHA" timeout --signal=TERM 120s xvfb-run -a "$GODOT_BIN" \
+            --rendering-method gl_compatibility --path godot \
+            --script res://tests/burnside_production14_scrap_bash_bar_render_capture.gd
+          test -s godot/verification/production14/01_claimed_stock_bike.png
+          test -s godot/verification/production14/02_scrap_bash_bar_fitted.png
+          test -s godot/verification/production14/render_report.json
+
+      - name: Upload Production 14 rendered proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production14-rendered-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production14
+          if-no-files-found: error
+          retention-days: 14
+
