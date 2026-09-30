@@ -71,11 +71,11 @@ func _ensure_watchlist_label() -> void:
 		return
 	_watchlist_label = Label3D.new()
 	_watchlist_label.name = "CourierRecognitionStatus"
-	_watchlist_label.font_size = 5
-	_watchlist_label.outline_size = 2
+	_watchlist_label.font_size = 28
+	_watchlist_label.pixel_size = 0.009
+	_watchlist_label.outline_size = 6
 	_watchlist_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_watchlist_label.no_depth_test = true
-	_watchlist_label.fixed_size = true
 	_watchlist_label.modulate = Color(0.95, 0.72, 0.24, 0.98)
 	_watchlist_label.outline_modulate = Color(0.05, 0.05, 0.04, 0.96)
 	_watchlist_label.position = Vector3(0.0, 3.15, 0.0)
