@@ -46,6 +46,7 @@ var _barrier_collision_revision: int = 0
 var _courier_bike_watchlisted: bool = false
 var _watchlist_report_attempted: bool = false
 var _watchlist_report_attempt_count: int = 0
+var _civic_report_request_count: int = 0
 
 func _ready() -> void:
 	_root_controller = get_parent()
@@ -215,6 +216,7 @@ func _request_breach_report() -> void:
 		return
 	if int(_wanted_runtime.call("get_heat_level")) > 0:
 		return
+	_civic_report_request_count += 1
 	_wanted_runtime.call("request_civic_report", _checkpoint_prop.global_position)
 
 func ram_breach(speed: float) -> bool:
@@ -223,6 +225,7 @@ func ram_breach(speed: float) -> bool:
 	if speed < MIN_RAM_SPEED:
 		return false
 
+	var watchlisted_report_already_attempted := current_state == State.WATCHLISTED and _watchlist_report_attempted
 	var active_entity := _get_active_entity()
 	if _is_active_claimed_courier_bike(active_entity):
 		_courier_bike_watchlisted = true
@@ -242,7 +245,9 @@ func ram_breach(speed: float) -> bool:
 
 	# P15 converges this checkpoint-only legacy seam on the retained P01/P02
 	# civic Report authority. Local breach still occurs when the Report link is jammed.
-	_request_breach_report()
+	# A WATCHLISTED scan already made this encounter's one bounded Report attempt.
+	if not watchlisted_report_already_attempted:
+		_request_breach_report()
 
 	last_event = {
 		"directive": DIRECTIVE,
@@ -261,6 +266,7 @@ func reset_world_event(clear_memory: bool = false) -> void:
 	_cooldown_remaining = 0.0
 	_watchlist_report_attempted = false
 	_watchlist_report_attempt_count = 0
+	_civic_report_request_count = 0
 	if clear_memory:
 		_courier_bike_watchlisted = false
 	_set_watchlist_label("", false)
@@ -285,3 +291,6 @@ func get_watchlist_report_attempt_count() -> int:
 
 func get_watchlist_label_text() -> String:
 	return _watchlist_label.text if is_instance_valid(_watchlist_label) and _watchlist_label.visible else ""
+
+func get_civic_report_request_count() -> int:
+	return _civic_report_request_count
