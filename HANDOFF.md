@@ -953,7 +953,7 @@ GitHub Pages deployment URL:
 
 ## Production 14 — verified player-facing result
 
-Issue #167 / PR #170: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY RECORDED; ISSUE CLOSE NEXT**.
+Issue #167 / PR #170: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY UPDATED / ISSUE CLOSED**.
 
 Final reviewed feature head:
 
