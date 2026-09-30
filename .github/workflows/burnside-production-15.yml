@@ -1,0 +1,200 @@
+name: Burnside Production 15
+
+on:
+  push:
+    branches:
+      - main
+      - feat/production-15-checkpoint-courier-recognition
+    paths:
+      - "contracts/burnside_production_15_checkpoint_courier_recognition_spec.md"
+      - "docs/superpowers/plans/2026-09-29-burnside-production-15-checkpoint-courier-recognition.md"
+      - ".github/workflows/burnside-production-15.yml"
+      - "godot/scripts/world/security_checkpoint_world_event.gd"
+      - "godot/scripts/world/wanted_heat1_runtime.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scripts/world/burn_garage_courier_bike_claim_runtime.gd"
+      - "godot/scripts/progress/courier_bike_claim_progress_store.gd"
+      - "godot/scripts/vehicles/courier_bike.gd"
+      - "godot/tests/burnside_checkpoint_courier_recognition_test.gd"
+      - "godot/tests/security_checkpoint_world_event_test.gd"
+      - "godot/tests/field_hacking_report_suppression_test.gd"
+      - "godot/tests/wanted_heat1_scene_test.gd"
+      - "godot/tests/gears_work_zone_incident_test.gd"
+      - "godot/tests/vehicle_condition_runtime_collision_test.gd"
+      - "godot/tests/courier_bike_claim_integration_test.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_direction_test.gd"
+      - "godot/tests/burnside_production15_checkpoint_recognition_render_capture.gd"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_15_checkpoint_courier_recognition_spec.md"
+      - "docs/superpowers/plans/2026-09-29-burnside-production-15-checkpoint-courier-recognition.md"
+      - ".github/workflows/burnside-production-15.yml"
+      - "godot/scripts/world/security_checkpoint_world_event.gd"
+      - "godot/scripts/world/wanted_heat1_runtime.gd"
+      - "godot/scripts/prototype/scrap_test_block.gd"
+      - "godot/scripts/world/burn_garage_courier_bike_claim_runtime.gd"
+      - "godot/scripts/progress/courier_bike_claim_progress_store.gd"
+      - "godot/scripts/vehicles/courier_bike.gd"
+      - "godot/tests/burnside_checkpoint_courier_recognition_test.gd"
+      - "godot/tests/security_checkpoint_world_event_test.gd"
+      - "godot/tests/field_hacking_report_suppression_test.gd"
+      - "godot/tests/wanted_heat1_scene_test.gd"
+      - "godot/tests/gears_work_zone_incident_test.gd"
+      - "godot/tests/vehicle_condition_runtime_collision_test.gd"
+      - "godot/tests/courier_bike_claim_integration_test.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_integration_test.gd"
+      - "godot/tests/burnside_courier_bike_scrap_bash_bar_direction_test.gd"
+      - "godot/tests/burnside_production15_checkpoint_recognition_render_capture.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_RELEASE: "4.7.1-stable"
+  GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+
+jobs:
+  checkpoint-recognition:
+    name: Exact-source P15 Checkpoint Recognition
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: P15 claimed-Bike checkpoint recognition tracer
+        id: p15
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_checkpoint_courier_recognition_test.gd
+
+      - name: Retained checkpoint / authority regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in security_checkpoint_world_event_test.gd wanted_heat1_scene_test.gd field_hacking_report_suppression_test.gd gears_work_zone_incident_test.gd; do
+            timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
+          done
+
+      - name: Retained vehicle / ownership / P14 regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in vehicle_condition_runtime_collision_test.gd courier_bike_claim_integration_test.gd burnside_courier_bike_scrap_bash_bar_integration_test.gd burnside_courier_bike_scrap_bash_bar_direction_test.gd; do
+            timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
+          done
+
+      - name: Require P15 GREEN
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "p15=${{ steps.p15.outcome }}"
+          test "${{ steps.p15.outcome }}" = "success"
+
+
+  rendered-proof:
+    name: Windowed P15 Checkpoint Recognition proof
+    needs: checkpoint-recognition
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache-render
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache-render.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: Capture Production 15 ordinary / flagged checkpoint comparison
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf godot/verification/production15
+          SOURCE_SHA="$SOURCE_SHA" timeout --signal=TERM 120s xvfb-run -a "$GODOT_BIN"             --rendering-method gl_compatibility --path godot             --script res://tests/burnside_production15_checkpoint_recognition_render_capture.gd
+          test -s godot/verification/production15/01_claimed_bike_ordinary_standoff.png
+          test -s godot/verification/production15/02_claimed_bike_flagged_return.png
+          test -s godot/verification/production15/render_report.json
+
+      - name: Upload Production 15 rendered proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production15-rendered-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production15
+          if-no-files-found: error
+          retention-days: 14

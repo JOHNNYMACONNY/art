@@ -1206,7 +1206,7 @@ func _check_vending_machine_ram(impact_speed: float, col_pos: Vector3, vehicle_s
 
 func _check_checkpoint_ram_breach(impact_speed: float, col_pos: Vector3) -> void:
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
-	if checkpoint_event and (checkpoint_event.current_state == 1 or checkpoint_event.current_state == 0):
+	if checkpoint_event and (checkpoint_event.current_state == 1 or checkpoint_event.current_state == 0 or checkpoint_event.current_state == 5):
 		var checkpoint_prop = checkpoint_event._checkpoint_prop
 		if checkpoint_prop and col_pos.distance_to(checkpoint_prop.global_position) < 5.0:
 			if impact_speed >= 5.0:
@@ -1803,7 +1803,7 @@ func reset_slice() -> void:
 	
 	var checkpoint_event = get_node_or_null("SecurityCheckpointWorldEvent")
 	if checkpoint_event and checkpoint_event.has_method("reset_world_event"):
-		checkpoint_event.reset_world_event()
+		checkpoint_event.reset_world_event(true)
 
 	var contraband_event = get_node_or_null("AlleyContrabandDropWorldEvent")
 	if contraband_event and contraband_event.has_method("reset_world_event"):
