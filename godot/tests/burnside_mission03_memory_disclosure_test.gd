@@ -141,9 +141,14 @@ func _run() -> void:
 		if choice_label == null or relay_status_label == null:
 			await _fail("P16 physical relay lost its world-readable labels")
 			return
-		if not choice_label.fixed_size or not choice_label.no_depth_test \
-		or not relay_status_label.fixed_size or not relay_status_label.no_depth_test:
-			await _fail("P16 relay labels can shrink or occlude below readable production-camera size")
+		if not choice_label.no_depth_test or not relay_status_label.no_depth_test:
+			await _fail("P16 relay labels can be occluded by nearby Silent Core hardware")
+			return
+		if choice_label.fixed_size or relay_status_label.fixed_size:
+			await _fail("P16 relay labels became HUD-like fixed-size billboards instead of world signage")
+			return
+		if choice_label.pixel_size < 0.008 or relay_status_label.pixel_size < 0.006:
+			await _fail("P16 relay world labels are too small at the production camera distance")
 			return
 		if "\n" not in choice_label.text:
 			await _fail("P16 choice label is not stacked for compact production-camera readability")
