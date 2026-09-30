@@ -220,9 +220,12 @@ func _on_disclosure_choice_selected(choice_id: String) -> void:
 		if not mission.choose_memory_release():
 			return
 		_release_report_attempt_count += 1
+		var report_created := false
 		var wanted_runtime := get_tree().root.get_node_or_null("BurnsideWantedRuntime")
 		if wanted_runtime != null and wanted_runtime.has_method("request_civic_report"):
-			wanted_runtime.call("request_civic_report", _silent_core.global_position)
+			report_created = bool(wanted_runtime.call("request_civic_report", _silent_core.global_position))
+		if not report_created:
+			mission.objective = "AFTERMATH // ARCHIVE RELEASED // CIVIC REPORT SUPPRESSED"
 	elif choice_id == "SEAL":
 		if not mission.choose_memory_seal():
 			return
