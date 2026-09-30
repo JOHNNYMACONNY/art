@@ -89,6 +89,7 @@ func _run() -> void:
 	for method_name in [
 		"is_courier_bike_watchlisted",
 		"get_watchlist_report_attempt_count",
+		"get_civic_report_request_count",
 		"get_watchlist_label_text",
 		"ram_breach",
 		"pay_toll",
@@ -181,7 +182,7 @@ func _run() -> void:
 	if int(event.get("current_state")) != 5:
 		await _fail("Watchlisted claimed Bike return did not enter WATCHLISTED")
 		return
-	if int(event.call("get_watchlist_report_attempt_count")) != 1:
+	if int(event.call("get_watchlist_report_attempt_count")) != 1 or int(event.call("get_civic_report_request_count")) != 1:
 		await _fail("WATCHLISTED encounter did not request exactly one civic Report")
 		return
 	if int(authority.call("get_heat_level")) != 1 or String(authority.call("get_wanted_state_name")) != "CONTACT":
@@ -191,7 +192,7 @@ func _run() -> void:
 		await _fail("Successful recognition lacks required checkpoint-local HOLD feedback")
 		return
 	event.call("_process", 0.5)
-	if int(event.call("get_watchlist_report_attempt_count")) != 1:
+	if int(event.call("get_watchlist_report_attempt_count")) != 1 or int(event.call("get_civic_report_request_count")) != 1:
 		await _fail("WATCHLISTED encounter spammed duplicate civic Reports")
 		return
 	if bool(event.call("pay_toll")):
@@ -251,8 +252,14 @@ func _run() -> void:
 	if String(event.call("get_watchlist_label_text")) != "VEHICLE FLAGGED // LINK FAULT":
 		await _fail("Jammed recognition lacks required checkpoint-local LINK FAULT feedback")
 		return
-	if int(event.call("get_watchlist_report_attempt_count")) != 1:
+	if int(event.call("get_watchlist_report_attempt_count")) != 1 or int(event.call("get_civic_report_request_count")) != 1:
 		await _fail("Jammed recognition did not make exactly one bounded Report attempt")
+		return
+	if not bool(event.call("ram_breach", 8.5)):
+		await _fail("Jammed WATCHLISTED checkpoint could not be breached")
+		return
+	if int(event.call("get_civic_report_request_count")) != 1:
+		await _fail("Jammed WATCHLISTED re-breach issued a duplicate civic Report request")
 		return
 
 	# Full Replay clears local friction while retaining P11 ownership.
