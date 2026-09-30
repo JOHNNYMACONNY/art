@@ -159,14 +159,14 @@ func _create_disclosure_relays() -> void:
 		_release_relay.name = "MemoryReleaseRelay"
 		_root_controller.add_child(_release_relay)
 		_release_relay.global_position = _silent_core.global_position + Vector3(-1.05, 0.0, 0.35)
-		_release_relay.configure_relay("RELEASE", "RELEASE // PUBLIC RELAY")
+		_release_relay.configure_relay("RELEASE", "RELEASE\nPUBLIC RELAY")
 		_release_relay.choice_selected.connect(_on_disclosure_choice_selected)
 	if _seal_relay == null:
 		_seal_relay = MemoryDisclosureRelayScript.new()
 		_seal_relay.name = "MemorySealRelay"
 		_root_controller.add_child(_seal_relay)
 		_seal_relay.global_position = _silent_core.global_position + Vector3(1.05, 0.0, 0.35)
-		_seal_relay.configure_relay("SEAL", "SEAL // LOCAL VAULT")
+		_seal_relay.configure_relay("SEAL", "SEAL\nLOCAL VAULT")
 		_seal_relay.choice_selected.connect(_on_disclosure_choice_selected)
 	_release_relay.set_choice_ready(false)
 	_seal_relay.set_choice_ready(false)
