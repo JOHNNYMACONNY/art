@@ -95,10 +95,11 @@ func _process(_delta: float) -> void:
 		changed = mission.on_escape_complete() or changed
 
 	if changed:
-		if mission.phase == MissionScript.Phase.COMPLETE \
-		and mission.aftermath_state == MissionScript.AftermathState.UNDECIDED:
-			_arm_aftermath_choice()
 		_refresh_hud()
+
+	if mission.phase == MissionScript.Phase.COMPLETE \
+	and mission.aftermath_state == MissionScript.AftermathState.UNDECIDED:
+		_sync_aftermath_choice_ready(root_pursuit_state)
 
 func _try_bind_runtime() -> void:
 	if _bound or _root_controller == null:
@@ -204,30 +205,60 @@ func _on_action_pressed() -> void:
 		_seal_relay.begin_interaction(player.global_position)
 
 func _arm_aftermath_choice() -> void:
+	if _root_controller == null:
+		return
+	_sync_aftermath_choice_ready(int(_root_controller.get("current_pursuit_state")))
+
+func _sync_aftermath_choice_ready(root_pursuit_state: int) -> void:
 	if _release_relay == null or _seal_relay == null:
 		return
 	if mission.phase != MissionScript.Phase.COMPLETE \
 	or mission.aftermath_state != MissionScript.AftermathState.UNDECIDED:
 		return
-	_release_relay.set_choice_ready(true)
-	_seal_relay.set_choice_ready(true)
+	var ready := root_pursuit_state == int(ScrapTestBlockScript.PursuitState.CALM)
+	var desired_resolution := "READY" if ready else "DORMANT"
+	if String(_release_relay.get("resolution")) != desired_resolution:
+		_release_relay.set_choice_ready(ready)
+	if String(_seal_relay.get("resolution")) != desired_resolution:
+		_seal_relay.set_choice_ready(ready)
+
+func _legacy_pursuit_is_calm() -> bool:
+	return _root_controller != null \
+	and int(_root_controller.get("current_pursuit_state")) == int(ScrapTestBlockScript.PursuitState.CALM)
 
 func _on_disclosure_choice_selected(choice_id: String) -> void:
 	if mission.phase != MissionScript.Phase.COMPLETE \
 	or mission.aftermath_state != MissionScript.AftermathState.UNDECIDED:
 		return
 	if choice_id == "RELEASE":
+		# P01 only accepts a new civic Report once the retained legacy pursuit has
+		# fully de-escalated to CALM. Never consume the one-shot choice/alarm while
+		# that authority gate is closed.
+		if not _legacy_pursuit_is_calm():
+			_sync_aftermath_choice_ready(int(_root_controller.get("current_pursuit_state")))
+			return
 		if not mission.choose_memory_release():
 			return
 		_release_report_attempt_count += 1
 		var wanted_runtime := get_tree().root.get_node_or_null("BurnsideWantedRuntime")
+		var can_read_state := wanted_runtime != null and wanted_runtime.has_method("get_wanted_state_name")
+		var state_before := String(wanted_runtime.call("get_wanted_state_name")) if can_read_state else ""
+		var report_access := _root_controller.get_node_or_null("CivicReportAccess")
+		var report_jammed := report_access != null \
+		and "is_compromised" in report_access \
+		and bool(report_access.get("is_compromised"))
+		var requested := false
 		if wanted_runtime != null and wanted_runtime.has_method("request_civic_report"):
-			wanted_runtime.call("request_civic_report", _silent_core.global_position)
-		var report_created_contact := wanted_runtime != null \
-		and wanted_runtime.has_method("get_wanted_state_name") \
-		and String(wanted_runtime.call("get_wanted_state_name")) != "CLEAR"
-		if not report_created_contact:
+			requested = bool(wanted_runtime.call("request_civic_report", _silent_core.global_position))
+		var state_after := String(wanted_runtime.call("get_wanted_state_name")) if can_read_state else ""
+		var report_created_contact := requested \
+		and can_read_state \
+		and state_before == "CLEAR" \
+		and state_after != "CLEAR"
+		if report_jammed:
 			mission.objective = "AFTERMATH // ARCHIVE RELEASED // CIVIC REPORT SUPPRESSED"
+		elif not report_created_contact and state_before == "CLEAR":
+			mission.objective = "AFTERMATH // ARCHIVE RELEASED // CIVIC REPORT BLOCKED"
 	elif choice_id == "SEAL":
 		if not mission.choose_memory_seal():
 			return
