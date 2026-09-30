@@ -33,6 +33,14 @@ Recognition is armed only when a successful checkpoint ram breach is performed b
 
 An unclaimed Courier Bike, Scrap Hauler, Muscle Coupe, or on-foot player cannot create or satisfy this watchlist.
 
+## Checkpoint authority convergence
+
+P15 also removes one stale checkpoint-only legacy seam: a successful checkpoint breach must no longer call the root legacy `trigger_disturbance_alert()` path. The checkpoint instead requests the retained P01 civic Report through `BurnsideWantedRuntime.request_civic_report(checkpoint_position)` when Heat is zero.
+
+This keeps checkpoint crime on the same knowledge model as P01/P02/P04: local action first, then a plausible Report creates authority knowledge. If the retained P02 Report link is already jammed, the physical breach and local watchlist still occur but no new Wanted state is created.
+
+No other legacy mission/pursuit ownership changes are authorized by P15.
+
 ## State
 
 Append one new event state after all retained enum members:
@@ -149,20 +157,21 @@ Root `ScrapTestBlock` may expose/use only the existing active-vehicle and claime
 ## Required runtime proof
 
 1. First ordinary approach remains `STANDOFF` with retained toll prompt.
-2. Unclaimed Courier Bike breach does not create the P15 watchlist.
-3. Claimed Courier Bike breach creates exactly the local watchlist.
-4. Ordinary checkpoint rearm preserves the watchlist.
-5. Return in the same claimed Courier Bike enters `WATCHLISTED`.
-6. WATCHLISTED return requests one civic Report when Heat is 0.
-7. Reprocessing the same WATCHLISTED encounter does not spam Reports.
-8. Return on foot or in a different vehicle remains ordinary `STANDOFF`.
-9. Pre-jammed Report link yields WATCHLISTED local recognition with Heat remaining 0.
-10. `pay_toll()` rejects WATCHLISTED state.
-11. A qualifying second ram can breach WATCHLISTED.
-12. Full Replay clears the temporary watchlist.
-13. Retained checkpoint deferred-collider/reset-race behavior remains correct.
-14. Retained P01/P02/P04/P07/P11/P14 behavior passes.
-15. Web export, static-host smoke, public packaging and source-stamp provenance remain compatible.
+2. Checkpoint breach routes consequence through the retained P01/P02 civic Report path and does not start the root legacy pursuit.
+3. Unclaimed Courier Bike breach does not create the P15 watchlist.
+4. Claimed Courier Bike breach creates exactly the local watchlist.
+5. Ordinary checkpoint rearm preserves the watchlist.
+6. Return in the same claimed Courier Bike enters `WATCHLISTED`.
+7. WATCHLISTED return requests one civic Report when Heat is 0.
+8. Reprocessing the same WATCHLISTED encounter does not spam Reports.
+9. Return on foot or in a different vehicle remains ordinary `STANDOFF`.
+10. Pre-jammed Report link yields local recognition with Heat remaining 0 on both breach and later WATCHLISTED scan.
+11. `pay_toll()` rejects WATCHLISTED state.
+12. A qualifying second ram can breach WATCHLISTED.
+13. Full Replay clears the temporary watchlist.
+14. Retained checkpoint deferred-collider/reset-race behavior remains correct.
+15. Retained P01/P02/P04/P07/P11/P14 behavior passes.
+16. Web export, static-host smoke, public packaging and source-stamp provenance remain compatible.
 
 ## Explicit non-goals
 
