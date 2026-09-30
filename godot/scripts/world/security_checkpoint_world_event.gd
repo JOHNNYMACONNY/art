@@ -161,6 +161,7 @@ func _trigger_watchlisted_scan() -> void:
 	if _wanted_runtime != null 	and _wanted_runtime.has_method("get_heat_level") 	and int(_wanted_runtime.call("get_heat_level")) <= 0:
 		_watchlist_report_attempted = true
 		_watchlist_report_attempt_count += 1
+		_civic_report_request_count += 1
 		var requested := _wanted_runtime.has_method("request_civic_report") 			and bool(_wanted_runtime.call("request_civic_report", _checkpoint_prop.global_position))
 		var report_created_wanted := requested 			and int(_wanted_runtime.call("get_heat_level")) > 0
 		if report_created_wanted:
