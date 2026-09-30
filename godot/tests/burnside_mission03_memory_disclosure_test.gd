@@ -209,8 +209,8 @@ func _run() -> void:
 	if jammed.is_empty():
 		await _fail("Jammed RELEASE fixture could not bind")
 		return
-	var access := jammed["scene"].get_node_or_null("CivicReportAccess")
-	var alarm := jammed["scene"].get_node_or_null("CivicServiceAlarm")
+	var access: Node = jammed["scene"].get_node_or_null("CivicReportAccess")
+	var alarm: Node = jammed["scene"].get_node_or_null("CivicServiceAlarm")
 	if access == null or alarm == null:
 		await _fail("P02 civic report access/alarm missing from production fixture")
 		return
