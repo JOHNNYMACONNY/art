@@ -175,6 +175,9 @@ func _run() -> void:
 	if not bool(event.call("is_courier_bike_watchlisted")):
 		await _fail("Ordinary checkpoint rearm erased temporary claimed-Bike memory")
 		return
+	if not String(event.call("get_watchlist_label_text")).is_empty():
+		await _fail("Ordinary checkpoint rearm left stale recognition feedback visible")
+		return
 
 	# Same claimed Bike returns: local recognition + one civic Report.
 	bike.global_position = checkpoint.global_position + Vector3(0.0, 0.0, 4.0)
@@ -216,6 +219,9 @@ func _run() -> void:
 	if int(authority.call("get_heat_level")) != 0:
 		await _fail("Ordinary different-vehicle approach created Wanted without a crime")
 		return
+	if not String(event.call("get_watchlist_label_text")).is_empty():
+		await _fail("Different-vehicle return exposed stale claimed-Bike recognition feedback")
+		return
 	event.call("reset_world_event")
 
 	# Control: on-foot return also remains ordinary.
@@ -224,6 +230,9 @@ func _run() -> void:
 	event.call("_process", 0.1)
 	if int(event.get("current_state")) != 1:
 		await _fail("On-foot return incorrectly inherited claimed Courier Bike recognition")
+		return
+	if not String(event.call("get_watchlist_label_text")).is_empty():
+		await _fail("On-foot return exposed stale claimed-Bike recognition feedback")
 		return
 	event.call("reset_world_event")
 
@@ -255,8 +264,9 @@ func _run() -> void:
 	if int(event.call("get_watchlist_report_attempt_count")) != 1 or int(event.call("get_civic_report_request_count")) != 1:
 		await _fail("Jammed recognition did not make exactly one bounded Report attempt")
 		return
-	if not bool(event.call("ram_breach", 8.5)):
-		await _fail("Jammed WATCHLISTED checkpoint could not be breached")
+	_scene.call("_check_checkpoint_ram_breach", 8.5, checkpoint.global_position)
+	if int(event.get("current_state")) != 3:
+		await _fail("Production root collision route could not re-breach WATCHLISTED checkpoint")
 		return
 	if int(event.call("get_civic_report_request_count")) != 1:
 		await _fail("Jammed WATCHLISTED re-breach issued a duplicate civic Report request")
