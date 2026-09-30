@@ -20,8 +20,8 @@ Always refresh current `main`, open PRs/issues and relevant CI/runtime evidence 
 
 ### NEXT
 
-- **Post-Production-14 product re-evaluation — P15 selection pending fresh playable-game inspection.** Do not automatically extend the Cash/customization thread.
-- Select the smallest bounded slice that most improves the fantasy: **“I am inhabiting a beautiful, decaying, near-future city that notices what I do.”** Favor authored systemic consequence, mystery, world reactivity and player agency over framework work or feature-count growth.
+- **Post-Production-15 product re-evaluation — P16 selection pending fresh playable-game inspection.** P15 proved one bounded form of checkpoint-local institutional memory; do not automatically extend vehicle recognition into a generalized reputation/police database.
+- Select the smallest bounded slice that most improves the fantasy: **“I am inhabiting a beautiful, decaying, near-future city that notices what I do.”** Favor authored systemic consequence, mystery, character/world reactivity and player agency over framework work or feature-count growth.
 
 ### DEFERRED
 
@@ -48,7 +48,7 @@ These gates do not automatically block unrelated code-first work.
 - Open World Expansion 01D / PR #66 — Silent Core infrastructure integration, merged.
 - World Event 01 / PR #68 — bounded FB-13 infrastructure-thrum use of existing geography, merged.
 - Issue #89 / Open World Expansion 01E — Gears retained-camera readability & performance checkpoint, complete (`VISUAL_PERF_CHECKPOINT_PASS`).
-- Productions 01–14 — merged and verified through Production 14 Claimed Courier Bike / Burn Garage Scrap Bash Bar. Exact runnable/gameplay/public P14 baseline: `4b563ff66d0e65f787e710af53d1c9d81209cbe3`; current public Web publication uses GitHub Pages Actions artifacts.
+- Productions 01–15 — merged and verified through Production 15 Gears Checkpoint / Claimed Courier Bike Recognition. Exact runnable/gameplay/public P15 baseline: `9708686f5f5a8cd9f606b238186aca9f3e999cc1`; current public Web publication uses GitHub Pages Actions artifacts and the live source stamp matches that exact SHA.
 
 Do not recreate completed 01A–01D work because an older roadmap still describes it as future work.
 
