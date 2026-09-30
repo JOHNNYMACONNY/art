@@ -4,6 +4,7 @@ const MISSION_PATH := "res://scripts/missions/city_that_forgot_mission.gd"
 const RELAY_PATH := "res://scripts/interactions/memory_disclosure_relay.gd"
 const PRODUCTION_SCENE_PATH := "res://scenes/prototype/scrap_test_block.tscn"
 const CivicMissionScript = preload("res://scripts/missions/civic_repossession_mission.gd")
+const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
 
 var _scene_under_test: Node = null
 var _wanted_runtime: Node = null
@@ -137,9 +138,25 @@ func _run() -> void:
 	if not _drive_city_to_complete(live["city"], live["civic"]):
 		await _fail("Production RELEASE fixture could not reach Mission 03 COMPLETE")
 		return
+
+	# Review regression: Mission 03 reaches COMPLETE at legacy EVADED, while P01
+	# report authority still refuses new civic Reports. The choice must not arm
+	# or consume until the retained de-escalation reaches CALM.
+	live["scene"].set("current_pursuit_state", ScrapTestBlockScript.PursuitState.EVADED)
 	live["city"].call("_arm_aftermath_choice")
+	if bool(live["release"].get("is_powered")) or bool(live["seal"].get("is_powered")):
+		await _fail("Mission 03 COMPLETE armed disclosure relays before legacy pursuit reached CALM")
+		return
+	var early_snapshot: Dictionary = live["city"].call("get_aftermath_snapshot")
+	if early_snapshot["state"] != "UNDECIDED" \
+	or int(early_snapshot["release_report_attempt_count"]) != 0:
+		await _fail("Non-CALM aftermath gate consumed the disclosure choice or Report")
+		return
+
+	live["scene"].set("current_pursuit_state", ScrapTestBlockScript.PursuitState.CALM)
+	live["city"].call("_process", 0.0)
 	if not bool(live["release"].get("is_powered")) or not bool(live["seal"].get("is_powered")):
-		await _fail("Mission 03 COMPLETE did not arm both physical relays")
+		await _fail("Disclosure relays did not arm after retained pursuit reached CALM")
 		return
 	if not await _select_relay(live, live["release"]):
 		await _fail("Retained target arbitration / Action did not select RELEASE relay")
@@ -243,6 +260,58 @@ func _run() -> void:
 		return
 	if "CIVIC REPORT SUPPRESSED" not in String(jammed["city"].mission.objective):
 		await _fail("Suppressed RELEASE does not tell the player the civic Report was blocked")
+		return
+
+	jammed["scene"].queue_free()
+	await process_frame
+	await process_frame
+	_scene_under_test = null
+
+	# Feedback regression: if Heat already exists and the P02 link is then
+	# jammed, RELEASE must still identify the new Report as suppressed rather
+	# than inferring success from the pre-existing CONTACT state.
+	var hot_jammed := await _make_scene()
+	if hot_jammed.is_empty():
+		await _fail("Hot jammed RELEASE fixture could not bind")
+		return
+	var hot_access: Node = hot_jammed["scene"].get_node_or_null("CivicReportAccess")
+	var hot_alarm: Node = hot_jammed["scene"].get_node_or_null("CivicServiceAlarm")
+	if hot_access == null or hot_alarm == null:
+		await _fail("Hot jammed fixture is missing civic Report infrastructure")
+		return
+	if not bool(_wanted_runtime.call("request_civic_report", hot_jammed["player"].global_position)):
+		await _fail("Could not establish pre-existing Heat for hot jammed RELEASE")
+		return
+	authority = _wanted_runtime.get("wanted_authority")
+	if int(authority.call("get_heat_level")) != 1:
+		await _fail("Pre-existing Heat fixture did not reach Heat 1")
+		return
+	hot_jammed["player"].global_position = hot_access.global_position + Vector3(0.8, 0.0, 0.0)
+	hot_access.call("update_player_distance", hot_jammed["player"].global_position)
+	hot_jammed["scene"].set("_active_target", hot_access)
+	if not bool(_wanted_runtime.call("handle_action_pressed")) \
+	or not bool(hot_access.get("is_compromised")) \
+	or bool(hot_alarm.get("report_enabled")):
+		await _fail("Could not jam reporting while retained Heat was already active")
+		return
+	if not _drive_city_to_complete(hot_jammed["city"], hot_jammed["civic"]):
+		await _fail("Hot jammed fixture could not reach Mission 03 COMPLETE")
+		return
+	hot_jammed["city"].call("_arm_aftermath_choice")
+	if not await _select_relay(hot_jammed, hot_jammed["release"]):
+		await _fail("Hot jammed RELEASE relay was not selectable")
+		return
+	var hot_snapshot: Dictionary = hot_jammed["city"].call("get_aftermath_snapshot")
+	if hot_snapshot["state"] != "RELEASED" \
+	or int(hot_snapshot["release_report_attempt_count"]) != 1:
+		await _fail("Hot jammed RELEASE did not resolve exactly once")
+		return
+	if "CIVIC REPORT SUPPRESSED" not in String(hot_jammed["city"].mission.objective):
+		await _fail("Pre-existing Heat hid the P02 suppression outcome")
+		return
+	if int(authority.call("get_heat_level")) != 1 \
+	or String(authority.call("get_wanted_state_name")) != "CONTACT":
+		await _fail("Hot jammed RELEASE mutated the pre-existing Wanted state")
 		return
 
 	print("[P16_MEMORY_DISCLOSURE] PASS")
