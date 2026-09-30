@@ -23,6 +23,9 @@ func _fail(message: String) -> void:
 	await _finish(1)
 
 func _drive_city_to_complete(city_runtime: Node, civic_runtime: Node) -> bool:
+	# This focused P16 tracer does not replay Mission 01/02. Freeze only the
+	# synthetic Mission-02 prerequisite so its own live reconciler cannot relock it.
+	civic_runtime.set_process(false)
 	civic_runtime.mission.phase = CivicMissionScript.Phase.COMPLETE
 	var mission = city_runtime.mission
 	return mission.unlock_after_civic_repossession() \
@@ -163,6 +166,7 @@ func _run() -> void:
 
 	# Full Replay clears the session-local choice and relay state.
 	_wanted_runtime.call("reset_runtime")
+	live["civic"].set_process(true)
 	live["scene"].call("reset_slice")
 	await process_frame
 	await process_frame
