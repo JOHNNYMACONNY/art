@@ -135,6 +135,19 @@ func _run() -> void:
 	if bool(live["release"].get("is_powered")) or bool(live["seal"].get("is_powered")):
 		await _fail("P16 relays were active before Mission 03 COMPLETE")
 		return
+	for relay in [live["release"], live["seal"]]:
+		var choice_label := relay.get_node_or_null("RelayChoiceLabel") as Label3D
+		var relay_status_label := relay.get_node_or_null("RelayStatusLabel") as Label3D
+		if choice_label == null or relay_status_label == null:
+			await _fail("P16 physical relay lost its world-readable labels")
+			return
+		if not choice_label.fixed_size or not choice_label.no_depth_test \
+		or not relay_status_label.fixed_size or not relay_status_label.no_depth_test:
+			await _fail("P16 relay labels can shrink or occlude below readable production-camera size")
+			return
+		if "\n" not in choice_label.text:
+			await _fail("P16 choice label is not stacked for compact production-camera readability")
+			return
 	if not _drive_city_to_complete(live["city"], live["civic"]):
 		await _fail("Production RELEASE fixture could not reach Mission 03 COMPLETE")
 		return
