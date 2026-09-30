@@ -14,7 +14,14 @@ enum Phase {
 	COMPLETE,
 }
 
+enum AftermathState {
+	UNDECIDED,
+	RELEASED,
+	SEALED,
+}
+
 var phase: Phase = Phase.LOCKED
+var aftermath_state: AftermathState = AftermathState.UNDECIDED
 var objective: String = ""
 var contact_line: String = ""
 var reward_credits: int = 0
@@ -66,13 +73,34 @@ func on_escape_complete() -> bool:
 		return false
 	phase = Phase.COMPLETE
 	reward_credits = 0
-	objective = "THE CITY THAT FORGOT COMPLETE // MEMORY RECOVERED"
-	contact_line = "SISTER KAEL // You heard what they buried. Now decide what deserves daylight."
+	objective = "THE CITY THAT FORGOT COMPLETE // RETURN TO CORE // CHOOSE MEMORY FATE"
+	contact_line = "SISTER KAEL // You heard what they buried. Bring HS-7 back to the Core. Decide what deserves daylight."
 	return true
+
+func choose_memory_release() -> bool:
+	if phase != Phase.COMPLETE or aftermath_state != AftermathState.UNDECIDED:
+		return false
+	aftermath_state = AftermathState.RELEASED
+	objective = "AFTERMATH // ARCHIVE RELEASED // BREAK CIVIC CONTACT"
+	contact_line = "SISTER KAEL // Daylight, then. The city can explain its own shadow."
+	return true
+
+func choose_memory_seal() -> bool:
+	if phase != Phase.COMPLETE or aftermath_state != AftermathState.UNDECIDED:
+		return false
+	aftermath_state = AftermathState.SEALED
+	objective = "AFTERMATH // ARCHIVE SEALED // LOCAL COPY RETAINED"
+	contact_line = "SISTER KAEL // Keep it close. A buried truth is still a truth. It just charges rent."
+	return true
+
+func get_aftermath_state_name() -> String:
+	return AftermathState.keys()[aftermath_state]
 
 func snapshot() -> Dictionary:
 	return {
 		"phase": phase,
+		"aftermath_state": aftermath_state,
+		"aftermath_state_name": get_aftermath_state_name(),
 		"objective": objective,
 		"contact_line": contact_line,
 		"reward_credits": reward_credits,
