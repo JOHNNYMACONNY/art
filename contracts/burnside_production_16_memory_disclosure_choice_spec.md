@@ -15,10 +15,12 @@ Mission 03 currently ends with Sister Kael telling Runner to decide what deserve
 
 ### RELEASE
 - select a physical `RELEASE // PUBLIC RELAY` target;
-- mark aftermath `RELEASED`;
+- do not consume RELEASE while the retained legacy pursuit/de-escalation controller is non-`CALM`;
+- once `CALM`, mark aftermath `RELEASED`;
 - attempt exactly one existing civic Report at the Silent Core;
-- live reporting may produce retained Heat 1 / Contact;
-- P02 Field Hacking may suppress the Report without undoing RELEASED;
+- live reporting from a clear Wanted state may produce retained Heat 1 / Contact;
+- P02 Field Hacking may suppress the Report without undoing RELEASED, and suppression feedback remains explicit even if Heat already existed;
+- if the civic alarm cannot accept the attempt for a non-jamming reason, report it as blocked rather than falsely attributing suppression;
 - repeat Action cannot report again.
 
 ### SEAL
@@ -58,7 +60,7 @@ At the existing Silent Core site, create two small bounded relay interactables:
 - restrained amber decision accent;
 - world labels, not a menu.
 
-Before Mission 03 COMPLETE they are dormant. After completion they become interactable. After selection the chosen relay resolves and the other powers down.
+Before Mission 03 COMPLETE they are dormant. After completion they remain dormant until the retained legacy pursuit/de-escalation controller reaches `CALM`; then both become interactable. If a new legacy pursuit becomes active before selection, the relays return to dormant until `CALM` again. After selection the chosen relay resolves and the other powers down.
 
 ## Canon
 
@@ -73,10 +75,10 @@ No Audio mutation. No new assets/events/registries.
 1. retained Mission 03 escape still reaches COMPLETE;
 2. completion copy points back to the Core;
 3. relays unavailable before COMPLETE;
-4. both become available after COMPLETE via retained target arbitration / Action;
-5. RELEASE is exactly-once and requests one civic Report;
+4. after COMPLETE, neither relay can consume a choice while the retained legacy pursuit is non-`CALM`; once `CALM`, both become available via retained target arbitration / Action;
+5. RELEASE is exactly-once and requests one civic Report only while the retained legacy pursuit is `CALM`;
 6. live RELEASE composes with P01;
-7. jammed RELEASE remains RELEASED with no new Heat;
+7. jammed RELEASE remains RELEASED with no new Heat and reports suppression truthfully even when Heat already existed;
 8. SEAL requests no civic Report;
 9. selecting one disables the other;
 10. Full Replay restores UNDECIDED and dormant relays;
