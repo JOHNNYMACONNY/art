@@ -31,6 +31,11 @@ func _ready() -> void:
 func configure_relay(new_choice_id: String, new_display_text: String) -> void:
 	choice_id = new_choice_id
 	display_text = new_display_text
+	var outward_offset := -0.24 if choice_id == "RELEASE" else (0.24 if choice_id == "SEAL" else 0.0)
+	if _label != null:
+		_label.position.x = outward_offset
+	if _status_label != null:
+		_status_label.position.x = outward_offset
 	_refresh_visual()
 
 func can_interact(player_pos: Vector3) -> bool:
@@ -151,9 +156,9 @@ func _build_visual() -> void:
 
 func _refresh_visual() -> void:
 	if _label != null:
-		_label.text = display_text
+		_label.text = choice_id if not choice_id.is_empty() else "MEMORY"
 	if _status_label != null:
-		_status_label.text = resolution
+		_status_label.text = display_text if resolution == "READY" else resolution
 	if _signal != null:
 		var color := SIGNAL_CYAN
 		var energy := 0.12
