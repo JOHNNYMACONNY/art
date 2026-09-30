@@ -255,9 +255,9 @@ func _on_disclosure_choice_selected(choice_id: String) -> void:
 		and can_read_state \
 		and state_before == "CLEAR" \
 		and state_after != "CLEAR"
-		if report_jammed:
+		if report_jammed and requested:
 			mission.objective = "AFTERMATH // ARCHIVE RELEASED // CIVIC REPORT SUPPRESSED"
-		elif not report_created_contact and state_before == "CLEAR":
+		elif not report_created_contact:
 			mission.objective = "AFTERMATH // ARCHIVE RELEASED // CIVIC REPORT BLOCKED"
 	elif choice_id == "SEAL":
 		if not mission.choose_memory_seal():
