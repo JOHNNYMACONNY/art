@@ -19,8 +19,8 @@ Mission 03 currently ends with Sister Kael telling Runner to decide what deserve
 - once `CALM`, mark aftermath `RELEASED`;
 - attempt exactly one existing civic Report at the Silent Core;
 - live reporting from a clear Wanted state may produce retained Heat 1 / Contact;
-- P02 Field Hacking may suppress the Report without undoing RELEASED, and suppression feedback remains explicit even if Heat already existed;
-- if the civic alarm cannot accept the attempt for a non-jamming reason, report it as blocked rather than falsely attributing suppression;
+- P02 Field Hacking may suppress the Report without undoing RELEASED, but only when the one-shot civic alarm actually accepts the jammed attempt;
+- if the civic alarm is already latched or otherwise refuses the attempt, report it as blocked rather than falsely attributing suppression;
 - repeat Action cannot report again.
 
 ### SEAL
@@ -78,7 +78,7 @@ No Audio mutation. No new assets/events/registries.
 4. after COMPLETE, neither relay can consume a choice while the retained legacy pursuit is non-`CALM`; once `CALM`, both become available via retained target arbitration / Action;
 5. RELEASE is exactly-once and requests one civic Report only while the retained legacy pursuit is `CALM`;
 6. live RELEASE composes with P01;
-7. jammed RELEASE remains RELEASED with no new Heat and reports suppression truthfully even when Heat already existed;
+7. jammed RELEASE remains RELEASED with no new Heat when the civic alarm accepts the jammed attempt; an already-latched/refused alarm reports BLOCKED instead of falsely crediting suppression;
 8. SEAL requests no civic Report;
 9. selecting one disables the other;
 10. Full Replay restores UNDECIDED and dormant relays;
