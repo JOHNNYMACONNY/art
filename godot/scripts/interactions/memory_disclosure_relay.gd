@@ -126,26 +126,26 @@ func _build_visual() -> void:
 	_label = Label3D.new()
 	_label.name = "RelayChoiceLabel"
 	_label.position = Vector3(0.0, 1.05, 0.0)
-	_label.font_size = 9
-	_label.outline_size = 4
+	_label.font_size = 20
+	_label.pixel_size = 0.009
+	_label.outline_size = 6
 	_label.modulate = OFF_WHITE
 	_label.outline_modulate = SOOT
 	_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_label.no_depth_test = true
-	_label.fixed_size = true
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_label)
 
 	_status_label = Label3D.new()
 	_status_label.name = "RelayStatusLabel"
 	_status_label.position = Vector3(0.0, 0.86, 0.0)
-	_status_label.font_size = 7
-	_status_label.outline_size = 3
+	_status_label.font_size = 16
+	_status_label.pixel_size = 0.007
+	_status_label.outline_size = 5
 	_status_label.modulate = SIGNAL_CYAN
 	_status_label.outline_modulate = SOOT
 	_status_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_status_label.no_depth_test = true
-	_status_label.fixed_size = true
 	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_status_label)
 
