@@ -150,8 +150,9 @@ func _run() -> void:
 		if choice_label.pixel_size < 0.008 or relay_status_label.pixel_size < 0.006:
 			await _fail("P16 relay world labels are too small at the production camera distance")
 			return
-		if "\n" not in choice_label.text:
-			await _fail("P16 choice label is not stacked for compact production-camera readability")
+		var expected_choice := String(relay.get("choice_id"))
+		if choice_label.text != expected_choice:
+			await _fail("P16 relay primary label does not foreground the player choice")
 			return
 	if not _drive_city_to_complete(live["city"], live["civic"]):
 		await _fail("Production RELEASE fixture could not reach Mission 03 COMPLETE")
@@ -175,6 +176,12 @@ func _run() -> void:
 	live["city"].call("_process", 0.0)
 	if not bool(live["release"].get("is_powered")) or not bool(live["seal"].get("is_powered")):
 		await _fail("Disclosure relays did not arm after retained pursuit reached CALM")
+		return
+	var release_status_label := live["release"].get_node_or_null("RelayStatusLabel") as Label3D
+	var seal_status_label := live["seal"].get_node_or_null("RelayStatusLabel") as Label3D
+	if release_status_label == null or release_status_label.text != "PUBLIC RELAY" \
+	or seal_status_label == null or seal_status_label.text != "LOCAL VAULT":
+		await _fail("READY relays do not clearly state their distinct world functions")
 		return
 	if not await _select_relay(live, live["release"]):
 		await _fail("Retained target arbitration / Action did not select RELEASE relay")
