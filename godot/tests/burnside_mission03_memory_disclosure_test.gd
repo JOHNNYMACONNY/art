@@ -241,6 +241,9 @@ func _run() -> void:
 	or String(authority.call("get_wanted_state_name")) != "CLEAR":
 		await _fail("Suppressed RELEASE incorrectly created Wanted state")
 		return
+	if "CIVIC REPORT SUPPRESSED" not in String(jammed["city"].mission.objective):
+		await _fail("Suppressed RELEASE does not tell the player the civic Report was blocked")
+		return
 
 	print("[P16_MEMORY_DISCLOSURE] PASS")
 	await _finish(0)
