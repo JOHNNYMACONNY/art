@@ -331,8 +331,8 @@ func _run() -> void:
 	or int(hot_snapshot["release_report_attempt_count"]) != 1:
 		await _fail("Hot jammed RELEASE did not resolve exactly once")
 		return
-	if "CIVIC REPORT SUPPRESSED" not in String(hot_jammed["city"].mission.objective):
-		await _fail("Pre-existing Heat hid the P02 suppression outcome")
+	if "CIVIC REPORT BLOCKED" not in String(hot_jammed["city"].mission.objective):
+		await _fail("Already-latched civic alarm was falsely attributed to Field-Hacking suppression")
 		return
 	if int(authority.call("get_heat_level")) != 1 \
 	or String(authority.call("get_wanted_state_name")) != "CONTACT":
