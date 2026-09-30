@@ -9,6 +9,7 @@ const CivicMissionScript = preload("res://scripts/missions/civic_repossession_mi
 const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
 const SilentCoreScript = preload("res://scripts/interactions/silent_core_interactable.gd")
 const MemoryEchoScript = preload("res://scripts/prototype/memory_echo_controller.gd")
+const MemoryDisclosureRelayScript = preload("res://scripts/interactions/memory_disclosure_relay.gd")
 
 const LEGACY_SILENT_CORE_POSITION := Vector3(8.0, 0.4, -8.0)
 const DISTRICT_SILENT_CORE_SOCKET_PATH := "GearsDistrictSlice01B/SilentCoreSite/SilentCoreSocket"
@@ -26,6 +27,8 @@ var _root_controller: Node = null
 var _civic_runtime = null
 var _touch_ui = null
 var _silent_core = null
+var _release_relay = null
+var _seal_relay = null
 var _echo_controller = null
 var _mission_title: Label = null
 var _objective_label: Label = null
@@ -33,6 +36,7 @@ var _contact_label: Label = null
 var _bound: bool = false
 var _civic_complete_seen: bool = false
 var _fresh_pursuit_started: bool = false
+var _release_report_attempt_count: int = 0
 
 func _ready() -> void:
 	_root_controller = get_parent()
@@ -91,6 +95,9 @@ func _process(_delta: float) -> void:
 		changed = mission.on_escape_complete() or changed
 
 	if changed:
+		if mission.phase == MissionScript.Phase.COMPLETE \
+		and mission.aftermath_state == MissionScript.AftermathState.UNDECIDED:
+			_arm_aftermath_choice()
 		_refresh_hud()
 
 func _try_bind_runtime() -> void:
@@ -110,7 +117,8 @@ func _try_bind_runtime() -> void:
 		return
 
 	_create_silent_core()
-	_register_retained_interaction_target()
+	_create_disclosure_relays()
+	_register_retained_interaction_targets()
 	if not _silent_core.silent_core_activated.is_connected(_on_silent_core_activated):
 		_silent_core.silent_core_activated.connect(_on_silent_core_activated)
 	if not _touch_ui.action_button_pressed.is_connected(_on_action_pressed):
@@ -144,23 +152,98 @@ func _create_silent_core() -> void:
 	_silent_core.global_position = destination["global_position"]
 	_silent_core.set_meta("destination_source", destination["source"])
 
-func _register_retained_interaction_target() -> void:
+func _create_disclosure_relays() -> void:
+	if _release_relay == null:
+		_release_relay = MemoryDisclosureRelayScript.new()
+		_release_relay.name = "MemoryReleaseRelay"
+		_root_controller.add_child(_release_relay)
+		_release_relay.global_position = _silent_core.global_position + Vector3(-1.05, 0.0, 0.35)
+		_release_relay.configure_relay("RELEASE", "RELEASE // PUBLIC RELAY")
+		_release_relay.choice_selected.connect(_on_disclosure_choice_selected)
+	if _seal_relay == null:
+		_seal_relay = MemoryDisclosureRelayScript.new()
+		_seal_relay.name = "MemorySealRelay"
+		_root_controller.add_child(_seal_relay)
+		_seal_relay.global_position = _silent_core.global_position + Vector3(1.05, 0.0, 0.35)
+		_seal_relay.configure_relay("SEAL", "SEAL // LOCAL VAULT")
+		_seal_relay.choice_selected.connect(_on_disclosure_choice_selected)
+	_release_relay.set_choice_ready(false)
+	_seal_relay.set_choice_ready(false)
+
+func _register_retained_interaction_targets() -> void:
 	var interactables = _root_controller.get("_interactables")
-	if interactables is Array and not interactables.has(_silent_core):
-		interactables.append(_silent_core)
-		_root_controller.set("_interactables", interactables)
+	if not (interactables is Array):
+		return
+	for target in [_silent_core, _release_relay, _seal_relay]:
+		if target != null and not interactables.has(target):
+			interactables.append(target)
+	_root_controller.set("_interactables", interactables)
 
 func _on_action_pressed() -> void:
-	# The production controller still decides the active target. This adapter only
-	# consumes the same Action signal when that retained decision points here.
-	if not _bound or mission.phase != MissionScript.Phase.REACH_SILENT_CORE:
-		return
-	if _root_controller.get("_active_target") != _silent_core:
+	# The production controller remains the sole target-arbitration authority.
+	# P16 only consumes Action when that retained decision points at one of its
+	# already-registered authored targets.
+	if not _bound:
 		return
 	var player = _root_controller.get("player")
 	if player == null:
 		return
-	_silent_core.begin_interaction(player.global_position)
+	var active_target = _root_controller.get("_active_target")
+	if mission.phase == MissionScript.Phase.REACH_SILENT_CORE:
+		if active_target == _silent_core:
+			_silent_core.begin_interaction(player.global_position)
+		return
+	if mission.phase != MissionScript.Phase.COMPLETE \
+	or mission.aftermath_state != MissionScript.AftermathState.UNDECIDED:
+		return
+	if active_target == _release_relay:
+		_release_relay.update_player_distance(player.global_position)
+		_release_relay.begin_interaction(player.global_position)
+	elif active_target == _seal_relay:
+		_seal_relay.update_player_distance(player.global_position)
+		_seal_relay.begin_interaction(player.global_position)
+
+func _arm_aftermath_choice() -> void:
+	if _release_relay == null or _seal_relay == null:
+		return
+	if mission.phase != MissionScript.Phase.COMPLETE \
+	or mission.aftermath_state != MissionScript.AftermathState.UNDECIDED:
+		return
+	_release_relay.set_choice_ready(true)
+	_seal_relay.set_choice_ready(true)
+
+func _on_disclosure_choice_selected(choice_id: String) -> void:
+	if mission.phase != MissionScript.Phase.COMPLETE \
+	or mission.aftermath_state != MissionScript.AftermathState.UNDECIDED:
+		return
+	if choice_id == "RELEASE":
+		if not mission.choose_memory_release():
+			return
+		_release_report_attempt_count += 1
+		var wanted_runtime := get_tree().root.get_node_or_null("BurnsideWantedRuntime")
+		if wanted_runtime != null and wanted_runtime.has_method("request_civic_report"):
+			wanted_runtime.call("request_civic_report", _silent_core.global_position)
+	elif choice_id == "SEAL":
+		if not mission.choose_memory_seal():
+			return
+	else:
+		return
+	_resolve_aftermath_relays(choice_id)
+	_refresh_hud()
+
+func _resolve_aftermath_relays(choice_id: String) -> void:
+	if _release_relay != null:
+		_release_relay.resolve_choice(choice_id)
+	if _seal_relay != null:
+		_seal_relay.resolve_choice(choice_id)
+
+func get_aftermath_snapshot() -> Dictionary:
+	return {
+		"state": mission.get_aftermath_state_name(),
+		"release_report_attempt_count": _release_report_attempt_count,
+		"release_relay": _release_relay.get_status() if _release_relay != null else {},
+		"seal_relay": _seal_relay.get_status() if _seal_relay != null else {},
+	}
 
 func _on_silent_core_activated() -> void:
 	if not mission.on_silent_core_activated():
@@ -235,6 +318,11 @@ func _reset_for_full_replay() -> void:
 	mission = MissionScript.new()
 	_civic_complete_seen = false
 	_fresh_pursuit_started = false
+	_release_report_attempt_count = 0
 	if _silent_core != null:
 		_silent_core.reset_for_replay()
+	if _release_relay != null:
+		_release_relay.reset_for_replay()
+	if _seal_relay != null:
+		_seal_relay.reset_for_replay()
 	print("[MISSION_NARRATIVE_03] Full replay detected; The City That Forgot relocked")
