@@ -23,6 +23,9 @@ func _fail(message: String) -> void:
 	quit(1)
 
 func _drive_complete() -> bool:
+	# Render proof starts at the P16 frontier; freeze only the synthetic Mission-02
+	# prerequisite while the production P16 target/action/report paths stay live.
+	_civic.set_process(false)
 	_civic.mission.phase = CivicMissionScript.Phase.COMPLETE
 	var mission = _city.mission
 	return mission.unlock_after_civic_repossession() \
