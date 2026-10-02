@@ -231,8 +231,34 @@ func _run() -> void:
 		await _fail("Production SEAL fixture could not reach Mission 03 COMPLETE")
 		return
 	seal_fixture["city"].call("_arm_aftermath_choice")
+	if not bool(seal_fixture["seal"].get("is_powered")):
+		await _fail("SEAL relay did not arm from CALM")
+		return
+
+	# Review regression: retained target arbitration can still point at a relay for
+	# one frame after a new disturbance begins. SEAL must recheck CALM at commit
+	# time and leave the authored choice untouched.
+	seal_fixture["player"].global_position = seal_fixture["seal"].global_position
+	seal_fixture["seal"].call("update_player_distance", seal_fixture["player"].global_position)
+	seal_fixture["release"].call("update_player_distance", seal_fixture["player"].global_position)
+	seal_fixture["scene"].call("_evaluate_target_selection")
+	if seal_fixture["scene"].get("_active_target") != seal_fixture["seal"]:
+		await _fail("SEAL relay could not become retained active target")
+		return
+	seal_fixture["scene"].set("current_pursuit_state", ScrapTestBlockScript.PursuitState.DISTURBANCE_ALERT)
+	seal_fixture["touch_ui"].action_button_pressed.emit()
+	await process_frame
+	var blocked_seal_snapshot: Dictionary = seal_fixture["city"].call("get_aftermath_snapshot")
+	if blocked_seal_snapshot["state"] != "UNDECIDED" \
+	or bool(seal_fixture["seal"].get("is_powered")) \
+	or bool(seal_fixture["release"].get("is_powered")):
+		await _fail("Non-CALM stale READY target consumed SEAL instead of resynchronizing dormant")
+		return
+
+	seal_fixture["scene"].set("current_pursuit_state", ScrapTestBlockScript.PursuitState.CALM)
+	seal_fixture["city"].call("_process", 0.0)
 	if not await _select_relay(seal_fixture, seal_fixture["seal"]):
-		await _fail("Retained target arbitration / Action did not select SEAL relay")
+		await _fail("Retained target arbitration / Action did not select SEAL relay after CALM")
 		return
 	var seal_snapshot: Dictionary = seal_fixture["city"].call("get_aftermath_snapshot")
 	authority = _wanted_runtime.get("wanted_authority")
