@@ -260,6 +260,11 @@ func _on_disclosure_choice_selected(choice_id: String) -> void:
 		elif not report_created_contact:
 			mission.objective = "AFTERMATH // ARCHIVE RELEASED // CIVIC REPORT BLOCKED"
 	elif choice_id == "SEAL":
+		# Match RELEASE's last-moment authority guard. A relay can still be the
+		# cached active target for one frame after a new disturbance begins.
+		if not _legacy_pursuit_is_calm():
+			_sync_aftermath_choice_ready(int(_root_controller.get("current_pursuit_state")))
+			return
 		if not mission.choose_memory_seal():
 			return
 	else:
