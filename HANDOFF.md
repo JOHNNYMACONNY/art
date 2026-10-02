@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P15_CHECKPOINT_RECOGNITION_MERGED_VERIFIED_PUBLIC`  
-**Current gameplay/world baseline:** `9708686f5f5a8cd9f606b238186aca9f3e999cc1`  
+**Status:** `BURNSIDE_P16_MEMORY_DISCLOSURE_MERGED_VERIFIED_PUBLIC`  
+**Current gameplay/world baseline:** `b96f81264144386bd3fc3a1c77d330b7af3af531`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -9,7 +9,7 @@
 
 ## Current product state
 
-Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts, one durable claimed-Courier-Bike Scrap Bash Bar modification, and one bounded checkpoint-local memory of a claimed Bike breach compose in the same geography.
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts, one durable claimed-Courier-Bike Scrap Bash Bar modification, one bounded checkpoint-local memory of a claimed Bike breach, and one physical Mission-03 memory-disclosure aftermath choice compose in the same geography.
 
 **Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
 - **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
@@ -109,6 +109,7 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 13** — #164 / PR #165 — Durable Mission 01 / Mission 02 Cash Payout Receipts — `3225b00318351f351c76d4ce3dc2894766ce654c`.
 - **Production 14** — #167 / PR #170 — Claimed Courier Bike / Burn Garage Scrap Bash Bar — `4b563ff66d0e65f787e710af53d1c9d81209cbe3`.
 - **Production 15** — #172 / PR #173 — Gears Checkpoint / Claimed Courier Bike Recognition — `9708686f5f5a8cd9f606b238186aca9f3e999cc1`.
+- **Production 16** — #175 / PR #176 — The City That Forgot / Memory Disclosure Choice — `b96f81264144386bd3fc3a1c77d330b7af3af531`.
 
 ## Retained authority truths
 
@@ -1124,28 +1125,109 @@ The Pages publish job created the deployment for that exact SHA and fetched the 
 
 No manual interactive public playthrough is claimed in this closeout.
 
-## Post-Production-15 re-evaluation state
+## Production 16 — verified player-facing result
 
-P15 is technically complete and publicly verified. Do **not** automatically expand checkpoint recognition into a generalized police database, reputation system, vehicle-identity framework or Heat 2–5.
+Issue #175 / PR #176 gameplay: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED**. Issue #175 remains open only until this continuity record lands, then should be closed as completed.
+
+Final reviewed feature head:
+
+`f924a86706219b98b8476a1d5bef1d7dc5da6fad`
+
+Exact gameplay/public main:
+
+`b96f81264144386bd3fc3a1c77d330b7af3af531`
+
+Exact Git tree shared by the final reviewed feature head and squash merge:
+
+`8fb5a7c4a104b30e42d5992df23c09fccfe8534d`
+
+Player-facing loop:
+
+`COMPLETE MISSION 03 ESCAPE -> RETURN TO SILENT CORE -> WAIT FOR RETAINED PURSUIT TO REACH CALM -> CHOOSE RELEASE OR SEAL -> LOCAL WORLD FEEDBACK -> EXISTING CIVIC AUTHORITY REACTS IF RELEASED`
+
+RELEASE:
+
+- physical `RELEASE / PUBLIC RELAY`;
+- commits session-local aftermath `RELEASED`;
+- requests exactly one retained civic Report;
+- live clear-state reporting composes with P01 Heat 1 / Contact;
+- P02 Field Hacking can suppress an accepted jammed Report without undoing RELEASED;
+- refused/already-latched attempts report `CIVIC REPORT BLOCKED`, not false suppression;
+- a last-moment CALM guard prevents stale READY/target state from consuming the choice while the retained pursuit is active.
+
+SEAL:
+
+- physical `SEAL / LOCAL VAULT`;
+- commits session-local aftermath `SEALED`;
+- requests no civic Report;
+- uses the same last-moment CALM guard, including stale-active-target protection.
+
+Retained truths:
+
+- Mission 03 still reaches its retained `COMPLETE` phase after legitimate escape; P16 adds an independent `UNDECIDED / RELEASED / SEALED` aftermath state;
+- Full Replay restores `UNDECIDED` and dormant relays;
+- the production controller retains sole target-arbitration authority;
+- P01 retains Wanted / Report authority;
+- P02 retains report-suppression authority;
+- P08 retains HS-7 physical carried-presence authority;
+- the recovered civic deletion-order fragment may be released through local civic infrastructure or retained locally;
+- P16 does **not** establish the erased event, new factions/government structure or large-scale political consequences;
+- no generalized branching-dialogue framework, morality meter, reputation system, Heat 2–5, persistent police database, save migration, new Cash work, new geography, Audio change or PR #44 camera work entered P16.
+
+Review/repair truth:
+
+- Codex identified a valid RELEASE-before-CALM race; repaired by CALM-gated readiness plus a final RELEASE authority check;
+- review identified misleading Report-result feedback; repaired using the actual request result and explicit SUPPRESSED vs BLOCKED outcomes;
+- review identified a same-frame stale-ready SEAL race; repaired with the same final CALM authority check and a production-scene regression;
+- a later pre-existing-Wanted BLOCKED finding was rechecked against current source and found stale because BLOCKED classification is unconditional whenever no contact is created and the attempt is not an accepted jammed suppression;
+- all inline review threads are resolved;
+- final Codex review on exact frozen head `f924a86706219b98b8476a1d5bef1d7dc5da6fad` reported: **“Didn't find any major issues.”**
+
+Frozen-head verification:
+
+- Burnside Production 16 PR run `36963303931`: **SUCCESS**, including exact-source P16 behavior, retained Mission/Wanted/P15 regressions and windowed production rendered proof;
+- Godot Web Playtest PR run `36963303932`: **SUCCESS**, including literal-head and synthetic-merge Web exports, retained camera/combat/checkpoint/player-survivability checks and the canonical 29-suite legacy compatibility matrix.
+
+Exact-main verification:
+
+- Burnside Production 16 main run `36963878009`: **SUCCESS**, including exact-source P16 behavior, retained regressions and windowed rendered proof;
+- Godot Web Playtest main run `36963877996`: **SUCCESS**, including retained input/control checks, Web export, static-host smoke, public package and Pages deployment;
+- the canonical compatibility matrix is intentionally PR-only on main push and therefore skipped by workflow design; it passed on the exact frozen PR head before merge.
+
+Latest verified public provenance:
+
+`PLAYTEST_BUILD.txt = b96f81264144386bd3fc3a1c77d330b7af3af531`
+
+The Pages publish job created the deployment for that exact SHA and fetched the public source stamp, which returned that exact SHA.
+
+GitHub Pages deployment URL:
+
+`https://johnnymaconny.github.io/art/`
+
+No manual interactive public playthrough is claimed in this closeout.
+
+## Post-Production-16 re-evaluation state
+
+P16 is technically complete and publicly verified. Do **not** automatically expand the RELEASE/SEAL beat into a generalized branching-dialogue framework, morality meter, reputation matrix, persistent civic-memory ledger or political simulation.
 
 The next product action is a fresh playable-game re-evaluation asking which smallest bounded slice most improves:
 
 `I AM INHABITING A BEAUTIFUL, DECAYING, NEAR-FUTURE CITY THAT NOTICES WHAT I DO.`
 
-P15 improved institutional memory at one authored civic machine. Re-evaluate what is still missing across authored mission drama, character/dialogue consequence, consequences of violence/property damage, strange civic systems, richer local encounters, traversal reasons, environmental storytelling, municipal/faction pressure, physical vehicle play, vulnerability/recovery, mystery, and world-state aftermath.
+P16 materially improved player agency, authored Mission-03 consequence and Sister Kael/HS-7 mystery. Re-evaluate the playable game for the next highest-value gap across street-level danger and consequence, memorable character interaction, systemic crime-fiction situations, strange civic machinery, environmental storytelling, traversal reasons, local faction/municipal pressure, physical vehicle play, vulnerability/recovery, world-state aftermath and useful durable progression.
 
-Selection rule: prioritize **FUN / FEEL / CLARITY / COHESION / IDENTITY / MYSTERY / WORLD REACTIVITY / PLAYER AGENCY / AUTHORED CRIME-FICTION CHARACTER**, not the easiest adjacent system to extend.
+Selection rule: prioritize **FUN / FEEL / CLARITY / COHESION / IDENTITY / MYSTERY / WORLD REACTIVITY / PLAYER AGENCY / AUTHORED CRIME-FICTION CHARACTER**, not the easiest adjacent subsystem to extend.
 
 ## Next-state rule
 
 Next production session:
 
 1. refresh exact repo/main, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene work;
-2. keep exact runnable/gameplay/public P15 baseline `9708686f5f5a8cd9f606b238186aca9f3e999cc1` distinct from any later docs-only continuity HEAD;
-3. confirm #172 remains closed/completed and PR #173 remains merged;
-4. read `START_HERE.md`, #55, #118, #105 and the retained P01–P15 contracts;
-5. re-evaluate the actual playable game before selecting P16;
-6. select the smallest bounded P16 slice that materially strengthens authored consequence, mystery, reactivity or character/world drama without becoming a framework;
+2. keep exact runnable/gameplay/public P16 baseline `b96f81264144386bd3fc3a1c77d330b7af3af531` distinct from any later docs-only continuity HEAD;
+3. confirm PR #176 remains merged and #175 is closed/completed after continuity lands;
+4. read `START_HERE.md`, #55, #118, #105 and the retained P01–P16 contracts;
+5. re-evaluate the actual playable game before selecting P17;
+6. select the smallest bounded P17 slice that materially strengthens fun, authored consequence, mystery, reactivity, physical city use or character/world drama without becoming a framework;
 7. preserve unrelated/concurrent work; do not touch Audio or PR #44 absent fresh concrete need.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
