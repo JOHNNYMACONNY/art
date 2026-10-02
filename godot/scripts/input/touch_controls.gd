@@ -8,6 +8,7 @@ extends Control
 signal joystick_vector_updated(vec: Vector2)
 signal action_button_pressed
 signal tool_action_pressed
+signal weapon_action_pressed
 signal peel_gesture_dragged(progress: float)
 signal peel_gesture_released
 signal tuner_dragged(accum_px: float)
@@ -39,6 +40,7 @@ enum UIMode {
 
 var current_mode: UIMode = UIMode.FOOT_TRAVERSAL
 var _tool_action_available: bool = false
+var _weapon_action_available: bool = false
 
 # SafeAreaRoot hierarchy references (with automatic fallback to direct child if not nested)
 @onready var safe_area_root: Control = _find_or_self("SafeAreaRoot")
@@ -48,6 +50,7 @@ var _tool_action_available: bool = false
 @onready var joystick_handle: Control = _find_node_recursive("JoystickKnob")
 @onready var action_button: Button = _find_node_recursive("ActionButton")
 @onready var tool_action_button: Button = _find_node_recursive("ToolActionButton")
+@onready var fire_button: Button = _find_node_recursive("FireButton")
 
 @onready var driving_panel: Control = _find_node_recursive("DrivingOverlayPanel")
 @onready var gas_button: Button = _find_node_recursive("ThrottleButton")
@@ -329,9 +332,22 @@ func _refresh_tool_action_button() -> void:
 		tool_action_button.disabled = not available_now
 		tool_action_button.visible = available_now
 
+func _weapon_action_can_emit() -> bool:
+	return _weapon_action_available and current_mode == UIMode.FOOT_TRAVERSAL and not is_interaction_input_locked()
+
+func _refresh_weapon_action_button() -> void:
+	if fire_button:
+		var available_now := _weapon_action_can_emit()
+		fire_button.disabled = not available_now
+		fire_button.visible = available_now
+
 func _on_tool_action_button_clicked() -> void:
 	if _tool_action_can_emit():
 		tool_action_pressed.emit()
+
+func _on_fire_button_clicked() -> void:
+	if _weapon_action_can_emit():
+		weapon_action_pressed.emit()
 
 func _on_dismount_button_clicked() -> void:
 	dismount_pressed.emit()
@@ -360,9 +376,16 @@ func trigger_strike() -> void:
 func trigger_tool_action() -> void:
 	_on_tool_action_button_clicked()
 
+func trigger_weapon_action() -> void:
+	_on_fire_button_clicked()
+
 func set_tool_action_available(available: bool) -> void:
 	_tool_action_available = available
 	_refresh_tool_action_button()
+
+func set_weapon_action_available(available: bool) -> void:
+	_weapon_action_available = available
+	_refresh_weapon_action_button()
 
 func update_radio_button_state(is_enabled: bool, _station_id: String = "radio.yardline") -> void:
 	if radio_button:
@@ -403,6 +426,8 @@ func _ready() -> void:
 		action_button.pressed.connect(_on_action_button_clicked)
 	if tool_action_button:
 		tool_action_button.pressed.connect(_on_tool_action_button_clicked)
+	if fire_button:
+		fire_button.pressed.connect(_on_fire_button_clicked)
 	if dismount_button:
 		dismount_button.pressed.connect(_on_dismount_button_clicked)
 	if radio_button:
@@ -422,6 +447,7 @@ func _ready() -> void:
 	hide_tension_hud()
 	set_route_switch_button_visible(false)
 	set_tool_action_available(false)
+	set_weapon_action_available(false)
 	update_radio_button_state(true)
 
 	# Continuous driving controls use ScreenTouch directly. Avoid Button mouse
@@ -502,6 +528,7 @@ func set_mode(mode: UIMode) -> void:
 		_emit_net_steer()
 		_emit_net_handbrake()
 	_refresh_tool_action_button()
+	_refresh_weapon_action_button()
 
 var _is_rejection_flashing: bool = false
 var _toast_timer_count: int = 0
@@ -598,6 +625,7 @@ func show_gesture_overlay(gesture_type: String) -> void:
 	if gesture_panel:
 		gesture_panel.visible = true
 	_refresh_tool_action_button()
+	_refresh_weapon_action_button()
 	if core_tap_button: core_tap_button.visible = (gesture_type == "EXPOSE_CORE")
 	if gesture_hint_label:
 		match gesture_type:
@@ -622,6 +650,7 @@ func close_interaction_overlay() -> void:
 	_current_gesture_type = ""
 	_peel_accumulated_y = 0.0
 	_refresh_tool_action_button()
+	_refresh_weapon_action_button()
 
 func _is_key(event: InputEventKey, first: Key, second: Key = KEY_NONE) -> bool:
 	return (
@@ -690,14 +719,22 @@ func _input(event: InputEvent) -> void:
 		# clear touch ownership or progress the same interaction twice.
 		if mouse_ev.device == InputEvent.DEVICE_ID_EMULATION:
 			return
-		if mouse_ev.button_index == MOUSE_BUTTON_LEFT and not mouse_ev.pressed and _is_mouse_interacting:
-			_is_mouse_interacting = false
-			if _is_peeling:
-				peel_gesture_released.emit()
-				_is_peeling = false
-			elif _is_tuning:
-				tuner_interaction_released.emit()
-				_is_tuning = false
+		if mouse_ev.button_index == MOUSE_BUTTON_LEFT:
+			if mouse_ev.pressed and not (gesture_panel and gesture_panel.visible) and _weapon_action_can_emit():
+				var hovered := get_viewport().gui_get_hovered_control() if get_viewport() else null
+				# Let a real Button own its own click so FireButton cannot double-emit.
+				if hovered == null or not (hovered is Button):
+					weapon_action_pressed.emit()
+					if get_viewport():
+						get_viewport().set_input_as_handled()
+			elif not mouse_ev.pressed and _is_mouse_interacting:
+				_is_mouse_interacting = false
+				if _is_peeling:
+					peel_gesture_released.emit()
+					_is_peeling = false
+				elif _is_tuning:
+					tuner_interaction_released.emit()
+					_is_tuning = false
 	elif event is InputEventKey:
 		var key_ev := event as InputEventKey
 		var vehicle_key_consumed := _update_keyboard_vehicle_state(key_ev)
