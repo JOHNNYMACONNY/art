@@ -143,7 +143,9 @@ func _run() -> void:
 	var player := scene.get_node_or_null("Runner") as CharacterBody3D
 	var pursuer := scene.get_node_or_null("PursuerPrototype") as CharacterBody3D
 	var sidearm := scene.get_node_or_null("GearsSidearmRuntime")
-	if player == null or pursuer == null or sidearm == null:
+	var incident := scene.get_node_or_null("GearsWorkZoneIncident")
+	var crawler := incident.get_node_or_null("GearsCrawler") as CharacterBody3D if incident != null else null
+	if player == null or pursuer == null or sidearm == null or incident == null or crawler == null:
 		_fail("P19 render fixture is incomplete")
 		return
 	if not pursuer.has_method("apply_sidearm_suppression") or not pursuer.has_method("is_sidearm_suppressed"):
@@ -153,22 +155,28 @@ func _run() -> void:
 		_fail("Could not acquire retained P17 sidearm")
 		return
 
-	# Establish retained Heat 1, then move into a physically observed CONTACT lane.
-	player.global_position = Vector3(-4.5, 0.1, -29.0)
-	player.velocity = Vector3.ZERO
+	# Establish retained Heat 1, then reuse the retained P17 crawler firing lane
+	# as the known unobstructed ballistic fixture. The focused P19 runtime test
+	# proves this exact relocation before the rendered gate.
 	if not bool(_wanted.call("request_civic_report", player.global_position)):
 		_fail("Could not establish retained Heat 1 for P19 proof")
 		return
-	pursuer.global_position = Vector3(-4.5, 0.5, -33.0)
+	var ballistic_target_position := crawler.global_position
+	crawler.global_position += Vector3(20.0, 0.0, 20.0)
+	pursuer.global_position = ballistic_target_position
+	player.global_position = ballistic_target_position + Vector3(0.0, 0.0, 4.0)
+	player.velocity = Vector3.ZERO
+	await physics_frame
+	await process_frame
 	var pivot := player.get_node_or_null("MeshPivot") as Node3D
 	if pivot != null:
 		pivot.rotation.y = 0.0
-	_wanted.call("process_wanted", 0.1)
-	if String(_wanted.call("get_wanted_state_name")) != "CONTACT":
-		_fail("Retained Wanted did not establish CONTACT")
-		return
 	if not bool(_wanted.call("has_direct_observation", pursuer, player)):
-		_fail("CONTACT proof lane is unexpectedly occluded")
+		_fail("P19 proven ballistic lane is unexpectedly occluded")
+		return
+	_wanted.call("process_wanted", 0.1)
+	if String(_wanted.call("get_wanted_state_name")) != "CONTACT" or pursuer.get("target_node") != player:
+		_fail("Retained Wanted did not establish direct CONTACT tracking in ballistic lane")
 		return
 
 	var framed := await _frame_pair(scene, player, pursuer, "P19ContactPair", 42.0)
