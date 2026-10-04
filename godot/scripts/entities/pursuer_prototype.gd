@@ -24,6 +24,7 @@ const SCRAPPER_STAGGER_SEC := 0.30
 const SCRAPPER_SHOVE_SPEED_MPS := 3.3
 const SIDEARM_SUPPRESSION_SEC := 0.18
 const SIDEARM_SUPPRESSION_TRANSLATION_SCALE := 0.35
+const SIDEARM_SUPPRESSION_ROLL_DEG := 12.0
 
 @export var max_speed: float = 15.5
 @export var acceleration: float = 14.0
@@ -247,10 +248,11 @@ func apply_sidearm_suppression() -> bool:
 	_sidearm_suppression_remaining = SIDEARM_SUPPRESSION_SEC
 	_intercept_timer = 0.0
 	if visual_root:
-		visual_root.rotation.z = deg_to_rad(7.0)
+		visual_root.rotation.z = deg_to_rad(SIDEARM_SUPPRESSION_ROLL_DEG)
 	if siren_light:
 		siren_light.visible = true
-		siren_light.light_energy = 0.35
+		siren_light.light_color = Color(1.0, 0.72, 0.12)
+		siren_light.light_energy = 4.0
 	return true
 
 func is_sidearm_suppressed() -> bool:
@@ -264,6 +266,7 @@ func clear_sidearm_suppression() -> void:
 	if visual_root:
 		visual_root.rotation.z = 0.0
 	if siren_light and (current_state == PursuerState.CHASING or current_state == PursuerState.DETOURING):
+		siren_light.light_color = Color(1.0, 0.2, 0.2)
 		siren_light.light_energy = 1.0
 
 func set_detour_path(waypoints: Array[Vector3]) -> void:
