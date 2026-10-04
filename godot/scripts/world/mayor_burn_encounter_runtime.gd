@@ -31,6 +31,9 @@ var _district: Node3D = null
 var _wanted_runtime: Node = null
 var _contact_runtime: Node = null
 var _contact_store = null
+var _service_affordance_label: Label3D = null
+var _service_affordance_was_visible := false
+var _service_affordance_suppressed := false
 var _player: PlayerRunner = null
 var _service_socket: Marker3D = null
 var _touch_ui: Node = null
@@ -76,6 +79,7 @@ func configure(root_controller: Node, district: Node3D, wanted_runtime: Node, co
 	_wanted_runtime = wanted_runtime
 	_contact_runtime = contact_runtime
 	_contact_store = contact_runtime.call("get_progress_store")
+	_service_affordance_label = contact_runtime.get_node_or_null("MayorBurnContactAffordance") as Label3D
 	_player = player
 	_service_socket = socket
 	_touch_ui = touch_ui
@@ -217,6 +221,7 @@ func _process(delta: float) -> void:
 		elif _line_deadline_msec > 0 and Time.get_ticks_msec() >= _line_deadline_msec:
 			_advance_dialogue()
 		if is_presentation_visible():
+			_set_service_affordance_suppressed(true)
 			_contact_interactable.is_powered = true
 			_contact_interactable.update_player_distance(_player.global_position)
 			_set_affordance("", false)
@@ -270,6 +275,7 @@ func _begin_sequence(mode: String, sequence: Array) -> void:
 	_show_current_line()
 	_set_actor_engaged(true)
 	_set_action_ui_suppressed(true)
+	_set_service_affordance_suppressed(true)
 
 func _show_current_line() -> void:
 	if _dialogue_index < 0 or _dialogue_index >= _dialogue_sequence.size():
@@ -310,6 +316,20 @@ func reset_encounter_presentation() -> void:
 		_line_label.text = ""
 	_set_actor_engaged(false)
 	_set_action_ui_suppressed(false)
+	_set_service_affordance_suppressed(false)
+
+func _set_service_affordance_suppressed(suppressed: bool) -> void:
+	if _service_affordance_label == null:
+		return
+	if suppressed:
+		if not _service_affordance_suppressed:
+			_service_affordance_was_visible = _service_affordance_label.visible
+			_service_affordance_suppressed = true
+		_service_affordance_label.visible = false
+		return
+	if _service_affordance_suppressed:
+		_service_affordance_label.visible = _service_affordance_was_visible
+	_service_affordance_suppressed = false
 
 func _set_action_ui_suppressed(suppressed: bool) -> void:
 	if _touch_ui == null:
