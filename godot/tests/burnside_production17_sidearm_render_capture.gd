@@ -101,8 +101,9 @@ func _frame_node(scene: Node, focus: Node3D) -> Camera3D:
 		return null
 	camera.set_process(true)
 	camera.call("reset_camera_instant", focus)
+	camera.call("set_interaction_mode", true, focus)
 	camera.fov = PROOF_FOV
-	camera.set_process(false)
+	await process_frame
 	await process_frame
 	await process_frame
 	return camera
@@ -114,10 +115,17 @@ func _frame_pair(scene: Node, a: Node3D, b: Node3D, marker_name: String) -> Dict
 	marker.name = marker_name
 	scene.add_child(marker)
 	marker.global_position = (a.global_position + b.global_position) * 0.5
-	var camera := await _frame_node(scene, marker)
+	var camera := _camera(scene)
 	if camera == null:
 		marker.queue_free()
 		return {}
+	camera.set_process(true)
+	camera.call("reset_camera_instant", marker)
+	camera.fov = PROOF_FOV
+	camera.set_process(false)
+	await process_frame
+	await process_frame
+	await process_frame
 	return {"camera": camera, "marker": marker}
 
 func _screen(camera: Camera3D, node: Node3D) -> Vector2:
