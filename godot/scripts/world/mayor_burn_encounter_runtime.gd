@@ -10,8 +10,8 @@ const InteractableBaseScript = preload("res://scripts/interactions/interactable_
 const MayorBurnScene = preload("res://scenes/entities/mayor_burn.tscn")
 
 const SERVICE_SOCKET_PATH := "MissionDestinationSocket"
-const ACTOR_OFFSET := Vector3(-1.75, -0.18, 2.05)
-const INTERACTION_RADIUS_M := 2.35
+const ACTOR_OFFSET := Vector3(-1.6, -0.18, 0.9)
+const INTERACTION_RADIUS_M := 1.75
 const AFFORDANCE_RADIUS_M := 6.5
 const INTERACTION_PRIORITY := 4.2
 const LINE_HOLD_MSEC := 1750
