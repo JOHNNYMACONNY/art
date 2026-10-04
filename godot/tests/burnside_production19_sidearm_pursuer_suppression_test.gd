@@ -210,6 +210,18 @@ func _run() -> void:
 		await _fail("P19 suppression synthesized SEARCH while direct observation remained clear")
 		return
 
+	# Invalid P05 input must not erase a valid P19 modifier.
+	if not bool(pursuer.call("apply_sidearm_suppression")):
+		await _fail("Could not establish suppression for invalid-Scrapper isolation check")
+		return
+	if bool(pursuer.call("apply_scrapper_stagger", Vector3.ZERO)):
+		await _fail("Zero-direction Scrapper input was unexpectedly accepted")
+		return
+	if not bool(pursuer.call("is_sidearm_suppressed")):
+		await _fail("Rejected zero-direction Scrapper input mutated active P19 suppression")
+		return
+	pursuer.call("clear_sidearm_suppression")
+
 	# P05 remains the stronger close-range body-space verb; overlapping P19 is rejected.
 	if not bool(pursuer.call("apply_scrapper_stagger", Vector3.FORWARD)):
 		await _fail("Retained P05 Scrapper stagger was unavailable")
