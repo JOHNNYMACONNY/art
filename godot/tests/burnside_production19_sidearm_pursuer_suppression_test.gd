@@ -88,8 +88,8 @@ func _run() -> void:
 		return
 
 	# Real clear-road observation makes the pursuer track the Runner directly.
-	pursuer.global_position = Vector3(-4.5, 0.5, -33.0)
-	player.global_position = Vector3(-4.5, 0.1, -29.0)
+	pursuer.global_position = Vector3(-4.5, 0.6, -33.0)
+	player.global_position = Vector3(-4.5, 0.6, -29.0)
 	var pivot := player.get_node_or_null("MeshPivot") as Node3D
 	if pivot != null:
 		pivot.rotation.y = 0.0
@@ -143,7 +143,7 @@ func _run() -> void:
 		await _fail("P19 changed P17 one-shot / one-ray ownership")
 		return
 	if String(sidearm_runtime.call("get_last_impact_name")) != "PursuerPrototype":
-		await _fail("Physical sidearm ray did not resolve the pursuer ancestor")
+		await _fail("Physical sidearm ray did not resolve the pursuer ancestor; impact=%s" % String(sidearm_runtime.call("get_last_impact_name")))
 		return
 	if not bool(pursuer.call("is_sidearm_suppressed")):
 		await _fail("Valid sidearm hit did not create bounded pursuer suppression")
