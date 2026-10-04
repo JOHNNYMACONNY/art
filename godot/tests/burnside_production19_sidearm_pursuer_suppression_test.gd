@@ -96,6 +96,8 @@ func _run() -> void:
 	crawler.global_position += Vector3(20.0, 0.0, 20.0)
 	pursuer.global_position = ballistic_target_position
 	player.global_position = ballistic_target_position + Vector3(0.0, 0.0, 4.0)
+	await physics_frame
+	await process_frame
 	var pivot := player.get_node_or_null("MeshPivot") as Node3D
 	if pivot != null:
 		pivot.rotation.y = 0.0
