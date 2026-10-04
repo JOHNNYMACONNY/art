@@ -31,9 +31,9 @@ var _district: Node3D = null
 var _wanted_runtime: Node = null
 var _contact_runtime: Node = null
 var _contact_store = null
-var _service_affordance_label: Label3D = null
-var _service_affordance_was_visible := false
-var _service_affordance_suppressed := false
+var _service_affordance_labels: Array[Label3D] = []
+var _service_affordance_visibility: Dictionary = {}
+var _service_affordances_suppressed := false
 var _player: PlayerRunner = null
 var _service_socket: Marker3D = null
 var _touch_ui: Node = null
@@ -79,7 +79,16 @@ func configure(root_controller: Node, district: Node3D, wanted_runtime: Node, co
 	_wanted_runtime = wanted_runtime
 	_contact_runtime = contact_runtime
 	_contact_store = contact_runtime.call("get_progress_store")
-	_service_affordance_label = contact_runtime.get_node_or_null("MayorBurnContactAffordance") as Label3D
+	_register_service_affordance(contact_runtime.get_node_or_null("MayorBurnContactAffordance") as Label3D)
+	var repair_runtime := root_controller.get_node_or_null("BurnGarageRepairRuntime")
+	var claim_runtime := root_controller.get_node_or_null("BurnGarageCourierBikeClaimRuntime")
+	var scrapper_mod_runtime := root_controller.get_node_or_null("BurnGarageCourierBikeScrapperModRuntime")
+	if repair_runtime != null:
+		_register_service_affordance(repair_runtime.get_node_or_null("BurnGarageRepairAffordance") as Label3D)
+	if claim_runtime != null:
+		_register_service_affordance(claim_runtime.get_node_or_null("CourierBikeClaimAffordance") as Label3D)
+	if scrapper_mod_runtime != null:
+		_register_service_affordance(scrapper_mod_runtime.get_node_or_null("CourierBikeScrapBashBarAffordance") as Label3D)
 	_player = player
 	_service_socket = socket
 	_touch_ui = touch_ui
@@ -318,18 +327,28 @@ func reset_encounter_presentation() -> void:
 	_set_action_ui_suppressed(false)
 	_set_service_affordance_suppressed(false)
 
+func _register_service_affordance(label: Label3D) -> void:
+	if label != null and not _service_affordance_labels.has(label):
+		_service_affordance_labels.append(label)
+
 func _set_service_affordance_suppressed(suppressed: bool) -> void:
-	if _service_affordance_label == null:
-		return
 	if suppressed:
-		if not _service_affordance_suppressed:
-			_service_affordance_was_visible = _service_affordance_label.visible
-			_service_affordance_suppressed = true
-		_service_affordance_label.visible = false
+		if not _service_affordances_suppressed:
+			_service_affordance_visibility.clear()
+			for label in _service_affordance_labels:
+				if is_instance_valid(label):
+					_service_affordance_visibility[label.get_instance_id()] = label.visible
+			_service_affordances_suppressed = true
+		for label in _service_affordance_labels:
+			if is_instance_valid(label):
+				label.visible = false
 		return
-	if _service_affordance_suppressed:
-		_service_affordance_label.visible = _service_affordance_was_visible
-	_service_affordance_suppressed = false
+	if _service_affordances_suppressed:
+		for label in _service_affordance_labels:
+			if is_instance_valid(label):
+				label.visible = bool(_service_affordance_visibility.get(label.get_instance_id(), false))
+	_service_affordances_suppressed = false
+	_service_affordance_visibility.clear()
 
 func _set_action_ui_suppressed(suppressed: bool) -> void:
 	if _touch_ui == null:
