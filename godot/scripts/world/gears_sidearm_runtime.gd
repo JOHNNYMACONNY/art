@@ -31,6 +31,7 @@ var _shot_count: int = 0
 var _ballistic_query_count: int = 0
 var _last_impact_name: String = "NONE"
 var _last_ui_available: bool = false
+var _transient_instance_ids: Array[int] = []
 
 func _process(delta: float) -> void:
 	if _configured:
@@ -371,6 +372,7 @@ func get_fire_cooldown_remaining() -> float:
 	return _cooldown_remaining
 
 func reset_runtime() -> void:
+	_clear_shot_feedback()
 	_held = false
 	_cooldown_remaining = 0.0
 	_shot_count = 0
