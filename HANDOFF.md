@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P16_MEMORY_DISCLOSURE_MERGED_VERIFIED_PUBLIC`  
-**Current gameplay/world baseline:** `b96f81264144386bd3fc3a1c77d330b7af3af531`  
+**Status:** `BURNSIDE_P17_SIDEARM_GUNFIRE_MERGED_VERIFIED_PUBLIC`  
+**Current gameplay/world baseline:** `ecaaa903a5fe5bb1e180a9b64b1ed23ae4ebc90e`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -9,7 +9,7 @@
 
 ## Current product state
 
-Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts, one durable claimed-Courier-Bike Scrap Bash Bar modification, one bounded checkpoint-local memory of a claimed Bike breach, and one physical Mission-03 memory-disclosure aftermath choice compose in the same geography.
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts, one durable claimed-Courier-Bike Scrap Bash Bar modification, one bounded checkpoint-local memory of a claimed Bike breach, one physical Mission-03 memory-disclosure aftermath choice, and one session-local Gears retrofit sidearm with bounded gunfire consequence compose in the same geography.
 
 **Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
 - **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
@@ -110,6 +110,7 @@ Do not default to more acreage or generalized frameworks. Favor player-facing sy
 - **Production 14** — #167 / PR #170 — Claimed Courier Bike / Burn Garage Scrap Bash Bar — `4b563ff66d0e65f787e710af53d1c9d81209cbe3`.
 - **Production 15** — #172 / PR #173 — Gears Checkpoint / Claimed Courier Bike Recognition — `9708686f5f5a8cd9f606b238186aca9f3e999cc1`.
 - **Production 16** — #175 / PR #176 — The City That Forgot / Memory Disclosure Choice — `b96f81264144386bd3fc3a1c77d330b7af3af531`.
+- **Production 17** — #179 / PR #180 — Gears Retrofit Sidearm / Gunfire Consequence Tracer — `ecaaa903a5fe5bb1e180a9b64b1ed23ae4ebc90e`.
 
 ## Retained authority truths
 
@@ -138,7 +139,7 @@ Key boundaries retained:
 - Tool Action is dedicated touch + desktop input and yields to retained gesture/input ownership.
 - Forcing the authored ServiceAlley access changes physical traversal only through retained P04/P05 seams.
 - Scrapper contact only creates a brief pursuer stagger/displacement window.
-- P05 itself introduced no Player Health/Armor. Production 09 now supplies the separate retained PlayerRunner survivability authority. Firearms, weapon roster, generic NPC damage/death, generalized hostile combat AI, inventory/loot/RPG stats, Heat 2–5, generalized witness/crime framework, and unrelated Audio scope remain absent.
+- P05 itself introduced no Player Health/Armor. Production 09 now supplies the separate retained PlayerRunner survivability authority. Production 17 now adds one bounded session-local retrofit sidearm; weapon rosters, generic NPC damage/death, generalized hostile combat AI, inventory/loot/RPG stats, Heat 2–5, generalized witness/crime frameworks, and unrelated Audio expansion remain absent.
 
 ## Production 06 retained result
 
@@ -507,7 +508,7 @@ Leading credible next gaps to compare:
 2. **vehicle claiming / identity** — P07 gives vehicle condition and repair meaning, but ownership/claiming remains unaddressed and carries more persistence/schema/UX cost;
 3. **deeper authored city mastery** — another learned shortcut/access payoff only if it creates a distinct decision rather than GPS expansion;
 4. **moment-to-moment vehicle feel / authored escape pressure** — improve retained Heat-1 chase feel only from observed weakness;
-5. **next combat breadth** — firearms/enemy ranged danger remain canonical later possibilities, but should not outrank the smaller relationship consequence by momentum alone.
+5. **next combat breadth** — this historical pre-P17 lane is now partially fulfilled by P17's one bounded sidearm; enemy ranged danger and broader weapon breadth remain future possibilities and must still earn priority from play.
 
 Heat 2–5, generalized witnesses/surveillance, transit, broader geography, generalized faction/reputation architecture, generalized persistence, Garage networks, broad economy, companion navigation, generalized hostile AI, and weapon inventories remain later candidates unless current play proves they outrank smaller authored gains.
 
@@ -1127,7 +1128,7 @@ No manual interactive public playthrough is claimed in this closeout.
 
 ## Production 16 — verified player-facing result
 
-Issue #175 / PR #176 gameplay: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED**. Issue #175 remains open only until this continuity record lands, then should be closed as completed.
+Issue #175 / PR #176 gameplay: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY UPDATED / ISSUE CLOSED**.
 
 Final reviewed feature head:
 
@@ -1206,15 +1207,58 @@ GitHub Pages deployment URL:
 
 No manual interactive public playthrough is claimed in this closeout.
 
-## Post-Production-16 re-evaluation state
+## Production 17 — verified player-facing result
 
-P16 is technically complete and publicly verified. Do **not** automatically expand the RELEASE/SEAL beat into a generalized branching-dialogue framework, morality meter, reputation matrix, persistent civic-memory ledger or political simulation.
+Issue #179 / PR #180 gameplay: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED**. Issue #179 remains open only until this continuity record lands, then should be closed as completed.
+
+Final reviewed feature head: `3f7b2ce0bc3c0c0f07fa379f4a6cef941004f502`  
+Exact gameplay/public main: `ecaaa903a5fe5bb1e180a9b64b1ed23ae4ebc90e`
+
+Player loop:
+
+`FIND SIDEARM -> TAKE -> MOVE + FIRE -> UTILITY CRAWLER / WORLD IMPACT -> LOCAL ALARM -> ONE CIVIC REPORT IF LIVE -> HEAT 1 / CONTACT OR FIELD-HACKED SUPPRESSION -> IMPROVISE / ESCAPE`
+
+Retained boundaries:
+
+- possession is current-run only; Full Replay restores pickup/unheld state and clears cooldown/shot feedback;
+- desktop left-click and bounded mobile FIRE retain Action / Tool / Strike / vehicle / gesture ownership and reject synthetic touch duplication;
+- one accepted shot = one 22 m hitscan query with 0.32 s cooldown;
+- firearm damage is limited to the retained Utility Crawler 2 -> 1 -> 0 / DISABLED seam; no Security Interceptor firearm damage or human NPC health/death;
+- first bounded local gunfire alarms the work zone and requests at most one civic Report; pre-existing Heat creates no redundant Report; P17 never owns Heat;
+- Field Hacking can suppress city knowledge while local ALARMED reaction remains;
+- no weapon roster/wheel, ammo/reload economy, generalized inventory, generalized witness bus, hostile pedestrian combat AI, Heat 2–5, save migration, new geography or PR #44 camera work entered P17.
+
+Review / verification:
+
+- first Codex review on `faed6888e609c384dfa6d717621045124049dbdf` found two valid P2 issues: replay-retained shot VFX and FIRE remaining enabled during cooldown;
+- both were repaired and regression-covered; both threads are resolved;
+- fresh Codex review on exact frozen head `3f7b2ce0bc3c0c0f07fa379f4a6cef941004f502` found no major issues;
+- frozen P17 run `37168489393`: **SUCCESS**;
+- frozen Web run `37168489367`: **SUCCESS**, including canonical compatibility matrix and browser head/merge exports;
+- exact-main P17 run `37169218818`: **SUCCESS** on `ecaaa903a5fe5bb1e180a9b64b1ed23ae4ebc90e`;
+- exact-main proof artifact `11290149880`, digest `sha256:439c9e02eee68814edacd6344df1766c4bcdc742097ac09de86ca26af55c44c2`, reports that exact source SHA and was directly inspected;
+- exact-main Web run `37169218797`: **SUCCESS**, including export, static-host smoke, package and Pages publish;
+- all eight workflows triggered by the gameplay merge completed **SUCCESS**.
+
+Latest verified public provenance:
+
+`PLAYTEST_BUILD.txt = ecaaa903a5fe5bb1e180a9b64b1ed23ae4ebc90e`
+
+The Pages publish job verified that source stamp, and an independent live fetch returned the same exact SHA.
+
+Audio qualification: `SIDEARM_FIRE` routing/ordinal compatibility is technically verified and Audio Runtime 31 run `37169218808` is **SUCCESS**. Perceptual firearm-audio quality is **NOT VERIFIED** because no trustworthy listening pass occurred.
+
+No manual interactive public playthrough is claimed in this closeout.
+
+## Post-Production-17 re-evaluation state
+
+P17 is technically complete and publicly verified. Do **not** automatically expand the bounded sidearm into a weapon roster, ammo economy, generalized NPC combat/health, witness framework or broader police simulation.
 
 The next product action is a fresh playable-game re-evaluation asking which smallest bounded slice most improves:
 
 `I AM INHABITING A BEAUTIFUL, DECAYING, NEAR-FUTURE CITY THAT NOTICES WHAT I DO.`
 
-P16 materially improved player agency, authored Mission-03 consequence and Sister Kael/HS-7 mystery. Re-evaluate the playable game for the next highest-value gap across street-level danger and consequence, memorable character interaction, systemic crime-fiction situations, strange civic machinery, environmental storytelling, traversal reasons, local faction/municipal pressure, physical vehicle play, vulnerability/recovery, world-state aftermath and useful durable progression.
+P17 materially improved street-level agency, physical danger and civic consequence. Re-evaluate the playable game for the next highest-value gap across combat feel, consequence readability, memorable character interaction, systemic crime-fiction situations, strange civic machinery, environmental storytelling, traversal reasons, local faction/municipal pressure, physical vehicle play, FB-13/HS-7 authored presence, vulnerability/recovery, audio, saves/reset, performance, mobile readability and useful durable progression.
 
 Selection rule: prioritize **FUN / FEEL / CLARITY / COHESION / IDENTITY / MYSTERY / WORLD REACTIVITY / PLAYER AGENCY / AUTHORED CRIME-FICTION CHARACTER**, not the easiest adjacent subsystem to extend.
 
@@ -1223,11 +1267,11 @@ Selection rule: prioritize **FUN / FEEL / CLARITY / COHESION / IDENTITY / MYSTER
 Next production session:
 
 1. refresh exact repo/main, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene work;
-2. keep exact runnable/gameplay/public P16 baseline `b96f81264144386bd3fc3a1c77d330b7af3af531` distinct from any later docs-only continuity HEAD;
-3. confirm PR #176 remains merged and #175 is closed/completed after continuity lands;
-4. read `START_HERE.md`, #55, #118, #105 and the retained P01–P16 contracts;
-5. re-evaluate the actual playable game before selecting P17;
-6. select the smallest bounded P17 slice that materially strengthens fun, authored consequence, mystery, reactivity, physical city use or character/world drama without becoming a framework;
+2. keep exact runnable/gameplay/public P17 baseline `ecaaa903a5fe5bb1e180a9b64b1ed23ae4ebc90e` distinct from any later docs-only continuity HEAD;
+3. confirm PR #180 remains merged and #179 is closed/completed after continuity lands;
+4. read `START_HERE.md`, #55, #118, #105 and the retained P01–P17 contracts;
+5. re-evaluate the actual playable game before selecting P18;
+6. select the smallest bounded P18 slice that materially strengthens fun, authored consequence, mystery, reactivity, physical city use or character/world drama without becoming a framework;
 7. preserve unrelated/concurrent work; do not touch Audio or PR #44 absent fresh concrete need.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
