@@ -1,0 +1,123 @@
+name: Burnside Production 18
+
+on:
+  push:
+    branches:
+      - main
+      - feat/production-18-mayor-burn-physical-presence
+    paths:
+      - "contracts/burnside_production_18_mayor_burn_physical_presence_spec.md"
+      - ".github/workflows/burnside-production-18.yml"
+      - "godot/scenes/entities/mayor_burn.tscn"
+      - "godot/scripts/world/mayor_burn_encounter_runtime.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/tests/burnside_production18_mayor_burn_encounter_test.gd"
+      - "godot/tests/burnside_production18_mayor_burn_render_capture.gd"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_18_mayor_burn_physical_presence_spec.md"
+      - ".github/workflows/burnside-production-18.yml"
+      - "godot/scenes/entities/mayor_burn.tscn"
+      - "godot/scripts/world/mayor_burn_encounter_runtime.gd"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/tests/burnside_production18_mayor_burn_encounter_test.gd"
+      - "godot/tests/burnside_production18_mayor_burn_render_capture.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_RELEASE: "4.7.1-stable"
+  GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+
+jobs:
+  mayor-burn-encounter:
+    name: Exact-source P18 Mayor Burn Encounter
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: P18 Mayor Burn encounter
+        id: p18
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_production18_mayor_burn_encounter_test.gd
+
+      - name: Retained Garage / mission / P17 regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in mayor_burn_contact_integration_test.gd burn_garage_repair_runtime_test.gd courier_bike_claim_integration_test.gd burnside_courier_bike_scrap_bash_bar_integration_test.gd burnside_mission03_memory_disclosure_test.gd burnside_production17_sidearm_gunfire_test.gd; do
+            echo "::group::$test_file"
+            timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
+            echo "::endgroup::"
+          done
+
+      - name: Require P18 GREEN
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "p18=${{ steps.p18.outcome }}"
+          test "${{ steps.p18.outcome }}" = "success"
+
+      - name: Capture rendered Production 18 proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a "$GODOT_BIN" --rendering-method gl_compatibility --path godot --script res://tests/burnside_production18_mayor_burn_render_capture.gd
+          test -s godot/verification/production18/01_burn_present_preknown.png
+          test -s godot/verification/production18/02_burn_known_clear.png
+          test -s godot/verification/production18/03_burn_clear_final_line.png
+          test -s godot/verification/production18/04_burn_wanted_refusal.png
+          test -s godot/verification/production18/render_report.json
+
+      - name: Upload Production 18 proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production18-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production18/
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,124 @@
+[gd_scene load_steps=13 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Mat_Coat"]
+albedo_color = Color(0.63, 0.61, 0.53, 1)
+roughness = 0.92
+
+[sub_resource type="StandardMaterial3D" id="Mat_Dark"]
+albedo_color = Color(0.12, 0.13, 0.14, 1)
+roughness = 0.88
+
+[sub_resource type="StandardMaterial3D" id="Mat_Skin"]
+albedo_color = Color(0.47, 0.34, 0.27, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_Amber"]
+albedo_color = Color(0.78, 0.42, 0.09, 1)
+emission_enabled = true
+emission = Color(0.38, 0.16, 0.02, 1)
+emission_energy_multiplier = 0.3
+roughness = 0.78
+
+[sub_resource type="CapsuleMesh" id="Mesh_Torso"]
+radius = 0.36
+height = 0.98
+
+[sub_resource type="SphereMesh" id="Mesh_Head"]
+radius = 0.24
+height = 0.48
+
+[sub_resource type="CylinderMesh" id="Mesh_Limb"]
+top_radius = 0.095
+bottom_radius = 0.11
+height = 0.72
+
+[sub_resource type="BoxMesh" id="Mesh_Boot"]
+size = Vector3(0.22, 0.18, 0.38)
+
+[sub_resource type="BoxMesh" id="Mesh_CoatPanel"]
+size = Vector3(0.42, 0.6, 0.08)
+
+[sub_resource type="BoxMesh" id="Mesh_Badge"]
+size = Vector3(0.11, 0.08, 0.025)
+
+[sub_resource type="BoxMesh" id="Mesh_Collar"]
+size = Vector3(0.54, 0.12, 0.28)
+
+[sub_resource type="BoxMesh" id="Mesh_Belt"]
+size = Vector3(0.58, 0.09, 0.3)
+
+[node name="MayorBurn" type="Node3D"]
+
+[node name="BodyRoot" type="Node3D" parent="."]
+
+[node name="Torso" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0, 1.16, 0)
+mesh = SubResource("Mesh_Torso")
+material_override = SubResource("Mat_Coat")
+
+[node name="DarkUndershirt" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0, 1.28, -0.31)
+scale = Vector3(0.7, 0.72, 0.6)
+mesh = SubResource("Mesh_CoatPanel")
+material_override = SubResource("Mat_Dark")
+
+[node name="AsymCoatPanel" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(-0.16, 1.02, -0.345)
+rotation = Vector3(0, 0, -0.12)
+mesh = SubResource("Mesh_CoatPanel")
+material_override = SubResource("Mat_Coat")
+
+[node name="HazardBelt" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0, 0.93, 0)
+mesh = SubResource("Mesh_Belt")
+material_override = SubResource("Mat_Amber")
+
+[node name="Collar" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0, 1.61, -0.02)
+mesh = SubResource("Mesh_Collar")
+material_override = SubResource("Mat_Dark")
+
+[node name="Head" type="Node3D" parent="BodyRoot"]
+position = Vector3(0.02, 1.92, -0.02)
+
+[node name="HeadMesh" type="MeshInstance3D" parent="BodyRoot/Head"]
+mesh = SubResource("Mesh_Head")
+material_override = SubResource("Mat_Skin")
+
+[node name="LeftArm" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(-0.48, 1.22, 0.03)
+rotation = Vector3(0.05, 0, -0.08)
+mesh = SubResource("Mesh_Limb")
+material_override = SubResource("Mat_Coat")
+
+[node name="RightArm" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0.48, 1.24, 0.03)
+rotation = Vector3(-0.08, 0, 0.12)
+mesh = SubResource("Mesh_Limb")
+material_override = SubResource("Mat_Dark")
+
+[node name="LeftLeg" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(-0.18, 0.48, 0)
+mesh = SubResource("Mesh_Limb")
+material_override = SubResource("Mat_Dark")
+
+[node name="RightLeg" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0.18, 0.48, 0)
+mesh = SubResource("Mesh_Limb")
+material_override = SubResource("Mat_Dark")
+
+[node name="LeftBoot" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(-0.18, 0.1, -0.08)
+mesh = SubResource("Mesh_Boot")
+material_override = SubResource("Mat_Dark")
+
+[node name="RightBoot" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0.18, 0.1, -0.08)
+mesh = SubResource("Mesh_Boot")
+material_override = SubResource("Mat_Dark")
+
+[node name="MunicipalSurplusBadge" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0.19, 1.42, -0.39)
+rotation = Vector3(0, 0, 0.06)
+mesh = SubResource("Mesh_Badge")
+material_override = SubResource("Mat_Amber")

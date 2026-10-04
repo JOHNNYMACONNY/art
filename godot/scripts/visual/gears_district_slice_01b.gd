@@ -10,6 +10,7 @@ const GearsSidearmRuntimeScript = preload("res://scripts/world/gears_sidearm_run
 const GearsSurveyedServiceCutRuntimeScript = preload("res://scripts/world/gears_surveyed_service_cut_runtime.gd")
 const BurnGarageRepairRuntimeScript = preload("res://scripts/world/burn_garage_repair_runtime.gd")
 const MayorBurnContactServiceRuntimeScript = preload("res://scripts/world/mayor_burn_contact_service_runtime.gd")
+const MayorBurnEncounterRuntimeScript = preload("res://scripts/world/mayor_burn_encounter_runtime.gd")
 const BurnGarageCourierBikeClaimRuntimeScript = preload("res://scripts/world/burn_garage_courier_bike_claim_runtime.gd")
 const BurnGarageCourierBikeScrapperModRuntimeScript = preload("res://scripts/world/burn_garage_courier_bike_scrapper_mod_runtime.gd")
 const RETAINED_NORTH_EDGE_Z := -20.0
@@ -29,6 +30,7 @@ func _ready() -> void:
 	call_deferred("_mount_production_11_claimed_courier_bike")
 	call_deferred("_mount_production_14_courier_bike_scrapper_mod")
 	call_deferred("_mount_production_17_sidearm")
+	call_deferred("_mount_production_18_mayor_burn_encounter")
 
 func _mount_production_04_work_zone() -> void:
 	var scene_root := get_parent()
@@ -165,6 +167,24 @@ func _mount_production_17_sidearm() -> void:
 	runtime.name = "GearsSidearmRuntime"
 	scene_root.add_child(runtime)
 	if not bool(runtime.call("configure", scene_root, self)):
+		runtime.queue_free()
+
+func _mount_production_18_mayor_burn_encounter() -> void:
+	var scene_root := get_parent()
+	if scene_root == null or not (scene_root is Node3D):
+		return
+	if scene_root.get_node_or_null("MayorBurnEncounterRuntime") != null:
+		return
+	var wanted_runtime := get_tree().root.get_node_or_null("BurnsideWantedRuntime")
+	var contact_runtime := scene_root.get_node_or_null("MayorBurnContactServiceRuntime")
+	if wanted_runtime == null or contact_runtime == null:
+		return
+	var runtime := MayorBurnEncounterRuntimeScript.new() as Node3D
+	if runtime == null:
+		return
+	runtime.name = "MayorBurnEncounterRuntime"
+	scene_root.add_child(runtime)
+	if not bool(runtime.call("configure", scene_root, self, wanted_runtime, contact_runtime)):
 		runtime.queue_free()
 
 func _box_shape(node_path: String) -> BoxShape3D:
