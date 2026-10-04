@@ -76,7 +76,7 @@ func _run() -> void:
 	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var contact_runtime := _scene.get_node_or_null("MayorBurnContactServiceRuntime")
 	var action_button: Button = touch_ui.get("action_button") as Button if touch_ui != null else null
-	var service_affordance := contact_runtime.get_node_or_null("MayorBurnContactAffordance") as Label3D if contact_runtime != null else null
+	var service_affordance: Label3D = contact_runtime.get_node_or_null("MayorBurnContactAffordance") as Label3D if contact_runtime != null else null
 	if actor == null or encounter_target == null or player == null or touch_ui == null or contact_runtime == null or action_button == null or service_affordance == null:
 		await _fail("P18 fixture is incomplete")
 		return
