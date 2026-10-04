@@ -69,7 +69,12 @@ func _complete(f: Dictionary) -> bool:
 func _acquire(scene: Node, f: Dictionary) -> bool:
 	var player: CharacterBody3D = f["player"]
 	var pickup: Node3D = f["pickup"]
-	pickup.global_position = player.global_position + Vector3(0.6, 0.3, 0.0)
+	# Render proof should exercise the authored Service Alley pickup placement
+	# rather than teleporting the contraband to the spawn point. Move the proof
+	# player to the street-facing side of the real pickup so the production camera
+	# can show the acquired sidearm without relying on PR #44 occlusion work.
+	player.global_position = Vector3(pickup.global_position.x + 0.75, player.global_position.y, pickup.global_position.z + 0.15)
+	player.velocity = Vector3.ZERO
 	pickup.call("update_player_distance", player.global_position)
 	scene.set("_active_target", pickup)
 	return bool(f["runtime"].call("handle_action_pressed"))
