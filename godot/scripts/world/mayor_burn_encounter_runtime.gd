@@ -10,7 +10,7 @@ const InteractableBaseScript = preload("res://scripts/interactions/interactable_
 const MayorBurnScene = preload("res://scenes/entities/mayor_burn.tscn")
 
 const SERVICE_SOCKET_PATH := "MissionDestinationSocket"
-const ACTOR_OFFSET := Vector3(-0.7, -0.18, 3.05)
+const ACTOR_OFFSET := Vector3(-1.75, -0.18, 2.05)
 const INTERACTION_RADIUS_M := 2.35
 const AFFORDANCE_RADIUS_M := 6.5
 const INTERACTION_PRIORITY := 4.2
@@ -51,6 +51,7 @@ var _dialogue_sequence: Array = []
 var _line_deadline_msec := 0
 var _encounter_start_count := 0
 var _idle_phase := 0.0
+var _action_button_was_visible := true
 
 func configure(root_controller: Node, district: Node3D, wanted_runtime: Node, contact_runtime: Node) -> bool:
 	if root_controller == null or district == null or wanted_runtime == null or contact_runtime == null:
@@ -215,8 +216,13 @@ func _process(delta: float) -> void:
 			reset_encounter_presentation()
 		elif _line_deadline_msec > 0 and Time.get_ticks_msec() >= _line_deadline_msec:
 			_advance_dialogue()
+		if is_presentation_visible():
+			_contact_interactable.is_powered = true
+			_contact_interactable.update_player_distance(_player.global_position)
+			_set_affordance("", false)
+			return
 
-	if not known or not valid_on_foot or distance > AFFORDANCE_RADIUS_M or is_presentation_visible():
+	if not known or not valid_on_foot or distance > AFFORDANCE_RADIUS_M:
 		_contact_interactable.is_powered = false
 		_set_affordance("", false)
 		return
@@ -263,6 +269,7 @@ func _begin_sequence(mode: String, sequence: Array) -> void:
 	_dialogue_index = 0
 	_show_current_line()
 	_set_actor_engaged(true)
+	_set_action_ui_suppressed(true)
 
 func _show_current_line() -> void:
 	if _dialogue_index < 0 or _dialogue_index >= _dialogue_sequence.size():
@@ -302,6 +309,20 @@ func reset_encounter_presentation() -> void:
 	if _line_label != null:
 		_line_label.text = ""
 	_set_actor_engaged(false)
+	_set_action_ui_suppressed(false)
+
+func _set_action_ui_suppressed(suppressed: bool) -> void:
+	if _touch_ui == null:
+		return
+	var action_button := _touch_ui.get("action_button") as Button
+	if action_button == null:
+		return
+	if suppressed:
+		_action_button_was_visible = action_button.visible
+		action_button.visible = false
+		return
+	var mode_value := int(_touch_ui.get("current_mode"))
+	action_button.visible = _action_button_was_visible and mode_value == 0
 
 func _animate_actor(delta: float) -> void:
 	_idle_phase += delta
