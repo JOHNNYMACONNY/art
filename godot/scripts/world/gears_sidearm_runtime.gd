@@ -11,8 +11,8 @@ const SidearmPickupScene = preload("res://scenes/interactions/sidearm_pickup.tsc
 const SIDEARM_RANGE_M := 22.0
 const FIRE_COOLDOWN_SEC := 0.32
 const SHOT_ORIGIN_HEIGHT_M := 0.42
-const TRACE_LIFETIME_SEC := 0.08
-const IMPACT_LIFETIME_SEC := 0.16
+const TRACE_LIFETIME_SEC := 0.12
+const IMPACT_LIFETIME_SEC := 0.22
 
 var _root_controller: Node = null
 var _district: Node3D = null
@@ -132,28 +132,32 @@ func _ensure_held_visual() -> void:
 
 	_held_visual = Node3D.new()
 	_held_visual.name = "HeldRetrofitSidearm"
-	_held_visual.position = Vector3(0.32, 1.18, -0.28)
+	_held_visual.position = Vector3(0.38, 1.17, -0.31)
 	_held_visual.rotation = Vector3(deg_to_rad(-6.0), deg_to_rad(-8.0), deg_to_rad(-10.0))
+	_held_visual.scale = Vector3(1.28, 1.28, 1.28)
 	_held_visual.visible = false
 	holder.add_child(_held_visual)
 
 	var body_mat := _body_material()
 	var grip_mat := _grip_material()
-	var retrofit_mat := _emissive_material(Color(0.05, 0.72, 0.78, 1.0), 1.5)
-	_add_box(_held_visual, "Receiver", Vector3(0.28, 0.15, 0.48), Vector3.ZERO, body_mat)
-	_add_box(_held_visual, "BarrelShroud", Vector3(0.13, 0.11, 0.38), Vector3(0.02, 0.0, -0.40), body_mat)
-	var grip := _add_box(_held_visual, "Grip", Vector3(0.14, 0.34, 0.18), Vector3(-0.02, -0.22, 0.09), grip_mat)
+	var retrofit_mat := _emissive_material(Color(0.05, 0.72, 0.78, 1.0), 1.8)
+	var hazard_mat := _emissive_material(Color(1.0, 0.42, 0.06, 1.0), 2.0)
+	_add_box(_held_visual, "Receiver", Vector3(0.32, 0.18, 0.54), Vector3.ZERO, body_mat)
+	_add_box(_held_visual, "BarrelShroud", Vector3(0.15, 0.13, 0.44), Vector3(0.02, 0.0, -0.46), body_mat)
+	_add_box(_held_visual, "TopPlate", Vector3(0.25, 0.055, 0.40), Vector3(0.0, 0.115, -0.04), grip_mat)
+	var grip := _add_box(_held_visual, "Grip", Vector3(0.16, 0.38, 0.20), Vector3(-0.02, -0.24, 0.10), grip_mat)
 	grip.rotation = Vector3(-0.16, 0.0, 0.08)
-	_add_box(_held_visual, "RetrofitCell", Vector3(0.07, 0.08, 0.22), Vector3(0.16, 0.0, 0.03), retrofit_mat)
+	_add_box(_held_visual, "RetrofitCell", Vector3(0.08, 0.10, 0.25), Vector3(0.19, 0.0, 0.03), retrofit_mat)
+	_add_box(_held_visual, "HazardBrace", Vector3(0.055, 0.11, 0.27), Vector3(-0.18, 0.0, -0.02), hazard_mat)
 
 	var muzzle_mesh := SphereMesh.new()
-	muzzle_mesh.radius = 0.08
-	muzzle_mesh.height = 0.16
+	muzzle_mesh.radius = 0.11
+	muzzle_mesh.height = 0.22
 	_muzzle_flash = MeshInstance3D.new()
 	_muzzle_flash.name = "MuzzleFlash"
-	_muzzle_flash.position = Vector3(0.02, 0.0, -0.64)
+	_muzzle_flash.position = Vector3(0.02, 0.0, -0.71)
 	_muzzle_flash.mesh = muzzle_mesh
-	_muzzle_flash.material_override = _emissive_material(Color(1.0, 0.58, 0.12, 1.0), 3.0)
+	_muzzle_flash.material_override = _emissive_material(Color(1.0, 0.58, 0.12, 1.0), 4.0)
 	_muzzle_flash.visible = false
 	_held_visual.add_child(_muzzle_flash)
 
@@ -245,6 +249,7 @@ func _resolve_ballistic_once(origin: Vector3, endpoint: Vector3, facing: Vector3
 	var impact_pos := endpoint
 	_last_impact_name = "MISS"
 	var damaged := false
+	var disabled_target := false
 
 	if not result.is_empty():
 		impact_pos = result.get("position", endpoint)
@@ -256,10 +261,11 @@ func _resolve_ballistic_once(origin: Vector3, endpoint: Vector3, facing: Vector3
 				_last_impact_name = String(damage_target.name)
 				damage_target.call("take_hit", 1, impact_pos, facing)
 				damaged = true
+				disabled_target = int(damage_target.get("current_durability")) <= 0
 
 	_spawn_trace(origin, impact_pos)
 	if not result.is_empty():
-		_spawn_impact(impact_pos, damaged)
+		_spawn_impact(impact_pos, damaged, disabled_target)
 
 func _find_ballistic_damage_target(start: Node) -> Node:
 	var node := start
@@ -283,7 +289,7 @@ func _flash_muzzle() -> void:
 	if _muzzle_flash == null or not is_instance_valid(_muzzle_flash):
 		return
 	_muzzle_flash.visible = true
-	get_tree().create_timer(0.055).timeout.connect(func():
+	get_tree().create_timer(0.085).timeout.connect(func():
 		if _muzzle_flash != null and is_instance_valid(_muzzle_flash):
 			_muzzle_flash.visible = false
 	)
@@ -295,11 +301,11 @@ func _spawn_trace(origin: Vector3, endpoint: Vector3) -> void:
 	if distance <= 0.01:
 		return
 	var mesh := BoxMesh.new()
-	mesh.size = Vector3(0.025, 0.025, distance)
+	mesh.size = Vector3(0.055, 0.055, distance)
 	var tracer := MeshInstance3D.new()
 	tracer.name = "SidearmTrace"
 	tracer.mesh = mesh
-	tracer.material_override = _emissive_material(Color(1.0, 0.56, 0.12, 1.0), 2.2)
+	tracer.material_override = _emissive_material(Color(1.0, 0.56, 0.12, 1.0), 3.0)
 	_root_controller.add_child(tracer)
 	tracer.global_position = (origin + endpoint) * 0.5
 	tracer.look_at(endpoint, Vector3.UP)
@@ -308,17 +314,17 @@ func _spawn_trace(origin: Vector3, endpoint: Vector3) -> void:
 			tracer.queue_free()
 	)
 
-func _spawn_impact(position_value: Vector3, damaged: bool) -> void:
+func _spawn_impact(position_value: Vector3, damaged: bool, disabled_target: bool = false) -> void:
 	if _root_controller == null:
 		return
 	var mesh := SphereMesh.new()
-	mesh.radius = 0.08
-	mesh.height = 0.16
+	mesh.radius = 0.20 if disabled_target else 0.13
+	mesh.height = 0.40 if disabled_target else 0.26
 	var marker := MeshInstance3D.new()
 	marker.name = "SidearmImpact"
 	marker.mesh = mesh
-	var color := Color(0.12, 0.86, 0.92, 1.0) if damaged else Color(1.0, 0.52, 0.12, 1.0)
-	marker.material_override = _emissive_material(color, 2.5)
+	var color := Color(1.0, 0.40, 0.06, 1.0) if disabled_target else (Color(0.12, 0.86, 0.92, 1.0) if damaged else Color(1.0, 0.52, 0.12, 1.0))
+	marker.material_override = _emissive_material(color, 4.0 if disabled_target else 3.2)
 	_root_controller.add_child(marker)
 	marker.global_position = position_value
 	get_tree().create_timer(IMPACT_LIFETIME_SEC).timeout.connect(func():
