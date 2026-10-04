@@ -289,10 +289,11 @@ func _flash_muzzle() -> void:
 	if _muzzle_flash == null or not is_instance_valid(_muzzle_flash):
 		return
 	_muzzle_flash.visible = true
-	get_tree().create_timer(0.085).timeout.connect(func():
-		if _muzzle_flash != null and is_instance_valid(_muzzle_flash):
-			_muzzle_flash.visible = false
-	)
+	get_tree().create_timer(0.085).timeout.connect(Callable(self, "_hide_muzzle_flash"))
+
+func _hide_muzzle_flash() -> void:
+	if _muzzle_flash != null and is_instance_valid(_muzzle_flash):
+		_muzzle_flash.visible = false
 
 func _spawn_trace(origin: Vector3, endpoint: Vector3) -> void:
 	if _root_controller == null:
@@ -309,9 +310,8 @@ func _spawn_trace(origin: Vector3, endpoint: Vector3) -> void:
 	_root_controller.add_child(tracer)
 	tracer.global_position = (origin + endpoint) * 0.5
 	tracer.look_at(endpoint, Vector3.UP)
-	get_tree().create_timer(TRACE_LIFETIME_SEC).timeout.connect(func():
-		if is_instance_valid(tracer):
-			tracer.queue_free()
+	get_tree().create_timer(TRACE_LIFETIME_SEC).timeout.connect(
+		Callable(self, "_free_transient_instance").bind(tracer.get_instance_id())
 	)
 
 func _spawn_impact(position_value: Vector3, damaged: bool, disabled_target: bool = false) -> void:
@@ -327,10 +327,14 @@ func _spawn_impact(position_value: Vector3, damaged: bool, disabled_target: bool
 	marker.material_override = _emissive_material(color, 4.0 if disabled_target else 3.2)
 	_root_controller.add_child(marker)
 	marker.global_position = position_value
-	get_tree().create_timer(IMPACT_LIFETIME_SEC).timeout.connect(func():
-		if is_instance_valid(marker):
-			marker.queue_free()
+	get_tree().create_timer(IMPACT_LIFETIME_SEC).timeout.connect(
+		Callable(self, "_free_transient_instance").bind(marker.get_instance_id())
 	)
+
+func _free_transient_instance(instance_id: int) -> void:
+	var transient := instance_from_id(instance_id)
+	if is_instance_valid(transient):
+		transient.queue_free()
 
 func has_sidearm() -> bool:
 	return _held
