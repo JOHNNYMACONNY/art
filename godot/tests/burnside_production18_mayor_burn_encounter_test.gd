@@ -71,7 +71,7 @@ func _run() -> void:
 			return
 
 	var actor := runtime.call("get_actor") as Node3D
-	var encounter_target := runtime.call("get_contact_interactable")
+	var encounter_target: Node = runtime.call("get_contact_interactable") as Node
 	var player := _scene.get_node_or_null("Runner") as CharacterBody3D
 	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var contact_runtime := _scene.get_node_or_null("MayorBurnContactServiceRuntime")
