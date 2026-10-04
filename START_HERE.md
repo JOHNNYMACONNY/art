@@ -20,8 +20,9 @@ Always refresh current `main`, open PRs/issues and relevant CI/runtime evidence 
 
 ### NEXT
 
-- **Post-Production-17 product re-evaluation — P18 selection pending fresh playable-game inspection.** P17 fulfilled the missing Street-Combat shooting verb with one bounded session-local retrofit sidearm whose gunfire composes with machine damage, local work-zone alarm, civic Report, Field Hacking and retained Wanted authority. Do not automatically grow it into a weapon roster, ammo economy, generalized NPC combat/health, witness framework or broader police simulation.
-- Select the smallest bounded slice that most improves the fantasy: **“I am inhabiting a beautiful, decaying, near-future city that notices what I do.”** Re-evaluate combat feel, consequence clarity, authored world/character reactivity, mission flow, traversal, vehicles, FB-13/HS-7 presence, audio, saves/reset, performance and mobile readability before choosing P18.
+- **Production 19 / #184 — Wanted Pursuer Sidearm Suppression / Contact-Break Composition — JIT design pending.** P18 fulfilled the immediate authored-human-presence gap by making Mayor Burn physically present and face-to-face at the Garage without creating a generalized dialogue/NPC framework.
+- Reverify the retained pursuer movement/observation seam and P17 hitscan dispatch before implementation. Investigate one bounded nonlethal ranged suppression/hesitation response that creates escape opportunity while retained Wanted line-of-sight logic remains the only authority that can transition CONTACT -> SEARCH.
+- Preserve P05 Scrapper value, P17 local gunfire consequence, P18 Mayor Burn/Garage behavior, saves, missions, companions and unrelated Audio. Do not grow P19 into human Health/death, enemy firearms, weapon breadth, Heat 2–5 or generalized hostile AI.
 
 ### DEFERRED
 
@@ -48,7 +49,7 @@ These gates do not automatically block unrelated code-first work.
 - Open World Expansion 01D / PR #66 — Silent Core infrastructure integration, merged.
 - World Event 01 / PR #68 — bounded FB-13 infrastructure-thrum use of existing geography, merged.
 - Issue #89 / Open World Expansion 01E — Gears retained-camera readability & performance checkpoint, complete (`VISUAL_PERF_CHECKPOINT_PASS`).
-- Productions 01–17 — merged and verified through Production 17 Gears Retrofit Sidearm / Gunfire Consequence Tracer. Exact runnable/gameplay/public P17 baseline: `ecaaa903a5fe5bb1e180a9b64b1ed23ae4ebc90e`; current public Web publication uses GitHub Pages Actions artifacts and the live source stamp matches that exact SHA. P17 firearm audio routing is technically verified; perceptual listening quality remains unverified.
+- Productions 01–18 — merged and verified through Production 18 Mayor Burn Physical Garage Presence / Known-Contact Encounter. Exact runnable/gameplay/public P18 baseline: `1cdbda2fcbcb53ec62af73514b3b396554277017`; current public Web publication uses GitHub Pages Actions artifacts and the live source stamp matches that exact SHA. P18 introduced no Audio scope; P17 firearm audio routing remains technically verified while perceptual listening quality remains unverified.
 
 Do not recreate completed 01A–01D work because an older roadmap still describes it as future work.
 
