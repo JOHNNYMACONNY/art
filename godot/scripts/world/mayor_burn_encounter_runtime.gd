@@ -314,7 +314,7 @@ func reset_encounter_presentation() -> void:
 func _set_action_ui_suppressed(suppressed: bool) -> void:
 	if _touch_ui == null:
 		return
-	var action_button := _touch_ui.get("action_button") as Button
+	var action_button: Button = _touch_ui.get("action_button") as Button
 	if action_button == null:
 		return
 	if suppressed:
