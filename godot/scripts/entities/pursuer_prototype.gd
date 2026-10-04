@@ -22,6 +22,8 @@ enum PursuerState {
 
 const SCRAPPER_STAGGER_SEC := 0.30
 const SCRAPPER_SHOVE_SPEED_MPS := 3.3
+const SIDEARM_SUPPRESSION_SEC := 0.18
+const SIDEARM_SUPPRESSION_TRANSLATION_SCALE := 0.35
 
 @export var max_speed: float = 15.5
 @export var acceleration: float = 14.0
@@ -60,6 +62,7 @@ var is_stunned: bool:
 		return current_state == PursuerState.STUNNED
 var _scrapper_stagger_remaining: float = 0.0
 var _scrapper_stagger_velocity: Vector3 = Vector3.ZERO
+var _sidearm_suppression_remaining: float = 0.0
 
 var detour_waypoints: Array[Vector3] = []
 var current_detour_index: int = -1
@@ -83,6 +86,7 @@ func activate_pursuit(target: Node3D) -> void:
 	if visual_root:
 		visual_root.rotation = Vector3.ZERO
 	clear_scrapper_stagger()
+	clear_sidearm_suppression()
 	detour_waypoints.clear()
 	current_detour_index = -1
 	set_physics_process(true)
@@ -96,6 +100,7 @@ func start_de_escalation() -> void:
 		return
 
 	clear_scrapper_stagger()
+	clear_sidearm_suppression()
 	current_state = PursuerState.DE_ESCALATING
 	_de_escalate_timer = 0.0
 	_stun_timer = 0.0
@@ -134,6 +139,7 @@ func reset_pursuer(spawn_pos: Vector3 = Vector3(0, 0.6, -10.0)) -> void:
 	if visual_root:
 		visual_root.rotation = Vector3.ZERO
 	clear_scrapper_stagger()
+	clear_sidearm_suppression()
 	global_position = spawn_pos
 	set_physics_process(false)
 	if siren_light:
@@ -147,6 +153,7 @@ func apply_vehicle_ram(impact_speed: float, ram_direction: Vector3, _vehicle_sou
 	if impact_speed < ram_threshold_speed:
 		return false
 
+	clear_sidearm_suppression()
 	current_state = PursuerState.STUNNED
 	_stun_timer = stun_recovery_time
 	_intercept_timer = 0.0
@@ -180,6 +187,7 @@ func apply_emp_stun(duration: float = 4.0) -> bool:
 	if not is_active or current_state == PursuerState.INACTIVE or current_state == PursuerState.EVADED_DISENGAGED:
 		return false
 
+	clear_sidearm_suppression()
 	current_state = PursuerState.STUNNED
 	_stun_timer = duration
 	_intercept_timer = 0.0
@@ -203,6 +211,7 @@ func apply_emp_stun(duration: float = 4.0) -> bool:
 func apply_scrapper_stagger(impact_direction: Vector3) -> bool:
 	if not is_active or (current_state != PursuerState.CHASING and current_state != PursuerState.DETOURING):
 		return false
+	clear_sidearm_suppression()
 	var planar_direction := impact_direction
 	planar_direction.y = 0.0
 	if planar_direction.length_squared() <= 0.001:
@@ -228,6 +237,35 @@ func clear_scrapper_stagger() -> void:
 	_scrapper_stagger_velocity = Vector3.ZERO
 	if current_state == PursuerState.CHASING or current_state == PursuerState.DETOURING:
 		velocity = Vector3.ZERO
+
+func apply_sidearm_suppression() -> bool:
+	if not is_active or (current_state != PursuerState.CHASING and current_state != PursuerState.DETOURING):
+		return false
+	if _scrapper_stagger_remaining > 0.0:
+		return false
+
+	_sidearm_suppression_remaining = SIDEARM_SUPPRESSION_SEC
+	_intercept_timer = 0.0
+	if visual_root:
+		visual_root.rotation.z = deg_to_rad(7.0)
+	if siren_light:
+		siren_light.visible = true
+		siren_light.light_energy = 0.35
+	return true
+
+func is_sidearm_suppressed() -> bool:
+	return _sidearm_suppression_remaining > 0.0
+
+func get_sidearm_suppression_remaining() -> float:
+	return _sidearm_suppression_remaining
+
+func clear_sidearm_suppression() -> void:
+	_sidearm_suppression_remaining = 0.0
+	if visual_root:
+		visual_root.rotation.z = 0.0
+	if siren_light and (current_state == PursuerState.CHASING or current_state == PursuerState.DETOURING):
+		siren_light.light_energy = 1.0
+
 func set_detour_path(waypoints: Array[Vector3]) -> void:
 	if current_state == PursuerState.DE_ESCALATING or current_state == PursuerState.EVADED_DISENGAGED or current_state == PursuerState.STUNNED:
 		return
@@ -310,6 +348,17 @@ func _physics_process(delta: float) -> void:
 		if _scrapper_stagger_remaining <= 0.0:
 			_scrapper_stagger_velocity = Vector3.ZERO
 			velocity = Vector3.ZERO
+		return
+
+	# Production 19 sidearm suppression is a shorter ranged hesitation. It never
+	# resets retained chase speed, moves the target, or owns Wanted state.
+	if _sidearm_suppression_remaining > 0.0 and (current_state == PursuerState.CHASING or current_state == PursuerState.DETOURING):
+		_sidearm_suppression_remaining = maxf(0.0, _sidearm_suppression_remaining - maxf(delta, 0.0))
+		_intercept_timer = 0.0
+		velocity = -global_transform.basis.z * current_speed * SIDEARM_SUPPRESSION_TRANSLATION_SCALE
+		move_and_slide()
+		if _sidearm_suppression_remaining <= 0.0:
+			clear_sidearm_suppression()
 		return
 
 	# -------------------------------------------------------------------------
