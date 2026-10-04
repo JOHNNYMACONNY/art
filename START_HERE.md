@@ -20,8 +20,8 @@ Always refresh current `main`, open PRs/issues and relevant CI/runtime evidence 
 
 ### NEXT
 
-- **Post-Production-16 product re-evaluation — P17 selection pending fresh playable-game inspection.** P16 fulfilled Mission 03’s authored “decide what deserves daylight” promise with one physical RELEASE/SEAL aftermath choice at the Silent Core; do not automatically grow it into a dialogue tree, morality meter, reputation matrix or persistent civic-memory framework.
-- Select the smallest bounded slice that most improves the fantasy: **“I am inhabiting a beautiful, decaying, near-future city that notices what I do.”** Favor fun, authored systemic consequence, mystery, character/world reactivity, physical city use and player agency over framework work or feature-count growth.
+- **Post-Production-17 product re-evaluation — P18 selection pending fresh playable-game inspection.** P17 fulfilled the missing Street-Combat shooting verb with one bounded session-local retrofit sidearm whose gunfire composes with machine damage, local work-zone alarm, civic Report, Field Hacking and retained Wanted authority. Do not automatically grow it into a weapon roster, ammo economy, generalized NPC combat/health, witness framework or broader police simulation.
+- Select the smallest bounded slice that most improves the fantasy: **“I am inhabiting a beautiful, decaying, near-future city that notices what I do.”** Re-evaluate combat feel, consequence clarity, authored world/character reactivity, mission flow, traversal, vehicles, FB-13/HS-7 presence, audio, saves/reset, performance and mobile readability before choosing P18.
 
 ### DEFERRED
 
@@ -48,7 +48,7 @@ These gates do not automatically block unrelated code-first work.
 - Open World Expansion 01D / PR #66 — Silent Core infrastructure integration, merged.
 - World Event 01 / PR #68 — bounded FB-13 infrastructure-thrum use of existing geography, merged.
 - Issue #89 / Open World Expansion 01E — Gears retained-camera readability & performance checkpoint, complete (`VISUAL_PERF_CHECKPOINT_PASS`).
-- Productions 01–16 — merged and verified through Production 16 The City That Forgot / Memory Disclosure Choice. Exact runnable/gameplay/public P16 baseline: `b96f81264144386bd3fc3a1c77d330b7af3af531`; current public Web publication uses GitHub Pages Actions artifacts and the live source stamp matches that exact SHA.
+- Productions 01–17 — merged and verified through Production 17 Gears Retrofit Sidearm / Gunfire Consequence Tracer. Exact runnable/gameplay/public P17 baseline: `ecaaa903a5fe5bb1e180a9b64b1ed23ae4ebc90e`; current public Web publication uses GitHub Pages Actions artifacts and the live source stamp matches that exact SHA. P17 firearm audio routing is technically verified; perceptual listening quality remains unverified.
 
 Do not recreate completed 01A–01D work because an older roadmap still describes it as future work.
 
