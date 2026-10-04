@@ -75,7 +75,7 @@ func _run() -> void:
 	var player := _scene.get_node_or_null("Runner") as CharacterBody3D
 	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var contact_runtime := _scene.get_node_or_null("MayorBurnContactServiceRuntime")
-	var action_button := touch_ui.get("action_button") as Button if touch_ui != null else null
+	var action_button: Button = touch_ui.get("action_button") as Button if touch_ui != null else null
 	if actor == null or encounter_target == null or player == null or touch_ui == null or contact_runtime == null or action_button == null:
 		await _fail("P18 fixture is incomplete")
 		return
