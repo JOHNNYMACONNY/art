@@ -20,7 +20,7 @@ on:
       - "godot/tests/burnside_production17_sidearm_gunfire_test.gd"
       - "godot/tests/gears_scrapper_tool_input_test.gd"
       - "godot/tests/gears_scrapper_tool_input_lock_test.gd"
-      - "godot/tests/player_survivability_test.gd"
+      - "godot/tests/player_survivability_integration_test.gd"
       - "godot/tests/burnside_checkpoint_courier_recognition_test.gd"
       - "godot/tests/burnside_mission03_memory_disclosure_test.gd"
   pull_request:
@@ -39,7 +39,7 @@ on:
       - "godot/tests/burnside_production17_sidearm_gunfire_test.gd"
       - "godot/tests/gears_scrapper_tool_input_test.gd"
       - "godot/tests/gears_scrapper_tool_input_lock_test.gd"
-      - "godot/tests/player_survivability_test.gd"
+      - "godot/tests/player_survivability_integration_test.gd"
       - "godot/tests/burnside_checkpoint_courier_recognition_test.gd"
       - "godot/tests/burnside_mission03_memory_disclosure_test.gd"
   workflow_dispatch:
@@ -109,7 +109,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for test_file in gears_scrapper_tool_input_test.gd gears_scrapper_tool_input_lock_test.gd player_survivability_test.gd burnside_checkpoint_courier_recognition_test.gd burnside_mission03_memory_disclosure_test.gd; do
+          for test_file in gears_scrapper_tool_input_test.gd gears_scrapper_tool_input_lock_test.gd player_survivability_integration_test.gd burnside_checkpoint_courier_recognition_test.gd burnside_mission03_memory_disclosure_test.gd; do
             echo "::group::$test_file"
             timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
             echo "::endgroup::"
