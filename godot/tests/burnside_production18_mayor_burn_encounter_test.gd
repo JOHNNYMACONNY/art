@@ -75,7 +75,8 @@ func _run() -> void:
 	var player := _scene.get_node_or_null("Runner") as CharacterBody3D
 	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var contact_runtime := _scene.get_node_or_null("MayorBurnContactServiceRuntime")
-	if actor == null or encounter_target == null or player == null or touch_ui == null or contact_runtime == null:
+	var action_button := touch_ui.get("action_button") as Button if touch_ui != null else null
+	if actor == null or encounter_target == null or player == null or touch_ui == null or contact_runtime == null or action_button == null:
 		await _fail("P18 fixture is incomplete")
 		return
 	if not actor.visible:
@@ -141,6 +142,13 @@ func _run() -> void:
 	if not bool(runtime.call("is_presentation_visible")):
 		await _fail("Clear-state Burn presentation did not open")
 		return
+	if action_button.visible:
+		await _fail("Ordinary Action UI remained visible during Burn character moment")
+		return
+	_scene.call("_evaluate_target_selection")
+	if _scene.get("_active_target") != encounter_target:
+		await _fail("Burn did not retain active-target ownership during the exchange")
+		return
 	if String(runtime.call("get_dialogue_speaker")) != CLEAR_LINES[0][0] or String(runtime.call("get_dialogue_line")) != CLEAR_LINES[0][1]:
 		await _fail("Clear-state first authored line is wrong")
 		return
@@ -155,6 +163,9 @@ func _run() -> void:
 	runtime.call("process_encounter_state")
 	if bool(runtime.call("is_presentation_visible")):
 		await _fail("Leaving Burn interaction radius left stale presentation")
+		return
+	if not action_button.visible:
+		await _fail("Burn encounter did not restore ordinary Action UI after leaving")
 		return
 
 	player.global_position = actor.global_position + Vector3(0.0, 0.0, 1.6)
@@ -179,6 +190,9 @@ func _run() -> void:
 		return
 	if String(runtime.call("get_dialogue_speaker")) != "BURN" or String(runtime.call("get_dialogue_line")) != REFUSAL:
 		await _fail("Wanted refusal text is wrong")
+		return
+	if action_button.visible:
+		await _fail("Wanted refusal leaked ordinary Action UI into the character moment")
 		return
 	if int(_wanted.call("get_heat_level")) != heat_before:
 		await _fail("P18 mutated authoritative Wanted Heat")
