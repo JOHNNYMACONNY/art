@@ -100,3 +100,27 @@ jobs:
           set -euo pipefail
           echo "p19=${{ steps.p19.outcome }}"
           test "${{ steps.p19.outcome }}" = "success"
+
+
+      - name: Capture rendered Production 19 proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a "$GODOT_BIN" \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/burnside_production19_sidearm_pursuer_suppression_render_capture.gd
+          test -s godot/verification/production19/01_contact_pursuer_closing.png
+          test -s godot/verification/production19/02_sidearm_hit_hesitation.png
+          test -s godot/verification/production19/03_physical_cover_breaks_los.png
+          test -s godot/verification/production19/04_retained_wanted_search.png
+          test -s godot/verification/production19/05_physical_reacquisition_contact.png
+          test -s godot/verification/production19/render_report.json
+
+      - name: Upload Production 19 proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production19-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production19/
+          if-no-files-found: error
+          retention-days: 14
