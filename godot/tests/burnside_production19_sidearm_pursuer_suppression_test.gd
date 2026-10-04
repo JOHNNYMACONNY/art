@@ -53,9 +53,11 @@ func _run() -> void:
 	var pursuer := _scene.get_node_or_null("PursuerPrototype") as Node3D
 	var sidearm_runtime := _scene.get_node_or_null("GearsSidearmRuntime")
 	var alarm := _scene.get_node_or_null("CivicServiceAlarm")
+	var incident := _scene.get_node_or_null("GearsWorkZoneIncident")
+	var crawler := incident.get_node_or_null("GearsCrawler") as Node3D if incident != null else null
 	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var authority = _wanted_runtime.get("wanted_authority")
-	if player == null or pursuer == null or sidearm_runtime == null or alarm == null or touch_ui == null or authority == null:
+	if player == null or pursuer == null or sidearm_runtime == null or alarm == null or incident == null or crawler == null or touch_ui == null or authority == null:
 		await _fail("P19 fixture is incomplete")
 		return
 
@@ -87,9 +89,13 @@ func _run() -> void:
 		await _fail("Retained Report did not establish Heat 1 + CONTACT")
 		return
 
-	# Real clear-road observation makes the pursuer track the Runner directly.
-	pursuer.global_position = Vector3(-4.5, 0.6, -33.0)
-	player.global_position = Vector3(-4.5, 0.6, -29.0)
+	# Use the retained P17 crawler firing lane as the known unobstructed ballistic
+	# fixture. Move only the crawler test actor aside, then occupy its proven
+	# collider slot with the retained physical pursuer.
+	var ballistic_target_position := crawler.global_position
+	crawler.global_position += Vector3(20.0, 0.0, 20.0)
+	pursuer.global_position = ballistic_target_position
+	player.global_position = ballistic_target_position + Vector3(0.0, 0.0, 4.0)
 	var pivot := player.get_node_or_null("MeshPivot") as Node3D
 	if pivot != null:
 		pivot.rotation.y = 0.0
