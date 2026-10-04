@@ -1,0 +1,76 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/interactions/sidearm_pickup.gd" id="1_pickup"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_body"]
+albedo_color = Color(0.13, 0.14, 0.14, 1)
+metallic = 0.72
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="Mat_grip"]
+albedo_color = Color(0.72, 0.68, 0.58, 1)
+metallic = 0.18
+roughness = 0.78
+
+[sub_resource type="StandardMaterial3D" id="Mat_retrofit"]
+albedo_color = Color(0.08, 0.72, 0.78, 1)
+emission_enabled = true
+emission = Color(0.04, 0.58, 0.68, 1)
+emission_energy_multiplier = 1.4
+metallic = 0.42
+roughness = 0.38
+
+[sub_resource type="BoxMesh" id="Mesh_body"]
+size = Vector3(0.34, 0.18, 0.52)
+
+[sub_resource type="BoxMesh" id="Mesh_barrel"]
+size = Vector3(0.16, 0.13, 0.42)
+
+[sub_resource type="BoxMesh" id="Mesh_grip"]
+size = Vector3(0.17, 0.42, 0.2)
+
+[sub_resource type="BoxMesh" id="Mesh_retrofit"]
+size = Vector3(0.08, 0.1, 0.24)
+
+[sub_resource type="BoxShape3D" id="Shape_pickup"]
+size = Vector3(0.55, 0.55, 0.9)
+
+[node name="SidearmPickup" type="Area3D"]
+script = ExtResource("1_pickup")
+interaction_radius = 2.25
+interaction_priority = 1.65
+
+[node name="SidearmVisual" type="Node3D" parent="."]
+rotation = Vector3(0.08, -0.42, -0.16)
+
+[node name="Receiver" type="MeshInstance3D" parent="SidearmVisual"]
+mesh = SubResource("Mesh_body")
+material_override = SubResource("Mat_body")
+
+[node name="BarrelShroud" type="MeshInstance3D" parent="SidearmVisual"]
+position = Vector3(0.02, 0.01, -0.43)
+mesh = SubResource("Mesh_barrel")
+material_override = SubResource("Mat_body")
+
+[node name="Grip" type="MeshInstance3D" parent="SidearmVisual"]
+position = Vector3(-0.02, -0.27, 0.1)
+rotation = Vector3(-0.18, 0, 0.08)
+mesh = SubResource("Mesh_grip")
+material_override = SubResource("Mat_grip")
+
+[node name="RetrofitCell" type="MeshInstance3D" parent="SidearmVisual"]
+position = Vector3(0.19, 0.01, 0.04)
+mesh = SubResource("Mesh_retrofit")
+material_override = SubResource("Mat_retrofit")
+
+[node name="StatusLabel" type="Label3D" parent="."]
+position = Vector3(0, 0.48, 0)
+text = "RETROFIT // SIDEARM"
+font_size = 22
+pixel_size = 0.009
+outline_size = 6
+billboard = 1
+no_depth_test = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("Shape_pickup")

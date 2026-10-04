@@ -6,6 +6,7 @@ extends Node3D
 
 const GearsWorkZoneIncidentScript = preload("res://scripts/world/gears_work_zone_incident.gd")
 const GearsScrapperToolRuntimeScript = preload("res://scripts/world/gears_scrapper_tool_runtime.gd")
+const GearsSidearmRuntimeScript = preload("res://scripts/world/gears_sidearm_runtime.gd")
 const GearsSurveyedServiceCutRuntimeScript = preload("res://scripts/world/gears_surveyed_service_cut_runtime.gd")
 const BurnGarageRepairRuntimeScript = preload("res://scripts/world/burn_garage_repair_runtime.gd")
 const MayorBurnContactServiceRuntimeScript = preload("res://scripts/world/mayor_burn_contact_service_runtime.gd")
@@ -27,6 +28,7 @@ func _ready() -> void:
 	call_deferred("_mount_production_10_mayor_burn_contact")
 	call_deferred("_mount_production_11_claimed_courier_bike")
 	call_deferred("_mount_production_14_courier_bike_scrapper_mod")
+	call_deferred("_mount_production_17_sidearm")
 
 func _mount_production_04_work_zone() -> void:
 	var scene_root := get_parent()
@@ -149,6 +151,20 @@ func _mount_production_14_courier_bike_scrapper_mod() -> void:
 	runtime.name = "BurnGarageCourierBikeScrapperModRuntime"
 	scene_root.add_child(runtime)
 	if not bool(runtime.call("configure", scene_root, self, wanted_runtime, contact_runtime, claim_runtime, cash_runtime, bike)):
+		runtime.queue_free()
+
+func _mount_production_17_sidearm() -> void:
+	var scene_root := get_parent()
+	if scene_root == null or not (scene_root is Node3D):
+		return
+	if scene_root.get_node_or_null("GearsSidearmRuntime") != null:
+		return
+	var runtime := GearsSidearmRuntimeScript.new() as Node3D
+	if runtime == null:
+		return
+	runtime.name = "GearsSidearmRuntime"
+	scene_root.add_child(runtime)
+	if not bool(runtime.call("configure", scene_root, self)):
 		runtime.queue_free()
 
 func _box_shape(node_path: String) -> BoxShape3D:

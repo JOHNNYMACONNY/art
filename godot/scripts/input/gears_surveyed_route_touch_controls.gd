@@ -17,6 +17,7 @@ func set_map_modal_active(active: bool) -> void:
 	if action_button:
 		action_button.disabled = true if active else _action_disabled_before_map
 	_refresh_tool_action_button()
+	_refresh_weapon_action_button()
 
 func is_map_modal_active() -> bool:
 	return _map_modal_active
@@ -38,6 +39,9 @@ func _on_action_button_clicked() -> void:
 
 func _tool_action_can_emit() -> bool:
 	return not _map_modal_active and super._tool_action_can_emit()
+
+func _weapon_action_can_emit() -> bool:
+	return not _map_modal_active and super._weapon_action_can_emit()
 
 func set_mode(mode: UIMode) -> void:
 	super.set_mode(mode)

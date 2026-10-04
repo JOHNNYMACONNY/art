@@ -43,7 +43,9 @@ enum SoundEvent {
 	## CTW Feel 04 — appended to preserve all existing event ordinals
 	TRACTION_RECOVERY,
 	## World Event 01 — appended; FB-13 companion identity without changing prior ordinals
-	FB13_THRUM
+	FB13_THRUM,
+	## Burnside Production 17 — appended to preserve all prior event ordinals
+	SIDEARM_FIRE
 }
 
 enum MixState {
@@ -123,7 +125,8 @@ const EVENT_COOLDOWNS_MSEC: Dictionary = {
 	SoundEvent.COLLISION_GLANCE: 120,
 	SoundEvent.COLLISION_HEAD_ON: 200,
 	SoundEvent.DISMOUNT_REJECTED: 150,
-	SoundEvent.BRAKE_SCREECH: 150
+	SoundEvent.BRAKE_SCREECH: 150,
+	SoundEvent.SIDEARM_FIRE: 120
 }
 
 ## Narrow playback migration tracer events for #21 validation (asset-only events)
@@ -446,6 +449,11 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 				_play_synth_sweep(pos, 420.0, 620.0, 0.12, 0.22)
 		SoundEvent.FB13_THRUM:
 			_play_fb13_thrum(pos)
+		SoundEvent.SIDEARM_FIRE:
+			# Narrow procedural P17 fallback. This is semantic routing proof, not a
+			# perceptual production-audio qualification.
+			_play_synth_click(pos, 1450.0, 0.035, 0.72)
+			_play_synth_sweep(pos, 310.0, 95.0, 0.11, 0.45)
 
 func stop_event(event: SoundEvent) -> void:
 	if event == SoundEvent.PROXIMITY_HUM and _hum_player:

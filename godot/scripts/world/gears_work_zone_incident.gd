@@ -16,6 +16,7 @@ const RECOVERY_CLEAR_RADIUS_M := 6.0
 const CROSSING_HALF_WIDTH_M := 6.5
 const CROSSING_MIN_Z_M := -3.0
 const CROSSING_MAX_Z_M := 2.0
+const GUNFIRE_REACTION_RADIUS_M := 20.0
 
 enum IncidentState {
 	ROUTINE,
@@ -177,6 +178,14 @@ func _escalate(observed_position: Vector3) -> void:
 	_report_attempt_count += 1
 	_wanted_runtime.call("request_civic_report", observed_position)
 
+func trigger_gunfire_incident(observed_position: Vector3) -> bool:
+	if current_state != IncidentState.ROUTINE:
+		return false
+	if _horizontal_distance(observed_position, global_position) > GUNFIRE_REACTION_RADIUS_M:
+		return false
+	_escalate(observed_position)
+	return true
+
 func trigger_service_access_disruption(observed_position: Vector3) -> bool:
 	if current_state != IncidentState.ROUTINE:
 		return false
@@ -207,6 +216,7 @@ func get_incident_contract() -> Dictionary:
 		"material_actor_distance_m": MATERIAL_ACTOR_DISTANCE_M,
 		"recovery_min_sec": RECOVERY_MIN_SEC,
 		"recovery_clear_radius_m": RECOVERY_CLEAR_RADIUS_M,
+		"gunfire_reaction_radius_m": GUNFIRE_REACTION_RADIUS_M,
 		"anchored_to_gears_industrial_intersection": _anchor_resolved,
 		"district_path": "GearsDistrictSlice01B/IndustrialIntersection",
 		"owns_wanted_authority": false,
