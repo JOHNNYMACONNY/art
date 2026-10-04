@@ -110,7 +110,7 @@ jobs:
           timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_production17_sidearm_gunfire_test.gd
 
       - name: P17 sidearm composition / safety
-        id: p17-composition
+        id: p17_composition
         continue-on-error: true
         shell: bash
         run: |
@@ -133,6 +133,6 @@ jobs:
         run: |
           set -euo pipefail
           echo "p17=${{ steps.p17.outcome }}"
-          echo "p17-composition=${{ steps.p17-composition.outcome }}"
+          echo "p17_composition=${{ steps.p17_composition.outcome }}"
           test "${{ steps.p17.outcome }}" = "success"
-          test "${{ steps.p17-composition.outcome }}" = "success"
+          test "${{ steps.p17_composition.outcome }}" = "success"
