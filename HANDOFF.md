@@ -1253,7 +1253,7 @@ No manual interactive public playthrough is claimed in this closeout.
 
 ## Production 18 — verified player-facing result
 
-Issue #182 / PR #183 gameplay: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED**. Issue #182 remains open only until this continuity record lands, then should be closed as completed.
+Issue #182 / PR #183 gameplay: **COMPLETE / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY UPDATED / ISSUE CLOSED**.
 
 Final reviewed feature head: `057c787692eb57c438bb825f406742341279cdc7`  
 Exact gameplay/public main: `1cdbda2fcbcb53ec62af73514b3b396554277017`
