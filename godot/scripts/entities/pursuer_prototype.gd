@@ -212,11 +212,11 @@ func apply_emp_stun(duration: float = 4.0) -> bool:
 func apply_scrapper_stagger(impact_direction: Vector3) -> bool:
 	if not is_active or (current_state != PursuerState.CHASING and current_state != PursuerState.DETOURING):
 		return false
-	clear_sidearm_suppression()
 	var planar_direction := impact_direction
 	planar_direction.y = 0.0
 	if planar_direction.length_squared() <= 0.001:
 		return false
+	clear_sidearm_suppression()
 	_scrapper_stagger_velocity = planar_direction.normalized() * SCRAPPER_SHOVE_SPEED_MPS
 	_scrapper_stagger_remaining = SCRAPPER_STAGGER_SEC
 	current_speed = 0.0
