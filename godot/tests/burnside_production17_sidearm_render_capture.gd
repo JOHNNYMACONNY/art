@@ -227,10 +227,20 @@ func _run() -> void:
 	var player: CharacterBody3D = f["player"]
 	var held: Node3D = f["held"]
 	var fire_button: Button = f["fire_button"]
+	# Move the proof subject into the authored open intersection so the retained
+	# camera can show the held silhouette without foreground-wall occlusion.
+	player.global_position = f["incident"].global_position + Vector3(0.0, 0.0, 5.0)
+	var held_pivot := player.get_node_or_null("MeshPivot") as Node3D
+	if held_pivot != null:
+		held_pivot.rotation.y = 0.0
 	if held == null or not held.visible or fire_button == null or not fire_button.visible or fire_button.disabled:
 		_fail("Held-sidearm or FIRE presentation is not truthful after acquisition")
 		return
 	var held_camera := await _frame_node(scene, player)
+	if held_camera != null:
+		held_camera.fov = 30.0
+		await process_frame
+		await process_frame
 	if held_camera == null or not _in_view(held_camera, player):
 		_fail("Held-sidearm player framing is invalid")
 		return
