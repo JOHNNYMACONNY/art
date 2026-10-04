@@ -252,6 +252,7 @@ func _resolve_ballistic_once(origin: Vector3, endpoint: Vector3, facing: Vector3
 	_last_impact_name = "MISS"
 	var damaged := false
 	var disabled_target := false
+	var suppressed_target := false
 
 	if not result.is_empty():
 		impact_pos = result.get("position", endpoint)
@@ -264,10 +265,15 @@ func _resolve_ballistic_once(origin: Vector3, endpoint: Vector3, facing: Vector3
 				damage_target.call("take_hit", 1, impact_pos, facing)
 				damaged = true
 				disabled_target = int(damage_target.get("current_durability")) <= 0
+			else:
+				var suppression_target := _find_pursuer_suppression_target(collider as Node)
+				if suppression_target != null:
+					_last_impact_name = String(suppression_target.name)
+					suppressed_target = bool(suppression_target.call("apply_sidearm_suppression"))
 
 	_spawn_trace(origin, impact_pos)
 	if not result.is_empty():
-		_spawn_impact(impact_pos, damaged, disabled_target)
+		_spawn_impact(impact_pos, damaged, disabled_target, suppressed_target)
 
 func _find_ballistic_damage_target(start: Node) -> Node:
 	var node := start
@@ -276,6 +282,16 @@ func _find_ballistic_damage_target(start: Node) -> Node:
 		# crawler only. This prevents leakage into the armored interceptor or
 		# unrelated damageable props while the weapon model is still a tracer.
 		if node.is_in_group("utility_crawlers") and node.has_method("take_hit"):
+			return node
+		node = node.get_parent()
+	return null
+
+func _find_pursuer_suppression_target(start: Node) -> Node:
+	var node := start
+	while node != null:
+		# Production 19 is deliberately closed to the retained physical pursuer.
+		# This is not a generalized firearm target or damage interface.
+		if node.is_in_group("pursuers") and node.has_method("apply_sidearm_suppression"):
 			return node
 		node = node.get_parent()
 	return null
@@ -318,17 +334,17 @@ func _spawn_trace(origin: Vector3, endpoint: Vector3) -> void:
 		Callable(self, "_free_transient_instance").bind(tracer_id)
 	)
 
-func _spawn_impact(position_value: Vector3, damaged: bool, disabled_target: bool = false) -> void:
+func _spawn_impact(position_value: Vector3, damaged: bool, disabled_target: bool = false, suppressed_target: bool = false) -> void:
 	if _root_controller == null:
 		return
 	var mesh := SphereMesh.new()
-	mesh.radius = 0.20 if disabled_target else 0.13
-	mesh.height = 0.40 if disabled_target else 0.26
+	mesh.radius = 0.20 if disabled_target else (0.18 if suppressed_target else 0.13)
+	mesh.height = 0.40 if disabled_target else (0.36 if suppressed_target else 0.26)
 	var marker := MeshInstance3D.new()
 	marker.name = "SidearmImpact"
 	marker.mesh = mesh
-	var color := Color(0.10, 0.95, 1.0, 1.0) if disabled_target else (Color(0.12, 0.86, 0.92, 1.0) if damaged else Color(1.0, 0.52, 0.12, 1.0))
-	marker.material_override = _emissive_material(color, 5.0 if disabled_target else 3.2)
+	var color := Color(0.10, 0.95, 1.0, 1.0) if disabled_target else (Color(1.0, 0.72, 0.14, 1.0) if suppressed_target else (Color(0.12, 0.86, 0.92, 1.0) if damaged else Color(1.0, 0.52, 0.12, 1.0)))
+	marker.material_override = _emissive_material(color, 5.0 if disabled_target else (4.2 if suppressed_target else 3.2))
 	_root_controller.add_child(marker)
 	marker.global_position = position_value
 	var marker_id := marker.get_instance_id()

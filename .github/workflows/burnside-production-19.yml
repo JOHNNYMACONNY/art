@@ -1,0 +1,126 @@
+name: Burnside Production 19
+
+on:
+  push:
+    branches:
+      - main
+      - feat/production-19-sidearm-suppression
+    paths:
+      - "contracts/burnside_production_19_sidearm_pursuer_suppression_spec.md"
+      - ".github/workflows/burnside-production-19.yml"
+      - "godot/scripts/entities/pursuer_prototype.gd"
+      - "godot/scripts/world/gears_sidearm_runtime.gd"
+      - "godot/tests/burnside_production19_sidearm_pursuer_suppression_test.gd"
+      - "godot/tests/burnside_production19_sidearm_pursuer_suppression_render_capture.gd"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_19_sidearm_pursuer_suppression_spec.md"
+      - ".github/workflows/burnside-production-19.yml"
+      - "godot/scripts/entities/pursuer_prototype.gd"
+      - "godot/scripts/world/gears_sidearm_runtime.gd"
+      - "godot/tests/burnside_production19_sidearm_pursuer_suppression_test.gd"
+      - "godot/tests/burnside_production19_sidearm_pursuer_suppression_render_capture.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_RELEASE: "4.7.1-stable"
+  GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+
+jobs:
+  sidearm-pursuer-suppression:
+    name: Exact-source P19 Sidearm Pursuer Suppression
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: P19 sidearm pursuer suppression
+        id: p19
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_production19_sidearm_pursuer_suppression_test.gd
+
+      - name: Retained Wanted / P05 / P17 / P18 regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in             wanted_heat1_scene_test.gd             gears_scrapper_tool_pursuer_test.gd             burnside_production17_sidearm_gunfire_test.gd             burnside_production17_sidearm_composition_test.gd             burnside_production18_mayor_burn_encounter_test.gd             player_survivability_integration_test.gd; do
+            echo "::group::$test_file"
+            timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
+            echo "::endgroup::"
+          done
+
+      - name: Require P19 GREEN
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "p19=${{ steps.p19.outcome }}"
+          test "${{ steps.p19.outcome }}" = "success"
+
+
+      - name: Capture rendered Production 19 proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a "$GODOT_BIN" \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/burnside_production19_sidearm_pursuer_suppression_render_capture.gd
+          test -s godot/verification/production19/01_contact_pursuer_closing.png
+          test -s godot/verification/production19/02_sidearm_hit_hesitation.png
+          test -s godot/verification/production19/03_physical_cover_breaks_los.png
+          test -s godot/verification/production19/04_retained_wanted_search.png
+          test -s godot/verification/production19/05_physical_reacquisition_contact.png
+          test -s godot/verification/production19/render_report.json
+
+      - name: Upload Production 19 proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production19-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production19/
+          if-no-files-found: error
+          retention-days: 14
