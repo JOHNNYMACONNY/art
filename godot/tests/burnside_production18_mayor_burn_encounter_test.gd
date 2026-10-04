@@ -76,7 +76,8 @@ func _run() -> void:
 	var touch_ui := _scene.get_node_or_null("CanvasLayer/TouchControlsUI")
 	var contact_runtime := _scene.get_node_or_null("MayorBurnContactServiceRuntime")
 	var action_button: Button = touch_ui.get("action_button") as Button if touch_ui != null else null
-	if actor == null or encounter_target == null or player == null or touch_ui == null or contact_runtime == null or action_button == null:
+	var service_affordance := contact_runtime.get_node_or_null("MayorBurnContactAffordance") as Label3D if contact_runtime != null else null
+	if actor == null or encounter_target == null or player == null or touch_ui == null or contact_runtime == null or action_button == null or service_affordance == null:
 		await _fail("P18 fixture is incomplete")
 		return
 	if not actor.visible:
@@ -106,6 +107,7 @@ func _run() -> void:
 		await _fail("Retained contact store could not establish KNOWN")
 		return
 	runtime.call("process_encounter_state")
+	await process_frame
 	_scene.call("_evaluate_target_selection")
 	if not bool(encounter_target.get("is_powered")):
 		await _fail("KNOWN on-foot proximity did not power Burn interaction")
@@ -115,6 +117,9 @@ func _run() -> void:
 		return
 	if String(runtime.call("get_affordance_text")) != "BURN // ACTION":
 		await _fail("KNOWN Burn prompt is not the bounded Action affordance")
+		return
+	if not service_affordance.visible:
+		await _fail("Retained Armor affordance was not active in the KNOWN Garage fixture")
 		return
 
 	var start_count := int(runtime.call("get_encounter_start_count"))
@@ -145,6 +150,9 @@ func _run() -> void:
 	if action_button.visible:
 		await _fail("Ordinary Action UI remained visible during Burn character moment")
 		return
+	if service_affordance.visible:
+		await _fail("Armor service affordance remained visible across Burn dialogue")
+		return
 	_scene.call("_evaluate_target_selection")
 	if _scene.get("_active_target") != encounter_target:
 		await _fail("Burn did not retain active-target ownership during the exchange")
@@ -166,6 +174,9 @@ func _run() -> void:
 		return
 	if not action_button.visible:
 		await _fail("Burn encounter did not restore ordinary Action UI after leaving")
+		return
+	if not service_affordance.visible:
+		await _fail("Burn encounter did not restore retained Armor affordance after leaving")
 		return
 
 	player.global_position = actor.global_position + Vector3(0.0, 0.0, 1.6)
