@@ -22,6 +22,7 @@ var _audio_mgr: Node = null
 var _pickup: SidearmPickup = null
 var _held_visual: Node3D = null
 var _muzzle_flash: MeshInstance3D = null
+var _shot_transient_ids: Array[int] = []
 
 var _held: bool = false
 var _configured: bool = false
@@ -213,6 +214,7 @@ func handle_weapon_action_pressed() -> bool:
 	var endpoint := origin + facing * SIDEARM_RANGE_M
 
 	_cooldown_remaining = FIRE_COOLDOWN_SEC
+	_sync_weapon_availability(true)
 	_shot_count += 1
 	_flash_muzzle()
 	if _audio_mgr != null and is_instance_valid(_audio_mgr):
@@ -226,7 +228,7 @@ func process_weapon_state(delta: float) -> void:
 	_sync_weapon_availability()
 
 func _weapon_ui_should_be_available() -> bool:
-	if not _held or _player == null:
+	if not _held or _player == null or _cooldown_remaining > 0.0:
 		return false
 	return not bool(_player.get("is_mounted")) and not bool(_player.get("is_input_locked"))
 
@@ -310,8 +312,10 @@ func _spawn_trace(origin: Vector3, endpoint: Vector3) -> void:
 	_root_controller.add_child(tracer)
 	tracer.global_position = (origin + endpoint) * 0.5
 	tracer.look_at(endpoint, Vector3.UP)
+	var tracer_id := tracer.get_instance_id()
+	_shot_transient_ids.append(tracer_id)
 	get_tree().create_timer(TRACE_LIFETIME_SEC).timeout.connect(
-		Callable(self, "_free_transient_instance").bind(tracer.get_instance_id())
+		Callable(self, "_free_transient_instance").bind(tracer_id)
 	)
 
 func _spawn_impact(position_value: Vector3, damaged: bool, disabled_target: bool = false) -> void:
@@ -327,14 +331,26 @@ func _spawn_impact(position_value: Vector3, damaged: bool, disabled_target: bool
 	marker.material_override = _emissive_material(color, 5.0 if disabled_target else 3.2)
 	_root_controller.add_child(marker)
 	marker.global_position = position_value
+	var marker_id := marker.get_instance_id()
+	_shot_transient_ids.append(marker_id)
 	get_tree().create_timer(IMPACT_LIFETIME_SEC).timeout.connect(
-		Callable(self, "_free_transient_instance").bind(marker.get_instance_id())
+		Callable(self, "_free_transient_instance").bind(marker_id)
 	)
 
 func _free_transient_instance(instance_id: int) -> void:
+	_shot_transient_ids.erase(instance_id)
 	var transient := instance_from_id(instance_id)
 	if is_instance_valid(transient):
 		transient.queue_free()
+
+func _clear_shot_transients() -> void:
+	for instance_id in _shot_transient_ids:
+		var transient := instance_from_id(instance_id)
+		if is_instance_valid(transient):
+			if transient is Node3D:
+				(transient as Node3D).visible = false
+			transient.queue_free()
+	_shot_transient_ids.clear()
 
 func has_sidearm() -> bool:
 	return _held
@@ -366,4 +382,5 @@ func reset_runtime() -> void:
 		_held_visual.visible = false
 	if _muzzle_flash != null and is_instance_valid(_muzzle_flash):
 		_muzzle_flash.visible = false
+	_clear_shot_transients()
 	_sync_weapon_availability(true)
