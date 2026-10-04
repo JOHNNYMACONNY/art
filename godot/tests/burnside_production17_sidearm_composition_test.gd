@@ -137,6 +137,16 @@ func _run() -> void:
 		return
 	var shot_after_button := int(runtime.call("get_shot_count"))
 	var query_after_button := int(runtime.call("get_ballistic_query_count"))
+	if fire_button.visible or not fire_button.disabled:
+		await _fail("FIRE remained available during the accepted-shot cooldown")
+		return
+	if bool(runtime.call("handle_weapon_action_pressed")):
+		await _fail("Cooldown accepted a second firearm action")
+		return
+	runtime.call("process_weapon_state", 0.33)
+	if not fire_button.visible or fire_button.disabled:
+		await _fail("FIRE did not restore when the shot cooldown expired")
+		return
 	var emulated_down := InputEventMouseButton.new()
 	emulated_down.device = InputEvent.DEVICE_ID_EMULATION
 	emulated_down.button_index = MOUSE_BUTTON_LEFT
@@ -243,6 +253,14 @@ func _run() -> void:
 		return
 	if interceptor.is_in_group("utility_crawlers"):
 		await _fail("Security Interceptor incorrectly entered P17 firearm damage authority")
+		return
+	if scene.get_node_or_null("SidearmTrace") == null or scene.get_node_or_null("SidearmImpact") == null:
+		await _fail("Accepted shot did not spawn transient trace/impact feedback")
+		return
+	runtime.call("reset_runtime")
+	await process_frame
+	if scene.get_node_or_null("SidearmTrace") != null or scene.get_node_or_null("SidearmImpact") != null:
+		await _fail("Full Replay reset retained stale sidearm trace/impact feedback")
 		return
 
 	# D. P02 jammed reporting: local physical alarm still happens while city
