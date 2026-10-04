@@ -97,7 +97,7 @@ func _body_material() -> StandardMaterial3D:
 
 func _grip_material() -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.72, 0.68, 0.58, 1.0)
+	material.albedo_color = Color(0.86, 0.82, 0.72, 1.0)
 	material.metallic = 0.18
 	material.roughness = 0.78
 	return material
@@ -140,8 +140,8 @@ func _ensure_held_visual() -> void:
 
 	var body_mat := _body_material()
 	var grip_mat := _grip_material()
-	var retrofit_mat := _emissive_material(Color(0.05, 0.72, 0.78, 1.0), 1.8)
-	var hazard_mat := _emissive_material(Color(1.0, 0.42, 0.06, 1.0), 2.0)
+	var retrofit_mat := _emissive_material(Color(0.05, 0.72, 0.78, 1.0), 1.25)
+	var hazard_mat := _emissive_material(Color(1.0, 0.42, 0.06, 1.0), 1.65)
 	_add_box(_held_visual, "Receiver", Vector3(0.32, 0.18, 0.54), Vector3.ZERO, body_mat)
 	_add_box(_held_visual, "BarrelShroud", Vector3(0.15, 0.13, 0.44), Vector3(0.02, 0.0, -0.46), body_mat)
 	_add_box(_held_visual, "TopPlate", Vector3(0.25, 0.055, 0.40), Vector3(0.0, 0.115, -0.04), grip_mat)
@@ -323,8 +323,8 @@ func _spawn_impact(position_value: Vector3, damaged: bool, disabled_target: bool
 	var marker := MeshInstance3D.new()
 	marker.name = "SidearmImpact"
 	marker.mesh = mesh
-	var color := Color(1.0, 0.40, 0.06, 1.0) if disabled_target else (Color(0.12, 0.86, 0.92, 1.0) if damaged else Color(1.0, 0.52, 0.12, 1.0))
-	marker.material_override = _emissive_material(color, 4.0 if disabled_target else 3.2)
+	var color := Color(0.10, 0.95, 1.0, 1.0) if disabled_target else (Color(0.12, 0.86, 0.92, 1.0) if damaged else Color(1.0, 0.52, 0.12, 1.0))
+	marker.material_override = _emissive_material(color, 5.0 if disabled_target else 3.2)
 	_root_controller.add_child(marker)
 	marker.global_position = position_value
 	get_tree().create_timer(IMPACT_LIFETIME_SEC).timeout.connect(
