@@ -37,6 +37,9 @@ func _fresh_scene() -> Node:
 	await process_frame
 	if _wanted == null or not bool(_wanted.call("bind_to_scene", _scene)):
 		return null
+	# Render proof advances Wanted manually. Disable autoload ticking so capture
+	# frames cannot silently advance CONTACT-loss timers while the GPU renders.
+	_wanted.set_process(false)
 	return _scene
 
 func _camera(scene: Node) -> Camera3D:
@@ -178,8 +181,11 @@ func _run() -> void:
 	if String(_wanted.call("get_wanted_state_name")) != "CONTACT" or pursuer.get("target_node") != player:
 		_fail("Retained Wanted did not establish direct CONTACT tracking in ballistic lane")
 		return
+	# Freeze chase translation during screenshot setup. The focused runtime test
+	# already proves real movement; this keeps visual proof state deterministic.
+	pursuer.set_physics_process(false)
 
-	var framed := await _frame_pair(scene, player, pursuer, "P19ContactPair", 42.0)
+	var framed := await _frame_pair(scene, player, pursuer, "P19ContactPair", 34.0)
 	if framed.is_empty():
 		_fail("Could not frame CONTACT approach")
 		return
@@ -230,6 +236,9 @@ func _run() -> void:
 	if not err.is_empty():
 		_fail(err)
 		return
+	if not bool(pursuer.call("is_sidearm_suppressed")) or String(_wanted.call("get_wanted_state_name")) != "CONTACT":
+		_fail("Hit capture drifted away from live P19 suppression + CONTACT")
+		return
 
 	# Let the local modifier expire, then use the retained Commercial Frontage
 	# fixture to create a real physical LOS break. This first proof frame remains
@@ -262,6 +271,9 @@ func _run() -> void:
 	if not err.is_empty():
 		_fail(err)
 		return
+	if String(_wanted.call("get_wanted_state_name")) != "CONTACT" or bool(_wanted.call("has_direct_observation", pursuer, player)):
+		_fail("Cover capture drifted away from CONTACT grace with physical LOS broken")
+		return
 
 	# Only retained Wanted observation authority may now turn the sustained
 	# physical sight break into SEARCH.
@@ -280,6 +292,9 @@ func _run() -> void:
 	)
 	if not err.is_empty():
 		_fail(err)
+		return
+	if String(_wanted.call("get_wanted_state_name")) != "SEARCH":
+		_fail("SEARCH capture drifted away from retained Wanted authority")
 		return
 
 	# A legitimate physical reacquisition remains owned by retained Wanted logic.
