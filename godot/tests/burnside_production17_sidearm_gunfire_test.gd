@@ -27,6 +27,19 @@ func _acquire(runtime: Node, pickup: Node, player: Node3D) -> bool:
 	_scene.set("_active_target", pickup)
 	return bool(runtime.call("handle_action_pressed"))
 
+func _count_shot_feedback(visible_only: bool = false) -> int:
+	if _scene == null:
+		return 0
+	var count := 0
+	for child in _scene.get_children():
+		var child_name := String(child.name)
+		if not child_name.begins_with("SidearmTrace") and not child_name.begins_with("SidearmImpact"):
+			continue
+		if visible_only and child is Node3D and not (child as Node3D).visible:
+			continue
+		count += 1
+	return count
+
 func _run() -> void:
 	_wanted_runtime = root.get_node_or_null("BurnsideWantedRuntime")
 	if _wanted_runtime == null:
@@ -183,6 +196,9 @@ func _run() -> void:
 	if int(_wanted_runtime.call("get_heat_level")) != 1:
 		await _fail("Live clear-state gunfire Report did not compose into retained Heat 1")
 		return
+	if fire_button.visible or not fire_button.disabled:
+		await _fail("FIRE stayed actionable while the accepted shot cooldown was active")
+		return
 
 	# Cooldown rejection must not produce a second ray, audio event, or Report.
 	if bool(sidearm_runtime.call("handle_weapon_action_pressed")):
@@ -195,6 +211,9 @@ func _run() -> void:
 	# Expire only the sidearm cooldown without advancing the alarmed crawler away
 	# from the captured proof line, then use its existing second-hit lifecycle.
 	sidearm_runtime.call("process_weapon_state", 0.40)
+	if not fire_button.visible or fire_button.disabled:
+		await _fail("FIRE did not become available again after cooldown expiry")
+		return
 	if not bool(sidearm_runtime.call("handle_weapon_action_pressed")):
 		await _fail("Valid second sidearm shot was rejected after cooldown")
 		return
@@ -209,9 +228,20 @@ func _run() -> void:
 		return
 
 	# Full Replay is the possession reset authority. Exercise the real shared
-	# signal so root, incident, and P17 subscribers reset together.
+	# signal so root, incident, and P17 subscribers reset together. The accepted
+	# second shot deliberately leaves live trace/impact feedback at this instant,
+	# so Replay must hide it synchronously and free it on the next frame.
+	if _count_shot_feedback(true) <= 0:
+		await _fail("Second sidearm shot did not create transient trace/impact proof")
+		return
 	touch_ui.emit_signal("replay_pressed")
+	if _count_shot_feedback(true) != 0:
+		await _fail("Full Replay left prior-run sidearm trace/impact visibly alive")
+		return
 	await process_frame
+	if _count_shot_feedback(false) != 0:
+		await _fail("Full Replay did not free prior-run sidearm trace/impact nodes")
+		return
 	await physics_frame
 	await process_frame
 	if bool(sidearm_runtime.call("has_sidearm")) or bool(pickup.call("is_acquired")) or not pickup.visible:
