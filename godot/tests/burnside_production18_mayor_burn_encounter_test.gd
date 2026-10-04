@@ -77,7 +77,13 @@ func _run() -> void:
 	var contact_runtime := _scene.get_node_or_null("MayorBurnContactServiceRuntime")
 	var action_button: Button = touch_ui.get("action_button") as Button if touch_ui != null else null
 	var service_affordance: Label3D = contact_runtime.get_node_or_null("MayorBurnContactAffordance") as Label3D if contact_runtime != null else null
-	if actor == null or encounter_target == null or player == null or touch_ui == null or contact_runtime == null or action_button == null or service_affordance == null:
+	var repair_runtime := _scene.get_node_or_null("BurnGarageRepairRuntime")
+	var claim_runtime := _scene.get_node_or_null("BurnGarageCourierBikeClaimRuntime")
+	var scrapper_mod_runtime := _scene.get_node_or_null("BurnGarageCourierBikeScrapperModRuntime")
+	var repair_affordance: Label3D = repair_runtime.get_node_or_null("BurnGarageRepairAffordance") as Label3D if repair_runtime != null else null
+	var claim_affordance: Label3D = claim_runtime.get_node_or_null("CourierBikeClaimAffordance") as Label3D if claim_runtime != null else null
+	var scrapper_affordance: Label3D = scrapper_mod_runtime.get_node_or_null("CourierBikeScrapBashBarAffordance") as Label3D if scrapper_mod_runtime != null else null
+	if actor == null or encounter_target == null or player == null or touch_ui == null or contact_runtime == null or action_button == null or service_affordance == null or repair_affordance == null or claim_affordance == null or scrapper_affordance == null:
 		await _fail("P18 fixture is incomplete")
 		return
 	if not actor.visible:
@@ -205,6 +211,10 @@ func _run() -> void:
 	if action_button.visible:
 		await _fail("Wanted refusal leaked ordinary Action UI into the character moment")
 		return
+	for label in [service_affordance, repair_affordance, claim_affordance, scrapper_affordance]:
+		if label.visible:
+			await _fail("Wanted refusal leaked a retained Garage service affordance")
+			return
 	if int(_wanted.call("get_heat_level")) != heat_before:
 		await _fail("P18 mutated authoritative Wanted Heat")
 		return
