@@ -20,6 +20,7 @@ on:
       - "godot/scripts/audio/audio_manager.gd"
       - "godot/tests/burnside_production17_sidearm_gunfire_test.gd"
       - "godot/tests/burnside_production17_sidearm_composition_test.gd"
+      - "godot/tests/burnside_production17_sidearm_render_capture.gd"
       - "godot/tests/gears_scrapper_tool_input_test.gd"
       - "godot/tests/gears_scrapper_tool_input_lock_test.gd"
       - "godot/tests/player_survivability_integration_test.gd"
@@ -41,6 +42,7 @@ on:
       - "godot/scripts/audio/audio_manager.gd"
       - "godot/tests/burnside_production17_sidearm_gunfire_test.gd"
       - "godot/tests/burnside_production17_sidearm_composition_test.gd"
+      - "godot/tests/burnside_production17_sidearm_render_capture.gd"
       - "godot/tests/gears_scrapper_tool_input_test.gd"
       - "godot/tests/gears_scrapper_tool_input_lock_test.gd"
       - "godot/tests/player_survivability_integration_test.gd"
@@ -136,3 +138,27 @@ jobs:
           echo "p17_composition=${{ steps.p17_composition.outcome }}"
           test "${{ steps.p17.outcome }}" = "success"
           test "${{ steps.p17_composition.outcome }}" = "success"
+
+
+      - name: Capture rendered Production 17 proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a "$GODOT_BIN" \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/burnside_production17_sidearm_render_capture.gd
+          test -s godot/verification/production17/01_sidearm_pickup_ready.png
+          test -s godot/verification/production17/02_sidearm_held_fire_ready.png
+          test -s godot/verification/production17/03_sidearm_first_hit_report_contact.png
+          test -s godot/verification/production17/04_sidearm_second_hit_crawler_disabled.png
+          test -s godot/verification/production17/05_sidearm_jammed_report_local_alarm_clear.png
+          test -s godot/verification/production17/render_report.json
+
+      - name: Upload Production 17 proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production17-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production17/
+          if-no-files-found: error
+          retention-days: 14
