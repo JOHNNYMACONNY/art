@@ -19,6 +19,7 @@ on:
       - "godot/scripts/entities/utility_crawler.gd"
       - "godot/scripts/audio/audio_manager.gd"
       - "godot/tests/burnside_production17_sidearm_gunfire_test.gd"
+      - "godot/tests/burnside_production17_sidearm_composition_test.gd"
       - "godot/tests/gears_scrapper_tool_input_test.gd"
       - "godot/tests/gears_scrapper_tool_input_lock_test.gd"
       - "godot/tests/player_survivability_integration_test.gd"
@@ -39,6 +40,7 @@ on:
       - "godot/scripts/entities/utility_crawler.gd"
       - "godot/scripts/audio/audio_manager.gd"
       - "godot/tests/burnside_production17_sidearm_gunfire_test.gd"
+      - "godot/tests/burnside_production17_sidearm_composition_test.gd"
       - "godot/tests/gears_scrapper_tool_input_test.gd"
       - "godot/tests/gears_scrapper_tool_input_lock_test.gd"
       - "godot/tests/player_survivability_integration_test.gd"
@@ -107,6 +109,14 @@ jobs:
           set -euo pipefail
           timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_production17_sidearm_gunfire_test.gd
 
+      - name: P17 sidearm composition / safety
+        id: p17-composition
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_production17_sidearm_composition_test.gd
+
       - name: Retained combat / input / consequence regressions
         shell: bash
         run: |
@@ -123,4 +133,6 @@ jobs:
         run: |
           set -euo pipefail
           echo "p17=${{ steps.p17.outcome }}"
+          echo "p17-composition=${{ steps.p17-composition.outcome }}"
           test "${{ steps.p17.outcome }}" = "success"
+          test "${{ steps.p17-composition.outcome }}" = "success"
