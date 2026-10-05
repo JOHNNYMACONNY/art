@@ -4,7 +4,7 @@ const OUTPUT_DIR := "res://verification/production20"
 const SCENE_PATH := "res://scenes/prototype/scrap_test_block.tscn"
 const CivicMissionScript = preload("res://scripts/missions/civic_repossession_mission.gd")
 const ScrapTestBlockScript = preload("res://scripts/prototype/scrap_test_block.gd")
-const PROOF_FOV := 44.0
+const PROOF_FOV := 32.0
 
 var _scene: Node = null
 var _wanted: Node = null
