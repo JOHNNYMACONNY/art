@@ -146,7 +146,7 @@ func _run_outcome(choice: String) -> Dictionary:
 	if actor == null or not actor.visible:
 		return {"error": "Sister Kael did not become physically present after Mission 03 COMPLETE"}
 
-	var expected_position := (f["socket"] as Marker3D).global_position + Vector3(0.0, -0.15, -1.60)
+	var expected_position := (f["socket"] as Marker3D).global_position + Vector3(1.25, -0.15, -0.85)
 	if actor.global_position.distance_to(expected_position) > 0.02:
 		return {"error": "Sister Kael drifted from locked Silent Core staging"}
 
