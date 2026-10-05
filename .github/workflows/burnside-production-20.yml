@@ -102,3 +102,25 @@ jobs:
           set -euo pipefail
           echo "p20=${{ steps.p20.outcome }}"
           test "${{ steps.p20.outcome }}" = "success"
+
+
+      - name: Capture rendered Production 20 proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a "$GODOT_BIN" \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/burnside_production20_sister_kael_witness_render_capture.gd
+          test -s godot/verification/production20/01_kael_witnesses_ready_relays.png
+          test -s godot/verification/production20/02_kael_release_reaction.png
+          test -s godot/verification/production20/03_kael_seal_reaction.png
+          test -s godot/verification/production20/render_report.json
+
+      - name: Upload Production 20 proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnside-production20-proof-${{ env.SOURCE_SHA }}
+          path: godot/verification/production20/
+          if-no-files-found: error
+          retention-days: 14
