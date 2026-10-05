@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P18_MAYOR_BURN_PRESENCE_MERGED_VERIFIED_PUBLIC`  
-**Current gameplay/world baseline:** `1cdbda2fcbcb53ec62af73514b3b396554277017`  
+**Status:** `BURNSIDE_P19_SIDEARM_PURSUER_SUPPRESSION_MERGED_VERIFIED_PUBLIC`  
+**Current gameplay/world baseline:** `d8ec7918e8980029f0ed9821e109cc0c65cbb42c`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -9,7 +9,7 @@
 
 ## Current product state
 
-Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts, one durable claimed-Courier-Bike Scrap Bash Bar modification, one bounded checkpoint-local memory of a claimed Bike breach, one physical Mission-03 memory-disclosure aftermath choice, one session-local Gears retrofit sidearm with bounded gunfire consequence, and one physical Mayor Burn Garage presence with a bounded KNOWN-contact face-to-face encounter compose in the same geography.
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts, one durable claimed-Courier-Bike Scrap Bash Bar modification, one bounded checkpoint-local memory of a claimed Bike breach, one physical Mission-03 memory-disclosure aftermath choice, one session-local Gears retrofit sidearm with bounded gunfire consequence, one physical Mayor Burn Garage presence with a bounded KNOWN-contact face-to-face encounter, and one bounded ranged sidearm suppression response against the retained physical Wanted pursuer compose in the same geography.
 
 **Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
 - **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
@@ -1301,38 +1301,100 @@ No manual interactive public playthrough is claimed in this closeout.
 
 Audio qualification is unchanged by P18. P18 introduced no Audio event or voice pipeline. P17 `SIDEARM_FIRE` technical routing remains verified; perceptual firearm-audio quality remains **NOT VERIFIED** without an actual listening pass.
 
-## Post-Production-18 re-evaluation state
+## Production 19 — verified player-facing result
 
-P18 closes the immediate authored-human-presence gap by making Mayor Burn a recognizable recurring person at the Garage. Do **not** automatically turn this into a generalized dialogue/NPC framework or repeat the same static-character slice for Lira/Sister Kael merely because the seam now exists.
+Issue #184 / PR #187 gameplay: **GAMEPLAY MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY UPDATE IN PROGRESS**.
+
+Final reviewed feature head:
+
+`948fce608216d5a6d6f0cd2aa1cb40421f8a0bd2`
+
+Exact gameplay/public main:
+
+`d8ec7918e8980029f0ed9821e109cc0c65cbb42c`
+
+Player-facing loop:
+
+`HEAT 1 + CONTACT -> PURSUER CLOSES -> SIDEARM HIT -> BRIEF HESITATION -> PLAYER USES PHYSICAL COVER / ROUTE -> RETAINED LOS AUTHORITY DECIDES CONTACT OR SEARCH`
+
+Verified retained boundaries:
+
+- one valid sidearm ray may request a bounded nonlethal response from the active pursuer only while it is CHASING / DETOURING;
+- suppression lasts **0.18 s** and translates at **35% of retained current speed**;
+- P19 applies no displacement impulse, does not reset `current_speed`, does not change chase/detour state, does not change `target_node`, and clears the local interception timer only while the modifier is active;
+- the hit reaction is visually readable through a bounded 12-degree body roll plus temporary amber siren emphasis, then restores retained pursuit presentation;
+- repeated perfect FIRE at the retained 0.32 s cooldown cannot win a max-speed open-road foot chase by itself: the resulting average pursuer translation remains about 9.8 m/s versus Runner 8.5 m/s;
+- retained P05 Scrapper remains the stronger close-range body-space verb: 0.30 s with physical shove/displacement; valid Scrapper contact supersedes P19 suppression;
+- rejected zero-direction Scrapper input does not mutate an active P19 suppression modifier;
+- P17 remains sole owner of sidearm acquisition, FIRE input, one-shot/one-ray resolution, cooldown, local gunfire consequence and `SIDEARM_FIRE` technical audio routing;
+- retained Utility Crawler damage remains the first closed ballistic target path; P19 adds only the retained `pursuers` group + `apply_sidearm_suppression()` fallback and no generalized damage/target registry;
+- Wanted remains sole authority for Heat / CONTACT / SEARCH / Evasion; P19 never directly writes or clears any of those states;
+- retained physical LOS loss must persist through the existing 0.8 s grace before CONTACT -> SEARCH; direct observation reacquisition remains retained Wanted behavior;
+- Full Replay/pursuer reset clears transient P19 presentation/state; EMP, vehicle stun and de-escalation retain their existing authority;
+- no save migration, human Health/death expansion, weapon roster, ammo/reload, enemy firearms, Heat 2–5, generalized witnesses/NPC/combat framework, new geography, unrelated Audio or PR #44 work entered P19.
+
+Review / verification:
+
+- RED exact head `0a9b3d28c972dec147db055ff9842d948b9f4ece`, run `37176711031`, failed for the intended missing `apply_sidearm_suppression` seam while retained regressions remained green;
+- frozen feature head `948fce608216d5a6d6f0cd2aa1cb40421f8a0bd2`;
+- fresh Codex review on that exact frozen head: **“Didn't find any major issues.”**
+- no unresolved review threads remained; Copilot quota exhaustion was non-substantive and was not treated as approval;
+- exact frozen-head push P19 run `37183679547`: **SUCCESS**;
+- exact frozen-head proof artifact `11296106706`, digest `sha256:13121c3c1ddaa4fab79493195f1026acc82abd17fe149bb0a33a5b4faba03d35`;
+- PR P19 run `37183755892`: **SUCCESS**;
+- PR retained P17 run `37183755873`: **SUCCESS**;
+- PR retained P05 run `37183755899`: **SUCCESS**, including retained P01 Wanted, P02 Field Hacking, P03 Mission/Wanted, P04 work-zone and P05 tool/route regressions;
+- PR Godot Web Playtest `37183755847`: **SUCCESS**, including literal-head and synthetic-merge browser exports, current camera/combat/checkpoint/player-survivability checks and canonical 29-suite compatibility matrix;
+- exact-main P19 run `37183995961`: **SUCCESS**;
+- exact-main retained P05 run `37183996014`: **SUCCESS**;
+- exact-main retained P17 run `37183995975`: **SUCCESS**;
+- exact-main Godot Web Playtest `37183996008`: **SUCCESS**, including exact-source checkout, mobile/desktop input regressions, Web export, static-host smoke, public package and Pages deployment;
+- exact-main P19 proof artifact `11296535829`, digest `sha256:347f1ede5a4615e32f58309bb92017bbc290cbe86c324e2052fff9f91c0f1460`, reports exact source SHA `d8ec7918e8980029f0ed9821e109cc0c65cbb42c`;
+- the exact-main five-frame proof was directly inspected: CONTACT approach; readable sidearm suppression while CONTACT remains; physical cover with direct observation broken but CONTACT still inside retained grace; the same geometry becoming SEARCH only after retained Wanted authority advances; and physical reacquisition restoring CONTACT.
+
+Latest verified public provenance:
+
+`PLAYTEST_BUILD.txt = d8ec7918e8980029f0ed9821e109cc0c65cbb42c`
+
+The Pages publish job completed for that exact gameplay SHA, and an independent live fetch returned the same exact source stamp.
+
+No manual interactive public playthrough is claimed in this closeout.
+
+Audio qualification is unchanged by P19. P19 introduced no new Audio event and no voice pipeline. P17 `SIDEARM_FIRE` technical routing remains verified; perceptual firearm-audio quality remains **NOT VERIFIED** without an actual listening pass.
+
+## Post-Production-19 re-evaluation state
+
+P19 closes the highest-value immediate composition gap between the retained P17 firearm and the retained physical Heat-1 pursuer. The next slice should not grow combat breadth merely because the sidearm now has a second target class.
 
 The selected next investigation frontier is:
 
-**Production 19 — #184 — Wanted Pursuer Sidearm Suppression / Contact-Break Composition**
+**Production 20 — #188 — Sister Kael Silent Core Presence / Choice-Reactive Witness**
 
 Status: `SELECTED__JIT_DESIGN_PENDING`
 
 Why it currently outranks adjacent options:
 
-1. **sidearm <-> Wanted pursuer composition** — P17 created a ranged player verb and P05 created close-range Scrapper pursuer counterplay, but the sidearm still does not materially compose with the central physical Contact/Search pursuer;
-2. **more authored character presence** — still valuable for Lira/Sister Kael, but P18 just closed the largest immediate identity absence and repeating the same pattern would add less new play;
-3. **Heat 2+ / broader police escalation** — potentially high-value later, but carries materially greater authority/AI/content complexity;
-4. **human Health/death / enemy ranged combat** — broadens combat architecture substantially and is not required to make the current sidearm/chase loop more expressive;
-5. **vehicle/camera/audio retuning** — should remain evidence-led; no new verified weakness from P18 justifies reopening retained defaults or making perceptual audio claims.
+1. **Sister Kael choice-reactive physical presence** — Mission 03/P16 already gives the player a consequential RELEASE vs SEAL climax at the Silent Core, and verified creative sources consistently pair Kael with that location, but current Godot runtime has no physical Sister Kael entity. A bounded witness/reaction can add character, mystery and consequence without inventing another choice authority.
+2. **Lira physical presence** — still valuable, but the Silent Core aftermath already contains a stronger existing player decision to compose with, giving Kael a clearer reason to be physically present now.
+3. **Heat 2+ / broader police escalation** — materially higher AI/authority/content complexity than the current authored-character gap warrants.
+4. **human Health/death / enemy ranged combat** — broadens combat architecture and is not required after P19.
+5. **more geography** — lower value until a new gameplay need justifies it.
+6. **audio retuning** — should remain evidence/perceptual-gate driven; P20 must not manufacture an Audio dependency.
 
-P19's candidate question is deliberately bounded: can a valid sidearm hit create a short, readable **nonlethal pursuer suppression/hesitation** opportunity, while retained physical observation remains the only mechanism that can actually transition CONTACT -> SEARCH? The sidearm must not directly clear Wanted or become a strictly better Scrapper Tool.
+P20 is deliberately **not** another P18-style Action -> static conversation. The candidate is one original/procedural Sister Kael presence at the existing Silent Core that reads the already-authoritative P16 outcome and gives a short materially distinct RELEASE-vs-SEAL reaction. P16 remains the only choice writer; Kael must not become a second outcome/save/relationship authority.
 
-P19 is not implementation-approved yet. Refresh the actual pursuer + P17 runtime seams and perform a narrow JIT design before coding.
+Do not begin implementation from continuity alone. Reverify the actual P16 aftermath runtime, Mission-03/Silent-Core staging, HS-7 presence, target arbitration, reset semantics and current shared-scene/Audio concurrency before locking P20 JIT design.
 
 ## Next-state rule
 
 Next production session:
 
 1. refresh exact repo/main, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene work;
-2. keep exact runnable/gameplay/public P18 baseline `1cdbda2fcbcb53ec62af73514b3b396554277017` distinct from any later docs-only continuity HEAD;
-3. confirm PR #183 remains merged and #182 is closed/completed after continuity lands;
-4. read `START_HERE.md`, #55, #118, #184 and the retained P01–P18 contracts;
-5. perform P19 JIT design against actual pursuer movement/observation and P17 hitscan seams before locking implementation;
-6. preserve P05 Scrapper distinction, retained Wanted authority, P17 local gunfire consequence, P18 Mayor Burn/Garage behavior, save compatibility and unrelated Audio;
-7. do not touch PR #44 or expand into human Health/death, weapon rosters, Heat 2–5, enemy firearms or generalized hostile AI absent fresh evidence and an explicit later decision.
+2. keep exact runnable/gameplay/public P19 baseline `d8ec7918e8980029f0ed9821e109cc0c65cbb42c` distinct from any later docs-only continuity HEAD;
+3. confirm PR #187 remains merged and #184 is closed/completed after this continuity lands;
+4. read `START_HERE.md`, #55, #118, #188 and the retained P16/P18/P19 contracts;
+5. perform P20 JIT design against actual P16 aftermath + Silent Core / Mission-03 seams before locking implementation;
+6. preserve P16 choice authority, P01/P02 civic authority, P08 HS-7 presence, P18 Mayor Burn, P19 suppression, save compatibility and unrelated Audio;
+7. do not touch PR #44 or expand into generalized dialogue/NPC systems, relationship meters, hostile-human combat, weapon breadth, Heat 2–5, new acreage or voice work absent fresh evidence and an explicit later decision.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
