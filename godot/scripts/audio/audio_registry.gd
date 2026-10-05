@@ -64,10 +64,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 120,
 		"max_concurrency": 4,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/player/sfx_player_footstep.wav",
-		"source_provenance": "GTA_SA:FEET:BANK_0:SOUND_4",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:player.footstep",
 		"description": "Courier reinforced work-boot footstep on salvage tarmac / dusty industrial ground"
 	},
 	"player.bike_mount": {
@@ -82,10 +82,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/player/sfx_player_bike_mount.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_57",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:player.bike_mount",
 		"description": "Courier mounting bike chassis mechanical latch"
 	},
 	"player.bike_dismount": {
@@ -100,10 +100,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/player/sfx_player_bike_dismount.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_41",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:player.bike_dismount",
 		"description": "Courier dismounting bike release click"
 	},
 	"player.signal_lock_pulse": {
@@ -118,10 +118,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/player/sfx_player_signal_lock_pulse.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_31",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:player.signal_lock_pulse",
 		"description": "Signal tuner resonant harmonic lock confirmation"
 	},
 	"interaction.panel_pry": {
@@ -136,10 +136,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/interaction/sfx_interaction_panel_pry.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_76:SOUND_2",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:interaction.panel_pry",
 		"description": "Corroded panel initial pry stress crack"
 	},
 	"interaction.panel_peel": {
@@ -154,10 +154,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 80,
 		"max_concurrency": 3,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/interaction/sfx_interaction_panel_peel.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_76:SOUND_1",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:interaction.panel_peel",
 		"description": "Panel peeling metal groan and shear"
 	},
 	"interaction.wire_clip": {
@@ -172,10 +172,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/interaction/sfx_interaction_wire_clip.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_17",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:interaction.wire_clip",
 		"description": "Wire snip snap transient"
 	},
 	"interaction.wire_spark": {
@@ -190,10 +190,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 3,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/interaction/sfx_interaction_wire_spark.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_26",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:interaction.wire_spark",
 		"description": "Exposed wire electrical crackle / spark"
 	},
 	"interaction.battery_insert": {
@@ -208,10 +208,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/interaction/sfx_interaction_battery_insert.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_45:SOUND_1",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:interaction.battery_insert",
 		"description": "Power cell locking into junction slot"
 	},
 	"interaction.core_extracted": {
@@ -226,10 +226,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/interaction/sfx_interaction_core_extracted.wav",
-		"source_provenance": "GTA_SA:SCRIPT:BANK_260:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:interaction.core_extracted",
 		"description": "Memory core release pneumatic hiss and lock release"
 	},
 	"interaction.gate_triggered": {
@@ -244,10 +244,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 200,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/interaction/sfx_interaction_gate_slam.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_42:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:interaction.gate_triggered",
 		"description": "Signal gate heavy industrial barrier slam / route-switch confirmation"
 	},
 	"vehicle.engine_rev": {
@@ -262,10 +262,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 1.1962,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/vehicle/loop_vehicle_engine_rev.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_8:SOUND_1",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:vehicle.engine_rev",
 		"description": "Reclaimed electric/mechanical drivetrain turbine propulsion loop"
 	},
 	"vehicle.brake_screech": {
@@ -280,10 +280,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 150,
 		"max_concurrency": 3,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/vehicle/sfx_vehicle_brake_screech.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_28",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:vehicle.brake_screech",
 		"description": "Pneumatic / disc brake skid screech"
 	},
 	"vehicle.collision_glance": {
@@ -298,10 +298,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 3,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/vehicle/sfx_vehicle_collision_glance.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_51:SOUND_2",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:vehicle.collision_glance",
 		"description": "Abrasive lateral metal scrape and body-panel shear"
 	},
 	"vehicle.collision_hard": {
@@ -316,10 +316,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 100,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/vehicle/sfx_vehicle_collision_hard.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_58:SOUND_2",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:vehicle.collision_hard",
 		"description": "Heavy direct chassis crumple and structural metal crash"
 	},
 	"pursuit.disturbance_alert": {
@@ -334,10 +334,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/pursuit/sfx_pursuit_disturbance_alert.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_138:SOUND_40",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:pursuit.disturbance_alert",
 		"description": "Urgent electronic security detection alert before pursuit siren escalation"
 	},
 	"pursuit.siren_alarm": {
@@ -352,10 +352,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.7772,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/pursuit/loop_pursuit_siren_alarm.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_39:SOUND_8",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:pursuit.siren_alarm",
 		"description": "Autonomous pursuer electronic threat siren loop"
 	},
 	"pursuit.pursuer_sweep": {
@@ -370,10 +370,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.8,
 		"cooldown_msec": 0,
 		"max_concurrency": 2,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/pursuit/loop_pursuit_scanner_sweep.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_138:SOUND_43",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:pursuit.pursuer_sweep",
 		"description": "Pursuer scanner radar sweep tone"
 	},
 	"pursuit.evaded_stinger": {
@@ -388,10 +388,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/pursuit/sfx_pursuit_evaded_stinger.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_45",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:pursuit.evaded_stinger",
 		"description": "Calm descending electronic release cue for successful pursuit break"
 	},
 	"pursuit.intercepted_impact": {
@@ -406,10 +406,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/pursuit/sfx_pursuit_intercepted_impact.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_40:SOUND_1",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:pursuit.intercepted_impact",
 		"description": "Pursuer interception chassis slam and critical impact"
 	},
 	"echo.onset": {
@@ -424,10 +424,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/echo/sfx_echo_onset.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_37",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:echo.onset",
 		"description": "Memory echo electrical carrier rupture / discovery onset"
 	},
 	"echo.bed_loop": {
@@ -442,10 +442,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/echo/sfx_echo_peak.wav",
-		"source_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_78",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:echo.bed_loop",
 		"description": "Finite Memory Echo peak apparition / fractured harmonic signal ghost"
 	},
 	"echo.completion": {
@@ -460,10 +460,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/echo/sfx_echo_completion_tail.wav",
-		"source_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_60",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:echo.completion",
 		"description": "Memory echo electrical shimmer resolution tail / signal dissolve"
 	},
 	"echo.radio_interference": {
@@ -478,10 +478,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.9579,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/echo/loop_echo_radio_interference.wav",
-		"source_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_12",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:echo.radio_interference",
 		"description": "Hybrid precursor Echo RF carrier contamination loop"
 	},
 	"world.ambient_wind": {
@@ -496,10 +496,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 4.4999,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/world/amb_world_scrapyard_wind.wav",
-		"source_provenance": "GTA_SA:SCRIPT:BANK_350:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:world.ambient_wind",
 		"description": "Dry exposed scrapyard/desert ambient wind loop"
 	},
 	"world.radio_chatter": {
@@ -514,10 +514,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 3000,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/world/sfx_world_radio_chatter.wav",
-		"source_provenance": "GTA_SA:SCRIPT:BANK_356:SOUND_16",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:world.radio_chatter",
 		"description": "Corrupted courier transmission burst"
 	},
 	"world.fb13_thrum": {
@@ -532,10 +532,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 200,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/world/sfx_world_fb13_resonance.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_7:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:world.fb13_thrum",
 		"description": "FB-13 companion infrastructure thrum / mechanism resonance pulse"
 	},
 	"radio.yardline.song_01.intro": {
@@ -550,10 +550,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song01_intro.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_81:SOUND_2",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.song_01.intro",
 		"description": "Yardline 88.3 Scrap Pulse intro segment"
 	},
 	"radio.yardline.song_01.body": {
@@ -568,10 +568,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song01_body.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_81:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.song_01.body",
 		"description": "Yardline 88.3 Scrap Pulse body segment"
 	},
 	"radio.yardline.song_01.outro": {
@@ -586,10 +586,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song01_outro.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_81:SOUND_1",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.song_01.outro",
 		"description": "Yardline 88.3 Scrap Pulse outro segment"
 	},
 	"radio.yardline.song_02.body": {
@@ -604,10 +604,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song02_body.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_87:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.song_02.body",
 		"description": "Yardline 88.3 Neon Drift body segment"
 	},
 	"radio.yardline.song_03.body": {
@@ -622,10 +622,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song03_body.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_89:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.song_03.body",
 		"description": "Yardline 88.3 Rust Groove body segment"
 	},
 	"radio.yardline.song_04.body": {
@@ -640,10 +640,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/yardline/music/sfx_radio_song04_body.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_99:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.song_04.body",
 		"description": "Yardline 88.3 Signal Loss body segment"
 	},
 	"radio.yardline.dj_link_intro": {
@@ -658,10 +658,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/rad_yardline_dj_link_intro.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_84:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.dj_link_intro",
 		"description": "Yardline 88.3 DJ voice intro link"
 	},
 	"radio.yardline.dj_link_outro": {
@@ -676,10 +676,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/rad_yardline_dj_link_outro.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_84:SOUND_1",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.dj_link_outro",
 		"description": "Yardline 88.3 DJ voice outro link"
 	},
 	"radio.yardline.dj_sweeper": {
@@ -694,10 +694,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/rad_yardline_dj_sweeper.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_44:SOUND_2",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.dj_sweeper",
 		"description": "Yardline 88.3 radio station sweeper sound"
 	},
 	"radio.yardline.station_id_01": {
@@ -712,10 +712,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/rad_yardline_station_id_01.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_44:SOUND_3",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.station_id_01",
 		"description": "Yardline 88.3 signature jingle ID"
 	},
 	"radio.yardline.station_id_02": {
@@ -730,10 +730,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/rad_yardline_station_id_02.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_44:SOUND_4",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.station_id_02",
 		"description": "Yardline 88.3 sting station ID"
 	},
 	"radio.yardline.advert_01": {
@@ -748,10 +748,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/rad_yardline_advert_01.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_82:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.advert_01",
 		"description": "Yardline 88.3 satirical surplus salvage advert"
 	},
 	"radio.yardline.advert_02": {
@@ -766,10 +766,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/rad_yardline_advert_02.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_82:SOUND_4",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.advert_02",
 		"description": "Yardline 88.3 hydro-ration commercial advert"
 	},
 	"radio.yardline.world_pursuit": {
@@ -784,10 +784,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/rad_yardline_world_pursuit.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_91:SOUND_0",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.world_pursuit",
 		"description": "Yardline 88.3 scrap yard pursuit bulletin"
 	},
 	"radio.yardline.world_gate": {
@@ -802,10 +802,10 @@ const SLOTS: Dictionary = {
 		"loop_end_sec": 0.0,
 		"cooldown_msec": 0,
 		"max_concurrency": 1,
-		"asset_status": AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/radio/rad_yardline_world_gate.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_91:SOUND_1",
+		"asset_status": AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:radio.yardline.world_gate",
 		"description": "Yardline 88.3 perimeter barrier activity alert"
 	},
 }

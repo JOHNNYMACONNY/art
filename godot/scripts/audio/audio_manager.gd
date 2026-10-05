@@ -200,6 +200,11 @@ static func event_to_slot_id(event: SoundEvent) -> String:
 	return EVENT_TO_SLOT_MAP.get(event, "")
 
 func _load_registry_loop_or_fallback(slot_id: String, fallback_stream: AudioStreamWAV = null) -> AudioStreamWAV:
+	if AudioReferenceResolverScript.is_reference_enabled():
+		var reference_stream: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream(slot_id)
+		if reference_stream != null:
+			reference_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			return reference_stream
 	var asset_path: String = AudioRegistryScript.get_production_asset_path(slot_id)
 	if not asset_path.is_empty() and ResourceLoader.exists(asset_path):
 		var production_stream := load(asset_path) as AudioStreamWAV
@@ -219,11 +224,7 @@ func _ready() -> void:
 	var gate_slam_asset_path: String = AudioRegistryScript.get_production_asset_path("interaction.gate_triggered")
 	if not gate_slam_asset_path.is_empty() and ResourceLoader.exists(gate_slam_asset_path):
 		_gate_slam_production_stream = load(gate_slam_asset_path)
-	var ambient_wind_asset_path: String = AudioRegistryScript.get_production_asset_path("world.ambient_wind")
-	if not ambient_wind_asset_path.is_empty() and ResourceLoader.exists(ambient_wind_asset_path):
-		_ambient_wind_stream = load(ambient_wind_asset_path) as AudioStreamWAV
-		if _ambient_wind_stream:
-			_ambient_wind_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_ambient_wind_stream = _load_registry_loop_or_fallback("world.ambient_wind", _create_noise_wav(2.0, 0.12))
 	_load_production_transient_streams()
 	_load_echo_production_streams()
 	_engine_stream = _load_registry_loop_or_fallback("vehicle.engine_rev", _create_noise_wav(0.5, 0.4))

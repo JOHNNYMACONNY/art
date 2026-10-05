@@ -17,19 +17,17 @@ var _state: String = "IDLE"
 var _previous_traction_state: String = "STABLE"
 var _last_collision_intensity: float = 0.0
 
-func _create_loop_player(player_name: String, asset_path: String, unit_size: float, max_dist: float) -> AudioStreamPlayer3D:
+func _create_loop_player(player_name: String, fallback_stream: AudioStreamWAV, unit_size: float, max_dist: float) -> AudioStreamPlayer3D:
 	var p := AudioStreamPlayer3D.new()
 	p.name = player_name
 	p.bus = &"Master"
 	p.unit_size = unit_size
 	p.max_distance = max_dist
 	p.volume_db = -80.0
-	if ResourceLoader.exists(asset_path):
-		var base_stream := load(asset_path) as AudioStreamWAV
-		if base_stream:
-			var s := base_stream.duplicate() as AudioStreamWAV
-			s.loop_mode = AudioStreamWAV.LOOP_FORWARD
-			p.stream = s
+	if fallback_stream != null:
+		var stream := fallback_stream.duplicate() as AudioStreamWAV
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		p.stream = stream
 	_manager.add_child(p)
 	return p
 
@@ -38,11 +36,12 @@ func configure(manager: Node, engine_player: AudioStreamPlayer3D, recovery_event
 	_engine_player = engine_player
 	_recovery_event = recovery_event
 
-	# Configure multi-layer GTA engine and traction players
-	_idle_player = _create_loop_player("EngineIdlePlayer", "res://audio/vehicle/loop_vehicle_engine_idle.wav", 10.0, 25.0)
-	_rev_player = _create_loop_player("EngineRevPlayerGTA", "res://audio/vehicle/loop_vehicle_engine_rev.wav", 12.0, 30.0)
-	_coast_player = _create_loop_player("EngineCoastPlayerGTA", "res://audio/vehicle/loop_vehicle_engine_coast.wav", 10.0, 25.0)
-	_traction_player = _create_loop_player("TractionScrubPlayer", "res://audio/vehicle/sfx_vehicle_brake_screech.wav", 8.0, 24.0)
+	# Public/release-safe procedural layers. Local reference A/B remains optional
+	# and never required for clean runtime behavior.
+	_idle_player = _create_loop_player("EngineIdlePlayer", _manager.call("_create_tone_wav", 96.0, 0.8, 0.18), 10.0, 25.0)
+	_rev_player = _create_loop_player("EngineRevTexturePlayer", _manager.call("_create_harmonic_drone_wav", 132.0, 264.0, 0.8, 0.22), 12.0, 30.0)
+	_coast_player = _create_loop_player("EngineCoastPlayer", _manager.call("_create_harmonic_drone_wav", 84.0, 168.0, 0.8, 0.16), 10.0, 25.0)
+	_traction_player = _create_loop_player("TractionScrubPlayer", _manager.call("_create_noise_wav", 0.6, 0.20), 8.0, 24.0)
 
 func is_active() -> bool:
 	return _active

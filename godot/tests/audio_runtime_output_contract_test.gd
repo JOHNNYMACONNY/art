@@ -5,19 +5,7 @@ const UIAudioIdentityLayerScript = preload("res://scripts/audio/ui_audio_identit
 const VehicleFeedbackContract = preload("res://tests/vehicle_feedback_contract_test.gd")
 const UIAudioIdentityContract = preload("res://tests/ui_audio_identity_contract_test.gd")
 const AudioFirstRetentionContract = preload("res://tests/audio_first_retention_contract_test.gd")
-const GateSlamAudioProductionContract = preload("res://tests/gate_slam_audio_production_contract.gd")
-const GoldenLoopTransientsAudioProductionContract = preload("res://tests/golden_loop_transients_audio_production_contract.gd")
-const SignalLockAudioProductionContract = preload("res://tests/signal_lock_audio_production_contract.gd")
-const ImpactsCollisionsAudioProductionContract = preload("res://tests/impacts_collisions_audio_production_contract.gd")
-const PursuitAlertEvasionAudioProductionContract = preload("res://tests/pursuit_alert_evasion_audio_production_contract.gd")
-const MemoryEchoArcAudioProductionContract = preload("res://tests/memory_echo_arc_audio_production_contract.gd")
-const LivingYardAmbientMovementAudioProductionContract = preload("res://tests/living_yard_ambient_movement_audio_production_contract.gd")
-const ContinuousSignatureLoopsAudioProductionContract = preload("res://tests/continuous_signature_loops_audio_production_contract.gd")
-const YardlineStationIdentityAudioProductionContract = preload("res://tests/yardline_station_identity_audio_production_contract.gd")
-const UIAudioIdentityAudioProductionContract = preload("res://tests/ui_audio_identity_audio_production_contract.gd")
-const YardlineRadioInterstitialAudioProductionContract = preload("res://tests/yardline_radio_interstitial_audio_production_contract.gd")
-const TacticalPackAudioProductionContract = preload("res://tests/tactical_pack_audio_production_contract.gd")
-const YardlineMusicAudioProductionContract = preload("res://tests/yardline_music_audio_production_contract.gd")
+const ReleaseIntegrityAudioContract = preload("res://tests/release_integrity_audio_contract.gd")
 
 var _manager: Node = null
 
@@ -73,7 +61,7 @@ func _play_test_master_probe(_duration: float = 0.20) -> AudioStreamPlayer:
 	player.name = "AudioRuntimeTestProbe"
 	player.bus = &"Master"
 	player.volume_db = -6.0
-	player.stream = load("res://audio/player/sfx_player_signal_lock_pulse.wav")
+	player.stream = _manager.call("_create_harmonic_chime_wav", 660.0, 990.0, 0.20, 0.45)
 	_manager.add_child(player)
 	player.play()
 	return player
@@ -116,87 +104,9 @@ func _run() -> void:
 	ui_layer.call("configure", _manager)
 	await process_frame
 
-	var gate_slam_error: String = GateSlamAudioProductionContract.verify(_manager)
-	if not gate_slam_error.is_empty():
-		await _fail("Audio Production 01C: %s" % gate_slam_error)
-		return
-	await process_frame
-
-	var golden_loop_error: String = GoldenLoopTransientsAudioProductionContract.verify(_manager)
-	if not golden_loop_error.is_empty():
-		await _fail("Audio Production 01D: %s" % golden_loop_error)
-		return
-	await process_frame
-
-	var signal_lock_error: String = SignalLockAudioProductionContract.verify(_manager)
-	if not signal_lock_error.is_empty():
-		await _fail("Audio Production 01F: %s" % signal_lock_error)
-		return
-	await process_frame
-
-	var impacts_error: String = ImpactsCollisionsAudioProductionContract.verify(_manager)
-	if not impacts_error.is_empty():
-		await _fail("Audio Production 01G: %s" % impacts_error)
-		return
-	await process_frame
-
-	var pursuit_pack_error: String = PursuitAlertEvasionAudioProductionContract.verify(_manager)
-	if not pursuit_pack_error.is_empty():
-		await _fail("Audio Production 01H: %s" % pursuit_pack_error)
-		return
-	await process_frame
-
-	var memory_echo_error: String = MemoryEchoArcAudioProductionContract.verify(_manager)
-	if not memory_echo_error.is_empty():
-		await _fail("Audio Production 01J: %s" % memory_echo_error)
-		return
-	await process_frame
-
-	var living_yard_error: String = LivingYardAmbientMovementAudioProductionContract.verify(_manager)
-	if not living_yard_error.is_empty():
-		await _fail("Audio Production 01K: %s" % living_yard_error)
-		return
-	await process_frame
-
-	# Keep the 01L production-media contract inside this exact-head runtime gate before generic output probes.
-	var continuous_loops_error: String = ContinuousSignatureLoopsAudioProductionContract.verify(_manager)
-	if not continuous_loops_error.is_empty():
-		await _fail("Audio Production 01L: %s" % continuous_loops_error)
-		return
-	await process_frame
-
-	# Keep the 01M production-media contract inside this exact-head runtime gate before generic output probes.
-	var yardline_identity_error: String = YardlineStationIdentityAudioProductionContract.verify()
-	if not yardline_identity_error.is_empty():
-		await _fail("Audio Production 01M: %s" % yardline_identity_error)
-		return
-	await process_frame
-
-	# Keep the 01N UI production-media contract inside this exact-head runtime gate before generic output probes.
-	var ui_identity_error: String = UIAudioIdentityAudioProductionContract.verify(_manager, ui_layer)
-	if not ui_identity_error.is_empty():
-		await _fail("Audio Production 01N: %s" % ui_identity_error)
-		return
-	await process_frame
-
-	# Keep the 01O production-media contract inside this exact-head runtime gate before generic output probes.
-	var yardline_interstitial_error: String = YardlineRadioInterstitialAudioProductionContract.verify()
-	if not yardline_interstitial_error.is_empty():
-		await _fail("Audio Production 01O: %s" % yardline_interstitial_error)
-		return
-	await process_frame
-
-	# Keep the 01P production-media contract inside this exact-head runtime gate before generic output probes.
-	var tactical_media_error: String = TacticalPackAudioProductionContract.verify()
-	if not tactical_media_error.is_empty():
-		await _fail("Audio Production 01P: %s" % tactical_media_error)
-		return
-	await process_frame
-
-	# Keep the 01Q production media ingestion contract inside this exact-head runtime gate before generic output probes.
-	var yardline_music_error: String = YardlineMusicAudioProductionContract.verify()
-	if not yardline_music_error.is_empty():
-		await _fail("Audio Production 01Q: %s" % yardline_music_error)
+	var release_integrity_error: String = ReleaseIntegrityAudioContract.verify(_manager)
+	if not release_integrity_error.is_empty():
+		await _fail("Release Integrity 01: %s" % release_integrity_error)
 		return
 	await process_frame
 
@@ -236,7 +146,7 @@ func _run() -> void:
 		await _fail("Master bus volume is effectively silent")
 		return
 
-	var test_stream := load("res://audio/player/sfx_player_signal_lock_pulse.wav") as AudioStreamWAV
+	var test_stream := _manager.call("_create_harmonic_chime_wav", 660.0, 990.0, 0.20, 0.45) as AudioStreamWAV
 	if _pcm_span(test_stream) < 32:
 		await _fail("Production stream has insufficient PCM amplitude")
 		return
@@ -332,7 +242,7 @@ func _run() -> void:
 		return
 
 	print("[AUDIO_RUNTIME_31] diagnostics=%s" % report)
-	print("[AUDIO_RUNTIME_31] PASS (Audio Production 01Q Yardline music media ingestion + Audio Production 01P tactical media + Audio Production 01O Yardline interstitial media + 01N UI identity media + 01M Yardline station identity + 01L continuous signature loops + 01K footstep/wind + 01J Memory Echo arc + 01H pursuit alert/evasion + 01G impacts/collisions + 01F signal lock + 01D six-transient pack + 01C gate slam + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
+	print("[AUDIO_RUNTIME_31] PASS (Release Integrity 01 public procedural boundary + Audio 07 retention/report + output + Audio 06 UI identity + CTW Feel 04 telemetry/mix/reset; physical audibility remains external)")
 
 	active_transients = []
 	tuner_player = null

@@ -85,8 +85,8 @@ static func run(controller: ScrapTestBlock) -> void:
 		assert(meta["domain"] == AudioRegistryScript.Domain.RADIO, "FAIL 2: Slot %s must have Domain.RADIO" % slot_id)
 		assert(meta["diegesis"] == AudioRegistryScript.Diegesis.DIEGETIC, "FAIL 2: Slot %s must have Diegesis.DIEGETIC" % slot_id)
 		assert(meta["mix_group"] == AudioRegistryScript.MixGroup.RADIO_MUSIC, "FAIL 2: Slot %s mix_group must be RADIO_MUSIC" % slot_id)
-		assert(meta["asset_status"] == AudioRegistryScript.AssetStatus.LICENSED_FINAL, "FAIL 2: Slot %s asset_status mismatch" % slot_id)
-		assert(meta["replacement_required"] == false, "FAIL 2: Slot %s replacement_required mismatch" % slot_id)
+		assert(meta["asset_status"] == AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK, "FAIL 2: Slot %s must use public procedural fallback status" % slot_id)
+		assert(meta["replacement_required"] == true, "FAIL 2: Slot %s must remain replacement-tracked" % slot_id)
 	print("  -> Assertion 2 PASS: All registered segment slots defined with Diegesis.DIEGETIC verified!")
 
 	# -------------------------------------------------------------------------
@@ -442,7 +442,7 @@ static func run(controller: ScrapTestBlock) -> void:
 	assert(intro_resolved == null, "FAIL 13: INTRO segment has no reference override")
 
 	var body_resolved = AudioReferenceResolverScript.resolve_stream("radio.yardline.song_01.body")
-	assert(body_resolved == null, "FAIL 13: BODY segment rejects reference override under LICENSED_FINAL status")
+	assert(body_resolved != null, "FAIL 13: BODY segment accepts explicit dev-only local reference override under PROCEDURAL_FALLBACK status")
 
 	var outro_resolved = AudioReferenceResolverScript.resolve_stream("radio.yardline.song_01.outro")
 	assert(outro_resolved == null, "FAIL 13: OUTRO segment has no reference override")
