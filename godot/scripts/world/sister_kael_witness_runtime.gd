@@ -174,10 +174,16 @@ func _trigger_reaction(state: String, line: String) -> void:
 	if _speaker_label != null:
 		_speaker_label.text = "SISTER KAEL"
 	if _line_label != null:
-		_line_label.text = line
+		_line_label.text = _get_presented_line(line)
 	if _moment_panel != null:
 		_moment_panel.visible = true
 	_reaction_deadline_msec = Time.get_ticks_msec() + REACTION_HOLD_MSEC
+
+func _get_presented_line(authoritative_line: String) -> String:
+	const SPEAKER_PREFIX := "SISTER KAEL // "
+	if authoritative_line.begins_with(SPEAKER_PREFIX):
+		return authoritative_line.substr(SPEAKER_PREFIX.length())
+	return authoritative_line
 
 func _set_pose(mode: String) -> void:
 	if _actor == null:
