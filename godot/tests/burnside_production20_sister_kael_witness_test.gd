@@ -72,7 +72,7 @@ func _drive_city_to_complete(f: Dictionary) -> bool:
 	civic.set_process(false)
 	civic.mission.phase = CivicMissionScript.Phase.COMPLETE
 	var mission = city.mission
-	var ok := mission.unlock_after_civic_repossession() 		and mission.on_silent_core_activated() 		and mission.on_echo_completed() 		and mission.on_escape_complete()
+	var ok: bool = mission.unlock_after_civic_repossession() 		and mission.on_silent_core_activated() 		and mission.on_echo_completed() 		and mission.on_escape_complete()
 	if not ok:
 		return false
 	f["scene"].set("current_pursuit_state", ScrapTestBlockScript.PursuitState.CALM)
