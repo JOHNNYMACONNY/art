@@ -75,7 +75,7 @@ On the first observed transition from `UNDECIDED` to either final state:
 
 - set local reaction mode to the observed P16 state;
 - read the already-authoritative `city_runtime.mission.contact_line`;
-- present that exact retained Sister Kael line in one bounded automatic character-moment panel;
+- retain that exact source string internally; the automatic character-moment panel may strip only the redundant `SISTER KAEL // ` speaker prefix because the panel already names the speaker;
 - increment one local presentation-only reaction counter;
 - apply the outcome pose.
 
