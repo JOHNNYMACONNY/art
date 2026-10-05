@@ -193,16 +193,17 @@ static func run(controller: ScrapTestBlock) -> void:
 	print("[TEST 11] Testing reset_audio_instant() Authoritative Full Silence...")
 	controller.reset_slice()
 	await controller.get_tree().create_timer(0.05).timeout
-	# Start everything playing
+	# Start everything playing. Build the expensive synthetic transient fixtures first,
+	# then arm tuning static immediately before the reset preconditions. This keeps
+	# the reset contract deterministic in headless CI without weakening Test 5's
+	# independent tuning-lifecycle coverage.
 	controller.audio_mgr.set_engine_audio(0.8, Vector3.ZERO)
 	controller.audio_mgr.set_siren_audio(true, Vector3.ZERO)
-	controller.audio_mgr.set_tuning_audio(0.6)
-	if not controller.audio_mgr._static_player.playing:
-		controller.audio_mgr._static_player.play()
 	controller.audio_mgr.set_pursuit_pressure(5.0, Vector3.ZERO)
 	controller.audio_mgr.play_event(AudioManagerScript.SoundEvent.PROXIMITY_HUM, Vector3.ZERO)
 	for i in range(4):
 		controller.audio_mgr._play_synth_click(Vector3.ZERO, 400.0, 1.0)
+	controller.audio_mgr.set_tuning_audio(0.6)
 	
 	assert(controller.audio_mgr._engine_player.playing, "Pre-check engine")
 	assert(controller.audio_mgr._siren_player.playing, "Pre-check siren")
