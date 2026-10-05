@@ -90,7 +90,7 @@ func _select_relay(f: Dictionary, relay: Node) -> bool:
 	f["scene"].call("_evaluate_target_selection")
 	if f["scene"].get("_active_target") != relay:
 		return false
-	var touch_ui := f["scene"].get_node_or_null("CanvasLayer/TouchControlsUI")
+	var touch_ui: Node = f["scene"].get_node_or_null("CanvasLayer/TouchControlsUI")
 	if touch_ui == null:
 		return false
 	touch_ui.action_button_pressed.emit()
@@ -157,7 +157,7 @@ func _run_outcome(choice: String) -> Dictionary:
 	if String(f["city"].mission.get_aftermath_state_name()) != "UNDECIDED":
 		return {"error": "P20 mutated P16 aftermath before relay Action"}
 
-	var selected := f["release"] if choice == "RELEASE" else f["seal"]
+	var selected: Node = f["release"] if choice == "RELEASE" else f["seal"]
 	if not await _select_relay(f, selected):
 		return {"error": "Retained P16 %s relay did not remain authoritative" % choice}
 
