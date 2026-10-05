@@ -59,9 +59,9 @@ Use the retained Silent Core socket as the only spatial authority.
 
 Locked actor offset from the socket:
 
-`Vector3(0.0, -0.15, -1.60)`
+`Vector3(1.25, -0.15, -0.85)`
 
-This places Kael behind the Core, clear of the two P16 relays at approximately +/-1.05 m X and +0.35 m Z.
+This places Kael on the Core’s camera-side/right shoulder, outside the relay-cabinet silhouette and about 1.2 m from the retained SEAL relay, while keeping both P16 relay approaches unobstructed.
 
 Kael faces toward the relay/player side.
 
