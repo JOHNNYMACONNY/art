@@ -1,0 +1,138 @@
+[gd_scene load_steps=14 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Mat_Coat"]
+albedo_color = Color(0.105, 0.125, 0.155, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_Inner"]
+albedo_color = Color(0.045, 0.052, 0.062, 1)
+roughness = 0.86
+
+[sub_resource type="StandardMaterial3D" id="Mat_Skin"]
+albedo_color = Color(0.50, 0.37, 0.30, 1)
+roughness = 0.92
+
+[sub_resource type="StandardMaterial3D" id="Mat_OffWhite"]
+albedo_color = Color(0.78, 0.77, 0.70, 1)
+roughness = 0.88
+
+[sub_resource type="StandardMaterial3D" id="Mat_Cyan"]
+albedo_color = Color(0.10, 0.62, 0.68, 1)
+emission_enabled = true
+emission = Color(0.04, 0.34, 0.40, 1)
+emission_energy_multiplier = 0.7
+roughness = 0.58
+
+[sub_resource type="CapsuleMesh" id="Mesh_Torso"]
+radius = 0.31
+height = 0.92
+
+[sub_resource type="SphereMesh" id="Mesh_Head"]
+radius = 0.215
+height = 0.43
+
+[sub_resource type="SphereMesh" id="Mesh_Hood"]
+radius = 0.29
+height = 0.55
+
+[sub_resource type="CylinderMesh" id="Mesh_Limb"]
+top_radius = 0.075
+bottom_radius = 0.09
+height = 0.70
+
+[sub_resource type="BoxMesh" id="Mesh_CoatPanel"]
+size = Vector3(0.52, 0.78, 0.08)
+
+[sub_resource type="BoxMesh" id="Mesh_Boot"]
+size = Vector3(0.20, 0.17, 0.34)
+
+[sub_resource type="BoxMesh" id="Mesh_Sash"]
+size = Vector3(0.075, 0.66, 0.045)
+
+[sub_resource type="BoxMesh" id="Mesh_Tag"]
+size = Vector3(0.12, 0.08, 0.025)
+
+[node name="SisterKael" type="Node3D"]
+
+[node name="BodyRoot" type="Node3D" parent="."]
+
+[node name="Torso" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0, 1.15, 0)
+mesh = SubResource("Mesh_Torso")
+material_override = SubResource("Mat_Coat")
+
+[node name="InnerPanel" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0, 1.18, -0.30)
+scale = Vector3(0.72, 0.72, 0.62)
+mesh = SubResource("Mesh_CoatPanel")
+material_override = SubResource("Mat_Inner")
+
+[node name="LongCoatPanel" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0, 0.82, 0.29)
+rotation = Vector3(0.05, 0, 0)
+mesh = SubResource("Mesh_CoatPanel")
+material_override = SubResource("Mat_Coat")
+
+[node name="ArchiveSash" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(-0.18, 1.20, -0.35)
+rotation = Vector3(0, 0, -0.10)
+mesh = SubResource("Mesh_Sash")
+material_override = SubResource("Mat_OffWhite")
+
+[node name="SignalTag" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0.18, 1.42, -0.36)
+mesh = SubResource("Mesh_Tag")
+material_override = SubResource("Mat_Cyan")
+
+[node name="Head" type="Node3D" parent="BodyRoot"]
+position = Vector3(0, 1.91, -0.01)
+
+[node name="HoodBack" type="MeshInstance3D" parent="BodyRoot/Head"]
+position = Vector3(0, 0.015, 0.035)
+scale = Vector3(1.08, 1.02, 1.02)
+mesh = SubResource("Mesh_Hood")
+material_override = SubResource("Mat_Inner")
+
+[node name="Face" type="MeshInstance3D" parent="BodyRoot/Head"]
+position = Vector3(0, -0.01, -0.095)
+scale = Vector3(0.84, 0.92, 0.76)
+mesh = SubResource("Mesh_Head")
+material_override = SubResource("Mat_Skin")
+
+[node name="LeftArm" type="Node3D" parent="BodyRoot"]
+position = Vector3(-0.43, 1.46, 0.02)
+rotation = Vector3(0.02, 0, -0.08)
+
+[node name="Mesh" type="MeshInstance3D" parent="BodyRoot/LeftArm"]
+position = Vector3(0, -0.28, 0)
+mesh = SubResource("Mesh_Limb")
+material_override = SubResource("Mat_Coat")
+
+[node name="RightArm" type="Node3D" parent="BodyRoot"]
+position = Vector3(0.43, 1.46, 0.02)
+rotation = Vector3(-0.02, 0, 0.08)
+
+[node name="Mesh" type="MeshInstance3D" parent="BodyRoot/RightArm"]
+position = Vector3(0, -0.28, 0)
+mesh = SubResource("Mesh_Limb")
+material_override = SubResource("Mat_Inner")
+
+[node name="LeftLeg" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(-0.17, 0.49, 0.02)
+mesh = SubResource("Mesh_Limb")
+material_override = SubResource("Mat_Inner")
+
+[node name="RightLeg" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0.17, 0.49, 0.02)
+mesh = SubResource("Mesh_Limb")
+material_override = SubResource("Mat_Inner")
+
+[node name="LeftBoot" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(-0.17, 0.10, -0.07)
+mesh = SubResource("Mesh_Boot")
+material_override = SubResource("Mat_Inner")
+
+[node name="RightBoot" type="MeshInstance3D" parent="BodyRoot"]
+position = Vector3(0.17, 0.10, -0.07)
+mesh = SubResource("Mesh_Boot")
+material_override = SubResource("Mat_Inner")
