@@ -1,7 +1,7 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P19_SIDEARM_PURSUER_SUPPRESSION_MERGED_VERIFIED_PUBLIC`  
-**Current gameplay/world baseline:** `d8ec7918e8980029f0ed9821e109cc0c65cbb42c`  
+**Status:** `BURNSIDE_P20_SISTER_KAEL_WITNESS_MERGED_VERIFIED_PUBLIC`  
+**Current gameplay/world baseline:** `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -9,7 +9,7 @@
 
 ## Current product state
 
-Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts, one durable claimed-Courier-Bike Scrap Bash Bar modification, one bounded checkpoint-local memory of a claimed Bike breach, one physical Mission-03 memory-disclosure aftermath choice, one session-local Gears retrofit sidearm with bounded gunfire consequence, one physical Mayor Burn Garage presence with a bounded KNOWN-contact face-to-face encounter, and one bounded ranged sidearm suppression response against the retained physical Wanted pursuer compose in the same geography.
+Burnside now has one dense qualified Gears production block where authored missions, Heat-1 Wanted / Contact-Search, local Field Hacking, civic reporting, reactive work-zone actors, the Scrapper Tool, physical pursuer counterplay, Player Health / expendable Armor / Soft Failure, durable mapped route knowledge, coarse vehicle condition, one bounded Burn Garage repair loop, authored FB-13 / HS-7 companion presence, one authoritative durable Cash loop with one-time authored Mission 01 / Mission 02 payouts, one durable claimed-Courier-Bike Scrap Bash Bar modification, one bounded checkpoint-local memory of a claimed Bike breach, one physical Mission-03 memory-disclosure aftermath choice, one session-local Gears retrofit sidearm with bounded gunfire consequence, one physical Mayor Burn Garage presence with a bounded KNOWN-contact face-to-face encounter, one bounded ranged sidearm suppression response against the retained physical Wanted pursuer, and one physically present Sister Kael who silently witnesses and automatically reacts to the retained Mission-03 RELEASE / SEAL aftermath choice compose in the same geography.
 
 **Gears District Slice 01b Visual Clutter, Vehicle Fleet, Street Combat, Interceptor Ram Combat, Municipal Quota Kiosk, Scrap Dumpster Stealth, Street Vendor Smuggler Depot, Destructible Traffic Barrier Shortcut Breach, Interactive Utility Pole EMP Grid Overload, Municipal Utility Crawler Patrol & Commercial Storefront Vending Machine Contraband Hack complete.**
 - **Commercial Storefront Vending Machine Contraband Hack ([`prop_vending_machine.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/props/prop_vending_machine.gd), [`prop_vending_machine.tscn`](file:///Users/bobbyinthelobby/{art/godot/scenes/props/prop_vending_machine.tscn), [`vending_machine_interactable.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/interactions/vending_machine_interactable.gd), [`vending_machine_world_event.gd`](file:///Users/bobbyinthelobby/{art/godot/scripts/world/vending_machine_world_event.gd}))**:
@@ -1362,39 +1362,102 @@ No manual interactive public playthrough is claimed in this closeout.
 
 Audio qualification is unchanged by P19. P19 introduced no new Audio event and no voice pipeline. P17 `SIDEARM_FIRE` technical routing remains verified; perceptual firearm-audio quality remains **NOT VERIFIED** without an actual listening pass.
 
-## Post-Production-19 re-evaluation state
+## Production 20 — verified player-facing result
 
-P19 closes the highest-value immediate composition gap between the retained P17 firearm and the retained physical Heat-1 pursuer. The next slice should not grow combat breadth merely because the sidearm now has a second target class.
+Issue #188 / PR #190 gameplay: **GAMEPLAY MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY UPDATE IN PROGRESS**.
 
-The selected next investigation frontier is:
+Final reviewed feature head:
 
-**Production 20 — #188 — Sister Kael Silent Core Presence / Choice-Reactive Witness**
+`2caad64b5fe7f5bdb779fdbf07100f3e11b7d2f1`
 
-Status: `SELECTED__JIT_DESIGN_PENDING`
+Exact gameplay/public main:
 
-Why it currently outranks adjacent options:
+`e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`
 
-1. **Sister Kael choice-reactive physical presence** — Mission 03/P16 already gives the player a consequential RELEASE vs SEAL climax at the Silent Core, and verified creative sources consistently pair Kael with that location, but current Godot runtime has no physical Sister Kael entity. A bounded witness/reaction can add character, mystery and consequence without inventing another choice authority.
-2. **Lira physical presence** — still valuable, but the Silent Core aftermath already contains a stronger existing player decision to compose with, giving Kael a clearer reason to be physically present now.
-3. **Heat 2+ / broader police escalation** — materially higher AI/authority/content complexity than the current authored-character gap warrants.
-4. **human Health/death / enemy ranged combat** — broadens combat architecture and is not required after P19.
-5. **more geography** — lower value until a new gameplay need justifies it.
-6. **audio retuning** — should remain evidence/perceptual-gate driven; P20 must not manufacture an Audio dependency.
+Player-facing loop:
 
-P20 is deliberately **not** another P18-style Action -> static conversation. The candidate is one original/procedural Sister Kael presence at the existing Silent Core that reads the already-authoritative P16 outcome and gives a short materially distinct RELEASE-vs-SEAL reaction. P16 remains the only choice writer; Kael must not become a second outcome/save/relationship authority.
+`MISSION 03 COMPLETE -> RETURN TO SILENT CORE -> SISTER KAEL PHYSICALLY PRESENT -> RETAINED RELEASE / SEAL RELAY COMMITS P16 OUTCOME -> KAEL AUTOMATICALLY REACTS -> LEAVE`
 
-Do not begin implementation from continuity alone. Reverify the actual P16 aftermath runtime, Mission-03/Silent-Core staging, HS-7 presence, target arbitration, reset semantics and current shared-scene/Audio concurrency before locking P20 JIT design.
+Verified retained boundaries:
+
+- P16 remains the sole `UNDECIDED / RELEASED / SEALED` writer; P20 only reads Mission 03 phase + aftermath state;
+- Sister Kael is a passive physical witness and is never added to `_interactables`;
+- Kael owns no `InteractableBase`, Action target, mission, Wanted, Field-Hacking, save, combat or Audio authority;
+- retained RELEASE / SEAL relays remain the only aftermath Action targets;
+- P01/P02 remain sole civic Report / Wanted / Field-Hacking authorities;
+- P08 remains sole HS-7 carried-presence authority;
+- P18 Mayor Burn and P19 pursuer suppression remain bounded and unchanged;
+- P20 reuses retained P16 `mission.contact_line` rather than creating a duplicate dialogue/choice/relationship authority;
+- RELEASE and SEAL receive materially distinct bounded Kael poses;
+- Full Replay clears P20 transient presentation and hides Kael until Mission 03 is COMPLETE;
+- no save migration, generalized NPC/dialogue/relationship system, human Health/death expansion, enemy firearms, Heat 2–5, new geography, PR #44 work or new Audio event entered P20.
+
+Review / verification:
+
+- valid RED exact head `9e25bbf14827e817784df4f7214dd8ae0fb40d4d`, run `37249559659`, failed for the intended missing SisterKaelWitnessRuntime seam while retained regressions passed;
+- original green candidate `214d53aac7c60776c47363e0f7456687a20e79c6` exposed a canonical Ticket06 headless-audio precondition failure in Godot Web PR verification;
+- rerun evidence changed the classification from apparent shared baseline failure to a head-only failure: exact P20 head failed `Pre-check static` while untouched base passed;
+- the repair was test/harness-only: Ticket06 Test 11 now creates expensive synthetic transient fixtures before arming tuning static immediately before reset preconditions; Test 5 remains the independent tuning-lifecycle contract and Test 11 still requires live engine/siren/static/transients before proving authoritative reset silence;
+- repaired frozen candidate `2caad64b5fe7f5bdb779fdbf07100f3e11b7d2f1`;
+- fresh exact-head Codex review on `2caad64b5f`: **“Didn't find any major issues.”**
+- unresolved review threads: **0**;
+- repaired PR P20 run `37264305473`: **SUCCESS**;
+- repaired PR Godot Web Playtest `37264305476`: **SUCCESS**, including exact-head canonical compatibility matrix, head + synthetic-merge Web export, static-host smoke and packaging;
+- repaired feature proof artifact `11325617280`, digest `sha256:03f8f2e96c5e305d0f1acdd39e51497e22d259f47db0ee8150bb239ad69b5b01`;
+- gameplay PR #190 merged with expected-head protection to exact main `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`;
+- exact-main P20 run `37264749982`: **SUCCESS**; its retained suite explicitly passed P16 memory disclosure, P18 Mayor Burn, P19 sidearm/pursuer suppression, companion/HS-7 and input regressions;
+- exact-main P20 proof artifact `11325523981`, digest `sha256:7fe14b5a5a0f0b85c67a3ca3da2caff79e30b30f1d894e9899eb450b1a2d2e91`;
+- exact-main Godot Web Playtest `37264750000`: **SUCCESS**, including exact-source checkout, mobile/desktop routing regressions, Web export, static-host smoke, source-stamped package and Pages deployment;
+- all other workflows triggered by the merge (P04, P05, P06, P14, P17, P18) completed **SUCCESS**.
+
+Latest verified public provenance:
+
+`PLAYTEST_BUILD.txt = e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`
+
+The Pages publish job completed for that exact gameplay SHA, and an independent fresh live fetch returned the same exact source stamp.
+
+No manual interactive public playthrough is claimed in this closeout.
+
+Audio qualification: P20 introduced no Audio dependency. P17 `SIDEARM_FIRE` technical routing remains verified; perceptual firearm-audio quality remains **NOT VERIFIED** without an actual listening/playback pass.
+
+## Post-Production-20 re-evaluation state
+
+P20 closes the bounded authored-character consequence gap at the Silent Core without creating another interaction authority.
+
+Fresh re-evaluation found a higher-priority non-feature blocker before any numbered P21 gameplay slice:
+
+**Release Integrity 01 — #191 — GTA reference-audio containment / public decontamination**
+
+Status: `SELECTED__JIT_DESIGN_PENDING__BLOCKS_NEXT_FEATURE_PRODUCTION`
+
+Why it outranks adjacent gameplay candidates:
+
+1. **release/IP integrity** — the repository is public, and current tracked audio contracts/registries explicitly identify multiple production paths as `GTA_SA:...` sources while some classify them as `LICENSED_FINAL`; at least `godot/audio/echo/loop_echo_radio_interference.wav` is directly verified as a tracked binary in the public repo. This conflicts with the current owner rule that GTA/Rockstar audio is private local reference only and must not be committed, published, redistributed or become a release dependency;
+2. **perceptual audio / output qualification** — issue #31 remains open and human listening quality is still unverified, but first the tracked/public reference boundary must be made trustworthy;
+3. **Lira physical presence / authored consequence** — still valuable, but another static-character slice has lower marginal value immediately after P18/P20;
+4. **Heat 2+ / broader police escalation** — high eventual systemic value, but materially greater AI/authority/content cost and risk;
+5. **human combat expansion / enemy firearms** — broader architecture and content surface than current evidence justifies;
+6. **more geography** — lower value until a gameplay need demonstrates that existing Gears density is insufficient.
+
+#191 should restore the intended split:
+
+`PUBLIC/TRACKED = ORIGINAL | PROCEDURAL | LICENSED-SAFE`
+
+`LOCAL PRIVATE DEV = OPTIONAL GTA REFERENCE OVERRIDE`
+
+Do not infer that successful P20 public deployment makes the current audio provenance release-ready. The exact P20 gameplay/public build is verified as behavior/provenance truth; the separate audio distribution risk is now explicit and blocks the next feature production slice.
 
 ## Next-state rule
 
 Next production session:
 
-1. refresh exact repo/main, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene work;
-2. keep exact runnable/gameplay/public P19 baseline `d8ec7918e8980029f0ed9821e109cc0c65cbb42c` distinct from any later docs-only continuity HEAD;
-3. confirm PR #187 remains merged and #184 is closed/completed after this continuity lands;
-4. read `START_HERE.md`, #55, #118, #188 and the retained P16/P18/P19 contracts;
-5. perform P20 JIT design against actual P16 aftermath + Silent Core / Mission-03 seams before locking implementation;
-6. preserve P16 choice authority, P01/P02 civic authority, P08 HS-7 presence, P18 Mayor Burn, P19 suppression, save compatibility and unrelated Audio;
-7. do not touch PR #44 or expand into generalized dialogue/NPC systems, relationship meters, hostile-human combat, weapon breadth, Heat 2–5, new acreage or voice work absent fresh evidence and an explicit later decision.
+1. refresh exact repo/main, #191, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene work;
+2. keep exact runnable/gameplay/public P20 baseline `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34` distinct from any later docs-only continuity HEAD;
+3. confirm PR #190 remains merged and #188 is closed/completed after this continuity lands;
+4. read `START_HERE.md`, #55, #118 and #191 before new feature work;
+5. perform #191 JIT design by enumerating affected tracked binaries, registry/runtime ownership, safe procedural/original fallbacks, local-reference override behavior and Web packaging;
+6. do not delete semantic Audio ownership or weaken reset/mix/routing regressions merely to remove third-party binaries;
+7. do not select/implement numbered P21 gameplay until #191 is resolved and the playable product is re-evaluated again;
+8. PR #44 remains deferred unless fresh evidence independently makes camera occlusion the highest-value current gap.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
