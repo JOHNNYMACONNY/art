@@ -20,9 +20,9 @@ Always refresh current `main`, open PRs/issues and relevant CI/runtime evidence 
 
 ### NEXT
 
-- **Production 20 / #188 — Sister Kael Silent Core Presence / Choice-Reactive Witness — JIT design pending.** P19 closed the immediate sidearm <-> physical Wanted pursuer composition gap without expanding combat breadth.
-- Reverify the retained P16 RELEASE/SEAL authority, Mission-03/Silent-Core staging, HS-7 presence, target arbitration and reset seams before implementation. Investigate one bounded physical Sister Kael presence that witnesses/reacts to the existing P16 choice instead of creating a new dialogue or outcome authority.
-- Preserve P16 as sole RELEASE/SEAL writer, P01/P02 civic authority, P08 HS-7 presence, P18 Mayor Burn, P19 pursuer suppression, saves, missions, companions and unrelated Audio. Do not grow P20 into generalized dialogue/NPC systems, relationship meters, hostile-human combat, Heat 2–5, new geography or voice work.
+- **Release Integrity 01 / #191 — GTA reference-audio containment / public decontamination — JIT design pending; blocks next feature production.** Fresh post-P20 verification found tracked public audio assets and production contracts explicitly tied to `GTA_SA:...` provenance while the current owner rule permits GTA/Rockstar audio only as private local reference.
+- Reverify the complete affected binary/registry/runtime/test/Web-export surface. Restore the intended split: public/tracked builds use original, procedural or licensed-safe assets; local private development may optionally override them with untracked reference audio.
+- Preserve AudioManager semantic ownership, reset/mix behavior, P17 `SIDEARM_FIRE` routing and existing gameplay contracts. Do not turn #191 into a general audio redesign or start numbered P21 gameplay until the release-integrity boundary is verified clean.
 
 ### DEFERRED
 
@@ -49,7 +49,7 @@ These gates do not automatically block unrelated code-first work.
 - Open World Expansion 01D / PR #66 — Silent Core infrastructure integration, merged.
 - World Event 01 / PR #68 — bounded FB-13 infrastructure-thrum use of existing geography, merged.
 - Issue #89 / Open World Expansion 01E — Gears retained-camera readability & performance checkpoint, complete (`VISUAL_PERF_CHECKPOINT_PASS`).
-- Productions 01–19 — merged and verified through Production 19 Wanted Pursuer Sidearm Suppression / Contact-Break Composition. Exact runnable/gameplay/public P19 baseline: `d8ec7918e8980029f0ed9821e109cc0c65cbb42c`; current public Web publication uses GitHub Pages Actions artifacts and the live source stamp matches that exact SHA. P19 introduced no Audio scope; P17 firearm audio routing remains technically verified while perceptual listening quality remains unverified.
+- Productions 01–20 — merged and verified through Production 20 Sister Kael Silent Core Presence / Choice-Reactive Witness. Exact runnable/gameplay/public P20 baseline: `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`; current public Web publication uses GitHub Pages Actions artifacts and the live source stamp matches that exact SHA. P20 introduced no Audio scope; P17 firearm audio routing remains technically verified while perceptual listening quality remains unverified. A separate verified release-integrity risk is tracked in #191 because public/tracked audio currently includes GTA-derived reference material contrary to the current local-reference-only rule.
 
 Do not recreate completed 01A–01D work because an older roadmap still describes it as future work.
 
