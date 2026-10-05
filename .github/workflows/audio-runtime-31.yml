@@ -71,7 +71,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if find godot/audio -type f \( -iname '*.wav' -o -iname '*.ogg' -o -iname '*.mp3' \) -print -quit | grep -q .; then
+          if [[ -d godot/audio ]] && find godot/audio -type f \( -iname '*.wav' -o -iname '*.ogg' -o -iname '*.mp3' \) -print -quit | grep -q .; then
             echo "Release Integrity 01: tracked packaged audio media is present without a rights-safe manifest." >&2
             find godot/audio -type f \( -iname '*.wav' -o -iname '*.ogg' -o -iname '*.mp3' \) -print >&2
             exit 1

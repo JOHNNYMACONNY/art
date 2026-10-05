@@ -27,7 +27,7 @@ func _play_test_master_probe(audio_manager: Node, _duration: float = 0.80) -> Au
 	player.name = "AudioRuntimeWindowedTestProbe"
 	player.bus = &"Master"
 	player.volume_db = -6.0
-	player.stream = load("res://audio/player/sfx_player_signal_lock_pulse.wav")
+	player.stream = audio_manager.call("_create_harmonic_chime_wav", 660.0, 990.0, 0.80, 0.45)
 	audio_manager.add_child(player)
 	player.play()
 	return player
