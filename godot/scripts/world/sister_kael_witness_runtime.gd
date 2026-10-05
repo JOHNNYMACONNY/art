@@ -10,7 +10,7 @@ const CityMissionScript = preload("res://scripts/missions/city_that_forgot_missi
 const SisterKaelScene = preload("res://scenes/entities/sister_kael.tscn")
 
 const SILENT_CORE_SOCKET_PATH := "SilentCoreSite/SilentCoreSocket"
-const ACTOR_OFFSET := Vector3(0.0, -0.15, -1.60)
+const ACTOR_OFFSET := Vector3(1.25, -0.15, -0.85)
 const REACTION_HOLD_MSEC := 3200
 
 var _root_controller: Node = null
