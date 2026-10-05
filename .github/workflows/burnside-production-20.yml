@@ -1,0 +1,104 @@
+name: Burnside Production 20
+
+on:
+  push:
+    branches:
+      - main
+      - feat/production-20-sister-kael-witness
+    paths:
+      - "contracts/burnside_production_20_sister_kael_witness_spec.md"
+      - ".github/workflows/burnside-production-20.yml"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scripts/world/sister_kael_witness_runtime.gd"
+      - "godot/scenes/entities/sister_kael.tscn"
+      - "godot/tests/burnside_production20_sister_kael_witness_test.gd"
+      - "godot/tests/burnside_production20_sister_kael_witness_render_capture.gd"
+  pull_request:
+    paths:
+      - "contracts/burnside_production_20_sister_kael_witness_spec.md"
+      - ".github/workflows/burnside-production-20.yml"
+      - "godot/scripts/visual/gears_district_slice_01b.gd"
+      - "godot/scripts/world/sister_kael_witness_runtime.gd"
+      - "godot/scenes/entities/sister_kael.tscn"
+      - "godot/tests/burnside_production20_sister_kael_witness_test.gd"
+      - "godot/tests/burnside_production20_sister_kael_witness_render_capture.gd"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_RELEASE: "4.7.1-stable"
+  GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+
+jobs:
+  sister-kael-witness:
+    name: Exact-source P20 Sister Kael Witness
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 1
+
+      - name: Verify exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+
+      - name: Install Godot 4.7.1
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output godot.zip https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+
+      - name: Prime exact-source Godot metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+          test -s godot/.godot/global_script_class_cache.cfg
+
+      - name: P20 Sister Kael witness
+        id: p20
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script res://tests/burnside_production20_sister_kael_witness_test.gd
+
+      - name: Retained P16 / P18 / P19 / companions / input regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in             burnside_mission03_memory_disclosure_test.gd             burnside_production18_mayor_burn_encounter_test.gd             burnside_production19_sidearm_pursuer_suppression_test.gd             companion_thrum_replay_mission03_test.gd             touch_controls_event_routing_test.gd; do
+            echo "::group::$test_file"
+            timeout --signal=TERM 180s "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot --script "res://tests/$test_file"
+            echo "::endgroup::"
+          done
+
+      - name: Require P20 GREEN
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "p20=${{ steps.p20.outcome }}"
+          test "${{ steps.p20.outcome }}" = "success"
