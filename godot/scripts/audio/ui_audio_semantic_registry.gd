@@ -19,10 +19,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 2,
 		"gain_db": -18.0,
 		"critical_essential": false,
-		"asset_status": AudioRegistryScript.AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/ui/sfx_ui_nav_move.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_76",
+		"asset_status": AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:ui.nav_move",
 		"description": "Short dry navigation tick for list/cursor movement"
 	},
 	"ui.nav_confirm": {
@@ -36,10 +36,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 2,
 		"gain_db": -14.0,
 		"critical_essential": false,
-		"asset_status": AudioRegistryScript.AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/ui/sfx_ui_nav_confirm.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_77",
+		"asset_status": AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:ui.nav_confirm",
 		"description": "Compact positive relay-latch confirmation"
 	},
 	"ui.nav_back": {
@@ -53,10 +53,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 2,
 		"gain_db": -16.0,
 		"critical_essential": false,
-		"asset_status": AudioRegistryScript.AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/ui/sfx_ui_nav_back.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_44",
+		"asset_status": AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:ui.nav_back",
 		"description": "Short descending release/back cue"
 	},
 	"ui.mode_switch": {
@@ -70,10 +70,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"gain_db": -15.0,
 		"critical_essential": false,
-		"asset_status": AudioRegistryScript.AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/ui/sfx_ui_mode_switch.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_17",
+		"asset_status": AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:ui.mode_switch",
 		"description": "Two-position mechanical mode transition cue"
 	},
 	"ui.reject": {
@@ -87,10 +87,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"gain_db": -12.0,
 		"critical_essential": true,
-		"asset_status": AudioRegistryScript.AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/ui/sfx_ui_reject.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_4",
+		"asset_status": AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:ui.reject",
 		"description": "Low dry invalid/reject double-pulse"
 	},
 	"ui.radio_station_step": {
@@ -104,10 +104,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 2,
 		"gain_db": -16.0,
 		"critical_essential": false,
-		"asset_status": AudioRegistryScript.AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/ui/sfx_ui_radio_step.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_47",
+		"asset_status": AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:ui.radio_station_step",
 		"description": "Brief tuner/relay step for radio state changes"
 	},
 	"ui.replay_retry_confirm": {
@@ -121,10 +121,10 @@ const SLOTS: Dictionary = {
 		"max_concurrency": 1,
 		"gain_db": -11.0,
 		"critical_essential": true,
-		"asset_status": AudioRegistryScript.AssetStatus.LICENSED_FINAL,
-		"replacement_required": false,
-		"production_asset_path": "res://audio/ui/sfx_ui_replay_retry_confirm.wav",
-		"source_provenance": "GTA_SA:GENRL:BANK_143:SOUND_73",
+		"asset_status": AudioRegistryScript.AssetStatus.PROCEDURAL_FALLBACK,
+		"replacement_required": true,
+		"production_asset_path": "",
+		"source_provenance": "ORIGINAL_PROCEDURAL:RI01:ui.replay_retry_confirm",
 		"description": "Firm replay/retry commitment latch"
 	}
 }

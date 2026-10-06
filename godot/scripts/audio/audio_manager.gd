@@ -200,6 +200,11 @@ static func event_to_slot_id(event: SoundEvent) -> String:
 	return EVENT_TO_SLOT_MAP.get(event, "")
 
 func _load_registry_loop_or_fallback(slot_id: String, fallback_stream: AudioStreamWAV = null) -> AudioStreamWAV:
+	if AudioReferenceResolverScript.is_reference_enabled():
+		var reference_stream: AudioStreamWAV = AudioReferenceResolverScript.resolve_stream(slot_id)
+		if reference_stream != null:
+			reference_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			return reference_stream
 	var asset_path: String = AudioRegistryScript.get_production_asset_path(slot_id)
 	if not asset_path.is_empty() and ResourceLoader.exists(asset_path):
 		var production_stream := load(asset_path) as AudioStreamWAV
@@ -219,11 +224,7 @@ func _ready() -> void:
 	var gate_slam_asset_path: String = AudioRegistryScript.get_production_asset_path("interaction.gate_triggered")
 	if not gate_slam_asset_path.is_empty() and ResourceLoader.exists(gate_slam_asset_path):
 		_gate_slam_production_stream = load(gate_slam_asset_path)
-	var ambient_wind_asset_path: String = AudioRegistryScript.get_production_asset_path("world.ambient_wind")
-	if not ambient_wind_asset_path.is_empty() and ResourceLoader.exists(ambient_wind_asset_path):
-		_ambient_wind_stream = load(ambient_wind_asset_path) as AudioStreamWAV
-		if _ambient_wind_stream:
-			_ambient_wind_stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	_ambient_wind_stream = _load_registry_loop_or_fallback("world.ambient_wind", _create_noise_wav(2.0, 0.12))
 	_load_production_transient_streams()
 	_load_echo_production_streams()
 	_engine_stream = _load_registry_loop_or_fallback("vehicle.engine_rev", _create_noise_wav(0.5, 0.4))
@@ -408,10 +409,7 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 		SoundEvent.GATE_SLAM:
 			_play_gate_slam(pos)
 		SoundEvent.DISMOUNT_REJECTED:
-			if ResourceLoader.exists("res://audio/ui/sfx_ui_reject.wav"):
-				_play_transient_stream(load("res://audio/ui/sfx_ui_reject.wav"), pos, 10.0)
-			else:
-				_play_synth_rejection_buzz(pos)
+			_play_synth_rejection_buzz(pos)
 		SoundEvent.DISTURBANCE_ALERT:
 			_play_synth_sweep(pos, 350.0, 700.0, 0.4, 0.6)
 		SoundEvent.PURSUIT_INTERCEPTED:
@@ -432,21 +430,12 @@ func play_event(event: SoundEvent, pos: Vector3 = Vector3.ZERO) -> void:
 		## M07 — Ambient world work life (ducked automatically during disturbance/pursuit)
 		SoundEvent.AMBIENT_WORK_CLINK:
 			if current_mix_state != MixState.DISTURBANCE and current_mix_state != MixState.PURSUIT_PRESSURE:
-				if ResourceLoader.exists("res://audio/interaction/sfx_interaction_panel_pry.wav"):
-					_play_transient_stream(load("res://audio/interaction/sfx_interaction_panel_pry.wav"), pos, 8.0)
-				else:
-					_play_synth_click(pos, 720.0, 0.06, 0.25)
+				_play_synth_click(pos, 720.0, 0.06, 0.25)
 		SoundEvent.AMBIENT_SERVO_HUM:
 			if current_mix_state != MixState.DISTURBANCE and current_mix_state != MixState.PURSUIT_PRESSURE:
-				if ResourceLoader.exists("res://audio/world/sfx_world_fb13_resonance.wav"):
-					_play_transient_stream(load("res://audio/world/sfx_world_fb13_resonance.wav"), pos, 8.0)
-				else:
-					_play_synth_sweep(pos, 220.0, 310.0, 0.25, 0.2)
+				_play_synth_sweep(pos, 220.0, 310.0, 0.25, 0.2)
 		SoundEvent.TRACTION_RECOVERY:
-			if ResourceLoader.exists("res://audio/vehicle/sfx_vehicle_collision_glance.wav"):
-				_play_transient_stream(load("res://audio/vehicle/sfx_vehicle_collision_glance.wav"), pos, 10.0)
-			else:
-				_play_synth_sweep(pos, 420.0, 620.0, 0.12, 0.22)
+			_play_synth_sweep(pos, 420.0, 620.0, 0.12, 0.22)
 		SoundEvent.FB13_THRUM:
 			_play_fb13_thrum(pos)
 		SoundEvent.SIDEARM_FIRE:

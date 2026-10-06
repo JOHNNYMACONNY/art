@@ -137,9 +137,23 @@ func _should_suppress(meta: Dictionary) -> bool:
 	return mix_state in CRITICAL_MIX_STATES
 
 func _create_fallback_stream(slot_id: String) -> AudioStream:
-	var path := UIAudioSemanticRegistry.get_production_asset_path(slot_id)
-	if not path.is_empty() and ResourceLoader.exists(path):
-		return load(path)
+	if _manager == null or not is_instance_valid(_manager):
+		return null
+	match slot_id:
+		"ui.nav_move":
+			return _manager.call("_create_tone_wav", 720.0, 0.035, 0.22)
+		"ui.nav_confirm":
+			return _manager.call("_create_harmonic_chime_wav", 520.0, 780.0, 0.09, 0.28)
+		"ui.nav_back":
+			return _manager.call("_create_sweep_wav", 620.0, 360.0, 0.09, 0.25)
+		"ui.mode_switch":
+			return _manager.call("_create_dual_beep_wav", 440.0, 0.10, 0.22)
+		"ui.reject":
+			return _manager.call("_create_dual_beep_wav", 160.0, 0.16, 0.35)
+		"ui.radio_station_step":
+			return _manager.call("_create_sweep_wav", 400.0, 520.0, 0.08, 0.22)
+		"ui.replay_retry_confirm":
+			return _manager.call("_create_harmonic_chime_wav", 660.0, 990.0, 0.12, 0.30)
 	return null
 
 func _register_with_manager(player: AudioStreamPlayer) -> void:

@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "godot/scripts/audio/**"
+      - "godot/audio/**"
+      - "godot/verification/audio/**"
+      - "godot/tests/release_integrity_audio_contract.gd"
       - "godot/tests/audio_runtime_output_contract_test.gd"
       - "godot/tests/audio_runtime_windowed_probe.gd"
       - ".github/workflows/audio-runtime-31.yml"
@@ -13,6 +16,9 @@ on:
       - "chatgpt/audio-runtime-31"
     paths:
       - "godot/scripts/audio/**"
+      - "godot/audio/**"
+      - "godot/verification/audio/**"
+      - "godot/tests/release_integrity_audio_contract.gd"
       - "godot/tests/audio_runtime_output_contract_test.gd"
       - "godot/tests/audio_runtime_windowed_probe.gd"
       - ".github/workflows/audio-runtime-31.yml"
@@ -60,6 +66,20 @@ jobs:
           mkdir -p .godot-bin
           unzip -q godot.zip -d .godot-bin
           chmod +x "$GODOT_BIN"
+
+      - name: Verify release audio boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -d godot/audio ]] && find godot/audio -type f \( -iname '*.wav' -o -iname '*.ogg' -o -iname '*.mp3' \) -print -quit | grep -q .; then
+            echo "Release Integrity 01: tracked packaged audio media is present without a rights-safe manifest." >&2
+            find godot/audio -type f \( -iname '*.wav' -o -iname '*.ogg' -o -iname '*.mp3' \) -print >&2
+            exit 1
+          fi
+          if grep -R --line-number --fixed-strings 'GTA_SA:' godot/scripts/audio godot/verification/audio; then
+            echo "Release Integrity 01: runtime registry/verification still contains GTA provenance." >&2
+            exit 1
+          fi
 
       - name: Prime Godot metadata
         shell: bash

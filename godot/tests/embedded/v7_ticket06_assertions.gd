@@ -127,18 +127,18 @@ static func run(controller: ScrapTestBlock) -> void:
 	print("[TICKET 06 TEST 6 PASSED] Panel peel pitch progression verified!")
 
 	# -------------------------------------------------------------------------
-	# TEST 7: Authentic Audio Stream Verification
+	# TEST 7: Release-Safe Procedural Audio Verification
 	# -------------------------------------------------------------------------
-	print("[TEST 7] Testing Authentic Audio Stream Formats & Properties...")
-	var peel_stream := load("res://audio/interaction/sfx_interaction_panel_peel.wav") as AudioStreamWAV
-	assert(peel_stream != null, "FAIL: Panel peel production stream must load")
-	assert(peel_stream.format == AudioStreamWAV.FORMAT_16_BITS, "FAIL: Production stream must be 16-bit PCM")
-	assert(peel_stream.mix_rate == 18000, "FAIL: Panel peel native rate is 18000 Hz")
+	print("[TEST 7] Testing release-safe procedural stream formats & properties...")
+	var peel_stream: AudioStreamWAV = controller.audio_mgr._create_sweep_wav(620.0, 280.0, 0.18, 0.35)
+	assert(peel_stream != null and not peel_stream.data.is_empty(), "FAIL: Panel peel procedural stream must contain PCM")
+	assert(peel_stream.format == AudioStreamWAV.FORMAT_8_BITS, "FAIL: Procedural stream must use generated PCM8")
+	assert(peel_stream.mix_rate == 22050, "FAIL: Procedural stream generator rate must be 22050 Hz")
 
-	var lock_stream := load("res://audio/player/sfx_player_signal_lock_pulse.wav") as AudioStreamWAV
-	assert(lock_stream != null, "FAIL: Signal lock production stream must load")
-	assert(lock_stream.format == AudioStreamWAV.FORMAT_16_BITS, "FAIL: Signal lock must be 16-bit PCM")
-	print("[TICKET 06 TEST 7 PASSED] Authentic audio stream properties verified!")
+	var lock_stream: AudioStreamWAV = controller.audio_mgr._create_harmonic_chime_wav(660.0, 990.0, 0.20, 0.45)
+	assert(lock_stream != null and not lock_stream.data.is_empty(), "FAIL: Signal lock procedural stream must contain PCM")
+	assert(lock_stream.format == AudioStreamWAV.FORMAT_8_BITS, "FAIL: Signal lock procedural stream must use generated PCM8")
+	print("[TICKET 06 TEST 7 PASSED] Release-safe procedural audio properties verified!")
 
 	# -------------------------------------------------------------------------
 	# TEST 8: Transient Voice Budget & Auto-Cleanup
@@ -146,7 +146,7 @@ static func run(controller: ScrapTestBlock) -> void:
 	print("[TEST 8] Testing Transient Voice Budget & Auto-Cleanup...")
 	controller.reset_slice()
 	await controller.get_tree().create_timer(0.05).timeout
-	var test_stream := load("res://audio/player/sfx_player_footstep.wav") as AudioStreamWAV
+	var test_stream := controller.audio_mgr._create_tone_wav(310.0, 0.05, 0.30) as AudioStreamWAV
 	for i in range(15):
 		var p := AudioStreamPlayer3D.new()
 		p.stream = test_stream

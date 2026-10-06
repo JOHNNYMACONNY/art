@@ -69,7 +69,7 @@ static func run(controller: ScrapTestBlock) -> void:
 	assert(threat_mix.size() >= 4, "FAIL 2: CRITICAL_THREAT mix group must contain at least 4 slots (found %d)" % threat_mix.size())
 
 	var backlog: Array[Dictionary] = AudioRegistryScript.get_replacement_backlog()
-	assert(backlog.size() == 0, "FAIL 2: Replacement backlog should be 0 upon 100%% 01Q audio catalog promotion (found %d)" % backlog.size())
+	assert(backlog.size() == all_slots.size(), "FAIL 2: Every public semantic slot must remain replacement-tracked while using procedural release audio (found %d of %d)" % [backlog.size(), all_slots.size()])
 	print("  -> Assertion 2 PASS: Domain, Diegesis, Mix Group, and Backlog queries verified!")
 
 	# -------------------------------------------------------------------------
