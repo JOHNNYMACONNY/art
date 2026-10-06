@@ -15,14 +15,15 @@ Always refresh current `main`, open PRs/issues and relevant CI/runtime evidence 
 
 ### ACTIVE
 
-- **Audio Production** — active in parallel. Treat its runtime, registries, production audio assets/tests and shared-scene changes as a conflict surface unless the active audio branch proves otherwise.
+- **Audio runtime qualification** — issue #31 is the selected next workstream after Release Integrity 01. Automated output is verified; normal-windowed owner audibility/perceptual quality is not.
 - **Project orchestration** — keep issue state, wayfinders and just-in-time tickets aligned with repo truth.
 
 ### NEXT
 
-- **Release Integrity 01 / #191 — GTA reference-audio containment / public decontamination — JIT design pending; blocks next feature production.** Fresh post-P20 verification found tracked public audio assets and production contracts explicitly tied to `GTA_SA:...` provenance while the current owner rule permits GTA/Rockstar audio only as private local reference.
-- Reverify the complete affected binary/registry/runtime/test/Web-export surface. Restore the intended split: public/tracked builds use original, procedural or licensed-safe assets; local private development may optionally override them with untracked reference audio.
-- Preserve AudioManager semantic ownership, reset/mix behavior, P17 `SIDEARM_FIRE` routing and existing gameplay contracts. Do not turn #191 into a general audio redesign or start numbered P21 gameplay until the release-integrity boundary is verified clean.
+- **Audio Runtime 01 / #31 — restore / qualify audible windowed owner-playtest output.** Release Integrity 01 is merged, exact-main verified and publicly deployed at `7561204c90db207f8b65a01585c0f9ea15d55047`; current-tree/public audio is procedural-only and no longer depends on tracked GTA/Rockstar reference binaries.
+- Continue #31 as a bounded output/device/root-cause qualification task, not a general mix redesign. Automated Audio Runtime and Web tests prove functional routing/output only; final acceptance still requires the owner to hear a known probe/event in a normal windowed launch.
+- Preserve the clean public/private reference split. Do not reintroduce committed third-party reference media while qualifying audible output.
+- If autonomous diagnosis exhausts itself at a genuine listening-only gate, record the smallest owner action and re-evaluate parallel gameplay sequencing rather than inventing unnecessary audio architecture.
 
 ### DEFERRED
 
@@ -49,7 +50,8 @@ These gates do not automatically block unrelated code-first work.
 - Open World Expansion 01D / PR #66 — Silent Core infrastructure integration, merged.
 - World Event 01 / PR #68 — bounded FB-13 infrastructure-thrum use of existing geography, merged.
 - Issue #89 / Open World Expansion 01E — Gears retained-camera readability & performance checkpoint, complete (`VISUAL_PERF_CHECKPOINT_PASS`).
-- Productions 01–20 — merged and verified through Production 20 Sister Kael Silent Core Presence / Choice-Reactive Witness. Exact runnable/gameplay/public P20 baseline: `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`; current public Web publication uses GitHub Pages Actions artifacts and the live source stamp matches that exact SHA. P20 introduced no Audio scope; P17 firearm audio routing remains technically verified while perceptual listening quality remains unverified. A separate verified release-integrity risk is tracked in #191 because public/tracked audio currently includes GTA-derived reference material contrary to the current local-reference-only rule.
+- Productions 01–20 — merged and verified through Production 20 Sister Kael Silent Core Presence / Choice-Reactive Witness. Exact gameplay/world P20 baseline: `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`.
+- Release Integrity 01 / #191 / PR #193 — merged, exact-main verified and public verified. Current release-integrity/runnable public baseline: `7561204c90db207f8b65a01585c0f9ea15d55047`; current tracked/public audio contains no packaged WAV/OGG/MP3 reference media, while developer-local reference override remains optional and fail-closed. Perceptual listening remains unverified and is routed to #31.
 
 Do not recreate completed 01A–01D work because an older roadmap still describes it as future work.
 
