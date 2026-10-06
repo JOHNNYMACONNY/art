@@ -1,7 +1,8 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `BURNSIDE_P20_SISTER_KAEL_WITNESS_MERGED_VERIFIED_PUBLIC`  
+**Status:** `RELEASE_INTEGRITY_01_MERGED_VERIFIED_PUBLIC`  
 **Current gameplay/world baseline:** `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`  
+**Current release-integrity / runnable public baseline:** `7561204c90db207f8b65a01585c0f9ea15d55047`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -1420,44 +1421,81 @@ No manual interactive public playthrough is claimed in this closeout.
 
 Audio qualification: P20 introduced no Audio dependency. P17 `SIDEARM_FIRE` technical routing remains verified; perceptual firearm-audio quality remains **NOT VERIFIED** without an actual listening/playback pass.
 
-## Post-Production-20 re-evaluation state
+## Release Integrity 01 — verified result
 
-P20 closes the bounded authored-character consequence gap at the Silent Core without creating another interaction authority.
+Issue #191 / PR #193: **MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY UPDATE IN PROGRESS**.
 
-Fresh re-evaluation found a higher-priority non-feature blocker before any numbered P21 gameplay slice:
+Final frozen candidate head:
 
-**Release Integrity 01 — #191 — GTA reference-audio containment / public decontamination**
+`3b4b590e2bb95008a75178517d1faba3ac64ea02`
 
-Status: `SELECTED__JIT_DESIGN_PENDING__BLOCKS_NEXT_FEATURE_PRODUCTION`
+Exact release-integrity / runnable public main:
 
-Why it outranks adjacent gameplay candidates:
+`7561204c90db207f8b65a01585c0f9ea15d55047`
 
-1. **release/IP integrity** — the repository is public, and current tracked audio contracts/registries explicitly identify multiple production paths as `GTA_SA:...` sources while some classify them as `LICENSED_FINAL`; at least `godot/audio/echo/loop_echo_radio_interference.wav` is directly verified as a tracked binary in the public repo. This conflicts with the current owner rule that GTA/Rockstar audio is private local reference only and must not be committed, published, redistributed or become a release dependency;
-2. **perceptual audio / output qualification** — issue #31 remains open and human listening quality is still unverified, but first the tracked/public reference boundary must be made trustworthy;
-3. **Lira physical presence / authored consequence** — still valuable, but another static-character slice has lower marginal value immediately after P18/P20;
-4. **Heat 2+ / broader police escalation** — high eventual systemic value, but materially greater AI/authority/content cost and risk;
-5. **human combat expansion / enemy firearms** — broader architecture and content surface than current evidence justifies;
-6. **more geography** — lower value until a gameplay need demonstrates that existing Gears density is insufficient.
+Release-integrity result:
 
-#191 should restore the intended split:
+- removed all **56 tracked WAV binaries** plus their **56 Godot `.wav.import` sidecars** from the current public/tracked tree;
+- all **49 active semantic audio slots** now use `PROCEDURAL_FALLBACK`, remain `replacement_required = true`, have empty packaged production paths, and use `ORIGINAL_PROCEDURAL:RI01:<slot>` release-safe provenance;
+- runtime audio scripts contain no committed `res://audio/` dependency and no active `GTA_SA:` provenance;
+- UI, Courier Bike feedback, pursuit, Memory Echo, ambient world, semantic transients and Yardline radio retain deterministic procedural output rather than silently going mute;
+- the existing local reference resolver remains debug-only, explicit opt-in, sandboxed, fail-closed and unnecessary for clean CI/public builds;
+- no gameplay, canon, save, Wanted, Field-Hacking, HS-7, mission or combat authority changed;
+- no Git history rewrite was performed. Historical commits may still contain previously published audio blobs; rewriting public history is a separate destructive decision and cannot retract already cloned/forked/cached copies.
 
-`PUBLIC/TRACKED = ORIGINAL | PROCEDURAL | LICENSED-SAFE`
+Repair / review / verification:
 
-`LOCAL PRIVATE DEV = OPTIONAL GTA REFERENCE OVERRIDE`
+- initial candidate `ef5f270925a812ca447546468b46712fea5a0e61` passed Audio Runtime, Web export and P17 but the canonical matrix correctly classified Ticket06 as a branch regression because GDScript could not infer two newly procedural stream variable types;
+- repair commit `3b4b590e2bb95008a75178517d1faba3ac64ea02` explicitly typed those two Ticket06 variables as `AudioStreamWAV`; this was harness-only and did not change runtime behavior;
+- repaired PR Audio Runtime run `37542819351`: **SUCCESS**;
+- repaired PR P17 retained regression run `37542819329`: **SUCCESS**;
+- repaired PR Godot Web Playtest run `37542819328`: **SUCCESS**, including exact-head canonical 29-suite compatibility matrix, literal-head Web export, synthetic-merge Web export, static-host smoke and public package creation;
+- unresolved review threads before merge: **0**;
+- Codex exact-head review was requested but unavailable because the account had reached its code-review usage limit; that quota condition was not treated as approval or as a defect;
+- an independent exact-head release-integrity review found no blocking defect before merge; CodeRabbit was also triggered but was not used as a substitute for verified CI;
+- PR #193 merged with expected-head protection to exact main `7561204c90db207f8b65a01585c0f9ea15d55047`;
+- exact-main Audio Runtime run `37543830786`: **SUCCESS**;
+- exact-main P17 retained regression run `37543830749`: **SUCCESS**;
+- exact-main Godot Web Playtest run `37543830777`: **SUCCESS**, including exact-source checkout, retained desktop/mobile routing regressions, Web export, static-host smoke, package creation and GitHub Pages publish.
 
-Do not infer that successful P20 public deployment makes the current audio provenance release-ready. The exact P20 gameplay/public build is verified as behavior/provenance truth; the separate audio distribution risk is now explicit and blocks the next feature production slice.
+Latest verified public provenance:
+
+`PLAYTEST_BUILD.txt = 7561204c90db207f8b65a01585c0f9ea15d55047`
+
+A fresh independent live fetch returned that exact deployed stamp, and the live root still reports **Echos in the Scrap - Golden Slice**.
+
+No manual audible/perceptual playthrough is claimed. Release-integrity and automated functional audio output are verified; human listening quality remains **NOT VERIFIED**.
+
+## Post-Release-Integrity-01 re-evaluation state
+
+The release/public audio provenance blocker is closed at the current-tree/package level. The highest-value remaining gap is now:
+
+**Audio Runtime 01 — #31 — restore / qualify audible windowed owner-playtest output**
+
+Status: `SELECTED__OWNER_LISTENING_GATE`
+
+Why it leads:
+
+1. **audio is first-class identity and gameplay feedback** — the public build is now rights-safe, but automated routing/output proof is not the same as hearing the actual windowed mix;
+2. **#31 is already bounded and diagnostic** — it owns normal-windowed output/device/root-cause classification rather than a general audio redesign;
+3. **player-facing uncertainty is concrete** — footstep, tuner feedback, mounted radio and pursuit cues must be audibly confirmed, especially after the procedural-only public transition;
+4. Lira presence, Heat 2+, human combat expansion and geography remain credible later candidates but add more feature surface while a first-class sensory gate is still unresolved.
+
+#31 completion still requires owner hearing evidence in a normal windowed build. Do not upgrade automated output tests to perceptual PASS.
+
+If code-side #31 diagnosis reaches a genuine human-only listening gate with no remaining autonomous work, record the exact smallest owner action and re-evaluate whether bounded feature work can proceed in parallel rather than inventing more audio code.
 
 ## Next-state rule
 
 Next production session:
 
-1. refresh exact repo/main, #191, open PRs/issues, CI/public Pages provenance and concurrent Audio/shared-scene work;
-2. keep exact runnable/gameplay/public P20 baseline `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34` distinct from any later docs-only continuity HEAD;
-3. confirm PR #190 remains merged and #188 is closed/completed after this continuity lands;
-4. read `START_HERE.md`, #55, #118 and #191 before new feature work;
-5. perform #191 JIT design by enumerating affected tracked binaries, registry/runtime ownership, safe procedural/original fallbacks, local-reference override behavior and Web packaging;
-6. do not delete semantic Audio ownership or weaken reset/mix/routing regressions merely to remove third-party binaries;
-7. do not select/implement numbered P21 gameplay until #191 is resolved and the playable product is re-evaluated again;
+1. refresh exact repo/main, #31, open PRs/issues, CI/public Pages provenance and any concurrent Audio/shared-scene work;
+2. keep gameplay/world P20 baseline `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34` distinct from the current release-integrity/runnable public baseline `7561204c90db207f8b65a01585c0f9ea15d55047` and any later docs-only continuity HEAD;
+3. confirm PR #193 remains merged and #191 is closed/completed after this continuity lands;
+4. read `START_HERE.md`, #55, #118 and #31 before new feature work;
+5. continue #31 from fresh normal-windowed/output evidence; preserve semantic ownership and do not reintroduce committed third-party reference media;
+6. require actual owner hearing evidence before closing #31 or claiming perceptual audio PASS;
+7. after #31 reaches completion or a proven human-only gate, re-evaluate the next numbered Burnside feature frontier;
 8. PR #44 remains deferred unless fresh evidence independently makes camera occlusion the highest-value current gap.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
