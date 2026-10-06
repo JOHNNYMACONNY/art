@@ -130,12 +130,12 @@ static func run(controller: ScrapTestBlock) -> void:
 	# TEST 7: Release-Safe Procedural Audio Verification
 	# -------------------------------------------------------------------------
 	print("[TEST 7] Testing release-safe procedural stream formats & properties...")
-	var peel_stream := controller.audio_mgr._create_sweep_wav(620.0, 280.0, 0.18, 0.35)
+	var peel_stream: AudioStreamWAV = controller.audio_mgr._create_sweep_wav(620.0, 280.0, 0.18, 0.35)
 	assert(peel_stream != null and not peel_stream.data.is_empty(), "FAIL: Panel peel procedural stream must contain PCM")
 	assert(peel_stream.format == AudioStreamWAV.FORMAT_8_BITS, "FAIL: Procedural stream must use generated PCM8")
 	assert(peel_stream.mix_rate == 22050, "FAIL: Procedural stream generator rate must be 22050 Hz")
 
-	var lock_stream := controller.audio_mgr._create_harmonic_chime_wav(660.0, 990.0, 0.20, 0.45)
+	var lock_stream: AudioStreamWAV = controller.audio_mgr._create_harmonic_chime_wav(660.0, 990.0, 0.20, 0.45)
 	assert(lock_stream != null and not lock_stream.data.is_empty(), "FAIL: Signal lock procedural stream must contain PCM")
 	assert(lock_stream.format == AudioStreamWAV.FORMAT_8_BITS, "FAIL: Signal lock procedural stream must use generated PCM8")
 	print("[TICKET 06 TEST 7 PASSED] Release-safe procedural audio properties verified!")
