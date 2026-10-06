@@ -1423,7 +1423,7 @@ Audio qualification: P20 introduced no Audio dependency. P17 `SIDEARM_FIRE` tech
 
 ## Release Integrity 01 — verified result
 
-Issue #191 / PR #193: **MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY UPDATE IN PROGRESS**.
+Issue #191 / PR #193: **CLOSED / MERGED / EXACT-MAIN VERIFIED / PUBLIC VERIFIED / CONTINUITY LANDED**.
 
 Final frozen candidate head:
 
@@ -1491,7 +1491,7 @@ Next production session:
 
 1. refresh exact repo/main, #31, open PRs/issues, CI/public Pages provenance and any concurrent Audio/shared-scene work;
 2. keep gameplay/world P20 baseline `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34` distinct from the current release-integrity/runnable public baseline `7561204c90db207f8b65a01585c0f9ea15d55047` and any later docs-only continuity HEAD;
-3. confirm PR #193 remains merged and #191 is closed/completed after this continuity lands;
+3. retain PR #193 as merged and #191 as closed/completed; do not reopen unless fresh verified regression evidence appears;
 4. read `START_HERE.md`, #55, #118 and #31 before new feature work;
 5. continue #31 from fresh normal-windowed/output evidence; preserve semantic ownership and do not reintroduce committed third-party reference media;
 6. require actual owner hearing evidence before closing #31 or claiming perceptual audio PASS;
