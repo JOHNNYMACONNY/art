@@ -1,0 +1,40 @@
+name: Audio Mix Pilot 01 Intake
+
+on:
+  pull_request:
+    paths:
+      - "code/audio_intake/audio_loudness.py"
+      - "code/audio_intake/test_audio_loudness.py"
+      - "code/audio_intake/test_audio_candidate_ledger.py"
+      - "code/audio_intake/audio_mix_pilot_01_candidates.json"
+      - ".github/workflows/audio-mix-pilot-01-intake.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recorded-source-intake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Confirm exact candidate source
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Validate recorded-source intake and PCM measurement contracts
+        shell: bash
+        run: python3 -m unittest discover -s code/audio_intake -p 'test_audio_*.py' -v
+      - name: Reconfirm RI01 media boundary remains unmodified
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -d godot/audio ]] && find godot/audio -type f \( -iname '*.wav' -o -iname '*.ogg' -o -iname '*.mp3' \) -print -quit | grep -q .; then
+            echo 'Unexpected packaged third-party audio media; check license and release policy before ingestion.' >&2
+            exit 1
+          fi
