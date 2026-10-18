@@ -1,8 +1,9 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `RELEASE_INTEGRITY_01_MERGED_VERIFIED_PUBLIC`  
+**Status:** `FEEL_03_CAMERA_OCCLUSION_MERGED_PUBLIC_VERIFIED__AUDIO_OWNER_LISTENING_PENDING`  
 **Current gameplay/world baseline:** `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`  
-**Current release-integrity / runnable public baseline:** `7561204c90db207f8b65a01585c0f9ea15d55047`  
+**Release-integrity baseline:** `7561204c90db207f8b65a01585c0f9ea15d55047`  
+**Current runnable public baseline:** `c489bd06d5ed92119e6e05d16cf12fa57d93038c`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
 
@@ -522,7 +523,7 @@ FB-13 / HS-7 companion presence is now embodied in production gameplay. Do not a
 
 Audio Production remains a first-class parallel lane. Refresh live Audio branches/PRs before shared-scene/audio mutation. Actual perceptual audio claims require playback evidence.
 
-PR #44 — CTW Feel 03 camera occlusion readability — remains **DEFERRED** unless fresh evidence materially changes priority.
+**CTW Feel 03 / #13:** PR #44 was closed as superseded; fresh-main PR #201 merged (squash `c489bd06d5ed92119e6e05d16cf12fa57d93038c`). Camera-to-subject ray, bounded three-occluder visual-only cutaway, 0.25 s restore, null-target cleanup and authored container/fence/pipe-rack proxies are implemented without touching gameplay collision, camera-control authority, canon, saves or Audio. Final PR-head Camera Occlusion 13, Camera Feel 30 and Godot Web workflows PASS; 29/29 exact-head legacy canonical commands PASS. Main Camera Feel 30 run `39113376364` and Godot Web push run `39113376562` PASS; live public `PLAYTEST_BUILD.txt` independently verified at the exact merge SHA. 960×540 rendered proof showed effective visibility and byte-identical baseline/restored screenshots; script/query CPU timing was measured in CI, not mobile GPU/P95. Three CodeRabbit findings were fixed and resolved; second independent clean review was rate-limited and explicitly owner-waived with residual risk recorded on PR #201. Manual mobile/device scene readability and frame-time still require representative playtesting.
 
 ## Verification / human-gate debt
 
@@ -1490,12 +1491,12 @@ If code-side #31 diagnosis reaches a genuine human-only listening gate with no r
 Next production session:
 
 1. refresh exact repo/main, #31, open PRs/issues, CI/public Pages provenance and any concurrent Audio/shared-scene work;
-2. keep gameplay/world P20 baseline `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34` distinct from the current release-integrity/runnable public baseline `7561204c90db207f8b65a01585c0f9ea15d55047` and any later docs-only continuity HEAD;
+2. keep gameplay/world P20 baseline `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`, Release Integrity 01 baseline `7561204c90db207f8b65a01585c0f9ea15d55047`, and current camera/public runnable baseline `c489bd06d5ed92119e6e05d16cf12fa57d93038c` distinct from later docs-only continuity HEAD;
 3. retain PR #193 as merged and #191 as closed/completed; do not reopen unless fresh verified regression evidence appears;
 4. read `START_HERE.md`, #55, #118 and #31 before new feature work;
 5. continue #31 from fresh normal-windowed/output evidence; preserve semantic ownership and do not reintroduce committed third-party reference media;
 6. require actual owner hearing evidence before closing #31 or claiming perceptual audio PASS;
 7. after #31 reaches completion or a proven human-only gate, re-evaluate the next numbered Burnside feature frontier;
-8. PR #44 remains deferred unless fresh evidence independently makes camera occlusion the highest-value current gap.
+8. retain PR #44 as superseded/closed and PR #201 as merged/public verified; do not re-implement the camera cutaway without evidence. Representative mobile-device camera/occlusion readability and frame-time remain unqualified; keep #31 owner-listening as a separate Audio gate.
 
 Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
