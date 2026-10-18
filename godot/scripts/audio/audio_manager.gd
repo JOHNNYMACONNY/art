@@ -553,6 +553,9 @@ func set_pursuit_pressure(distance: float, pursuer_pos: Vector3) -> void:
 	# Normalized pressure P: 0.0 at >= 20m, smoothly rising to 1.0 at <= 5m
 	var p: float = clampf((20.0 - distance) / 15.0, 0.0, 1.0)
 	_current_pursuit_pressure = p
+	# A pursuit can begin through the continuous API without a MixState switch.
+	# Preserve radio's existing gain owner; only refresh the ambience layer.
+	_update_ambient_wind_mix()
 
 	# Continuous radio ducking: -7dB at low pressure down to -13dB at maximum pressure (no per-frame tween churn)
 	var duck_target: float = lerpf(-7.0, -13.0, p)
@@ -606,11 +609,12 @@ func clear_pursuit_pressure(preserve_radio_duck: bool = false) -> void:
 		_tension_player.stop()
 	_tension_layer_active = false
 	_current_pursuit_pressure = 0.0
+	_update_ambient_wind_mix()
 	if not preserve_radio_duck:
 		set_radio_duck(0.0, 0.0)
 
 func _ambient_wind_is_priority_ducked() -> bool:
-	return current_mix_state in [MixState.DISTURBANCE, MixState.PURSUIT_PRESSURE, MixState.MEMORY_ECHO]
+	return _current_pursuit_pressure > 0.01 or current_mix_state in [MixState.DISTURBANCE, MixState.PURSUIT_PRESSURE, MixState.MEMORY_ECHO]
 
 func _update_ambient_wind_mix() -> void:
 	if not _ambient_wind_player:
