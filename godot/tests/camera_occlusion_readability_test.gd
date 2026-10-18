@@ -82,6 +82,7 @@ func _run() -> void:
 	_camera = CameraScript.new()
 	_camera.name = "Camera"
 	_fixture_root.add_child(_camera)
+	_camera.set_process(false)
 	_camera.call("reset_camera_instant", _target)
 	await process_frame
 	await physics_frame
@@ -243,6 +244,35 @@ func _run() -> void:
 	_camera.call("reset_camera_instant", _target)
 	if not bool(reset_entry["visual"].visible) or int(_camera.call("get_active_occluder_count")) != 0:
 		await _fail("Camera reset did not restore all cutaway visuals")
+		return
+
+	# Simulated moving-subject framing: camera look-ahead is offset from the
+	# physical player. Occlusion still targets the actual subject, not its lead.
+	for entry in occluders:
+		var previous: Node3D = entry["root"] as Node3D
+		previous.global_position += Vector3(100.0, 0.0, 0.0)
+	await physics_frame
+	await physics_frame
+	_camera.call("reset_camera_instant", _target)
+	_camera.set("_smoothed_look_ahead", Vector3(3.0, 0.0, 0.0))
+	_camera.call("_process", 0.016)
+	var moving_camera_point: Vector3 = _camera.global_position
+	var subject_occluder: Dictionary = _make_occluder(
+		"MovingSubjectOccluder", moving_camera_point.lerp(focus_point, 0.90), true
+	)
+	await physics_frame
+	await physics_frame
+	_camera.call("_process", 0.016)
+	if bool(subject_occluder["visual"].visible):
+		await _fail("Moving-subject obstruction was missed by the cutaway ray")
+		return
+
+	# Removing the target must restore hidden world visuals instead of leaving
+	# them frozen while the camera has no valid subject to follow.
+	_camera.call("set_target", null)
+	_camera.call("_process", 0.016)
+	if int(_camera.call("get_active_occluder_count")) != 0 or not bool(subject_occluder["visual"].visible):
+		await _fail("Target loss did not restore all hidden world visuals")
 		return
 
 	print("[CAMERA_OCCLUSION_13] PASS")
