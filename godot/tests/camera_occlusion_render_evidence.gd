@@ -102,6 +102,7 @@ func _run() -> void:
 	_camera.name = "EvidenceCamera"
 	_camera.current = true
 	_fixture.add_child(_camera)
+	_camera.set_process(false)
 	_camera.call("reset_camera_instant", _target)
 
 	var packed_container: PackedScene = load("res://scenes/props/salvage_container.tscn") as PackedScene
