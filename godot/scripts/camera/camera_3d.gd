@@ -109,6 +109,7 @@ func _process(delta: float) -> void:
 			raw_velocity = body.velocity
 			speed = raw_velocity.length()
 	else:
+		_restore_all_occluders()
 		return
 
 	if not _is_initialized:
@@ -175,7 +176,7 @@ func _process(delta: float) -> void:
 	# -------------------------------------------------------------------------
 	# STAGE 5: Explicit bounded occlusion cutaway (visual state only)
 	# -------------------------------------------------------------------------
-	_update_occlusion_cutaway(framing_center + _focus_height_offset, delta)
+	_update_occlusion_cutaway(raw_target_pos + _focus_height_offset, delta)
 
 	# -------------------------------------------------------------------------
 	# FOV: Contextual & Speed Breathing
