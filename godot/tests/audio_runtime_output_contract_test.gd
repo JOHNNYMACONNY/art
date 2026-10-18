@@ -146,6 +146,15 @@ func _run() -> void:
 		await _fail("Master bus volume is effectively silent")
 		return
 
+	# Audio Mix 02: the ordinary ambient bed must start in the calm mix.
+	var ambient_player := _manager.get_node_or_null("AmbientWindPlayer") as AudioStreamPlayer
+	if ambient_player == null or ambient_player.stream == null or not ambient_player.playing:
+		await _fail("Audio Mix 02: calm ambience is not playing")
+		return
+	if not is_equal_approx(ambient_player.volume_db, -18.0):
+		await _fail("Audio Mix 02: calm wind level changed: %s" % ambient_player.volume_db)
+		return
+
 	var test_stream := _manager.call("_create_harmonic_chime_wav", 660.0, 990.0, 0.20, 0.45) as AudioStreamWAV
 	if _pcm_span(test_stream) < 32:
 		await _fail("Production stream has insufficient PCM amplitude")
@@ -206,11 +215,36 @@ func _run() -> void:
 		return
 
 	_manager.call("set_pursuit_pressure", 10.0, Vector3.ZERO)
+	if not is_equal_approx(ambient_player.volume_db, -30.0):
+		await _fail("Audio Mix 02: direct pursuit pressure must duck ambience: %s" % ambient_player.volume_db)
+		return
+	if float(_manager.call("get_radio_duck")) > -7.0:
+		await _fail("Audio Mix 02: existing radio duck unexpectedly absent during pursuit")
+		return
 	var siren_player := _manager.get_node_or_null("SirenAlarmPlayer")
 	var tension_player := _manager.get_node_or_null("PursuitTensionPlayer")
 	if not await _require_player(siren_player, "Pursuit siren"):
 		return
 	if not await _require_player(tension_player, "Pursuit tension"):
+		return
+
+	# The direct API must restore calm, unless an authored scene still owns the mix.
+	_manager.call("clear_pursuit_pressure")
+	if not is_equal_approx(ambient_player.volume_db, -18.0):
+		await _fail("Audio Mix 02: direct pursuit clear left ambience ducked")
+		return
+	_manager.call("set_mix_state", AudioManagerScript.MixState.MEMORY_ECHO)
+	if not is_equal_approx(ambient_player.volume_db, -30.0):
+		await _fail("Audio Mix 02: Memory Echo ambience priority regressed")
+		return
+	_manager.call("set_pursuit_pressure", 10.0, Vector3.ZERO)
+	_manager.call("clear_pursuit_pressure", true)
+	if not is_equal_approx(ambient_player.volume_db, -30.0):
+		await _fail("Audio Mix 02: clearing pursuit overrode active Memory Echo priority")
+		return
+	_manager.call("set_mix_state", AudioManagerScript.MixState.CALM)
+	if not is_equal_approx(ambient_player.volume_db, -18.0):
+		await _fail("Audio Mix 02: leaving Memory Echo failed to restore calm ambience")
 		return
 
 	_manager.call("reset_audio_instant")
@@ -219,6 +253,14 @@ func _run() -> void:
 		return
 	if bool(_manager.call("is_radio_playing")):
 		await _fail("Authoritative reset left radio playback active")
+		return
+
+	await process_frame
+	if not ambient_player.playing or not is_equal_approx(ambient_player.volume_db, -18.0):
+		await _fail("Audio Mix 02: reset did not re-arm calm ambience cleanly")
+		return
+	if not is_equal_approx(float(_manager.call("get_radio_duck")), 0.0):
+		await _fail("Audio Mix 02: reset left radio duck active")
 		return
 
 	var retention_error: String = AudioFirstRetentionContract.verify()
