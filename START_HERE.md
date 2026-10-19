@@ -15,27 +15,28 @@ Always refresh current `main`, open PRs/issues and relevant CI/runtime evidence 
 
 ### ACTIVE
 
-- **Audio runtime qualification** — issue #31 is the selected next workstream after Release Integrity 01. Automated output is verified; normal-windowed owner audibility/perceptual quality is not.
-- **Project orchestration** — keep issue state, wayfinders and just-in-time tickets aligned with repo truth.
+- **Recorded-first audio production / issue #196** — output is audible in native windowed Godot and Web according to direct owner confirmation on 2026-10-19; issue #31 CLOSED (technical and audibility gate). Current highest-value audio frontier is *actual approved recordings and integrated, calibrated gameplay mix*, not device/audio-output diagnosis.
+- **Product orchestration / #55** — keep live issue, canon, public-release and continuity routing aligned with repository truth.
 
 ### NEXT
 
-- **Audio Runtime 01 / #31 — restore / qualify audible windowed owner-playtest output.** Release Integrity 01 is merged, exact-main verified and publicly deployed at `7561204c90db207f8b65a01585c0f9ea15d55047`; current-tree/public audio is procedural-only and no longer depends on tracked GTA/Rockstar reference binaries.
-- Continue #31 as a bounded output/device/root-cause qualification task, not a general mix redesign. Automated Audio Runtime and Web tests prove functional routing/output only; final acceptance still requires the owner to hear a known probe/event in a normal windowed launch.
-- Preserve the clean public/private reference split. Do not reintroduce committed third-party reference media while qualifying audible output.
-- If autonomous diagnosis exhausts itself at a genuine listening-only gate, record the smallest owner action and re-evaluate parallel gameplay sequencing rather than inventing unnecessary audio architecture.
+- **Audio Production 02 / #196 — five-family recorded-first vertical slice**: obtain and audition actual redistributable source files (footsteps, metal contact, tuner/static, electric bike, pursuit warning), document legal rights for raw public Git distribution and SHA-256 provenance, edit and measure the assets using the already merged `code/audio_intake/audio_loudness.py`, integrate incrementally with procedural fallback and native/Web playback checks.
+- **Existing mix behavior**: PR #200 / issue #199 shipped continuous pursuit ambient-wind attenuation on main; do not duplicate radio-duck ownership or introduce speculative full RAGE-style architecture. Listen to simultaneous quiet → moving/radio → pursuit → release and adjust only with evidence.
+- **Audio quality gate still open**: “both work” proves owner-reported audibility, not five separately enumerated probe-cue passes, relative loudness, license verification or all 49 final sound replacements. #196 remains open.
+- **Retained audio sources**: no raw GTA/Rockstar assets or unapproved Freesound/media samples committed; use permitted CC0 or documented redistribution rights. Follow Release Integrity 01, existing audio semantics/reset, saves and Web bundling contracts.
+- After the first real-sound slice, reevaluate against Lira authored presence, Heat 2+ police escalation, human combat, and density rather than expanding every sound slot by default.
 
 ### DEFERRED
 
 - More Gears acreage until next bounded gameplay slice exercises existing geography.
-- PR #44 camera-occlusion experiment; retained camera follow is the production baseline.
+- PR #44 camera-occlusion experiment was superseded. PR #201 CTW Feel 03 camera-occlusion cutaway is merged and public-verified at runnable SHA `c489bd06d5ed92119e6e05d16cf12fa57d93038c`; preserve current heading-follow camera and occlusion contracts.
 - Experimental nonlinear touch steering; linear steering remains default until physical-device qualification.
 - Broad fresh-player perceptual studies unless a current decision genuinely requires them.
 
 ### HUMAN_GATE
 
 - Physical touch A/B before changing touch steering default.
-- Human listening/perceptual audio checks when actual playback quality is the question.
+- Native/Web audio audibility has owner-reported PASS (#31 closed); human listening is still required for individual recorded samples, relative loudness, masking and actual mix quality under #196.
 - Real mobile performance until measured on real hardware.
 
 These gates do not automatically block unrelated code-first work.
@@ -51,7 +52,11 @@ These gates do not automatically block unrelated code-first work.
 - World Event 01 / PR #68 — bounded FB-13 infrastructure-thrum use of existing geography, merged.
 - Issue #89 / Open World Expansion 01E — Gears retained-camera readability & performance checkpoint, complete (`VISUAL_PERF_CHECKPOINT_PASS`).
 - Productions 01–20 — merged and verified through Production 20 Sister Kael Silent Core Presence / Choice-Reactive Witness. Exact gameplay/world P20 baseline: `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`.
-- Release Integrity 01 / #191 / PR #193 — merged, exact-main verified and public verified. Current release-integrity/runnable public baseline: `7561204c90db207f8b65a01585c0f9ea15d55047`; current tracked/public audio contains no packaged WAV/OGG/MP3 reference media, while developer-local reference override remains optional and fail-closed. Perceptual listening remains unverified and is routed to #31.
+- Release Integrity 01 / #191 / PR #193 — merged, exact-main verified and public verified; immutable release-integrity baseline `7561204c90db207f8b65a01585c0f9ea15d55047`. Current public/audio remains procedure-safe with optional fail-closed local debug reference override.
+- Audio Runtime 01 / #31 — CLOSED after owner stated native windowed and Web audio both work on 2026-10-19. This resolves global audibility, **not** subjective sound-design/mix quality.
+- Audio intake PR #198 — MERGED, SHA `0c82bae1b1e1f51a5e2d2ec4f578c8730defe7cf`; first six source candidates are not yet auditioned/ingested.
+- Audio Mix PR #200 — MERGED, SHA `95cd32a230432fd7b359adb42af8b3a12cbe02b6`; live pursuit pressure now ducks ambient wind without altering radio gain owner. #199 CLOSED.
+- CTW Feel 03 camera PR #201 — MERGED, public runnable SHA `c489bd06d5ed92119e6e05d16cf12fa57d93038c`.
 
 Do not recreate completed 01A–01D work because an older roadmap still describes it as future work.
 
