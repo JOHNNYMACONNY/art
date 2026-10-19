@@ -1,11 +1,13 @@
 # HANDOFF.md — Current Product Continuity
 
-**Status:** `FEEL_03_CAMERA_OCCLUSION_MERGED_PUBLIC_VERIFIED__AUDIO_OWNER_LISTENING_PENDING`  
+**Status:** `AUDIO_RUNTIME_OWNER_NATIVE_WEB_AUDIBLE__RECORDED_FIRST_PRODUCTION_02_NEXT`  
 **Current gameplay/world baseline:** `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`  
 **Release-integrity baseline:** `7561204c90db207f8b65a01585c0f9ea15d55047`  
 **Current runnable public baseline:** `c489bd06d5ed92119e6e05d16cf12fa57d93038c`  
 **Immutable Feel baseline:** `09fa2b0ab8aebc8a2ae54b989bffad7720503e48`  
 **Engine:** Godot 4.7.1 Stable
+
+> **2026-10-19 routing supersession:** The owner explicitly confirmed **both normal-windowed native and Web game audio work**. Issue **#31 CLOSED / completed** with owner report on its issue thread. Old statements below that #31 is still pending are retained as historical context and **do not override this latest acceptance**. This is a global-output/audibility PASS, **not** sample-by-sample listening, perceptual balance, or completion of the 49 recorded-first sounds. `#196` is now the active recorded-first/mix-quality track; #197 and #199 are closed, PRs #198 and #200 merged. Post-audio work PR #201 camera-occlusion merged and public verified at `c489bd06d5ed92119e6e05d16cf12fa57d93038c`, with docs-only `main@c8aa6d0d46fb3e908172c32841f8978b82561947` as of verification. See `START_HERE.md` and current issues for live routing.
 
 > Continuity only. Refresh remote `main`, open PRs/issues, CI, public-playtest state, and any concurrent Audio/shared-scene work before repo-sensitive claims. A later docs-only continuity merge may make repository HEAD newer than the exact verified gameplay/public baseline above without changing runnable gameplay.
 
@@ -1486,17 +1488,16 @@ Why it leads:
 
 If code-side #31 diagnosis reaches a genuine human-only listening gate with no remaining autonomous work, record the exact smallest owner action and re-evaluate whether bounded feature work can proceed in parallel rather than inventing more audio code.
 
-## Next-state rule
+## Next-state rule — updated after owner audio acceptance (2026-10-19)
 
 Next production session:
 
-1. refresh exact repo/main, #31, open PRs/issues, CI/public Pages provenance and any concurrent Audio/shared-scene work;
-2. keep gameplay/world P20 baseline `e4029fd06bfafc3fdc8ac158b7c39a17372a8d34`, Release Integrity 01 baseline `7561204c90db207f8b65a01585c0f9ea15d55047`, and current camera/public runnable baseline `c489bd06d5ed92119e6e05d16cf12fa57d93038c` distinct from later docs-only continuity HEAD;
-3. retain PR #193 as merged and #191 as closed/completed; do not reopen unless fresh verified regression evidence appears;
-4. read `START_HERE.md`, #55, #118 and #31 before new feature work;
-5. continue #31 from fresh normal-windowed/output evidence; preserve semantic ownership and do not reintroduce committed third-party reference media;
-6. require actual owner hearing evidence before closing #31 or claiming perceptual audio PASS;
-7. after #31 reaches completion or a proven human-only gate, re-evaluate the next numbered Burnside feature frontier;
-8. retain PR #44 as superseded/closed and PR #201 as merged/public verified; do not re-implement the camera cutaway without evidence. Representative mobile-device camera/occlusion readability and frame-time remain unqualified; keep #31 owner-listening as a separate Audio gate.
+1. Reverify `JOHNNYMACONNY/art` remote, branch/main HEAD, worktrees/dirty state if local, upstream, open PRs, CI and public `PLAYTEST_BUILD.txt`. Last verified GitHub main prior to this docs change was `c8aa6d0d46fb3e908172c32841f8978b82561947`; public runnable was `c489bd06d5ed92119e6e05d16cf12fa57d93038c`. These are *different* because current main includes docs-only continuity.
+2. Honor completed global audio qualification: **#31 CLOSED** after owner confirmed both native windowed and Web game sound works. Historical debug PCM8 fix/PR #43 is retained. Do **not** restart output-device diagnosis absent new evidence.
+3. Continue **#196 Audio Production 02** as the highest-value remaining sound-quality frontier. Intake PR #198 (stdlib WAV metrics/provenance ledger) and pressure/wind-duck PR #200 are MERGED, issue #199 CLOSED. Existing project audio still relies on procedural fallbacks; all sourced Freesound recordings are *candidates*, not approved/auditioned/ingested files.
+4. Next bounded tranche: verify a lawful public-distributable recording source; audition five-family representative Foley/ambience (footsteps, metal peel/impact, tuner/RF, bike motor, pursuit alert/siren); capture rights/date/hashes and prepared WAV metrics. If Freesound source download requires an account, find a truly accessible equivalent or report the narrow blocker rather than fake an asset.
+5. Integrate small, reviewed playable recordings into actual semantic slots with clean fallback. Honor the Release Integrity 01 public license boundary, existing UI/radio/vehicle/audio manager routes, event cooldowns, audio resets, saves, 3D attenuation, Web export and owner listening. Do not blanket-normalize transients by LUFS or build a complex mixer without a demonstrated need.
+6. Check a quiet yard → walking → mounted radio/bike → pursuit → release sequence at constant monitor gain. Track level, mix masking and clipping technically, and get perceptual feedback for sound *quality* when available. A global audible-output pass does not qualify relative mix loudness.
+7. Reevaluate #55 / #118 player value after the bounded pilot against Lira physical presence, Heat 2+, human combat and district density. Protect FB-13 / HS-7 canon, original/licensed audio and concurrent camera work; current camera PR #201 merged and public verified, old #44 superseded.
 
-Create a new Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
+Create a Wayfinder only for a genuinely new, foggy, multi-session cross-system design problem. `WAYFINDER_MAP.md` remains historical architecture context, not the live status tracker.
