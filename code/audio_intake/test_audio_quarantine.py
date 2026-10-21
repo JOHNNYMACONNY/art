@@ -7,10 +7,12 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 import wave
 import zipfile
 
-from audition_quarantine import safe_archive_members, safe_url, stage_sources
+from audition_quarantine import safe_archive_members, safe_url, stage_sources, is_shipping_path, GODOT_PROJECT, probe_decoded_budget
 
 CATALOG = Path(__file__).with_name("audio_production_02_sources.json")
 
@@ -54,6 +56,28 @@ class QuarantineTests(unittest.TestCase):
             self.assertEqual(report["approval"], "NONE_NOT_AUDITIONED")
             self.assertEqual(report["sources"][0]["audition_status"], "NOT_AUDITIONED")
             self.assertEqual(report["sources"][0]["files"][0]["file_sha256"], report["sources"][0]["source_sha256"])
+
+    def test_shipping_guard_uses_script_repo_not_shell_cwd(self):
+        self.assertTrue(is_shipping_path(GODOT_PROJECT / "audio" / "unapproved.wav"))
+        with tempfile.TemporaryDirectory() as p:
+            self.assertFalse(is_shipping_path(Path(p) / "review"))
+
+    def test_reject_excessive_decoded_duration(self):
+        response = SimpleNamespace(stdout=json.dumps({
+            "streams": [{"channels": 2, "sample_rate": "48000"}],
+            "format": {"duration": "3590.0"},
+        }))
+        with patch("audition_quarantine.subprocess.run", return_value=response):
+            with self.assertRaisesRegex(ValueError, "duration"):
+                probe_decoded_budget(Path("/tmp/fictional.ogg"))
+
+    def test_budget_allows_normal_short_audio(self):
+        response = SimpleNamespace(stdout=json.dumps({
+            "streams": [{"channels": 1, "sample_rate": "48000"}],
+            "format": {"duration": "3.0"},
+        }))
+        with patch("audition_quarantine.subprocess.run", return_value=response):
+            self.assertLess(probe_decoded_budget(Path("/tmp/fictional.wav")), 500000)
 
     def test_reject_disguised_license(self):
         src = json.loads(CATALOG.read_text())
