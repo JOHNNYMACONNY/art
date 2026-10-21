@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import io
 import json
+import math
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
@@ -24,6 +25,10 @@ MAX_DOWNLOAD = 16 * 1024 * 1024
 MAX_ENTRY = 12 * 1024 * 1024
 MAX_EXTRACTED = 64 * 1024 * 1024
 MAX_ENTRIES = 48
+MAX_DECODED_FILE = 12 * 1024 * 1024
+MAX_DECODED_TOTAL = 64 * 1024 * 1024
+MAX_AUDIO_SECONDS = 30.0
+GODOT_PROJECT = (Path(__file__).resolve().parents[2] / "godot").resolve()
 ALLOWED_HOST = "opengameart.org"
 ALLOWED_SUFFIXES = {".wav", ".ogg"}
 
@@ -77,6 +82,40 @@ def fetch_limited(url: str) -> bytes:
     return data
 
 
+def is_shipping_path(path: Path) -> bool:
+    """Protect the actual repository Godot directory regardless of current CWD."""
+    return path.resolve().is_relative_to(GODOT_PROJECT)
+
+
+def probe_decoded_budget(path: Path) -> int:
+    """Require credible bounded audio metadata before allocating a PCM WAV."""
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "a:0",
+         "-show_entries", "format=duration:stream=channels,sample_rate,duration",
+         "-of", "json", str(path)],
+        check=True, capture_output=True, text=True, timeout=20,
+    )
+    info = json.loads(result.stdout)
+    streams = info.get("streams") or []
+    if not streams:
+        raise ValueError("No decodable audio stream")
+    audio = streams[0]
+    channels = int(audio.get("channels", 0))
+    rate = int(audio.get("sample_rate", 0))
+    duration_text = (info.get("format") or {}).get("duration") or audio.get("duration")
+    if duration_text is None:
+        raise ValueError("Unbounded audio duration")
+    duration = float(duration_text)
+    if not math.isfinite(duration) or duration <= 0 or duration > MAX_AUDIO_SECONDS:
+        raise ValueError("Audio duration exceeds audition limit")
+    if channels not in (1, 2) or not 8000 <= rate <= 192000:
+        raise ValueError("Unsupported audio channels or rate")
+    projected = math.ceil(duration * 48000 * channels * 3) + 4096
+    if projected > MAX_DECODED_FILE:
+        raise ValueError("Decoded PCM file exceeds limit")
+    return projected
+
+
 def basename(value: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_.-]+", "_", value)[:80].strip("._") or "sound"
 
@@ -84,12 +123,15 @@ def basename(value: str) -> str:
 def stage_sources(catalog: dict, output: Path, fetch_fn=fetch_limited, convert=True) -> dict:
     if catalog.get("schema_version") != 1:
         raise ValueError("Unknown catalog schema")
-    if output.resolve().is_relative_to(Path.cwd().resolve() / "godot"):
+    if is_shipping_path(output):
         raise ValueError("Do not stage in shipping Godot project")
     source_dir = output / "raw_source"
     audition_dir = output / "audition_48khz"
     source_dir.mkdir(parents=True, exist_ok=True)
     audition_dir.mkdir(parents=True, exist_ok=True)
+    if is_shipping_path(source_dir) or is_shipping_path(audition_dir):
+        raise ValueError("Symlink to shipping Godot project rejected")
+    projected_total = 0
     report = {"schema_version": 1, "approval": "NONE_NOT_AUDITIONED", "purpose": "quarantine_only_not_game_assets", "sources": []}
     for item in catalog["sources"]:
         url = item["download_url"]
@@ -116,8 +158,13 @@ def stage_sources(catalog: dict, output: Path, fetch_fn=fetch_limited, convert=T
             path.write_bytes(data)
             file_row = {"original_name": name, "file_sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
             if convert:
+                projected_total += probe_decoded_budget(path)
+                if projected_total > MAX_DECODED_TOTAL:
+                    raise ValueError("Decoded audition artifact exceeds total PCM budget")
                 derived = audition_dir / (path.stem + ".wav")
-                subprocess.run(["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", str(path), "-ar", "48000", "-c:a", "pcm_s24le", str(derived)], check=True, timeout=60)
+                subprocess.run(["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", str(path), "-map", "0:a:0", "-vn", "-ar", "48000", "-c:a", "pcm_s24le", "-fs", str(MAX_DECODED_FILE), str(derived)], check=True, timeout=60)
+                if derived.stat().st_size >= MAX_DECODED_FILE:
+                    raise ValueError("FFmpeg output hit its safety cap")
                 metrics = inspect_wav(derived)
                 file_row.update({"audition_file": str(derived.relative_to(output)), "metrics": metrics | {"technical_warnings": intake_verdict(metrics)}})
             asset["files"].append(file_row)
