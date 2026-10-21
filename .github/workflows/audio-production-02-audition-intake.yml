@@ -27,6 +27,10 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Run source quarantine safety tests
         run: python3 -m unittest discover -s code/audio_intake -p 'test_audio_*.py' -v
+      - name: Install offline converter dependency
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
       - name: Download, convert and measure candidate sources (no repo mutation)
         run: |
           ffmpeg -version | head -n 1
