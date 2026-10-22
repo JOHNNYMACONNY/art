@@ -58,6 +58,7 @@ func _run() -> void:
 	manager.set_tuning_audio(0.45)
 	_check_stream_player(static_player, "Tuner static")
 	manager.set_tuning_audio(0.0)
+	_check(not static_player.playing, "Tuner static carried into driving/radio phase")
 	manager.play_radio_station()
 	await process_frame
 	var radio: Node = manager.get_radio_player()
