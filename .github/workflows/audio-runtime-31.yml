@@ -8,6 +8,7 @@ on:
       - "godot/verification/audio/**"
       - "godot/tests/release_integrity_audio_contract.gd"
       - "godot/tests/audio_runtime_output_contract_test.gd"
+      - "godot/tests/audio_production_02_sequence_test.gd"
       - "godot/tests/audio_runtime_windowed_probe.gd"
       - ".github/workflows/audio-runtime-31.yml"
   push:
@@ -20,6 +21,7 @@ on:
       - "godot/verification/audio/**"
       - "godot/tests/release_integrity_audio_contract.gd"
       - "godot/tests/audio_runtime_output_contract_test.gd"
+      - "godot/tests/audio_production_02_sequence_test.gd"
       - "godot/tests/audio_runtime_windowed_probe.gd"
       - ".github/workflows/audio-runtime-31.yml"
 
@@ -96,3 +98,13 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/audio_runtime_output_contract_test.gd
+
+      - name: Exercise Audio Production 02 golden mix sequence (automated only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/audio_production_02_sequence_test.gd
