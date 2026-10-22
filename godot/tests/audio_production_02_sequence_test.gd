@@ -21,8 +21,8 @@ func _check_stream_player(player: Node, label: String) -> void:
 		return
 	_check(player is AudioStreamPlayer or player is AudioStreamPlayer3D, "%s not an audio player" % label)
 	if player is AudioStreamPlayer or player is AudioStreamPlayer3D:
-		_check(player.stream != null, "%s stream missing" % label)
-		_check(player.playing, "%s did not start" % label)
+		_check(player.get("stream") != null, "%s stream missing" % label)
+		_check(bool(player.get("playing")), "%s did not start" % label)
 
 func _run() -> void:
 	var manager := AudioManagerScript.new()
