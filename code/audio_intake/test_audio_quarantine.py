@@ -1,6 +1,7 @@
 """Bounds and fail-closed rights rules for quarantined source acquisition."""
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -35,6 +36,8 @@ class QuarantineTests(unittest.TestCase):
         for item in src["sources"]:
             self.assertTrue(safe_url(item["download_url"]))
             self.assertEqual(item["license"], "CC0-1.0")
+            self.assertEqual(len(item["expected_source_sha256"]), 64)
+            self.assertTrue(all(c in "0123456789abcdef" for c in item["expected_source_sha256"]))
             self.assertTrue(item["source_page"].startswith("https://opengameart.org/content/"))
 
     def test_reject_other_origins_and_credentials(self):
@@ -52,6 +55,7 @@ class QuarantineTests(unittest.TestCase):
     def test_no_approval_issued_by_staging(self):
         src = json.loads(CATALOG.read_text())
         src["sources"] = src["sources"][:1]
+        src["sources"][0]["expected_source_sha256"] = hashlib.sha256(make_wav()).hexdigest()
         with tempfile.TemporaryDirectory() as p:
             report = stage_sources(src, Path(p) / "audition", fetch_fn=lambda _: make_wav(), convert=False)
             self.assertEqual(report["approval"], "NONE_NOT_AUDITIONED")
@@ -79,6 +83,21 @@ class QuarantineTests(unittest.TestCase):
         }))
         with patch("audition_quarantine.subprocess.run", return_value=response):
             self.assertLess(probe_decoded_budget(Path("/tmp/fictional.wav")), 500000)
+
+    def test_reject_downloaded_content_hash_drift(self):
+        src = json.loads(CATALOG.read_text())
+        src["sources"] = src["sources"][:1]
+        with tempfile.TemporaryDirectory() as p:
+            with self.assertRaisesRegex(ValueError, "differs from reviewed catalog"):
+                stage_sources(src, Path(p) / "audition", fetch_fn=lambda _: make_wav(), convert=False)
+
+    def test_reject_missing_source_sha_pin(self):
+        src = json.loads(CATALOG.read_text())
+        src["sources"] = src["sources"][:1]
+        del src["sources"][0]["expected_source_sha256"]
+        with tempfile.TemporaryDirectory() as p:
+            with self.assertRaisesRegex(ValueError, "Missing or invalid pinned"):
+                stage_sources(src, Path(p) / "audition", fetch_fn=lambda _: make_wav(), convert=False)
 
     def test_reject_disguised_license(self):
         src = json.loads(CATALOG.read_text())
