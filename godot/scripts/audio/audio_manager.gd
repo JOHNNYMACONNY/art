@@ -228,9 +228,9 @@ func _ready() -> void:
 	_load_production_transient_streams()
 	_load_echo_production_streams()
 	_engine_stream = _load_registry_loop_or_fallback("vehicle.engine_rev", _create_noise_wav(0.5, 0.4))
-	_hum_stream = _load_registry_loop_or_fallback("world.fb13_thrum", _create_tone_wav(120.0, 0.5, 0.3))
+	_hum_stream = _load_registry_loop_or_fallback("world.fb13_thrum", _create_loop_tone_wav(120.0, 0.5, 0.3))
 	_static_stream = _load_registry_loop_or_fallback("echo.radio_interference", _create_noise_wav(0.5, 0.25))
-	_siren_stream = _load_registry_loop_or_fallback("pursuit.siren_alarm", _create_tone_wav(440.0, 0.6, 0.4))
+	_siren_stream = _load_registry_loop_or_fallback("pursuit.siren_alarm", _create_loop_tone_wav(440.0, 0.6, 0.4))
 	_tension_stream = _load_registry_loop_or_fallback("pursuit.pursuer_sweep", _create_harmonic_drone_wav(110.0, 220.0, 1.0, 0.35))
 	_radio_interference_stream = _load_registry_loop_or_fallback("echo.radio_interference", _create_fractured_carrier_wav(1.0, 0.3))
 	
@@ -1017,6 +1017,22 @@ func _create_tone_wav(freq: float, duration: float, volume: float = 0.5) -> Audi
 	wav.data = data
 	return wav
 
+# Keep transient tone attacks untouched. Only continuous tonal fallbacks
+# receive the same short edge treatment as the existing stochastic loops.
+func _create_loop_tone_wav(freq: float, duration: float, volume: float = 0.5) -> AudioStreamWAV:
+	var wav: AudioStreamWAV = _create_tone_wav(freq, duration, volume)
+	var pcm: PackedByteArray = wav.data
+	for i in range(pcm.size()):
+		var gain: float = _procedural_loop_seam_gain(i, pcm.size())
+		if gain >= 1.0:
+			continue
+		var encoded: int = int(pcm[i])
+		var signed_sample: int = encoded - 256 if encoded >= 128 else encoded
+		pcm[i] = int(round(float(signed_sample) * gain)) & 0xFF
+	wav.data = pcm
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	return wav
+
 func _create_sweep_wav(start_f: float, end_f: float, duration: float, volume: float = 0.4) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
@@ -1106,7 +1122,7 @@ func _create_harmonic_drone_wav(f1: float, f2: float, duration: float, volume: f
 	for i in range(sample_count):
 		var t := float(i) / 22050.0
 		var sample := (sin(2.0 * PI * f1 * t) * 0.7 + sin(2.0 * PI * f2 * t) * 0.3) * volume
-		data[i] = _encode_pcm8_signed(sample)
+		data[i] = _encode_pcm8_signed(sample * _procedural_loop_seam_gain(i, sample_count))
 	wav.data = data
 	return wav
 
