@@ -272,7 +272,10 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m pip install --disable-pip-version-check playwright==1.55.0
-          python3 -m playwright install --with-deps chromium
+          # Ubuntu 26.04 runners have system Chrome, while this Playwright version
+          # has no compatible downloadable Chromium binary for that runner OS.
+          command -v google-chrome
+          google-chrome --version
 
       - name: Prove same-origin browser relaunch persistence
         shell: bash
@@ -335,7 +338,8 @@ jobs:
               context = p.chromium.launch_persistent_context(
                   str(profile),
                   headless=True,
-                  args=["--disable-dev-shm-usage"],
+                  executable_path="/usr/bin/google-chrome",
+                  args=["--disable-dev-shm-usage", "--enable-webgl", "--enable-unsafe-swiftshader", "--use-gl=angle", "--use-angle=swiftshader", "--disable-gpu-sandbox"],
               )
               console_messages = []
               page_errors = []
@@ -404,7 +408,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          cat p13-web-server.log
+          if [[ -f p13-web-server.log ]]; then cat p13-web-server.log; fi
           for file in godot/verification/production13/web_*_diagnostic.json; do
             test -f "$file" && { echo "--- $file"; cat "$file"; }
           done
