@@ -37,7 +37,6 @@ jobs:
       SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       GODOT_RELEASE: "4.7.1-stable"
       GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
-      ECHOES_REFERENCE_AUDIO_MANIFEST: "${{ runner.temp }}/fb13-debug-reference/manifest.json"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,7 +61,8 @@ jobs:
           python3 code/audio_intake/prepare_debug_reference_pilot.py \
             --quarantine "$RUNNER_TEMP/fb13-audio-audition" \
             --output "$RUNNER_TEMP/fb13-debug-reference"
-          test "$(python3 -c 'import json,os; p=os.environ["ECHOES_REFERENCE_AUDIO_MANIFEST"]; print(len(json.load(open(p))["slots"]))')" = "5"
+          test "$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["slots"]))' "$RUNNER_TEMP/fb13-debug-reference/manifest.json")" = "5"
+          echo "ECHOES_REFERENCE_AUDIO_MANIFEST=$RUNNER_TEMP/fb13-debug-reference/manifest.json" >> "$GITHUB_ENV"
       - name: Cache Godot editor
         id: godot-cache
         uses: actions/cache@v4
