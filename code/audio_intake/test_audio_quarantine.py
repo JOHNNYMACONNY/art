@@ -30,6 +30,7 @@ def make_wav():
 class QuarantineTests(unittest.TestCase):
     def test_catalog_has_cc0_provenance_for_recorded_material(self):
         src = json.loads(CATALOG.read_text())
+        self.assertEqual(len(src["sources"]), 4)
         self.assertEqual({item["family"] for item in src["sources"]}, {"player.footstep", "vehicle.engine_rev", "interaction.panel_peel", "ui.nav_confirm"})
         for item in src["sources"]:
             self.assertTrue(safe_url(item["download_url"]))
