@@ -6,6 +6,23 @@ on:
       - "code/audio_intake/audition_quarantine.py"
       - "code/audio_intake/test_audio_quarantine.py"
       - "code/audio_intake/audio_production_02_sources.json"
+      - "code/audio_intake/prepare_debug_reference_pilot.py"
+      - "godot/tests/audio02_debug_reference_resolver_test.gd"
+      - "godot/scripts/audio/audio_reference_resolver.gd"
+      - "godot/scripts/audio/audio_registry.gd"
+      - "godot/scripts/audio/ui_audio_semantic_registry.gd"
+      - ".github/workflows/audio-production-02-audition-intake.yml"
+  push:
+    branches: [main]
+    paths:
+      - "code/audio_intake/audition_quarantine.py"
+      - "code/audio_intake/test_audio_quarantine.py"
+      - "code/audio_intake/audio_production_02_sources.json"
+      - "code/audio_intake/prepare_debug_reference_pilot.py"
+      - "godot/tests/audio02_debug_reference_resolver_test.gd"
+      - "godot/scripts/audio/audio_reference_resolver.gd"
+      - "godot/scripts/audio/audio_registry.gd"
+      - "godot/scripts/audio/ui_audio_semantic_registry.gd"
       - ".github/workflows/audio-production-02-audition-intake.yml"
   workflow_dispatch:
 
@@ -15,16 +32,19 @@ permissions:
 jobs:
   audition-only:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
+    env:
+      SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      GODOT_RELEASE: "4.7.1-stable"
+      GODOT_BIN: "${{ github.workspace }}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64"
+      ECHOES_REFERENCE_AUDIO_MANIFEST: "${{ runner.temp }}/fb13-debug-reference/manifest.json"
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.SOURCE_SHA }}
       - name: Verify exact checkout
-        env:
-          EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+        run: test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
       - name: Run source quarantine safety tests
         run: python3 -m unittest discover -s code/audio_intake -p 'test_audio_*.py' -v
       - name: Install offline converter dependency
@@ -37,10 +57,49 @@ jobs:
           python3 code/audio_intake/audition_quarantine.py \
             --catalog code/audio_intake/audio_production_02_sources.json \
             --output "$RUNNER_TEMP/fb13-audio-audition"
+      - name: Build five-slot nonshipping Godot debug reference
+        run: |
+          python3 code/audio_intake/prepare_debug_reference_pilot.py \
+            --quarantine "$RUNNER_TEMP/fb13-audio-audition" \
+            --output "$RUNNER_TEMP/fb13-debug-reference"
+          test "$(python3 -c 'import json,os; p=os.environ["ECHOES_REFERENCE_AUDIO_MANIFEST"]; print(len(json.load(open(p))["slots"]))')" = "5"
+      - name: Cache Godot editor
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-4.7.1-linux-editor-v1
+      - name: Install Godot 4.7.1 editor
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output godot.zip \
+            "https://github.com/godotengine/godot/releases/download/$GODOT_RELEASE/Godot_v$GODOT_RELEASE_linux.x86_64.zip"
+          echo "c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip" | sha256sum --check --strict
+          mkdir -p .godot-bin
+          unzip -q godot.zip -d .godot-bin
+          chmod +x "$GODOT_BIN"
+      - name: Prime exact-head Godot project metadata
+        run: |
+          "$GODOT_BIN" --version
+          "$GODOT_BIN" --headless --editor --rendering-method gl_compatibility --path godot --quit
+      - name: Test five debug WAV overrides, fallbacks and fail-closed reset in Godot
+        run: |
+          "$GODOT_BIN" --headless --rendering-method gl_compatibility --path godot \
+            --script res://tests/audio02_debug_reference_resolver_test.gd
       - name: Publish NON-SHIPPING listening archive
         uses: actions/upload-artifact@v4
         with:
           name: fb13-cc0-unapproved-audition
           path: ${{ runner.temp }}/fb13-audio-audition/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Publish NON-SHIPPING debug-reference test material
+        uses: actions/upload-artifact@v4
+        with:
+          name: fb13-debug-reference-UNAPPROVED
+          path: ${{ runner.temp }}/fb13-debug-reference/
           retention-days: 14
           if-no-files-found: error
