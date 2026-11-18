@@ -38,7 +38,7 @@ func configure(manager: Node, engine_player: AudioStreamPlayer3D, recovery_event
 
 	# Public/release-safe procedural layers. Local reference A/B remains optional
 	# and never required for clean runtime behavior.
-	_idle_player = _create_loop_player("EngineIdlePlayer", _manager.call("_create_tone_wav", 96.0, 0.8, 0.18), 10.0, 25.0)
+	_idle_player = _create_loop_player("EngineIdlePlayer", _manager.call("_create_loop_tone_wav", 96.0, 0.8, 0.18), 10.0, 25.0)
 	_rev_player = _create_loop_player("EngineRevTexturePlayer", _manager.call("_create_harmonic_drone_wav", 132.0, 264.0, 0.8, 0.22), 12.0, 30.0)
 	_coast_player = _create_loop_player("EngineCoastPlayer", _manager.call("_create_harmonic_drone_wav", 84.0, 168.0, 0.8, 0.16), 10.0, 25.0)
 	_traction_player = _create_loop_player("TractionScrubPlayer", _manager.call("_create_noise_wav", 0.6, 0.20), 8.0, 24.0)
