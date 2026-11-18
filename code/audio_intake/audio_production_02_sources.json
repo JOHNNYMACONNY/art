@@ -10,7 +10,8 @@
       "license": "CC0-1.0",
       "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
       "download_url": "https://opengameart.org/sites/default/files/01-footstep_0.ogg",
-      "family": "player.footstep"
+      "family": "player.footstep",
+      "expected_source_sha256": "33c9bef5e8aeb1069455699a34a0c5e1ef1787fd3f61594b0859d7e6bb9f9dec"
     },
     {
       "id": "oga-fan-motor",
@@ -20,7 +21,8 @@
       "license": "CC0-1.0",
       "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
       "download_url": "https://opengameart.org/sites/default/files/fan_interval.wav",
-      "family": "vehicle.engine_rev"
+      "family": "vehicle.engine_rev",
+      "expected_source_sha256": "4c0287ffdad82a7001403c82ab77e2a04475fb30c9919938b311f644f429c531"
     },
     {
       "id": "oga-metal-foley",
@@ -30,7 +32,8 @@
       "license": "CC0-1.0",
       "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
       "download_url": "https://opengameart.org/sites/default/files/27-Metal-Audio-Samples-blacklodgegames.com_.zip",
-      "family": "interaction.panel_peel"
+      "family": "interaction.panel_peel",
+      "expected_source_sha256": "479e85403898c2ff2d1e2d6a130b8cfb4ae00fbd8cbcaf440917450f996f5232"
     },
     {
       "id": "oga-physical-ui-click",
@@ -40,7 +43,8 @@
       "license": "CC0-1.0",
       "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
       "download_url": "https://opengameart.org/sites/default/files/sound_click.wav",
-      "family": "ui.nav_confirm"
+      "family": "ui.nav_confirm",
+      "expected_source_sha256": "f1d715912081c929d981d555327c82e36065fa91a68ff62e8feada22e87ca8ce"
     }
   ]
 }
