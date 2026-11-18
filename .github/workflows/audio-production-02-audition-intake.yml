@@ -1,0 +1,46 @@
+name: Audio Production 02 - Quarantined CC0 Audition
+
+on:
+  pull_request:
+    paths:
+      - "code/audio_intake/audition_quarantine.py"
+      - "code/audio_intake/test_audio_quarantine.py"
+      - "code/audio_intake/audio_production_02_sources.json"
+      - ".github/workflows/audio-production-02-audition-intake.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audition-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact checkout
+        env:
+          EXPECTED_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Run source quarantine safety tests
+        run: python3 -m unittest discover -s code/audio_intake -p 'test_audio_*.py' -v
+      - name: Install offline converter dependency
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+      - name: Download, convert and measure candidate sources (no repo mutation)
+        run: |
+          ffmpeg -version | head -n 1
+          python3 code/audio_intake/audition_quarantine.py \
+            --catalog code/audio_intake/audio_production_02_sources.json \
+            --output "$RUNNER_TEMP/fb13-audio-audition"
+      - name: Publish NON-SHIPPING listening archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: fb13-cc0-unapproved-audition
+          path: ${{ runner.temp }}/fb13-audio-audition/
+          retention-days: 14
+          if-no-files-found: error

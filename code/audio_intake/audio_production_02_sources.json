@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "purpose": "Quarantined audition material only; NO gameplay release authorization",
+  "sources": [
+    {
+      "id": "oga-subway-footsteps",
+      "source_page": "https://opengameart.org/content/footsteps-0",
+      "creator": "GboxMikeFozzy",
+      "source_title": "Footsteps (subway field recording)",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "download_url": "https://opengameart.org/sites/default/files/01-footstep_0.ogg",
+      "family": "player.footstep"
+    },
+    {
+      "id": "oga-fan-motor",
+      "source_page": "https://opengameart.org/content/defect-motor-loop",
+      "creator": "qubodup",
+      "source_title": "(defect) motor loop (recorded graphics-card fan)",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "download_url": "https://opengameart.org/sites/default/files/fan_interval.wav",
+      "family": "vehicle.engine_rev"
+    },
+    {
+      "id": "oga-metal-foley",
+      "source_page": "https://opengameart.org/content/27-metal-audio-samples-sfx",
+      "creator": "blacklodgegames",
+      "source_title": "27 Metal Audio Samples (recorded bending/wobbling/striking)",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "download_url": "https://opengameart.org/sites/default/files/27-Metal-Audio-Samples-blacklodgegames.com_.zip",
+      "family": "interaction.panel_peel"
+    }
+  ]
+}
