@@ -31,6 +31,16 @@
       "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
       "download_url": "https://opengameart.org/sites/default/files/27-Metal-Audio-Samples-blacklodgegames.com_.zip",
       "family": "interaction.panel_peel"
+    },
+    {
+      "id": "oga-physical-ui-click",
+      "source_page": "https://opengameart.org/content/click-sound",
+      "creator": "curato",
+      "source_title": "Click Sound (recorded and edited physical click)",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "download_url": "https://opengameart.org/sites/default/files/sound_click.wav",
+      "family": "ui.nav_confirm"
     }
   ]
 }
