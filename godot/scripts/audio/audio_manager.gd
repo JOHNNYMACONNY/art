@@ -1110,6 +1110,18 @@ func _create_harmonic_drone_wav(f1: float, f2: float, duration: float, volume: f
 	wav.data = data
 	return wav
 
+# Wrap-safe 8-bit procedural loops: a short raised-cosine edge window removes
+# the random-sample discontinuity without changing the sound's center/body.
+# At 22,050 Hz the 128-frame maximum window is about 5.8 ms per edge.
+static func _procedural_loop_seam_gain(sample_index: int, sample_count: int) -> float:
+	var taper_frames: int = mini(128, maxi(1, int(sample_count / 8)))
+	var edge_distance: int = mini(sample_index, sample_count - 1 - sample_index)
+	if edge_distance >= taper_frames:
+		return 1.0
+	var phase: float = float(maxi(edge_distance, 0)) / float(taper_frames)
+	var shaped: float = sin(phase * PI * 0.5)
+	return shaped * shaped
+
 func _create_noise_wav(duration: float, volume: float = 0.3) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_8_BITS
@@ -1123,7 +1135,7 @@ func _create_noise_wav(duration: float, volume: float = 0.3) -> AudioStreamWAV:
 	data.resize(sample_count)
 	for i in range(sample_count):
 		var sample := (randf() * 2.0 - 1.0) * volume
-		data[i] = _encode_pcm8_signed(sample)
+		data[i] = _encode_pcm8_signed(sample * _procedural_loop_seam_gain(i, sample_count))
 	wav.data = data
 	return wav
 
@@ -1145,7 +1157,7 @@ func _create_fractured_carrier_wav(duration: float = 1.0, volume: float = 0.3) -
 		var flutter := 0.7 + 0.3 * sin(2.0 * PI * 8.0 * t)
 		var crackle := (randf() * 2.0 - 1.0) * 0.12
 		var sig := (carrier * flutter + crackle) * volume
-		data[i] = _encode_pcm8_signed(sig)
+		data[i] = _encode_pcm8_signed(sig * _procedural_loop_seam_gain(i, sample_count))
 	wav.data = data
 	return wav
 
