@@ -143,6 +143,12 @@ def stage_sources(catalog: dict, output: Path, fetch_fn=fetch_limited, convert=T
         blob = fetch_fn(url)
         if len(blob) > MAX_DOWNLOAD:
             raise ValueError("Oversize downloaded content")
+        expected_hash = item.get("expected_source_sha256")
+        if not isinstance(expected_hash, str) or re.fullmatch(r"[0-9a-f]{64}", expected_hash) is None:
+            raise ValueError("Missing or invalid pinned source SHA-256")
+        source_hash = hashlib.sha256(blob).hexdigest()
+        if source_hash != expected_hash:
+            raise ValueError("Downloaded source SHA-256 differs from reviewed catalog")
         suffix = Path(urlparse(url).path).suffix.lower()
         if suffix not in {".zip", ".wav", ".ogg"}:
             raise ValueError("Unsupported source format")
@@ -150,7 +156,7 @@ def stage_sources(catalog: dict, output: Path, fetch_fn=fetch_limited, convert=T
         raw_path.write_bytes(blob)
         entries = safe_archive_members(blob) if suffix == ".zip" else [(raw_path.name, blob)]
         asset = {k: item[k] for k in ("id", "family", "creator", "source_title", "source_page", "download_url", "license", "license_url")}
-        asset.update({"source_sha256": hashlib.sha256(blob).hexdigest(), "download_bytes": len(blob), "audition_status": "NOT_AUDITIONED", "files": []})
+        asset.update({"source_sha256": source_hash, "expected_source_sha256": expected_hash, "source_sha256_verified": True, "download_bytes": len(blob), "audition_status": "NOT_AUDITIONED", "files": []})
         for i, (name, data) in enumerate(entries):
             if Path(name).suffix.lower() not in ALLOWED_SUFFIXES:
                 raise ValueError("Non-audio source payload")
