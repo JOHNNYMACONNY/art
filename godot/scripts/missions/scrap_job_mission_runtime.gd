@@ -25,6 +25,7 @@ var _mission_panel: PanelContainer = null
 var _objective_label: Label = null
 var _contact_label: Label = null
 var _opening_bike_marker: Label3D = null
+var _tuner_mast_marker: Label3D = null
 
 func _ready() -> void:
 	_root_controller = get_parent()
@@ -38,6 +39,7 @@ func _process(_delta: float) -> void:
 		return
 
 	_update_opening_bike_marker()
+	_update_tuner_mast_marker()
 	var changed := false
 	# The bike mount is the authored prerequisite, but the player may park short
 	# of the mast and finish the approach on foot. Track the rider rather than
@@ -78,7 +80,9 @@ func _try_bind_runtime() -> void:
 	_pursuer.de_escalation_completed.connect(_on_escape_complete)
 	_bound = true
 	_ensure_opening_bike_marker()
+	_ensure_tuner_mast_marker()
 	_update_opening_bike_marker()
+	_update_tuner_mast_marker()
 	_ensure_hud()
 	_refresh_hud()
 	print("[MISSION_NARRATIVE_01] Runtime bound to retained golden-slice systems")
@@ -104,6 +108,46 @@ func _ensure_opening_bike_marker() -> void:
 func _update_opening_bike_marker() -> void:
 	if _opening_bike_marker != null:
 		_opening_bike_marker.visible = mission != null and mission.phase == MissionScript.Phase.GET_BIKE
+
+# Authored mast is already identified by the mission objective. This landmark
+# only marks that known target and does not disclose unsurveyed service routes.
+func _ensure_tuner_mast_marker() -> void:
+	if _tuner_mast_marker != null or _signal_tuner == null:
+		return
+	_tuner_mast_marker = Label3D.new()
+	_tuner_mast_marker.name = "MissionTunerMastMarker"
+	_tuner_mast_marker.position = Vector3(0.0, 2.35, 0.0)
+	_tuner_mast_marker.text = "TUNER MAST"
+	_tuner_mast_marker.font_size = 40
+	_tuner_mast_marker.pixel_size = 0.007
+	_tuner_mast_marker.outline_size = 12
+	_tuner_mast_marker.outline_modulate = Color(0.03, 0.035, 0.04, 1.0)
+	_tuner_mast_marker.modulate = Color(0.45, 0.94, 1.0, 1.0)
+	_tuner_mast_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_tuner_mast_marker.no_depth_test = true
+	_signal_tuner.add_child(_tuner_mast_marker)
+
+func _update_tuner_mast_marker() -> void:
+	if _tuner_mast_marker == null or mission == null:
+		return
+	var needs_mast: bool = mission.phase == MissionScript.Phase.TRAVERSE_TO_TUNER
+	var needs_spoof: bool = mission.phase == MissionScript.Phase.SPOOF_SIGNAL
+	_tuner_mast_marker.visible = needs_mast or needs_spoof
+	var marker_text: String = "SPOOF SIGNAL" if needs_spoof else "TUNER MAST"
+	if _tuner_mast_marker.text != marker_text:
+		_tuner_mast_marker.text = marker_text
+
+# Selection hint only: the retained interactable still owns proximity,
+# power and action eligibility. This prevents a nearby parked bike from
+# stealing E while the player is legitimately working the mission terminal.
+func get_mission_priority_interactable() -> InteractableBase:
+	if not _bound or mission == null:
+		return null
+	if mission.phase == MissionScript.Phase.SPOOF_SIGNAL:
+		return _signal_tuner as InteractableBase
+	if mission.phase == MissionScript.Phase.EXTRACT_CORE:
+		return _corroded_panel as InteractableBase
+	return null
 
 func _reconcile_retained_progress() -> bool:
 	if not _bound or _root_controller == null:

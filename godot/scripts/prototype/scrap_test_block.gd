@@ -958,11 +958,20 @@ func _evaluate_target_selection() -> void:
 	var best_score: float = -9999.0
 	var active_veh := _get_active_vehicle()
 	var active_pos: Vector3 = active_veh.global_position if active_veh else player.global_position
+	# Mission focus only changes target ranking, never an interactable's
+	# proximity/power gates. Without it a parked bike's default priority wins
+	# over a nearby tuner, causing an unintended E remount after dismount.
+	var mission_runtime: Node = get_node_or_null("MissionScrapJobRuntime")
+	var mission_focus: InteractableBase = null
+	if mission_runtime != null and mission_runtime.has_method("get_mission_priority_interactable"):
+		mission_focus = mission_runtime.call("get_mission_priority_interactable") as InteractableBase
 	
 	for item in _interactables:
 		if item and item.can_interact(active_pos):
 			var dist := item.global_position.distance_to(active_pos)
 			var score := (item.get_interaction_priority() * 10.0) - dist
+			if item == mission_focus:
+				score += 24.0
 			if item == _active_target:
 				score += 2.0
 			if score > best_score:
@@ -1025,6 +1034,14 @@ func _evaluate_target_selection() -> void:
 				elif muscle_coupe and _active_target == muscle_coupe.mount_interactable:
 					mount_verb = "DRIVE COUPE"
 				touch_ui.action_button.text = "[E] " + mount_verb
+		elif _active_target == signal_tuner and signal_tuner:
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				touch_ui.action_button.text = "[E] TUNE SIGNAL"
+		elif _active_target == corroded_panel and corroded_panel:
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				touch_ui.action_button.text = "[E] PEEL PANEL"
 		elif scrap_dumpster and (_active_target == scrap_dumpster.get_node_or_null("ScrapDumpsterInteractable") or (is_instance_valid(scrap_dumpster) and _active_target != null and _active_target.get_parent() == scrap_dumpster)):
 			touch_ui.set_action_button_highlight(true)
 			if touch_ui.action_button:

@@ -148,6 +148,16 @@ jobs:
             --path "$WEB_PROJECT" \
             --script res://tests/touch_controls_event_routing_test.gd
 
+      - name: Verify authored tuner mast and core-panel guidance (#214)
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path "$WEB_PROJECT" \
+            --script res://tests/mission_tuner_spoof_guidance_214_test.gd
+
       - name: Run desktop controls regression
         shell: bash
         run: |
