@@ -130,10 +130,10 @@ func _ensure_tuner_mast_marker() -> void:
 func _update_tuner_mast_marker() -> void:
 	if _tuner_mast_marker == null or mission == null:
 		return
-	var needs_mast := mission.phase == MissionScript.Phase.TRAVERSE_TO_TUNER
-	var needs_spoof := mission.phase == MissionScript.Phase.SPOOF_SIGNAL
+	var needs_mast: bool = mission.phase == MissionScript.Phase.TRAVERSE_TO_TUNER
+	var needs_spoof: bool = mission.phase == MissionScript.Phase.SPOOF_SIGNAL
 	_tuner_mast_marker.visible = needs_mast or needs_spoof
-	var marker_text := "SPOOF SIGNAL" if needs_spoof else "TUNER MAST"
+	var marker_text: String = "SPOOF SIGNAL" if needs_spoof else "TUNER MAST"
 	if _tuner_mast_marker.text != marker_text:
 		_tuner_mast_marker.text = marker_text
 
