@@ -1017,7 +1017,14 @@ func _evaluate_target_selection() -> void:
 		elif _active_target is MountInteractable:
 			touch_ui.set_action_button_highlight(true)
 			if touch_ui.action_button:
-				touch_ui.action_button.text = "[E] MOUNT"
+				var mount_verb: String = "MOUNT"
+				if courier_bike and _active_target == courier_bike.mount_interactable:
+					mount_verb = "RIDE BIKE"
+				elif scrap_hauler and _active_target == scrap_hauler.mount_interactable:
+					mount_verb = "DRIVE HAULER"
+				elif muscle_coupe and _active_target == muscle_coupe.mount_interactable:
+					mount_verb = "DRIVE COUPE"
+				touch_ui.action_button.text = "[E] " + mount_verb
 		elif scrap_dumpster and (_active_target == scrap_dumpster.get_node_or_null("ScrapDumpsterInteractable") or (is_instance_valid(scrap_dumpster) and _active_target != null and _active_target.get_parent() == scrap_dumpster)):
 			touch_ui.set_action_button_highlight(true)
 			if touch_ui.action_button:
