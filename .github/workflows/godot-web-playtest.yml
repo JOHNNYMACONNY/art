@@ -229,6 +229,29 @@ jobs:
           curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/index.pck
           curl --fail --silent --show-error http://127.0.0.1:8080/PLAYTEST_BUILD.txt | grep -Fx "$SOURCE_SHA"
 
+      # Experimental black-box browser control: actual exported WebAssembly/scene,
+      # keyboard events and screenshots. This cannot qualify audio listening.
+      - name: Drive exported game in Chromium (experimental)
+        if: matrix.source == 'head'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "${RUNNER_TEMP}/echoes-browser-probe"
+          "${RUNNER_TEMP}/echoes-browser-probe/bin/python" -m pip install --quiet --disable-pip-version-check playwright==1.56.0 Pillow==11.3.0
+          "${RUNNER_TEMP}/echoes-browser-probe/bin/python" code/playtest/browser_blackbox_session.py \
+            --site build/web \
+            --output build/browser-playthrough
+
+      - name: Upload black-box browser keyboard evidence (experimental)
+        if: always() && matrix.source == 'head'
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-keyboard-session-${{ env.SOURCE_SHA }}
+          path: build/browser-playthrough/
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Upload browser playtest
         uses: actions/upload-artifact@v4
         with:
