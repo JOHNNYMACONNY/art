@@ -185,8 +185,24 @@ def main() -> int:
             page.wait_for_timeout(500)
             tenth = output / "10_after_mount_attempt.png"
             page.screenshot(path=str(tenth))
-            evidence["steps"].append("real W after mount attempt, screenshot; travel/outcome unverified")
-            evidence["bike_mount_verification"] = "REQUIRES_VISUAL_INSPECTION"
+            evidence["steps"].append("real W after mount attempt, screenshot; inspect action eligibility")
+
+            # A second, intentional real keypress occurs after walking close
+            # to the bike. The prior E press was too early in captured footage.
+            page.keyboard.press("e")
+            page.wait_for_timeout(1100)
+            eleventh = output / "11_bike_close_action.png"
+            page.screenshot(path=str(eleventh))
+            evidence["steps"].append("press real E at close bike after 0.9s W, screenshot mission transition")
+
+            page.keyboard.down("w")
+            page.wait_for_timeout(1400)
+            page.keyboard.up("w")
+            page.wait_for_timeout(550)
+            twelfth = output / "12_post_close_action_drive.png"
+            page.screenshot(path=str(twelfth))
+            evidence["steps"].append("hold real W after close-range E, screenshot potential vehicle travel")
+            evidence["bike_mount_verification"] = "REQUIRES_VISUAL_INSPECTION_OF_11_AND_12"
             evidence["mission_outcome_verification"] = "UNVERIFIED"
 
             evidence["frame_change"] = {
@@ -196,6 +212,7 @@ def main() -> int:
                 "fresh_start_to_bike_approach": frame_change(seventh, eighth),
                 "approach_to_mount_attempt": frame_change(eighth, ninth),
                 "mount_attempt_to_movement": frame_change(ninth, tenth),
+                "close_action_to_drive": frame_change(eleventh, twelfth),
             }
             evidence["canvas"] = page.evaluate("({w:canvas.width,h:canvas.height})")
             evidence["finished"] = True
