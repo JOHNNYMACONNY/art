@@ -193,7 +193,7 @@ surface_material_override/0 = SubResource("StandardMaterial3D_scrap")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShortcutLeftWall"]
 shape = SubResource("BoxShape3D_shortcut_wall")
 
-[node name="ShortcutDividerWall" type="StaticBody3D" parent="."]
+[node name="ShortcutDividerWall" type="StaticBody3D" parent="." groups=["camera_occluder"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 1.5, 20.0)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="ShortcutDividerWall"]
@@ -201,6 +201,15 @@ mesh = SubResource("BoxMesh_shortcut_wall")
 surface_material_override/0 = SubResource("StandardMaterial3D_scrap")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShortcutDividerWall"]
+shape = SubResource("BoxShape3D_shortcut_wall")
+
+[node name="CameraOcclusionProxy" type="Area3D" parent="ShortcutDividerWall"]
+collision_layer = 1073741824
+collision_mask = 0
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ShortcutDividerWall/CameraOcclusionProxy"]
 shape = SubResource("BoxShape3D_shortcut_wall")
 
 [node name="Runner" parent="." instance=ExtResource("3_runner")]
