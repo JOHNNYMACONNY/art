@@ -130,4 +130,6 @@ func _draw() -> void:
 	var status_color := Color(0.96, 0.76, 0.30, 1.0) if get_access_status_text() == STATUS_JAMMED else Color(0.62, 0.90, 0.82, 1.0)
 	if not _surveyed:
 		status_color = Color(0.62, 0.68, 0.70, 1.0)
+	if not _surveyed:
+		draw_string(font, Vector2(DRAW_PADDING, size.y - 40.0), "SERVICE CUT NOT SURVEYED · FOLLOW OBJECTIVE HUD", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12, Color(0.74, 0.80, 0.81, 1.0))
 	draw_string(font, Vector2(DRAW_PADDING, size.y - 18.0), get_access_status_text(), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 15, status_color)
