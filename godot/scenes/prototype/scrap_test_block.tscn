@@ -108,7 +108,6 @@ size = Vector3(1.0, 3.0, 24.0)
 [sub_resource type="BoxShape3D" id="BoxShape3D_shortcut_wall"]
 size = Vector3(1.0, 3.0, 24.0)
 
-# Only the camera ray envelope is taller/wider; gameplay wall remains 1x3x24.
 [sub_resource type="BoxShape3D" id="BoxShape3D_opening_camera_occlusion"]
 size = Vector3(3.0, 16.0, 24.0)
 
