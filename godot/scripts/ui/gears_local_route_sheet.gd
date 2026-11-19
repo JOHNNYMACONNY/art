@@ -131,5 +131,5 @@ func _draw() -> void:
 	if not _surveyed:
 		status_color = Color(0.62, 0.68, 0.70, 1.0)
 	if not _surveyed:
-		draw_string(font, Vector2(DRAW_PADDING, size.y - 40.0), "SERVICE CUT NOT SURVEYED · FOLLOW OBJECTIVE HUD", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12, Color(0.74, 0.80, 0.81, 1.0))
+		draw_string(font, Vector2(DRAW_PADDING, size.y - 40.0), "SERVICE CUT UNSURVEYED · BIKE MARKED IN WORLD", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 12, Color(0.74, 0.80, 0.81, 1.0))
 	draw_string(font, Vector2(DRAW_PADDING, size.y - 18.0), get_access_status_text(), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 15, status_color)
