@@ -45,6 +45,34 @@ def frame_change(a: Path, b: Path) -> dict:
         return {"changed_center_ratio": round(changed / max(1, pixels), 6), "pixels": pixels}
 
 
+
+def visually_inspect_action_label(screenshot: Path) -> dict:
+    """Conservative screenshot-only hint for the 960x540 diagnostic HUD.
+
+    These bounds come from inspected real Chromium captures: a highlighted
+    [E] RIDE BIKE label has a narrower bright-green glyph band than the
+    longer [E] DRIVE COUPE / HAULER labels. This is NOT OCR, a gameplay
+    state query, or authoritative evidence of mounting. Unknown layouts and
+    low-confidence highlights must return "unknown".
+    """
+    with Image.open(screenshot) as original:
+        image = original.convert("RGB")
+        if image.size != (960, 540):
+            return {"hint": "unknown", "reason": "unexpected_capture_resolution", "size": list(image.size)}
+        lit = []
+        for y in range(444, 488):
+            for x in range(782, 944):
+                r, g, b = image.getpixel((x, y))
+                if g > 60 and g > r * 1.35 and g > b * 1.02:
+                    lit.append((x, y))
+    if not lit:
+        return {"hint": "unknown", "green_pixels": 0}
+    width = max(x for x, _ in lit) - min(x for x, _ in lit) + 1
+    count = len(lit)
+    hint = "possible_courier_action" if (88 <= width <= 107 and 450 <= count <= 730) else "other_or_unhighlighted"
+    return {"hint": hint, "green_pixels": count, "glyph_band_width": width}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--site", type=Path, required=True)
@@ -173,11 +201,15 @@ def main() -> int:
             page.screenshot(path=str(eighth))
             evidence["steps"].append("real keyboard: W 0.36s, then W+D 0.68s, screenshot bike approach")
 
-            page.keyboard.press("e")
-            page.wait_for_timeout(1000)
+            # Avoid an early blind E: it previously mounted a different
+            # vehicle when framerate-dependent travel landed beside a coupe.
             ninth = output / "09_bike_mount_attempt.png"
             page.screenshot(path=str(ninth))
-            evidence["steps"].append("press E near expected bike, screenshot; mount not automatically asserted")
+            evidence["steps"].append("observe early approach; skip blind E before target identified")
+            evidence["visual_action_hints"] = []
+            evidence["visual_action_hints"].append(
+                {"frame": ninth.name, **visually_inspect_action_label(ninth)}
+            )
 
             page.keyboard.down("w")
             page.wait_for_timeout(900)
@@ -185,94 +217,129 @@ def main() -> int:
             page.wait_for_timeout(500)
             tenth = output / "10_after_mount_attempt.png"
             page.screenshot(path=str(tenth))
-            evidence["steps"].append("real W after mount attempt, screenshot; inspect action eligibility")
+            evidence["steps"].append("real W 0.9s, screenshot before selecting a vehicle")
+            observation = visually_inspect_action_label(tenth)
+            evidence["visual_action_hints"].append({"frame": tenth.name, **observation})
+            candidate = observation["hint"] == "possible_courier_action"
 
-            # A second, intentional real keypress occurs after walking close
-            # to the bike. The prior E press was too early in captured footage.
-            page.keyboard.press("e")
-            page.wait_for_timeout(1100)
+            if not candidate:
+                # Bounded, reversible real-keyboard exploratory moves. Each
+                # step remains observable; the test cannot force game state.
+                # The purpose is to avoid pressing E on a known wrong target,
+                # not to guarantee the bike will be found on every framerate.
+                for index, (key, duration_ms) in enumerate([
+                    ("a", 280), ("a", 280), ("w", 200), ("a", 280),
+                    ("s", 240), ("s", 240), ("d", 280), ("d", 280),
+                ], 1):
+                    page.keyboard.down(key)
+                    page.wait_for_timeout(duration_ms)
+                    page.keyboard.up(key)
+                    page.wait_for_timeout(180)
+                    probe = output / f"10b_search_{index:02d}.png"
+                    page.screenshot(path=str(probe))
+                    observation = visually_inspect_action_label(probe)
+                    evidence["visual_action_hints"].append(
+                        {"frame": probe.name, "keyboard": key, **observation}
+                    )
+                    if observation["hint"] == "possible_courier_action":
+                        candidate = True
+                        evidence["steps"].append(
+                            f"visual courier prompt candidate appeared after real {key} navigation"
+                        )
+                        break
+
+            evidence["courier_prompt_visual_candidate"] = candidate
+            evidence["courier_candidate_is_authoritative"] = False
+            if candidate:
+                page.keyboard.press("e")
+                page.wait_for_timeout(1100)
+                evidence["steps"].append("press real E only on visually likely courier prompt")
+            else:
+                evidence["steps"].append(
+                    "NO COURIER PROMPT: do not press E, avoid unintentionally mounting another vehicle"
+                )
+
             eleventh = output / "11_bike_close_action.png"
             page.screenshot(path=str(eleventh))
-            evidence["steps"].append("press real E at close bike after 0.9s W, screenshot mission transition")
-
-            page.keyboard.down("w")
-            page.wait_for_timeout(1400)
-            page.keyboard.up("w")
-            page.wait_for_timeout(550)
+            if candidate:
+                page.keyboard.down("w")
+                page.wait_for_timeout(1400)
+                page.keyboard.up("w")
+                page.wait_for_timeout(550)
+                evidence["steps"].append("hold real W after candidate mount action")
             twelfth = output / "12_post_close_action_drive.png"
             page.screenshot(path=str(twelfth))
-            evidence["steps"].append("hold real W after close-range E, screenshot potential vehicle travel")
-            evidence["bike_mount_verification"] = "REQUIRES_VISUAL_INSPECTION_OF_11_AND_12"
+
+            evidence["bike_mount_verification"] = (
+                "REQUIRES_VISUAL_INSPECTION_OF_11_AND_12"
+                if candidate else "BLOCKED_NO_COURIER_PROMPT_CANDIDATE"
+            )
             evidence["mission_outcome_verification"] = "UNVERIFIED"
-
-            # Issue #214: after the optional real courier ride, the next
-            # experience is to stop, dismount, use E on the mast, and tune by
-            # dragging the on-screen dial. These are genuine browser inputs.
-            # We record what happens, not assert success from elapsed time.
-            page.keyboard.down("Space")
-            page.wait_for_timeout(1250)
-            page.keyboard.up("Space")
-            page.wait_for_timeout(350)
-            thirteenth = output / "13_brake_for_tuner.png"
-            page.screenshot(path=str(thirteenth))
-            evidence["steps"].append("real Space handbrake/coast, screenshot before tuner dismount")
-
-            page.keyboard.press("e")
-            page.wait_for_timeout(800)
-            fourteenth = output / "14_tuner_dismount_attempt.png"
-            page.screenshot(path=str(fourteenth))
-            evidence["steps"].append("real E dismount attempt at tuner, screenshot; outcome to inspect")
-
-            # The tuner is a separate world-space object; dismounting beside
-            # the bike does not itself put the player within its 2.5m action
-            # radius. Walk the last meters (screen-relative north) before E.
-            page.keyboard.down("w")
-            page.keyboard.down("d")
-            page.wait_for_timeout(540)
-            page.keyboard.up("d")
-            page.keyboard.up("w")
-            page.wait_for_timeout(350)
-            fourteenth_b = output / "14b_walk_to_tuner.png"
-            page.screenshot(path=str(fourteenth_b))
-            evidence["steps"].append("real W+D on-foot approach from parked bike to tuner marker")
-
-            page.keyboard.press("e")
-            page.wait_for_timeout(750)
-            fifteenth = output / "15_tuner_interact_attempt.png"
-            page.screenshot(path=str(fifteenth))
-            evidence["steps"].append("real E tuner interaction attempt, screenshot; overlay to inspect")
-
-            # The tuner uses a cumulative horizontal pointer delta, saturating
-            # by tanh. A ~320px positive sweep targets 0.72 from its default
-            # 0.15 frequency; hold in tolerance for its 0.4s dwell requirement.
-            # Do not synthesize gameplay/mission state or call Godot internals.
-            page.mouse.move(300, 280)
-            page.mouse.down()
-            page.mouse.move(620, 280, steps=48)
-            page.wait_for_timeout(850)
-            sixteenth = output / "16_tuner_drag_held.png"
-            page.screenshot(path=str(sixteenth))
-            page.mouse.up()
-            page.wait_for_timeout(600)
-            seventeenth = output / "17_after_tuner_drag.png"
-            page.screenshot(path=str(seventeenth))
-            evidence["steps"].append("real left-mouse 320px horizontal tuner drag with hold, before/after screenshots")
-            evidence["tuner_spoof_verification"] = "REQUIRES_VISUAL_INSPECTION_OF_13_TO_17"
-
             evidence["frame_change"] = {
                 "spawn_to_forward": frame_change(first, second),
                 "forward_to_diagonal": frame_change(second, third),
                 "radio_to_map": frame_change(fourth, fifth),
                 "fresh_start_to_bike_approach": frame_change(seventh, eighth),
-                "approach_to_mount_attempt": frame_change(eighth, ninth),
-                "mount_attempt_to_movement": frame_change(ninth, tenth),
-                "close_action_to_drive": frame_change(eleventh, twelfth),
-                "brake_to_dismount": frame_change(thirteenth, fourteenth),
-                "dismount_to_tuner_approach": frame_change(fourteenth, fourteenth_b),
-                "approach_to_tuner_interaction": frame_change(fourteenth_b, fifteenth),
-                "tuner_interaction_to_drag": frame_change(fifteenth, sixteenth),
-                "tuner_drag_to_release": frame_change(sixteenth, seventeenth),
+                "approach_to_preaction": frame_change(eighth, ninth),
+                "preaction_to_bike_candidate_search": frame_change(ninth, tenth),
+                "candidate_action_to_followup": frame_change(eleventh, twelfth),
             }
+
+            if candidate:
+                # No state setters: real Space/E, on-foot movement and mouse.
+                # This attempt is captured but must not be called a success
+                # without inspection of the actual tuner and mission HUD.
+                page.keyboard.down("Space")
+                page.wait_for_timeout(1250)
+                page.keyboard.up("Space")
+                page.wait_for_timeout(350)
+                thirteenth = output / "13_brake_for_tuner.png"
+                page.screenshot(path=str(thirteenth))
+
+                page.keyboard.press("e")
+                page.wait_for_timeout(800)
+                fourteenth = output / "14_tuner_dismount_attempt.png"
+                page.screenshot(path=str(fourteenth))
+
+                page.keyboard.down("w")
+                page.keyboard.down("d")
+                page.wait_for_timeout(540)
+                page.keyboard.up("d")
+                page.keyboard.up("w")
+                page.wait_for_timeout(350)
+                fourteenth_b = output / "14b_walk_to_tuner.png"
+                page.screenshot(path=str(fourteenth_b))
+
+                page.keyboard.press("e")
+                page.wait_for_timeout(750)
+                fifteenth = output / "15_tuner_interact_attempt.png"
+                page.screenshot(path=str(fifteenth))
+
+                page.mouse.move(300, 280)
+                page.mouse.down()
+                page.mouse.move(620, 280, steps=48)
+                page.wait_for_timeout(850)
+                sixteenth = output / "16_tuner_drag_held.png"
+                page.screenshot(path=str(sixteenth))
+                page.mouse.up()
+                page.wait_for_timeout(600)
+                seventeenth = output / "17_after_tuner_drag.png"
+                page.screenshot(path=str(seventeenth))
+
+                evidence["steps"].append(
+                    "real Space/E, W+D and mouse-drag tuner attempt; outcome to inspect"
+                )
+                evidence["tuner_spoof_verification"] = "REQUIRES_VISUAL_INSPECTION_OF_13_TO_17"
+                evidence["frame_change"].update({
+                    "brake_to_dismount": frame_change(thirteenth, fourteenth),
+                    "dismount_to_tuner_approach": frame_change(fourteenth, fourteenth_b),
+                    "approach_to_tuner_interaction": frame_change(fourteenth_b, fifteenth),
+                    "tuner_interaction_to_drag": frame_change(fifteenth, sixteenth),
+                    "tuner_drag_to_release": frame_change(sixteenth, seventeenth),
+                })
+            else:
+                evidence["tuner_spoof_verification"] = "NOT_ATTEMPTED_NO_COURIER_CANDIDATE"
+
             evidence["canvas"] = page.evaluate("({w:canvas.width,h:canvas.height})")
             evidence["finished"] = True
             context.close()

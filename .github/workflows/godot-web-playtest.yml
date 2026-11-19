@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "godot/**"
+      - "code/playtest/**"
       - ".github/workflows/godot-web-playtest.yml"
   push:
     branches:
@@ -11,6 +12,7 @@ on:
       - "chatgpt/**"
     paths:
       - "godot/**"
+      - "code/playtest/**"
       - ".github/workflows/godot-web-playtest.yml"
   workflow_dispatch:
 
@@ -49,6 +51,12 @@ jobs:
           printf 'expected source SHA: %s\n' "$SOURCE_SHA"
           printf 'checked out SHA: %s\n' "$actual_sha"
           test "$actual_sha" = "$SOURCE_SHA"
+
+      - name: Verify Chromium automation Python syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile code/playtest/browser_blackbox_session.py
 
       - name: Cache Godot editor and export templates
         id: godot-cache
