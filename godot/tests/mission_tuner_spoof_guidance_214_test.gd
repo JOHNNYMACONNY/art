@@ -44,7 +44,9 @@ func _run() -> void:
 	var adapter: Node = game.get_node_or_null("MissionScrapJobRuntime")
 	var tuner: SignalTuner = game.get("signal_tuner") as SignalTuner
 	var panel: CorrodedPanel = game.get("corroded_panel") as CorrodedPanel
-	if runner == null or adapter == null or tuner == null or panel == null or not bool(adapter.get("_bound")):
+	var bike: CourierBike = game.get("courier_bike") as CourierBike
+	var mount: MountInteractable = bike.get_node_or_null("MountInteractable") as MountInteractable if bike != null else null
+	if runner == null or adapter == null or tuner == null or panel == null or bike == null or mount == null or not bool(adapter.get("_bound")):
 		await _fail("Retained playable mission/tuner/panel not bound", game)
 		return
 
@@ -68,12 +70,19 @@ func _run() -> void:
 		await _fail("Mast landmark failed to switch to spoof objective", game)
 		return
 
-	# Place the fixture in valid proximity for selection only; actual navigation
-	# and gestures are separately exercised by real input in Chromium.
+	# Simulate two simultaneously eligible targets to reproduce the exact
+	# real-browser bug: after dismount E would remount the nearer parked bike.
+	# Placement is a WHITE-BOX fixture only, never part of browser gameplay.
+	var parked_position: Vector3 = bike.global_position
+	bike.global_position = tuner.global_position + Vector3(0.0, -0.35, 0.9)
 	var tuner_prompt := _select_at(game, runner, tuner.global_position + Vector3(0.0, 0.0, 0.5))
-	if tuner_prompt != "[E] TUNE SIGNAL":
-		await _fail("Tuner selection lacks an explicit action: %s" % tuner_prompt, game)
+	if not mount.can_interact(runner.global_position) or not tuner.can_interact(runner.global_position):
+		await _fail("Recreated tuner-versus-bike interaction overlap is not eligible", game)
 		return
+	if tuner_prompt != "[E] TUNE SIGNAL" or game.get("_active_target") != tuner:
+		await _fail("Bike incorrectly stole active tuner objective: %s" % tuner_prompt, game)
+		return
+	bike.global_position = parked_position
 
 	# Existing production signal—not direct mission mutation—powers the panel.
 	tuner.call("_lock_signal")
@@ -85,10 +94,14 @@ func _run() -> void:
 		await _fail("Retained tuner-to-panel power dependency broke", game)
 		return
 	panel.call("_on_body_entered", runner)
+	bike.global_position = panel.global_position + Vector3(0.0, -0.45, 0.9)
 	var panel_prompt := _select_at(game, runner, panel.global_position + Vector3(0.0, 0.0, 0.5))
-	if panel_prompt != "[E] PEEL PANEL":
-		await _fail("Powered panel selection lacks an explicit action: %s" % panel_prompt, game)
+	if not mount.can_interact(runner.global_position) or not panel.can_interact(runner.global_position):
+		await _fail("Recreated panel-versus-bike interaction overlap is not eligible", game)
+		return
+	if panel_prompt != "[E] PEEL PANEL" or game.get("_active_target") != panel:
+		await _fail("Bike incorrectly stole active core-panel objective: %s" % panel_prompt, game)
 		return
 
-	print("[MISSION_TUNER_GUIDANCE_214] PASS — objective-gated mast cue, tuner/panel prompts, retained signal gate")
+	print("[MISSION_TUNER_GUIDANCE_214] PASS — phase-gated markers, priority of eligible mission terminals over parked bike, retained signal gate")
 	await _finish(0, game)
