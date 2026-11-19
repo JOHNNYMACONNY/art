@@ -223,6 +223,19 @@ def main() -> int:
             page.screenshot(path=str(fourteenth))
             evidence["steps"].append("real E dismount attempt at tuner, screenshot; outcome to inspect")
 
+            # The tuner is a separate world-space object; dismounting beside
+            # the bike does not itself put the player within its 2.5m action
+            # radius. Walk the last meters (screen-relative north) before E.
+            page.keyboard.down("w")
+            page.keyboard.down("d")
+            page.wait_for_timeout(540)
+            page.keyboard.up("d")
+            page.keyboard.up("w")
+            page.wait_for_timeout(350)
+            fourteenth_b = output / "14b_walk_to_tuner.png"
+            page.screenshot(path=str(fourteenth_b))
+            evidence["steps"].append("real W+D on-foot approach from parked bike to tuner marker")
+
             page.keyboard.press("e")
             page.wait_for_timeout(750)
             fifteenth = output / "15_tuner_interact_attempt.png"
@@ -255,7 +268,8 @@ def main() -> int:
                 "mount_attempt_to_movement": frame_change(ninth, tenth),
                 "close_action_to_drive": frame_change(eleventh, twelfth),
                 "brake_to_dismount": frame_change(thirteenth, fourteenth),
-                "dismount_to_tuner_interaction": frame_change(fourteenth, fifteenth),
+                "dismount_to_tuner_approach": frame_change(fourteenth, fourteenth_b),
+                "approach_to_tuner_interaction": frame_change(fourteenth_b, fifteenth),
                 "tuner_interaction_to_drag": frame_change(fifteenth, sixteenth),
                 "tuner_drag_to_release": frame_change(sixteenth, seventeenth),
             }
