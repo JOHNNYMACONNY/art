@@ -205,6 +205,47 @@ def main() -> int:
             evidence["bike_mount_verification"] = "REQUIRES_VISUAL_INSPECTION_OF_11_AND_12"
             evidence["mission_outcome_verification"] = "UNVERIFIED"
 
+            # Issue #214: after the optional real courier ride, the next
+            # experience is to stop, dismount, use E on the mast, and tune by
+            # dragging the on-screen dial. These are genuine browser inputs.
+            # We record what happens, not assert success from elapsed time.
+            page.keyboard.down("Space")
+            page.wait_for_timeout(1250)
+            page.keyboard.up("Space")
+            page.wait_for_timeout(350)
+            thirteenth = output / "13_brake_for_tuner.png"
+            page.screenshot(path=str(thirteenth))
+            evidence["steps"].append("real Space handbrake/coast, screenshot before tuner dismount")
+
+            page.keyboard.press("e")
+            page.wait_for_timeout(800)
+            fourteenth = output / "14_tuner_dismount_attempt.png"
+            page.screenshot(path=str(fourteenth))
+            evidence["steps"].append("real E dismount attempt at tuner, screenshot; outcome to inspect")
+
+            page.keyboard.press("e")
+            page.wait_for_timeout(750)
+            fifteenth = output / "15_tuner_interact_attempt.png"
+            page.screenshot(path=str(fifteenth))
+            evidence["steps"].append("real E tuner interaction attempt, screenshot; overlay to inspect")
+
+            # The tuner uses a cumulative horizontal pointer delta, saturating
+            # by tanh. A ~320px positive sweep targets 0.72 from its default
+            # 0.15 frequency; hold in tolerance for its 0.4s dwell requirement.
+            # Do not synthesize gameplay/mission state or call Godot internals.
+            page.mouse.move(300, 280)
+            page.mouse.down()
+            page.mouse.move(620, 280, steps=48)
+            page.wait_for_timeout(850)
+            sixteenth = output / "16_tuner_drag_held.png"
+            page.screenshot(path=str(sixteenth))
+            page.mouse.up()
+            page.wait_for_timeout(600)
+            seventeenth = output / "17_after_tuner_drag.png"
+            page.screenshot(path=str(seventeenth))
+            evidence["steps"].append("real left-mouse 320px horizontal tuner drag with hold, before/after screenshots")
+            evidence["tuner_spoof_verification"] = "REQUIRES_VISUAL_INSPECTION_OF_13_TO_17"
+
             evidence["frame_change"] = {
                 "spawn_to_forward": frame_change(first, second),
                 "forward_to_diagonal": frame_change(second, third),
@@ -213,6 +254,10 @@ def main() -> int:
                 "approach_to_mount_attempt": frame_change(eighth, ninth),
                 "mount_attempt_to_movement": frame_change(ninth, tenth),
                 "close_action_to_drive": frame_change(eleventh, twelfth),
+                "brake_to_dismount": frame_change(thirteenth, fourteenth),
+                "dismount_to_tuner_interaction": frame_change(fourteenth, fifteenth),
+                "tuner_interaction_to_drag": frame_change(fifteenth, sixteenth),
+                "tuner_drag_to_release": frame_change(sixteenth, seventeenth),
             }
             evidence["canvas"] = page.evaluate("({w:canvas.width,h:canvas.height})")
             evidence["finished"] = True
