@@ -1014,6 +1014,10 @@ func _evaluate_target_selection() -> void:
 			touch_ui.set_action_button_highlight(true)
 			if touch_ui.action_button:
 				touch_ui.action_button.text = "[E] DELIVER DROP"
+		elif _active_target is MountInteractable:
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				touch_ui.action_button.text = "[E] MOUNT"
 		elif scrap_dumpster and (_active_target == scrap_dumpster.get_node_or_null("ScrapDumpsterInteractable") or (is_instance_valid(scrap_dumpster) and _active_target != null and _active_target.get_parent() == scrap_dumpster)):
 			touch_ui.set_action_button_highlight(true)
 			if touch_ui.action_button:
