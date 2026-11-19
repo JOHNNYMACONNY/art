@@ -149,10 +149,53 @@ def main() -> int:
             page.screenshot(path=str(sixth))
             evidence["steps"].append("close map and attempt E action, screenshot")
 
+            # Independent real-keyboard attempt toward the initial bike objective.
+            # This is not an internal state setter and does not assert a mount.
+            # Restart after the earlier diagnostic motions so the approach is reproducible.
+            page.reload(wait_until="domcontentloaded", timeout=30000)
+            page.locator("#status").wait_for(state="detached", timeout=180000)
+            page.locator("#canvas").focus()
+            page.wait_for_timeout(900)
+            seventh = output / "07_fresh_bike_attempt.png"
+            page.screenshot(path=str(seventh))
+            evidence["steps"].append("reload for independent first-bike keyboard attempt")
+
+            # Camera-relative W advances through the opening corridor; adding D
+            # next follows the forward/right projection toward the parked bike.
+            page.keyboard.down("w")
+            page.wait_for_timeout(360)
+            page.keyboard.down("d")
+            page.wait_for_timeout(680)
+            page.keyboard.up("d")
+            page.keyboard.up("w")
+            page.wait_for_timeout(350)
+            eighth = output / "08_bike_approach.png"
+            page.screenshot(path=str(eighth))
+            evidence["steps"].append("real keyboard: W 0.36s, then W+D 0.68s, screenshot bike approach")
+
+            page.keyboard.press("e")
+            page.wait_for_timeout(1000)
+            ninth = output / "09_bike_mount_attempt.png"
+            page.screenshot(path=str(ninth))
+            evidence["steps"].append("press E near expected bike, screenshot; mount not automatically asserted")
+
+            page.keyboard.down("w")
+            page.wait_for_timeout(900)
+            page.keyboard.up("w")
+            page.wait_for_timeout(500)
+            tenth = output / "10_after_mount_attempt.png"
+            page.screenshot(path=str(tenth))
+            evidence["steps"].append("real W after mount attempt, screenshot; travel/outcome unverified")
+            evidence["bike_mount_verification"] = "REQUIRES_VISUAL_INSPECTION"
+            evidence["mission_outcome_verification"] = "UNVERIFIED"
+
             evidence["frame_change"] = {
                 "spawn_to_forward": frame_change(first, second),
                 "forward_to_diagonal": frame_change(second, third),
                 "radio_to_map": frame_change(fourth, fifth),
+                "fresh_start_to_bike_approach": frame_change(seventh, eighth),
+                "approach_to_mount_attempt": frame_change(eighth, ninth),
+                "mount_attempt_to_movement": frame_change(ninth, tenth),
             }
             evidence["canvas"] = page.evaluate("({w:canvas.width,h:canvas.height})")
             evidence["finished"] = True
