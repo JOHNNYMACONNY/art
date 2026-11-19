@@ -137,6 +137,18 @@ func _update_tuner_mast_marker() -> void:
 	if _tuner_mast_marker.text != marker_text:
 		_tuner_mast_marker.text = marker_text
 
+# Selection hint only: the retained interactable still owns proximity,
+# power and action eligibility. This prevents a nearby parked bike from
+# stealing E while the player is legitimately working the mission terminal.
+func get_mission_priority_interactable() -> InteractableBase:
+	if not _bound or mission == null:
+		return null
+	if mission.phase == MissionScript.Phase.SPOOF_SIGNAL:
+		return _signal_tuner as InteractableBase
+	if mission.phase == MissionScript.Phase.EXTRACT_CORE:
+		return _corroded_panel as InteractableBase
+	return null
+
 func _reconcile_retained_progress() -> bool:
 	if not _bound or _root_controller == null:
 		return false
