@@ -8,6 +8,9 @@ on:
     paths:
       - "godot/scripts/camera/**"
       - "godot/scenes/props/**"
+      - "godot/scenes/prototype/scrap_test_block.tscn"
+      - "godot/scripts/missions/scrap_job_mission_runtime.gd"
+      - "godot/tests/opening_readability_212_test.gd"
       - "godot/tests/camera_occlusion_readability_test.gd"
       - "godot/tests/camera_occluder_authoring_test.gd"
       - "godot/tests/camera_occlusion_render_evidence.gd"
@@ -83,6 +86,16 @@ jobs:
             --rendering-method gl_compatibility \
             --path godot \
             --script res://tests/camera_occluder_authoring_test.gd
+
+      - name: Run actual opening-divider and courier-bike landmark contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" \
+            --headless \
+            --rendering-method gl_compatibility \
+            --path godot \
+            --script res://tests/opening_readability_212_test.gd
 
       - name: Capture rendered occlusion evidence
         shell: bash

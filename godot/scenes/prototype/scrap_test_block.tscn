@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3 uid="uid://c_scrap_test_block_001"]
+[gd_scene load_steps=35 format=3 uid="uid://c_scrap_test_block_001"]
 
 [ext_resource type="Script" path="res://scripts/prototype/scrap_test_block.gd" id="1_root"]
 
@@ -108,6 +108,9 @@ size = Vector3(1.0, 3.0, 24.0)
 [sub_resource type="BoxShape3D" id="BoxShape3D_shortcut_wall"]
 size = Vector3(1.0, 3.0, 24.0)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_opening_camera_occlusion"]
+size = Vector3(3.0, 16.0, 24.0)
+
 [node name="ScrapTestBlock" type="Node3D"]
 script = ExtResource("1_root")
 
@@ -193,7 +196,7 @@ surface_material_override/0 = SubResource("StandardMaterial3D_scrap")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShortcutLeftWall"]
 shape = SubResource("BoxShape3D_shortcut_wall")
 
-[node name="ShortcutDividerWall" type="StaticBody3D" parent="."]
+[node name="ShortcutDividerWall" type="StaticBody3D" parent="." groups=["camera_occluder"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 1.5, 20.0)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="ShortcutDividerWall"]
@@ -202,6 +205,16 @@ surface_material_override/0 = SubResource("StandardMaterial3D_scrap")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ShortcutDividerWall"]
 shape = SubResource("BoxShape3D_shortcut_wall")
+
+[node name="CameraOcclusionProxy" type="Area3D" parent="ShortcutDividerWall"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.5, 0)
+collision_layer = 1073741824
+collision_mask = 0
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ShortcutDividerWall/CameraOcclusionProxy"]
+shape = SubResource("BoxShape3D_opening_camera_occlusion")
 
 [node name="Runner" parent="." instance=ExtResource("3_runner")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 10.0)

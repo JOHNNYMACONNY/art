@@ -374,8 +374,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m pip install --disable-pip-version-check playwright==1.55.0
-          python3 -m playwright install --with-deps chromium
+          python3 -m venv "${RUNNER_TEMP}/p06-browser"
+          "${RUNNER_TEMP}/p06-browser/bin/python" -m pip install --quiet --disable-pip-version-check playwright==1.56.0
+          browser_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -x "$browser_bin"
+          echo "BROWSER_BIN=$browser_bin" >> "$GITHUB_ENV"
 
       - name: Prove same-origin browser relaunch persistence
         shell: bash
@@ -394,7 +397,7 @@ jobs:
 
           rm -rf "${RUNNER_TEMP}/p06-chromium-profile"
           mkdir -p godot/verification/production06
-          python3 - <<'PY'
+          "${RUNNER_TEMP}/p06-browser/bin/python" - <<'PY'
           import json
           import os
           from pathlib import Path
@@ -450,8 +453,13 @@ jobs:
           def observe(p, expected_status, label):
               context = p.chromium.launch_persistent_context(
                   str(profile),
+                  executable_path=os.environ["BROWSER_BIN"],
                   headless=True,
-                  args=["--disable-dev-shm-usage"],
+                  args=[
+                      "--no-sandbox", "--disable-dev-shm-usage",
+                      "--enable-webgl", "--enable-unsafe-swiftshader",
+                      "--use-gl=angle", "--use-angle=swiftshader",
+                  ],
               )
               console_messages = []
               page_errors = []

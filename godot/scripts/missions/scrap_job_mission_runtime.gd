@@ -24,6 +24,7 @@ var _completion_emitted_for_run: bool = false
 var _mission_panel: PanelContainer = null
 var _objective_label: Label = null
 var _contact_label: Label = null
+var _opening_bike_marker: Label3D = null
 
 func _ready() -> void:
 	_root_controller = get_parent()
@@ -36,6 +37,7 @@ func _process(_delta: float) -> void:
 		_try_bind_runtime()
 		return
 
+	_update_opening_bike_marker()
 	var changed := false
 	# The bike mount is the authored prerequisite, but the player may park short
 	# of the mast and finish the approach on foot. Track the rider rather than
@@ -75,9 +77,33 @@ func _try_bind_runtime() -> void:
 	_signal_gate.gate_triggered.connect(_on_gate_triggered)
 	_pursuer.de_escalation_completed.connect(_on_escape_complete)
 	_bound = true
+	_ensure_opening_bike_marker()
+	_update_opening_bike_marker()
 	_ensure_hud()
 	_refresh_hud()
 	print("[MISSION_NARRATIVE_01] Runtime bound to retained golden-slice systems")
+
+# Opening-objective landmark, scoped to the authored bike phase. Does not reveal
+# the unsurveyed service cut or take ownership of bike/mount/save state.
+func _ensure_opening_bike_marker() -> void:
+	if _opening_bike_marker != null or _courier_bike == null:
+		return
+	_opening_bike_marker = Label3D.new()
+	_opening_bike_marker.name = "OpeningCourierBikeMarker"
+	_opening_bike_marker.position = Vector3(0.0, 2.65, 0.0)
+	_opening_bike_marker.text = "COURIER BIKE"
+	_opening_bike_marker.font_size = 40
+	_opening_bike_marker.pixel_size = 0.007
+	_opening_bike_marker.outline_size = 12
+	_opening_bike_marker.outline_modulate = Color(0.03, 0.035, 0.04, 1.0)
+	_opening_bike_marker.modulate = Color(1.0, 0.81, 0.27, 1.0)
+	_opening_bike_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_opening_bike_marker.no_depth_test = true
+	_courier_bike.add_child(_opening_bike_marker)
+
+func _update_opening_bike_marker() -> void:
+	if _opening_bike_marker != null:
+		_opening_bike_marker.visible = mission != null and mission.phase == MissionScript.Phase.GET_BIKE
 
 func _reconcile_retained_progress() -> bool:
 	if not _bound or _root_controller == null:
