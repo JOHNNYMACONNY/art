@@ -50,6 +50,12 @@ func _run() -> void:
 	if collider.shape == null or collider.disabled:
 		await _fail("Gameplay divider collision unexpectedly disabled", game)
 		return
+	var detection_shape: CollisionShape3D = proxy.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	var physical_box: BoxShape3D = collider.shape as BoxShape3D
+	var detection_box: BoxShape3D = detection_shape.shape as BoxShape3D if detection_shape != null else null
+	if physical_box == null or detection_box == null or detection_box.size.y <= physical_box.size.y * 3.0:
+		await _fail("Camera proxy must cover perspective silhouette without resizing gameplay wall", game)
+		return
 
 	camera.call("reset_camera_instant", runner)
 	await physics_frame
