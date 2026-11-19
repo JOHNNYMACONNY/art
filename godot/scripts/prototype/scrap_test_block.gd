@@ -1025,6 +1025,14 @@ func _evaluate_target_selection() -> void:
 				elif muscle_coupe and _active_target == muscle_coupe.mount_interactable:
 					mount_verb = "DRIVE COUPE"
 				touch_ui.action_button.text = "[E] " + mount_verb
+		elif _active_target == signal_tuner and signal_tuner:
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				touch_ui.action_button.text = "[E] TUNE SIGNAL"
+		elif _active_target == corroded_panel and corroded_panel:
+			touch_ui.set_action_button_highlight(true)
+			if touch_ui.action_button:
+				touch_ui.action_button.text = "[E] PEEL PANEL"
 		elif scrap_dumpster and (_active_target == scrap_dumpster.get_node_or_null("ScrapDumpsterInteractable") or (is_instance_valid(scrap_dumpster) and _active_target != null and _active_target.get_parent() == scrap_dumpster)):
 			touch_ui.set_action_button_highlight(true)
 			if touch_ui.action_button:
