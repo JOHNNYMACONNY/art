@@ -82,5 +82,27 @@ func _run() -> void:
 		await _fail("Bike lacks readable opening-world objective landmark", game)
 		return
 
-	print("[OPENING_READABILITY_212] PASS — cutaway+collider+opening bike landmark")
+	# Programmatic placement tests UI label/selection semantics only. This is
+	# NOT proof of player keyboard travel or actual mounted-bike gameplay.
+	var touch_ui: Node = game.get("touch_ui") as Node
+	var action_button: Button = touch_ui.get("action_button") as Button if touch_ui != null else null
+	var hauler: Node3D = game.get("scrap_hauler") as Node3D
+	if action_button == null or hauler == null:
+		await _fail("Opening action prompt or hauler missing", game)
+		return
+	for test_case in [
+		{"vehicle": bike, "text": "[E] RIDE BIKE"},
+		{"vehicle": hauler, "text": "[E] DRIVE HAULER"},
+	]:
+		var target: Node3D = test_case["vehicle"] as Node3D
+		runner.global_position = target.global_position + Vector3(0.0, 0.0, 0.5)
+		for item in game.get("_interactables"):
+			if is_instance_valid(item):
+				item.update_player_distance(runner.global_position)
+		game.call("_evaluate_target_selection")
+		if action_button.text != String(test_case["text"]):
+			await _fail("Wrong available mount prompt near %s: %s" % [target.name, action_button.text], game)
+			return
+
+	print("[OPENING_READABILITY_212] PASS — cutaway+collision+objective landmark+vehicle-aware prompts")
 	await _finish(0, game)
