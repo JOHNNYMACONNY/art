@@ -69,7 +69,14 @@ def visually_inspect_action_label(screenshot: Path) -> dict:
         return {"hint": "unknown", "green_pixels": 0}
     width = max(x for x, _ in lit) - min(x for x, _ in lit) + 1
     count = len(lit)
-    hint = "possible_courier_action" if (88 <= width <= 107 and 450 <= count <= 730) else "other_or_unhighlighted"
+    # Based on separately inspected, real 960x540 frames: the highlighted
+    # [E] PEEL PANEL glyph spans ~114 px / 690 green pixels; the bike
+    # spans ~97 px / 647 pixels. Neither hint proves the in-game action.
+    hint = "other_or_unhighlighted"
+    if 88 <= width <= 107 and 450 <= count <= 730:
+        hint = "possible_courier_action"
+    elif 108 <= width <= 120 and 570 <= count <= 800:
+        hint = "possible_core_panel_action"
     return {"hint": hint, "green_pixels": count, "glyph_band_width": width}
 
 
@@ -223,13 +230,16 @@ def main() -> int:
             candidate = observation["hint"] == "possible_courier_action"
 
             if not candidate:
-                # Bounded, reversible real-keyboard exploratory moves. Each
-                # step remains observable; the test cannot force game state.
-                # The purpose is to avoid pressing E on a known wrong target,
-                # not to guarantee the bike will be found on every framerate.
+                # Bounded real-keyboard corrective probes. In the observed
+                # wrong-coupe frame, the game's existing live objective cue
+                # points RIGHT. Probe short screen-right moves first rather
+                # than blindly walking away to the left; check the actual
+                # action glyph after every move and never press E on a coupe.
+                # Motion remains framerate-dependent, so failure is reported.
                 for index, (key, duration_ms) in enumerate([
-                    ("a", 280), ("a", 280), ("w", 200), ("a", 280),
-                    ("s", 240), ("s", 240), ("d", 280), ("d", 280),
+                    ("d", 180), ("d", 180), ("d", 200), ("d", 200),
+                    ("w", 180), ("d", 200), ("s", 220), ("a", 240),
+                    ("a", 240), ("s", 200), ("d", 220), ("d", 220),
                 ], 1):
                     page.keyboard.down(key)
                     page.wait_for_timeout(duration_ms)
@@ -337,8 +347,95 @@ def main() -> int:
                     "tuner_interaction_to_drag": frame_change(fifteenth, sixteenth),
                     "tuner_drag_to_release": frame_change(sixteenth, seventeenth),
                 })
+
+                # Follow the actual rendered [E] PEEL PANEL action, not a
+                # presumed successful mission state. The game owns every
+                # gesture, core extraction and pursuit transition.
+                panel_hint = visually_inspect_action_label(seventeenth)
+                evidence["visual_action_hints"].append({
+                    "frame": seventeenth.name, **panel_hint
+                })
+                panel_candidate = panel_hint["hint"] == "possible_core_panel_action"
+                evidence["panel_wayfinding_probes"] = []
+                if not panel_candidate:
+                    # After tuner lock the core is down-left in the verified
+                    # rendered view. The former E prompt appeared outside the
+                    # 2.5m action radius. Approach in small screen-relative
+                    # steps, inspecting the actual [E] label after each.
+                    # Never press E based solely on destination distance.
+                    for index, (keys, duration_ms) in enumerate([
+                        (("s", "a"), 200), (("s", "a"), 200),
+                        (("s",), 170), (("a",), 170),
+                        (("s",), 170), (("d",), 180),
+                        (("w",), 170), (("d",), 170),
+                        (("s",), 170), (("a",), 170),
+                    ], 1):
+                        for key in keys:
+                            page.keyboard.down(key)
+                        page.wait_for_timeout(duration_ms)
+                        for key in reversed(keys):
+                            page.keyboard.up(key)
+                        page.wait_for_timeout(280)
+                        approach = output / f"17b_panel_approach_{index:02d}.png"
+                        page.screenshot(path=str(approach))
+                        hint = visually_inspect_action_label(approach)
+                        evidence["panel_wayfinding_probes"].append({
+                            "frame": approach.name, "keyboard": "+".join(keys),
+                            **hint
+                        })
+                        if hint["hint"] == "possible_core_panel_action":
+                            panel_candidate = True
+                            break
+                evidence["core_panel_prompt_visual_candidate"] = panel_candidate
+                evidence["core_panel_candidate_is_authoritative"] = False
+                if panel_candidate:
+                    page.keyboard.press("e")
+                    page.wait_for_timeout(550)
+                    eighteenth = output / "18_panel_peel_prompt_attempt.png"
+                    page.screenshot(path=str(eighteenth))
+                    evidence["steps"].append("press real E on visually likely [E] PEEL PANEL")
+
+                    # The retained gesture requires a downward peel, not the
+                    # horizontal tuner drag. A real mouse press, move, and
+                    # release must produce the exposed-core UI on its own.
+                    page.mouse.move(410, 190)
+                    page.mouse.down()
+                    page.mouse.move(410, 420, steps=42)
+                    page.wait_for_timeout(450)
+                    nineteenth = output / "19_panel_peel_drag_held.png"
+                    page.screenshot(path=str(nineteenth))
+                    page.mouse.up()
+                    page.wait_for_timeout(300)
+                    nineteenth_b = output / "19b_panel_peel_released.png"
+                    page.screenshot(path=str(nineteenth_b))
+                    evidence["steps"].append("real left-mouse drag downward 230px and release; screenshot exposure")
+
+                    # [E] is the documented core-tap binding while the
+                    # EXPOSE_CORE overlay is visible. Capture the result
+                    # without calling any Godot state getter or setter.
+                    page.keyboard.press("e")
+                    page.wait_for_timeout(1000)
+                    twentieth = output / "20_core_extraction_attempt.png"
+                    page.screenshot(path=str(twentieth))
+                    page.wait_for_timeout(5200)
+                    twenty_first = output / "21_pursuit_after_core_attempt.png"
+                    page.screenshot(path=str(twenty_first))
+                    evidence["steps"].append("press real E to tap exposed core; observe 5.2 seconds for echo/pursuit")
+                    evidence["core_extraction_verification"] = "REQUIRES_VISUAL_AND_CONSOLE_INSPECTION_OF_18_TO_21"
+                    evidence["pursuit_verification"] = "REQUIRES_VISUAL_AND_CONSOLE_INSPECTION_OF_20_TO_21"
+                    evidence["frame_change"].update({
+                        "panel_prompt_to_peel_start": frame_change(seventeenth, eighteenth),
+                        "peel_start_to_drag": frame_change(eighteenth, nineteenth),
+                        "peel_release_to_core_attempt": frame_change(nineteenth_b, twentieth),
+                        "core_attempt_to_pursuit_observation": frame_change(twentieth, twenty_first),
+                    })
+                else:
+                    evidence["core_extraction_verification"] = "NOT_ATTEMPTED_NO_PANEL_ACTION_CANDIDATE"
+                    evidence["pursuit_verification"] = "NOT_ATTEMPTED_NO_PANEL_ACTION_CANDIDATE"
             else:
                 evidence["tuner_spoof_verification"] = "NOT_ATTEMPTED_NO_COURIER_CANDIDATE"
+                evidence["core_extraction_verification"] = "NOT_ATTEMPTED_NO_COURIER_CANDIDATE"
+                evidence["pursuit_verification"] = "NOT_ATTEMPTED_NO_COURIER_CANDIDATE"
 
             evidence["canvas"] = page.evaluate("({w:canvas.width,h:canvas.height})")
             evidence["finished"] = True

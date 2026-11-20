@@ -45,8 +45,13 @@ func power_on() -> void:
 			highlight_ring.visible = true
 		magnetism_changed.emit(true, self)
 
-func can_interact(_player_pos: Vector3) -> bool:
-	return is_powered and current_step == Step.APPROACHED
+# Keep the on-screen [E] affordance identical to trigger_action's real
+# proximity gate. The outer 3.5m magnetism area may mark APPROACHED while
+# the player is still outside the 2.5m action radius.
+func can_interact(player_pos: Vector3) -> bool:
+	return is_powered and current_step == Step.APPROACHED \
+		and is_player_in_range \
+		and global_position.distance_to(player_pos) <= interaction_radius
 
 func begin_interaction(_player_pos: Vector3) -> bool:
 	return trigger_action()
