@@ -51,12 +51,54 @@ func _run() -> void:
 		return
 
 	var mission = adapter.get("mission")
+	# Scene-level location fixtures only: no keyboard movement or mission outcome
+	# is inferred from these waypoint assertions.
+	var wayfinding: Label = adapter.get("_bike_wayfinding_label") as Label
+	var camera: Camera3D = game.get_node_or_null("ChinatownCamera3D") as Camera3D
+	if wayfinding == null or camera == null or not wayfinding.visible or not wayfinding.text.begins_with("COURIER BIKE // "):
+		await _fail("Opening courier bearing/distance HUD missing", game)
+		return
+	var spawn: Vector3 = runner.global_position
+	var spawn_delta: Vector3 = bike.global_position - spawn
+	spawn_delta.y = 0.0
+	if not wayfinding.text.contains("%dm" % ceili(spawn_delta.length())):
+		await _fail("Courier HUD does not measure actual bike distance", game)
+		return
+
+	var right: Vector3 = camera.global_transform.basis.x
+	right.y = 0.0
+	runner.global_position = bike.global_position - right.normalized() * 8.0
+	adapter.call("_update_bike_wayfinding")
+	if not wayfinding.text.ends_with(" // RIGHT"):
+		await _fail("Courier bearing is not camera-right: %s" % wayfinding.text, game)
+		return
+
+	var forward: Vector3 = -camera.global_transform.basis.z
+	forward.y = 0.0
+	runner.global_position = bike.global_position - forward.normalized() * 8.0
+	adapter.call("_update_bike_wayfinding")
+	if not wayfinding.text.ends_with(" // AHEAD"):
+		await _fail("Courier bearing is not camera-forward: %s" % wayfinding.text, game)
+		return
+
+	runner.global_position = bike.global_position + Vector3(0.0, 0.0, 1.0)
+	adapter.call("_update_bike_wayfinding")
+	if not wayfinding.text.ends_with(" // SEEK [E] RIDE BIKE"):
+		await _fail("Near-bike affordance hides the actual interaction verb", game)
+		return
+	runner.global_position = spawn
+	adapter.call("_update_bike_wayfinding")
+
 	var marker: Label3D = tuner.get_node_or_null("MissionTunerMastMarker") as Label3D
 	if marker == null or marker.visible:
 		await _fail("Mast marker missing or prematurely revealing future mission target", game)
 		return
 	if not mission.on_courier_bike_mounted():
 		await _fail("Mission fixture could not enter tuner traversal", game)
+		return
+	adapter.call("_update_bike_wayfinding")
+	if wayfinding.visible:
+		await _fail("Courier waypoint leaked into later mission phases", game)
 		return
 	adapter.call("_update_tuner_mast_marker")
 	if not marker.visible or marker.text != "TUNER MAST":
@@ -103,5 +145,5 @@ func _run() -> void:
 		await _fail("Bike incorrectly stole active core-panel objective: %s" % panel_prompt, game)
 		return
 
-	print("[MISSION_TUNER_GUIDANCE_214] PASS — phase-gated markers, priority of eligible mission terminals over parked bike, retained signal gate")
+	print("[MISSION_TUNER_GUIDANCE_214] PASS — courier distance/bearing guidance, phase gates, tuner/panel priority, retained signal gate")
 	await _finish(0, game)
