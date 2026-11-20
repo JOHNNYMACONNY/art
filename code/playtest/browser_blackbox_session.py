@@ -230,13 +230,16 @@ def main() -> int:
             candidate = observation["hint"] == "possible_courier_action"
 
             if not candidate:
-                # Bounded, reversible real-keyboard exploratory moves. Each
-                # step remains observable; the test cannot force game state.
-                # The purpose is to avoid pressing E on a known wrong target,
-                # not to guarantee the bike will be found on every framerate.
+                # Bounded real-keyboard corrective probes. In the observed
+                # wrong-coupe frame, the game's existing live objective cue
+                # points RIGHT. Probe short screen-right moves first rather
+                # than blindly walking away to the left; check the actual
+                # action glyph after every move and never press E on a coupe.
+                # Motion remains framerate-dependent, so failure is reported.
                 for index, (key, duration_ms) in enumerate([
-                    ("a", 280), ("a", 280), ("w", 200), ("a", 280),
-                    ("s", 240), ("s", 240), ("d", 280), ("d", 280),
+                    ("d", 180), ("d", 180), ("d", 200), ("d", 200),
+                    ("w", 180), ("d", 200), ("s", 220), ("a", 240),
+                    ("a", 240), ("s", 200), ("d", 220), ("d", 220),
                 ], 1):
                     page.keyboard.down(key)
                     page.wait_for_timeout(duration_ms)
