@@ -24,6 +24,7 @@ var _completion_emitted_for_run: bool = false
 var _mission_panel: PanelContainer = null
 var _objective_label: Label = null
 var _bike_wayfinding_label: Label = null
+var _tuner_wayfinding_label: Label = null
 var _panel_wayfinding_label: Label = null
 var _contact_label: Label = null
 var _navigation_camera: Camera3D = null
@@ -44,6 +45,7 @@ func _process(_delta: float) -> void:
 
 	_update_opening_bike_marker()
 	_update_bike_wayfinding()
+	_update_tuner_wayfinding()
 	_update_panel_wayfinding()
 	_update_tuner_mast_marker()
 	_update_core_panel_marker()
@@ -157,6 +159,36 @@ func _update_bike_wayfinding() -> void:
 	var label_text: String = "COURIER BIKE // %dm // %s" % [ceili(distance_m), bearing]
 	if _bike_wayfinding_label.text != label_text:
 		_bike_wayfinding_label.text = label_text
+
+# SPOOF can begin at the broad 5m arrival boundary while actual E tuning
+# needs the retained terminal's tighter interaction radius. Make that gap
+# readable without widening the radius or bypassing the dismount requirement.
+func _update_tuner_wayfinding() -> void:
+	if _tuner_wayfinding_label == null:
+		return
+	var active: bool = mission != null \
+		and (mission.phase == MissionScript.Phase.TRAVERSE_TO_TUNER \
+		or mission.phase == MissionScript.Phase.SPOOF_SIGNAL) \
+		and _runner != null and _signal_tuner != null
+	_tuner_wayfinding_label.visible = active
+	if not active:
+		return
+	var to_tuner: Vector3 = _signal_tuner.global_position - _runner.global_position
+	to_tuner.y = 0.0
+	var distance_m: float = to_tuner.length()
+	var bearing: String = _screen_relative_bearing(to_tuner)
+	var label_title: String = "SPOOF SIGNAL" if mission.phase == MissionScript.Phase.SPOOF_SIGNAL else "TUNER MAST"
+	if mission.phase == MissionScript.Phase.SPOOF_SIGNAL:
+		if bool(_runner.get("is_mounted")):
+			if distance_m <= TUNER_ARRIVAL_RADIUS:
+				bearing = "DISMOUNT [E] TO TUNE"
+		elif _signal_tuner.can_interact(_runner.global_position):
+			bearing = "SEEK [E] TUNE SIGNAL"
+		elif distance_m <= TUNER_ARRIVAL_RADIUS:
+			bearing = "MOVE CLOSER // %s" % bearing
+	var label_text: String = "%s // %dm // %s" % [label_title, ceili(distance_m), bearing]
+	if _tuner_wayfinding_label.text != label_text:
+		_tuner_wayfinding_label.text = label_text
 
 # The customs core is named by the mission after the tuner lock. Do not
 # advertise an actionable E outside the retained panel's 2.5m action radius.
@@ -372,6 +404,16 @@ func _ensure_hud() -> void:
 	_bike_wayfinding_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	stack.add_child(_bike_wayfinding_label)
 
+	_tuner_wayfinding_label = Label.new()
+	_tuner_wayfinding_label.name = "TunerWayfindingLabel"
+	_make_input_transparent(_tuner_wayfinding_label)
+	_tuner_wayfinding_label.custom_minimum_size = Vector2(400.0, 0.0)
+	_tuner_wayfinding_label.add_theme_font_size_override("font_size", 13)
+	_tuner_wayfinding_label.add_theme_color_override("font_color", Color(0.45, 0.94, 1.0, 1.0))
+	_tuner_wayfinding_label.add_theme_constant_override("outline_size", 3)
+	_tuner_wayfinding_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	stack.add_child(_tuner_wayfinding_label)
+
 	_panel_wayfinding_label = Label.new()
 	_panel_wayfinding_label.name = "PanelWayfindingLabel"
 	_make_input_transparent(_panel_wayfinding_label)
@@ -401,6 +443,7 @@ func _refresh_hud() -> void:
 		return
 	_objective_label.text = mission.objective
 	_update_bike_wayfinding()
+	_update_tuner_wayfinding()
 	_update_panel_wayfinding()
 	_update_core_panel_marker()
 	_contact_label.text = mission.contact_line
