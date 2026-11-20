@@ -24,10 +24,12 @@ var _completion_emitted_for_run: bool = false
 var _mission_panel: PanelContainer = null
 var _objective_label: Label = null
 var _bike_wayfinding_label: Label = null
+var _panel_wayfinding_label: Label = null
 var _contact_label: Label = null
 var _navigation_camera: Camera3D = null
 var _opening_bike_marker: Label3D = null
 var _tuner_mast_marker: Label3D = null
+var _core_panel_marker: Label3D = null
 
 func _ready() -> void:
 	_root_controller = get_parent()
@@ -42,7 +44,9 @@ func _process(_delta: float) -> void:
 
 	_update_opening_bike_marker()
 	_update_bike_wayfinding()
+	_update_panel_wayfinding()
 	_update_tuner_mast_marker()
+	_update_core_panel_marker()
 	var changed := false
 	# The bike mount is the authored prerequisite, but the player may park short
 	# of the mast and finish the approach on foot. Track the rider rather than
@@ -85,8 +89,10 @@ func _try_bind_runtime() -> void:
 	_bound = true
 	_ensure_opening_bike_marker()
 	_ensure_tuner_mast_marker()
+	_ensure_core_panel_marker()
 	_update_opening_bike_marker()
 	_update_tuner_mast_marker()
+	_update_core_panel_marker()
 	_ensure_hud()
 	_refresh_hud()
 	print("[MISSION_NARRATIVE_01] Runtime bound to retained golden-slice systems")
@@ -116,6 +122,26 @@ func _update_opening_bike_marker() -> void:
 # A short camera-relative bearing belongs to the already disclosed first objective.
 # Unlike fixed-time navigation, this updates as the follow camera turns and as
 # players move past the bike; it does not bypass obstacles or select actions.
+func _screen_relative_bearing(to_objective: Vector3) -> String:
+	if _navigation_camera == null or to_objective.length_squared() <= 0.01:
+		return "LOOK FOR LANDMARK"
+	var forward: Vector3 = -_navigation_camera.global_transform.basis.z
+	var right: Vector3 = _navigation_camera.global_transform.basis.x
+	forward.y = 0.0
+	right.y = 0.0
+	if forward.length_squared() <= 0.01 or right.length_squared() <= 0.01:
+		return "LOOK FOR LANDMARK"
+	var direction: Vector3 = to_objective.normalized()
+	var ahead: float = direction.dot(forward.normalized())
+	var side: float = direction.dot(right.normalized())
+	if absf(ahead) > absf(side) * 1.5:
+		return "AHEAD" if ahead >= 0.0 else "BEHIND"
+	if absf(side) > absf(ahead) * 1.5:
+		return "RIGHT" if side >= 0.0 else "LEFT"
+	var depth: String = "AHEAD" if ahead >= 0.0 else "BACK"
+	var lateral: String = "RIGHT" if side >= 0.0 else "LEFT"
+	return "%s-%s" % [depth, lateral]
+
 func _update_bike_wayfinding() -> void:
 	if _bike_wayfinding_label == null:
 		return
@@ -124,33 +150,31 @@ func _update_bike_wayfinding() -> void:
 	_bike_wayfinding_label.visible = active
 	if not active:
 		return
-
 	var to_bike: Vector3 = _courier_bike.global_position - _runner.global_position
 	to_bike.y = 0.0
 	var distance_m: float = to_bike.length()
-	var bearing: String = "LOOK FOR LANDMARK"
-	if distance_m <= 2.5:
-		bearing = "SEEK [E] RIDE BIKE"
-	elif _navigation_camera != null:
-		var forward: Vector3 = -_navigation_camera.global_transform.basis.z
-		var right: Vector3 = _navigation_camera.global_transform.basis.x
-		forward.y = 0.0
-		right.y = 0.0
-		if forward.length_squared() > 0.01 and right.length_squared() > 0.01:
-			var direction: Vector3 = to_bike.normalized()
-			var ahead: float = direction.dot(forward.normalized())
-			var side: float = direction.dot(right.normalized())
-			if absf(ahead) > absf(side) * 1.5:
-				bearing = "AHEAD" if ahead >= 0.0 else "BEHIND"
-			elif absf(side) > absf(ahead) * 1.5:
-				bearing = "RIGHT" if side >= 0.0 else "LEFT"
-			else:
-				var depth: String = "AHEAD" if ahead >= 0.0 else "BACK"
-				var lateral: String = "RIGHT" if side >= 0.0 else "LEFT"
-				bearing = "%s-%s" % [depth, lateral]
+	var bearing: String = "SEEK [E] RIDE BIKE" if distance_m <= 2.5 else _screen_relative_bearing(to_bike)
 	var label_text: String = "COURIER BIKE // %dm // %s" % [ceili(distance_m), bearing]
 	if _bike_wayfinding_label.text != label_text:
 		_bike_wayfinding_label.text = label_text
+
+# The customs core is named by the mission after the tuner lock. Do not
+# advertise an actionable E outside the retained panel's 2.5m action radius.
+func _update_panel_wayfinding() -> void:
+	if _panel_wayfinding_label == null:
+		return
+	var active: bool = mission != null and mission.phase == MissionScript.Phase.EXTRACT_CORE \
+		and _runner != null and _corroded_panel != null
+	_panel_wayfinding_label.visible = active
+	if not active:
+		return
+	var to_panel: Vector3 = _corroded_panel.global_position - _runner.global_position
+	to_panel.y = 0.0
+	var distance_m: float = to_panel.length()
+	var bearing: String = "SEEK [E] PEEL PANEL" if distance_m <= 2.5 else _screen_relative_bearing(to_panel)
+	var label_text: String = "CORE PANEL // %dm // %s" % [ceili(distance_m), bearing]
+	if _panel_wayfinding_label.text != label_text:
+		_panel_wayfinding_label.text = label_text
 
 # Authored mast is already identified by the mission objective. This landmark
 # only marks that known target and does not disclose unsurveyed service routes.
@@ -179,6 +203,28 @@ func _update_tuner_mast_marker() -> void:
 	var marker_text: String = "SPOOF SIGNAL" if needs_spoof else "TUNER MAST"
 	if _tuner_mast_marker.text != marker_text:
 		_tuner_mast_marker.text = marker_text
+
+# Phase-gated visual landmark for the disclosed extraction objective.
+# Presentation only: actual E eligibility remains on CorrodedPanel.
+func _ensure_core_panel_marker() -> void:
+	if _core_panel_marker != null or _corroded_panel == null:
+		return
+	_core_panel_marker = Label3D.new()
+	_core_panel_marker.name = "MissionCorePanelMarker"
+	_core_panel_marker.position = Vector3(0.0, 2.25, 0.0)
+	_core_panel_marker.text = "CORE PANEL"
+	_core_panel_marker.font_size = 40
+	_core_panel_marker.pixel_size = 0.007
+	_core_panel_marker.outline_size = 12
+	_core_panel_marker.outline_modulate = Color(0.03, 0.035, 0.04, 1.0)
+	_core_panel_marker.modulate = Color(1.0, 0.81, 0.27, 1.0)
+	_core_panel_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_core_panel_marker.no_depth_test = true
+	_corroded_panel.add_child(_core_panel_marker)
+
+func _update_core_panel_marker() -> void:
+	if _core_panel_marker != null:
+		_core_panel_marker.visible = mission != null and mission.phase == MissionScript.Phase.EXTRACT_CORE
 
 # Selection hint only: the retained interactable still owns proximity,
 # power and action eligibility. This prevents a nearby parked bike from
@@ -326,6 +372,16 @@ func _ensure_hud() -> void:
 	_bike_wayfinding_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	stack.add_child(_bike_wayfinding_label)
 
+	_panel_wayfinding_label = Label.new()
+	_panel_wayfinding_label.name = "PanelWayfindingLabel"
+	_make_input_transparent(_panel_wayfinding_label)
+	_panel_wayfinding_label.custom_minimum_size = Vector2(400.0, 0.0)
+	_panel_wayfinding_label.add_theme_font_size_override("font_size", 13)
+	_panel_wayfinding_label.add_theme_color_override("font_color", Color(1.0, 0.81, 0.27, 1.0))
+	_panel_wayfinding_label.add_theme_constant_override("outline_size", 3)
+	_panel_wayfinding_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	stack.add_child(_panel_wayfinding_label)
+
 	_contact_label = Label.new()
 	_contact_label.name = "ContactLabel"
 	_make_input_transparent(_contact_label)
@@ -345,6 +401,8 @@ func _refresh_hud() -> void:
 		return
 	_objective_label.text = mission.objective
 	_update_bike_wayfinding()
+	_update_panel_wayfinding()
+	_update_core_panel_marker()
 	_contact_label.text = mission.contact_line
 	_contact_label.modulate.a = 1.0
 	if _subtitle_tween != null and _subtitle_tween.is_valid():
