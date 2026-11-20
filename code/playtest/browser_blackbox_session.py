@@ -356,6 +356,36 @@ def main() -> int:
                     "frame": seventeenth.name, **panel_hint
                 })
                 panel_candidate = panel_hint["hint"] == "possible_core_panel_action"
+                evidence["panel_wayfinding_probes"] = []
+                if not panel_candidate:
+                    # After tuner lock the core is down-left in the verified
+                    # rendered view. The former E prompt appeared outside the
+                    # 2.5m action radius. Approach in small screen-relative
+                    # steps, inspecting the actual [E] label after each.
+                    # Never press E based solely on destination distance.
+                    for index, (keys, duration_ms) in enumerate([
+                        (("s", "a"), 200), (("s", "a"), 200),
+                        (("s",), 170), (("a",), 170),
+                        (("s",), 170), (("d",), 180),
+                        (("w",), 170), (("d",), 170),
+                        (("s",), 170), (("a",), 170),
+                    ], 1):
+                        for key in keys:
+                            page.keyboard.down(key)
+                        page.wait_for_timeout(duration_ms)
+                        for key in reversed(keys):
+                            page.keyboard.up(key)
+                        page.wait_for_timeout(280)
+                        approach = output / f"17b_panel_approach_{index:02d}.png"
+                        page.screenshot(path=str(approach))
+                        hint = visually_inspect_action_label(approach)
+                        evidence["panel_wayfinding_probes"].append({
+                            "frame": approach.name, "keyboard": "+".join(keys),
+                            **hint
+                        })
+                        if hint["hint"] == "possible_core_panel_action":
+                            panel_candidate = True
+                            break
                 evidence["core_panel_prompt_visual_candidate"] = panel_candidate
                 evidence["core_panel_candidate_is_authoritative"] = False
                 if panel_candidate:
