@@ -23,7 +23,9 @@ var _completion_emitted_for_run: bool = false
 
 var _mission_panel: PanelContainer = null
 var _objective_label: Label = null
+var _bike_wayfinding_label: Label = null
 var _contact_label: Label = null
+var _navigation_camera: Camera3D = null
 var _opening_bike_marker: Label3D = null
 var _tuner_mast_marker: Label3D = null
 
@@ -39,6 +41,7 @@ func _process(_delta: float) -> void:
 		return
 
 	_update_opening_bike_marker()
+	_update_bike_wayfinding()
 	_update_tuner_mast_marker()
 	var changed := false
 	# The bike mount is the authored prerequisite, but the player may park short
@@ -65,6 +68,7 @@ func _try_bind_runtime() -> void:
 		return
 
 	_runner = _root_controller.get_node_or_null("Runner") as Node3D
+	_navigation_camera = _root_controller.get_node_or_null("ChinatownCamera3D") as Camera3D
 	_courier_bike = _root_controller.get("courier_bike")
 	_signal_tuner = _root_controller.get("signal_tuner")
 	_corroded_panel = _root_controller.get("corroded_panel")
@@ -108,6 +112,45 @@ func _ensure_opening_bike_marker() -> void:
 func _update_opening_bike_marker() -> void:
 	if _opening_bike_marker != null:
 		_opening_bike_marker.visible = mission != null and mission.phase == MissionScript.Phase.GET_BIKE
+
+# A short camera-relative bearing belongs to the already disclosed first objective.
+# Unlike fixed-time navigation, this updates as the follow camera turns and as
+# players move past the bike; it does not bypass obstacles or select actions.
+func _update_bike_wayfinding() -> void:
+	if _bike_wayfinding_label == null:
+		return
+	var active: bool = mission != null and mission.phase == MissionScript.Phase.GET_BIKE \
+		and _runner != null and _courier_bike != null
+	_bike_wayfinding_label.visible = active
+	if not active:
+		return
+
+	var to_bike: Vector3 = _courier_bike.global_position - _runner.global_position
+	to_bike.y = 0.0
+	var distance_m: float = to_bike.length()
+	var bearing: String = "LOOK FOR LANDMARK"
+	if distance_m <= 2.5:
+		bearing = "SEEK [E] RIDE BIKE"
+	elif _navigation_camera != null:
+		var forward: Vector3 = -_navigation_camera.global_transform.basis.z
+		var right: Vector3 = _navigation_camera.global_transform.basis.x
+		forward.y = 0.0
+		right.y = 0.0
+		if forward.length_squared() > 0.01 and right.length_squared() > 0.01:
+			var direction: Vector3 = to_bike.normalized()
+			var ahead: float = direction.dot(forward.normalized())
+			var side: float = direction.dot(right.normalized())
+			if absf(ahead) > absf(side) * 1.5:
+				bearing = "AHEAD" if ahead >= 0.0 else "BEHIND"
+			elif absf(side) > absf(ahead) * 1.5:
+				bearing = "RIGHT" if side >= 0.0 else "LEFT"
+			else:
+				var depth: String = "AHEAD" if ahead >= 0.0 else "BACK"
+				var lateral: String = "RIGHT" if side >= 0.0 else "LEFT"
+				bearing = "%s-%s" % [depth, lateral]
+	var label_text: String = "COURIER BIKE // %dm // %s" % [ceili(distance_m), bearing]
+	if _bike_wayfinding_label.text != label_text:
+		_bike_wayfinding_label.text = label_text
 
 # Authored mast is already identified by the mission objective. This landmark
 # only marks that known target and does not disclose unsurveyed service routes.
@@ -273,6 +316,16 @@ func _ensure_hud() -> void:
 	_objective_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	stack.add_child(_objective_label)
 
+	_bike_wayfinding_label = Label.new()
+	_bike_wayfinding_label.name = "BikeWayfindingLabel"
+	_make_input_transparent(_bike_wayfinding_label)
+	_bike_wayfinding_label.custom_minimum_size = Vector2(400.0, 0.0)
+	_bike_wayfinding_label.add_theme_font_size_override("font_size", 13)
+	_bike_wayfinding_label.add_theme_color_override("font_color", Color(1.0, 0.81, 0.27, 1.0))
+	_bike_wayfinding_label.add_theme_constant_override("outline_size", 3)
+	_bike_wayfinding_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	stack.add_child(_bike_wayfinding_label)
+
 	_contact_label = Label.new()
 	_contact_label.name = "ContactLabel"
 	_make_input_transparent(_contact_label)
@@ -291,6 +344,7 @@ func _refresh_hud() -> void:
 	if _objective_label == null or _contact_label == null:
 		return
 	_objective_label.text = mission.objective
+	_update_bike_wayfinding()
 	_contact_label.text = mission.contact_line
 	_contact_label.modulate.a = 1.0
 	if _subtitle_tween != null and _subtitle_tween.is_valid():
