@@ -135,7 +135,29 @@ func _run() -> void:
 	if not panel.is_powered:
 		await _fail("Retained tuner-to-panel power dependency broke", game)
 		return
+
+	var panel_marker: Label3D = panel.get_node_or_null("MissionCorePanelMarker") as Label3D
+	var panel_wayfinding: Label = adapter.get("_panel_wayfinding_label") as Label
+	if panel_marker == null or not panel_marker.visible or panel_wayfinding == null or not panel_wayfinding.visible:
+		await _fail("Retained extraction objective lacks its phase-gated panel landmark and HUD", game)
+		return
+	if not panel_wayfinding.text.begins_with("CORE PANEL // "):
+		await _fail("Core panel distance/bearing label missing", game)
+		return
+
 	panel.call("_on_body_entered", runner)
+	# Magnetism is 3.5m wide, but E becomes valid only within the
+	# interactable's 2.5m radius. This reproduces the black-box false
+	# [E] PEEL PANEL at an unreachable distance after tuner lock.
+	var too_far: Vector3 = panel.global_position + Vector3(0.0, 0.0, 3.0)
+	var far_prompt := _select_at(game, runner, too_far)
+	if game.get("_active_target") == panel or far_prompt == "[E] PEEL PANEL":
+		await _fail("Panel action falsely advertised outside its actual E radius", game)
+		return
+	adapter.call("_update_panel_wayfinding")
+	if not panel_wayfinding.text.contains("3m"):
+		await _fail("Panel bearing failed to measure the three-meter approach", game)
+		return
 	bike.global_position = panel.global_position + Vector3(0.0, -0.45, 0.9)
 	var panel_prompt := _select_at(game, runner, panel.global_position + Vector3(0.0, 0.0, 0.5))
 	if not mount.can_interact(runner.global_position) or not panel.can_interact(runner.global_position):
@@ -144,6 +166,10 @@ func _run() -> void:
 	if panel_prompt != "[E] PEEL PANEL" or game.get("_active_target") != panel:
 		await _fail("Bike incorrectly stole active core-panel objective: %s" % panel_prompt, game)
 		return
+	game.call("_on_action_pressed")
+	if int(panel.current_step) != int(CorrodedPanel.Step.PEELING):
+		await _fail("Visible E panel action did not begin actual peeling", game)
+		return
 
-	print("[MISSION_TUNER_GUIDANCE_214] PASS — courier distance/bearing guidance, phase gates, tuner/panel priority, retained signal gate")
+	print("[MISSION_TUNER_GUIDANCE_214] PASS — courier and panel bearings, E eligibility parity, actual peel start, phase markers, mission-terminal priority")
 	await _finish(0, game)
