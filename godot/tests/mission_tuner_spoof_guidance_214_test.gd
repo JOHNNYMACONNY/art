@@ -90,6 +90,10 @@ func _run() -> void:
 	adapter.call("_update_bike_wayfinding")
 
 	var marker: Label3D = tuner.get_node_or_null("MissionTunerMastMarker") as Label3D
+	var tuner_wayfinding: Label = adapter.get("_tuner_wayfinding_label") as Label
+	if tuner_wayfinding == null or tuner_wayfinding.visible:
+		await _fail("Tuner approach cue revealed before courier mission phase", game)
+		return
 	if marker == null or marker.visible:
 		await _fail("Mast marker missing or prematurely revealing future mission target", game)
 		return
@@ -101,6 +105,10 @@ func _run() -> void:
 		await _fail("Courier waypoint leaked into later mission phases", game)
 		return
 	adapter.call("_update_tuner_mast_marker")
+	adapter.call("_update_tuner_wayfinding")
+	if not tuner_wayfinding.visible or not tuner_wayfinding.text.begins_with("TUNER MAST // "):
+		await _fail("Tuner travel phase lacks range/direction cue", game)
+		return
 	if not marker.visible or marker.text != "TUNER MAST":
 		await _fail("Authored mast landmark absent during traverse", game)
 		return
@@ -108,8 +116,25 @@ func _run() -> void:
 		await _fail("Mission fixture could not enter signal spoof", game)
 		return
 	adapter.call("_update_tuner_mast_marker")
+	adapter.call("_update_tuner_wayfinding")
+	if not tuner_wayfinding.visible or not tuner_wayfinding.text.begins_with("SPOOF SIGNAL // "):
+		await _fail("Spoof phase lost tuner range/direction cue", game)
+		return
 	if not marker.visible or marker.text != "SPOOF SIGNAL":
 		await _fail("Mast landmark failed to switch to spoof objective", game)
+		return
+
+	# Arrival at 5m does not mean E is valid at the terminal's 2.5m radius.
+	# Verify real game visibility semantics without widening the action range.
+	var tuner_far := _select_at(game, runner, tuner.global_position + Vector3(0.0, 0.0, 4.0))
+	adapter.call("_update_tuner_wayfinding")
+	if tuner_wayfinding.text.find("MOVE CLOSER") == -1 or tuner_far == "[E] TUNE SIGNAL":
+		await _fail("Tuner falsely advertises E at the arrival boundary: %s" % tuner_wayfinding.text, game)
+		return
+	_select_at(game, runner, tuner.global_position + Vector3(0.0, 0.0, 0.5))
+	adapter.call("_update_tuner_wayfinding")
+	if not tuner_wayfinding.text.ends_with("SEEK [E] TUNE SIGNAL"):
+		await _fail("Eligible near tuner did not reveal E guidance: %s" % tuner_wayfinding.text, game)
 		return
 
 	# Simulate two simultaneously eligible targets to reproduce the exact
@@ -129,6 +154,10 @@ func _run() -> void:
 	# Existing production signal—not direct mission mutation—powers the panel.
 	tuner.call("_lock_signal")
 	adapter.call("_update_tuner_mast_marker")
+	adapter.call("_update_tuner_wayfinding")
+	if tuner_wayfinding.visible:
+		await _fail("Tuner distance cue leaked after signal lock", game)
+		return
 	if marker.visible or int(mission.phase) != int(MissionScript.Phase.EXTRACT_CORE):
 		await _fail("Signal-lock transition failed to retire mast marker or enable extraction", game)
 		return
@@ -171,5 +200,5 @@ func _run() -> void:
 		await _fail("Visible E panel action did not begin actual peeling", game)
 		return
 
-	print("[MISSION_TUNER_GUIDANCE_214] PASS — courier and panel bearings, E eligibility parity, actual peel start, phase markers, mission-terminal priority")
+	print("[MISSION_TUNER_GUIDANCE_214] PASS — courier/tuner/panel bearings, tuner arrival-versus-E radius, panel E parity, peel start, phase markers, mission-terminal priority")
 	await _finish(0, game)
